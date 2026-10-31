@@ -125,6 +125,79 @@ jobs:
             ~/go/pkg/mod
           key: go-postgres-${{ runner.os }}-${{ hashFiles('go.sum', 'api/go.sum') }}-${{ github.sha }}
 
+  # A deployment with data in it, brought up to this build (scripts/upgrade.sh):
+  # the build this one comes after -- the pull request's base, or what `main`
+  # was before this push -- writes a product and its price book, a key, two
+  # workspaces with payers, readings and points, closed periods, an invoice and
+  # grants, and this one migrates them, on SQLite and on PostgreSQL, and reads
+  # them back as they were. Every other test starts from an empty database,
+  # which takes any column the schema adds; a column that may not be NULL and
+  # has no default cannot be added to a table with rows in it, and only this
+  # says so. `Workspace.label` (#25) was found by staging's migration instead,
+  # and this job is Claude's answer to it (2026-10-31).
+  #
+  # And from the oldest build a deployment still runs, beside it: a migration
+  # from the build just before is one step, and a deployment that skipped some
+  # takes several at once. What a build from before a feature does not have,
+  # it is not asked to write.
+  upgrade:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # Started first, so that it is up by the time levyan is built.
+      - name: PostgreSQL
+        run: |
+          docker run -d --name postgres -p 5432:5432 \
+            -e POSTGRES_USER=levyan -e POSTGRES_PASSWORD=levyan -e POSTGRES_DB=levyan postgres:18
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      # The `go` job's cache, as the other jobs restore it.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'api/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ hashFiles('go.sum', 'api/go.sum') }}-
+            go-${{ runner.os }}-
+      - name: this build, the one it comes after, and the oldest a deployment runs
+        env:
+          BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # The build staging runs, 5b1fdc7 (#22). It moves when staging
+          # moves: to what staging runs once it runs it.
+          OLDEST: 5b1fdc7b6a42e8a7aef59bd555ebe1fc811f8f42
+        run: |
+          go build -o "${RUNNER_TEMP}/now/" ./cmd/levyan ./cmd/levyan-admin
+          # old NAME COMMIT: the build at COMMIT, its binaries in $RUNNER_TEMP/NAME.
+          old() {
+            git worktree add --detach "${RUNNER_TEMP}/$1-src" "$2"
+            (cd "${RUNNER_TEMP}/$1-src" && go build -o "${RUNNER_TEMP}/$1/" ./cmd/levyan ./cmd/levyan-admin)
+          }
+          old before "${BEFORE}"
+          old oldest "${OLDEST}"
+      - name: PostgreSQL is up
+        run: |
+          for _ in $(seq 1 60); do docker exec postgres pg_isready -h 127.0.0.1 -U levyan && exit 0; sleep 1; done
+          docker logs postgres; exit 1
+      - name: what the build before made, migrated by this one
+        env:
+          UPGRADE_POSTGRES: postgres://levyan:levyan@localhost:5432/levyan_upgrade?sslmode=disable
+        run: |
+          docker exec postgres psql -U levyan -qc 'create database levyan_upgrade'
+          scripts/upgrade.sh "${RUNNER_TEMP}/before" "${RUNNER_TEMP}/now"
+      - name: what the oldest build a deployment runs made, migrated by this one
+        env:
+          UPGRADE_POSTGRES: postgres://levyan:levyan@localhost:5432/levyan_upgrade?sslmode=disable
+        run: |
+          # The step before made it, and wrote in it.
+          docker exec postgres psql -U levyan -qc 'drop database levyan_upgrade' -c 'create database levyan_upgrade'
+          scripts/upgrade.sh "${RUNNER_TEMP}/oldest" "${RUNNER_TEMP}/now"
+
   # What the Go vulnerability database says of the code this calls: a known
   # issue in a module, or in the standard library this is built with, that a
   # path from here reaches. Red the day one is published, which is when it is
@@ -202,7 +275,7 @@ jobs:
   # when somebody pushes here.
   image:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [go, postgres, vuln, build]
+    needs: [go, postgres, upgrade, vuln, build]
     runs-on: ubuntu-26.04
     permissions:
       contents: read

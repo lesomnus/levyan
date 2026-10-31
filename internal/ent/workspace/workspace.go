@@ -55,6 +55,11 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// DefaultLabel holds the default value on creation for the "label" field.
+	DefaultLabel string
+)
+
 // OrderOption defines the ordering options for the Workspace queries.
 type OrderOption func(*sql.Selector)
 

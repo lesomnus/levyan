@@ -195,6 +195,10 @@ type Workspace_builder struct {
 	// label each of its lines was written with. Empty is a workspace named by
 	// its identifier. It is an organisation's name and nobody's, as payday's
 	// own tenant's name is.
+	//
+	// A column added to a table with rows in it (#9): defaulted, so that a
+	// workspace written before it is named by its identifier. With no
+	// default, PostgreSQL refuses to add it (scripts/upgrade.sh).
 	Label string
 	// Never stamped: there is no Erase. The rows of its ledger and its
 	// statements name it for as long as they are kept.
@@ -220,12 +224,12 @@ var File_levyan_workspace_proto protoreflect.FileDescriptor
 
 const file_levyan_workspace_proto_rawDesc = "" +
 	"\n" +
-	"\x16levyan/workspace.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xac\x03\n" +
+	"\x16levyan/workspace.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xb3\x03\n" +
 	"\tWorkspace\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12\x18\n" +
-	"\x03key\x18\b \x01(\fB\x06\xea\x82\x16\x02@\x01R\x03key\x12\x1c\n" +
-	"\x05label\x18\t \x01(\tB\x06\xaa\xc1\x16\x02\x18\x00R\x05label\x12D\n" +
+	"\x03key\x18\b \x01(\fB\x06\xea\x82\x16\x02@\x01R\x03key\x12#\n" +
+	"\x05label\x18\t \x01(\tB\r\xea\x82\x16\x03\x82\x01\x00\xaa\xc1\x16\x02\x18\x00R\x05label\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\x89\x01\xca\xfc\x15W\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +

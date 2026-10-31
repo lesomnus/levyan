@@ -144,7 +144,11 @@ func (st WorkspaceServiceServer) create(ctx context.Context, req *levyan.Workspa
 		})
 	}
 	q.SetKey(req.GetKey())
-	q.SetLabel(req.GetLabel())
+	if req.HasLabel() {
+		q.SetLabel(req.GetLabel())
+	} else {
+		q.SetLabel("")
+	}
 	if req.HasDateCreated() {
 		q.SetDateCreated(req.GetDateCreated().AsTime())
 	} else {

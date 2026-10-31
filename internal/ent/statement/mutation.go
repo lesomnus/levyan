@@ -398,6 +398,7 @@ func (m *Mutation) ResetPayer() {
 // SetFirstUnit sets the "first_unit" field.
 func (m *Mutation) SetFirstUnit(b bool) {
 	m.first_unit = &b
+	delete(m.clearedFields, FieldFirstUnit)
 }
 
 // FirstUnit returns the value of the "first_unit" field in the mutation.
@@ -409,9 +410,22 @@ func (m *Mutation) FirstUnit() (r bool, exists bool) {
 	return *v, true
 }
 
+// ClearFirstUnit clears the value of the "first_unit" field.
+func (m *Mutation) ClearFirstUnit() {
+	m.first_unit = nil
+	m.clearedFields[FieldFirstUnit] = struct{}{}
+}
+
+// FirstUnitCleared returns if the "first_unit" field was cleared in this mutation.
+func (m *Mutation) FirstUnitCleared() bool {
+	_, ok := m.clearedFields[FieldFirstUnit]
+	return ok
+}
+
 // ResetFirstUnit resets all changes to the "first_unit" field.
 func (m *Mutation) ResetFirstUnit() {
 	m.first_unit = nil
+	delete(m.clearedFields, FieldFirstUnit)
 }
 
 // SetTenantId sets the "tenant_id" field.
@@ -1072,6 +1086,9 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldPayer) {
 		fields = append(fields, FieldPayer)
 	}
+	if m.FieldCleared(FieldFirstUnit) {
+		fields = append(fields, FieldFirstUnit)
+	}
 	if m.FieldCleared(FieldBillingAccountId) {
 		fields = append(fields, FieldBillingAccountId)
 	}
@@ -1106,6 +1123,9 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldPayer:
 		m.ClearPayer()
+		return nil
+	case FieldFirstUnit:
+		m.ClearFirstUnit()
 		return nil
 	case FieldBillingAccountId:
 		m.ClearBillingAccountId()

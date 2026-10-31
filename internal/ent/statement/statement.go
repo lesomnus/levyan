@@ -118,6 +118,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultFirstUnit holds the default value on creation for the "first_unit" field.
+	DefaultFirstUnit bool
 	// ValueScanner of all Statement fields.
 	ValueScanner struct {
 		Lines field.TypeValueScanner[*levyan.StatementLines]

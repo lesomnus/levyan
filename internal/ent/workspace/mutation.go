@@ -64,6 +64,7 @@ func (m *Mutation) ResetKey() {
 // SetLabel sets the "label" field.
 func (m *Mutation) SetLabel(s string) {
 	m.label = &s
+	delete(m.clearedFields, FieldLabel)
 	delete(m.exprs, FieldLabel)
 }
 
@@ -76,9 +77,23 @@ func (m *Mutation) Label() (r string, exists bool) {
 	return *v, true
 }
 
+// ClearLabel clears the value of the "label" field.
+func (m *Mutation) ClearLabel() {
+	m.label = nil
+	delete(m.exprs, FieldLabel)
+	m.clearedFields[FieldLabel] = struct{}{}
+}
+
+// LabelCleared returns if the "label" field was cleared in this mutation.
+func (m *Mutation) LabelCleared() bool {
+	_, ok := m.clearedFields[FieldLabel]
+	return ok
+}
+
 // ResetLabel resets all changes to the "label" field.
 func (m *Mutation) ResetLabel() {
 	m.label = nil
+	delete(m.clearedFields, FieldLabel)
 	delete(m.exprs, FieldLabel)
 }
 
@@ -428,6 +443,9 @@ func (m *Mutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *Mutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(FieldLabel) {
+		fields = append(fields, FieldLabel)
+	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
 	}
@@ -448,6 +466,9 @@ func (m *Mutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *Mutation) ClearField(name string) error {
 	switch name {
+	case FieldLabel:
+		m.ClearLabel()
+		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
 		return nil

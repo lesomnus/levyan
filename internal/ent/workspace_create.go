@@ -36,6 +36,14 @@ func (_c *WorkspaceCreate) SetLabel(v string) *WorkspaceCreate {
 	return _c
 }
 
+// SetNillableLabel sets the "label" field if the given value is not nil.
+func (_c *WorkspaceCreate) SetNillableLabel(v *string) *WorkspaceCreate {
+	if v != nil {
+		_c.SetLabel(*v)
+	}
+	return _c
+}
+
 // SetDateErased sets the "date_erased" field.
 func (_c *WorkspaceCreate) SetDateErased(v time.Time) *WorkspaceCreate {
 	_c.mutation.SetDateErased(v)
@@ -88,6 +96,7 @@ func (_c *WorkspaceCreate) Mutation() *WorkspaceMutation {
 
 // Save creates the Workspace in the database.
 func (_c *WorkspaceCreate) Save(ctx context.Context) (*Workspace, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -113,6 +122,16 @@ func (_c *WorkspaceCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *WorkspaceCreate) defaults() {
+	if _, ok := _c.mutation.Label(); !ok {
+		if _, ok := _c.mutation.FieldExpr(workspace.FieldLabel); !ok {
+			v := workspace.DefaultLabel
+			_c.mutation.SetLabel(v)
+		}
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *WorkspaceCreate) check() error {
 	if fs := _c.mutation.ExprFields(); len(fs) > 0 {
@@ -120,9 +139,6 @@ func (_c *WorkspaceCreate) check() error {
 	}
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`ent: missing required field "Workspace.key"`)}
-	}
-	if _, ok := _c.mutation.Label(); !ok {
-		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "Workspace.label"`)}
 	}
 	if _, ok := _c.mutation.TenantId(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Workspace.tenant_id"`)}
@@ -261,6 +277,7 @@ func (_c *WorkspaceCreateBulk) Save(ctx context.Context) ([]*Workspace, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*WorkspaceMutation)
 				if !ok {

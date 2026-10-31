@@ -42,6 +42,10 @@ type Payers struct {
 
 	// P is who pays, written through S.
 	P payers.Payers
+
+	// Db is what is read of the workspaces and periods an answer names, once
+	// the walled stack has said the account may see what names them.
+	Db *ent.Client
 }
 
 // PayerMethods is the methods of `levyan.v1.PayerService` by the names gRPC

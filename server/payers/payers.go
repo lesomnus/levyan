@@ -35,13 +35,16 @@ package payers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 	"uuid"
 
 	"github.com/protobuf-orm/ent/dialect"
 	"github.com/protobuf-orm/protoc-gen-orm-ent/runtime/enttx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/lesomnus/payday/config"
 	"github.com/lesomnus/payday/pdid"
@@ -175,6 +178,38 @@ func (p Payers) workspace(ctx context.Context, product, key pdid.Id) (uuid.UUID,
 	id, _, err = Workspace(ctx, p.db(), product.Uuid(), key)
 	return id, err
 }
+
+// Label says what `product` calls its workspace `key`, for a bill to name
+// it by (#9): written through the stack when it is not what the row says
+// already. A workspace levyan has heard nothing of is written first, as one
+// that arrives is.
+func (p Payers) Label(ctx context.Context, product, key pdid.Id, label string) error {
+	label = strings.TrimSpace(label)
+	if label == "" {
+		return nil
+	}
+	if n := utf8.RuneCountInString(label); n > MaxLabel {
+		return status.Errorf(codes.InvalidArgument, "label: %d characters, and a workspace's label is at most %d", n, MaxLabel)
+	}
+	ws, err := p.workspace(ctx, product, key)
+	if err != nil {
+		return err
+	}
+	w, err := p.db().Workspace.Get(ctx, ws)
+	if err != nil || w.Label == label {
+		return err
+	}
+
+	_, err = p.S.Workspace().Patch(ctx, levyan.WorkspacePatchRequest_builder{
+		Ref:   levyan.WorkspaceRef_builder{Id: ws[:]}.Build(),
+		Label: proto.String(label),
+	}.Build())
+	return err
+}
+
+// MaxLabel is the most characters a workspace's label has: what an invoice's
+// line names it by.
+const MaxLabel = 100
 
 // WorkspaceOf is the workspace whose row is `id`.
 func (p Payers) WorkspaceOf(ctx context.Context, id pdid.Id) (*ent.Workspace, error) {

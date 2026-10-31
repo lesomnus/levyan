@@ -256,3 +256,48 @@ func TestEachPayersFirstWorkspacesHaveTheirAllowances(t *testing.T) {
 	x.NoError(err)
 	x.Equal(levyanv1.Channel_CHANNEL_PG_KR, u.GetUsage().GetChannel())
 }
+
+// A statement priced on a billing account's channel and currency that its
+// meter has no price on, while it has one on the product's, comes to nothing
+// for the meter -- less, which is right -- and says so: its line names the
+// stretch that went unpriced, as what a product reads of it does (#9). A
+// meter priced nowhere comes to nothing and says nothing.
+func TestAStatementSaysWhatItHadNoPriceFor(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	kr := levyantest.Account()
+	w.billing(kr, "KR")
+	ws := levyantest.Tenant()
+	w.At(on(1, 1))
+	w.arrive(ws, kr, on(1, 1))
+
+	// A meter of the product's priced nowhere at all.
+	members := w.Meter(w.loft, "loft.members", "{member}", stock, last)
+	x.NotNil(members)
+
+	w.At(on(2, 10))
+	w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(2, 1), 200)
+	w.daily(ws, "loft.members", "{member}", on(1, 1), on(2, 1), 7)
+	w.close(on(2, 10))
+
+	s := w.statement(ws, on(1, 1))
+	x.Equal(levyanv1.Channel_CHANNEL_MOR, s.GetChannel(), "the billing account's, by the deployment's default")
+	x.Equal(int64(0), s.GetTotal(), "nothing is priced on it")
+	byMeter := map[string]*levyanv1.Line{}
+	for _, l := range s.GetLines() {
+		byMeter[l.GetMeter()] = l
+	}
+	assets := byMeter["loft.assets.active"]
+	x.Len(assets.GetUnpriced(), 1, "priced on the product's gateway, and not here")
+	x.True(assets.GetUnpriced()[0].GetFrom().AsTime().Equal(on(1, 1)))
+	x.True(assets.GetUnpriced()[0].GetTo().AsTime().Equal(on(2, 1)))
+	x.Empty(byMeter["loft.members"].GetUnpriced(), "not sold anywhere")
+
+	row := w.row(ws, on(1, 1))
+	marked := 0
+	for _, l := range row.Lines.GetLines() {
+		marked += len(l.GetUnpriced())
+	}
+	x.Equal(1, marked, "as the statement keeps it")
+}

@@ -92,6 +92,11 @@ func init() {
 	allow(Payer, "levyan.v1.PayerService",
 		"ListBillingAccounts", "CreateBillingAccount", "UpdateBillingAccount",
 		"ListOffers", "Accept", "Decline", "ListLinks", "Use", "Stop")
+
+	// And what its billing accounts are asked to pay, of the product that
+	// relays the call: the invoices once finalized, and their credit notes
+	// (#9).
+	allow(Payer, "levyan.v1.PayerService", "ListInvoices", "GetInvoice", "ListCreditNotes")
 }
 
 // Policy is the table, asked.

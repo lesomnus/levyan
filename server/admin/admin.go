@@ -1,9 +1,11 @@
 // Package admin is the operator's entry point: what an operator does to the
 // price book from outside every product -- puts a product up, issues and
-// revokes its keys, writes its meters, publishes its prices and asks which
-// was in force when -- what it asks of the ledger -- which workspaces have
-// stopped sending readings -- and what it grants a workspace by hand, over
-// HTTP, on a listener of its own.
+// revokes its keys, writes its meters, publishes its prices, asks which was in
+// force when and which are missing -- what it asks of the ledger -- which
+// workspaces have stopped sending readings -- what it grants a workspace by
+// hand, and what it does to invoices -- voids one, writes a credit note
+// against one, records a transfer for one -- over HTTP, on a listener of its
+// own.
 //
 // It is served by `levyan-admin serve`, and `levyan serve` links none of it:
 // the public binary has no path that writes as the deployment. Every request
@@ -180,6 +182,12 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("GET /admin/products/{product}/grants", a.grants)
 	api.HandleFunc("POST /admin/products/{product}/grants", a.give)
 	api.HandleFunc("POST /admin/grants/{id}/end", a.endGrant)
+	api.HandleFunc("GET /admin/products/{product}/invoices", a.invoices)
+	api.HandleFunc("GET /admin/invoices/{id}", a.invoice)
+	api.HandleFunc("POST /admin/invoices/{id}/void", a.voidInvoice)
+	api.HandleFunc("POST /admin/invoices/{id}/credit", a.creditInvoice)
+	api.HandleFunc("POST /admin/invoices/{id}/paid", a.paidInvoice)
+	api.HandleFunc("GET /admin/products/{product}/unpriced", a.unpriced)
 
 	mux := http.NewServeMux()
 	mux.Handle("/admin/", a.authorized(api))

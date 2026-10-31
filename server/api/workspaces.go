@@ -70,6 +70,9 @@ func (h Workspaces) Arrive(ctx context.Context, req *levyanv1.ArriveRequest) (*l
 	if err != nil {
 		return nil, err
 	}
+	if err := h.P.On(h.S).Label(ctx, product, ws, req.GetLabel()); err != nil {
+		return nil, err
+	}
 
 	return levyanv1.ArriveResponse_builder{Payer: payerOf(st)}.Build(), nil
 }

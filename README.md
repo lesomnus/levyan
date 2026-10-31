@@ -10,8 +10,9 @@ payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. �
 - **호출자.** 제품은 서비스 키로 부르고 자기 tenant만 본다. 운영자는 따로 된 바이너리로 들어온다.
 - **금액 계산.** 통화의 최소 단위 정수로, 무료량을 빼고, 끝에서 한 번 내림한다. 통화가 다른 금액은 더하지 않는다.
 - **계량.** 제품이 보낸 보유량(읽은 값)과 흐름(OpenTelemetry 누적 Sum)을 바뀌지 않는 원장에 남긴다. 같은 값이 두 번 와도 한 행이고, 같은 시각에 다른 값이 오면 거부하고 로그에 남긴다. 이미 닫힌 기간에 대한 늦은 값도 받아서 정정 대상으로 표시한다. 와야 할 보유량이 오지 않으면 경보를 낸다.
+- **금액 계산과 기간 닫기.** 기간은 제품의 zone에서의 달력 월이다. 기간이 끝나고 유예(48시간)가 지나면 닫고, 워크스페이스마다 내역(Statement)을 쓴다. 내역은 바꾸지 않는다. 늦은 값은 다음 내역의 정정 줄이 된다. 제품은 지금 기간의 사용량과 예상 금액, 그리고 내역을 읽는다.
 
-결제 계정, 기간 닫기, 권한 부여는 다음 하위 이슈(#4, #6, #7)에서 온다.
+결제 계정과 권한 부여는 다음 하위 이슈(#4, #7)에서 온다. 그때까지 내역은 제품의 기본 채널과 통화로 매긴다.
 
 ## 두 바이너리
 
@@ -139,6 +140,35 @@ sent.Add(ctx, n, metric.WithAttributes(attribute.String(meter.TenantAttribute, t
 admin gap ls                  # 모든 제품
 admin gap ls --product loft
 ```
+
+### 기간과 내역
+
+제품의 조건을 정해야 기간을 닫는다. zone은 기간을 자르는 달력의 시간대이고, 채널과 통화는 결제 계정(#4)이 생기기 전까지 내역을 매기는 기준이다.
+
+```sh
+admin product configure --zone Asia/Seoul --channel pg_kr --currency KRW --yes loft
+```
+
+`levyan serve`의 루프(`levyan.periods.close`)가 끝난 지 `periods.grace`(기본 48시간)가 지난 기간을 닫는다. 운영자는 유예를 기다리지 않고 손으로 닫을 수 있다. 닫기를 두 번 해도 한 번 한 것과 같다.
+
+```sh
+admin period ls loft
+admin period close --yes loft              # 지금까지 끝난 기간 모두
+admin statement ls --workspace <id> loft   # 최근 기간부터
+admin statement show <statement id>        # 줄마다 정확한 분수, 합계는 한 번 내린 값
+```
+
+내역에는 미터마다 줄이 있다. 줄에는 사용량, 무료량, 청구량, 가격 버전, 금액이 들어 있다. 이미 닫힌 기간에 대해 늦게 온 값이 있으면, 그 기간을 지금의 원장으로 다시 계산한다. 이미 청구한 것과 다르면 그 차이가 다음 내역의 정정 줄이 되고, 그 줄은 정정하는 기간을 가리킨다.
+
+제품은 `levyan.v1.BillingService`로 읽는다.
+
+```sh
+curl -sX POST http://localhost:8080/levyan.v1.BillingService/GetUsage \
+  -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
+  -H "Authorization: Bearer $KEY" -d '{"workspace":"<워크스페이스의 tenant id>"}'
+```
+
+`GetUsage`는 지금 기간을 지금 닫는다면 내역이 무엇일지를 답한다. 각 미터의 최신 값이 기간 끝까지 이어진다고 보고 계산한 예상 금액이며, 닫기와 같은 계산이다. `ListStatements`와 `GetStatement`는 닫은 기간의 내역이다.
 
 ## 배포
 

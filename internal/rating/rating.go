@@ -27,6 +27,19 @@
 //     down ([Total]): when in doubt levyan charges less, and a total rounded at
 //     every step would be a different bill for the same usage depending on how
 //     the steps were cut.
+//
+// And levyan#14's (Claude's, the lead's, which the owner may overturn; they
+// set what is charged, which is the owner's to decide otherwise):
+//
+//   - A workspace is no customer while it is closed -- from a close until the
+//     restore after it -- nor from its destruction on, for good ([Lived]).
+//     What it held and did then is taken out of its usage, as the time before
+//     it began is: its average counts that time as nothing, its most and its
+//     last are of the readings measured outside it, a flow counts nothing in
+//     it, and the time a price by bands charges is the time outside it. What
+//     its prices include is all of what they include, as for a workspace
+//     that began during the period. A workspace away for the whole of a
+//     period is billed nothing for it.
 package rating
 
 import (
@@ -46,7 +59,11 @@ import (
 // Version is the version of these rules -- and of the hold a reading speaks
 // for ([usage.Hold]) -- that a statement says it was rated by. A change that
 // moves what any usage comes to is a new version.
-const Version = 1
+//
+// 2 is a workspace away -- closed, or destroyed -- being no customer, and its
+// last reading holding no further than its destruction (#14). A workspace
+// nothing was said of comes to what it came to by 1.
+const Version = 2
 
 // Meter is a meter as it is rated.
 type Meter struct {
@@ -110,10 +127,7 @@ type Line struct {
 }
 
 // Stretch is a stretch of time, [From, To).
-type Stretch struct {
-	From time.Time
-	To   time.Time
-}
+type Stretch = usage.Stretch
 
 // Part is one stretch of a period priced by one version.
 type Part struct {
@@ -189,12 +203,27 @@ func shares(hs []usage.Held, from, to time.Time, p Period) pricing.Usage {
 	return out
 }
 
+// Customer is when a workspace was a customer: from Since -- when its first
+// payer began to pay for it, or the ledger first said anything of it -- but
+// for the stretches it was Away: closed, and from its destruction on (#14,
+// [Lived]). Since says which of a price's dates it is priced by, a customer
+// new or existing; what it held and did while away is taken out of its usage
+// before it is rated ([usage.Cut]), and a version in force is charged by its
+// share of the time the workspace was a customer.
+type Customer struct {
+	Since time.Time
+	Away  []Stretch
+}
+
 // Rate is what `u` of meter `m` comes to over `p`, under the line of `book` a
-// customer since `since` is priced by.
+// customer `c` is priced by. `u` is what the workspace held and did while it
+// was a customer, the time it was away taken out of it.
 //
 // What is not priced -- a stretch before the line's first version applied to
-// the customer -- is charged nothing, and is in no part.
-func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, since time.Time) (Line, error) {
+// the customer -- is charged nothing, and is in no part; nor is anything of
+// a workspace that was away for the whole of what of `p` it might have been a
+// customer in.
+func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, c Customer) (Line, error) {
 	out := Line{
 		Meter:    m,
 		Quantity: Quantity(m, u, p),
@@ -205,17 +234,22 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, sinc
 	if !p.Start.Before(p.End) {
 		return out, nil
 	}
+	since := c.Since
 	if since.IsZero() || since.Before(p.Start) {
 		since = p.Start
 	}
 	if !since.Before(p.End) {
 		return out, nil
 	}
+	customer := usage.Length(usage.Open(since, p.End, c.Away))
+	if customer.Sign() == 0 {
+		return out, nil
+	}
 
 	unit := whole(m, u, p)
 	for _, s := range book.Timeline(line, since, p.Start, p.End) {
 		if !s.Priced {
-			out.Unpriced = append(out.Unpriced, elsewhere(book, line, since, latest(s.From, since), s.To)...)
+			out.Unpriced = append(out.Unpriced, outside(elsewhere(book, line, since, latest(s.From, since), s.To), c.Away)...)
 			continue
 		}
 		v := s.Version
@@ -234,7 +268,7 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, sinc
 
 		// The part's share of the time the workspace was a customer in the
 		// period: its whole usage, at this part's version, for that share.
-		w := usage.Share(latest(s.From, since), s.To, since, p.End)
+		w := new(big.Rat).Quo(usage.Length(usage.Open(latest(s.From, since), s.To, c.Away)), customer)
 		if w.Sign() == 0 {
 			continue
 		}
@@ -304,6 +338,20 @@ func elsewhere(book pricing.Book, line pricing.Line, since, from, to time.Time) 
 			continue
 		}
 		out = append(out, s)
+	}
+
+	return out
+}
+
+// outside is what of `ss` is in none of `away`.
+func outside(ss []Stretch, away []Stretch) []Stretch {
+	if len(away) == 0 {
+		return ss
+	}
+
+	var out []Stretch
+	for _, s := range ss {
+		out = append(out, usage.Open(s.From, s.To, away)...)
 	}
 
 	return out

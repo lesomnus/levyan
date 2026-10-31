@@ -20,6 +20,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/internal/ent"
 	entperiod "github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/levyantest"
@@ -49,9 +50,10 @@ type world struct {
 
 // setup is loft, priced on the Korean gateway in won from 2027: active assets
 // at 50 won each past 100, its history kept in bands, and the bytes it sends
-// at 2 won a hundred past a thousand.
-func setup(t *testing.T) world {
-	w := levyantest.New(t)
+// at 2 won a hundred past a thousand. `with` has a say over the deployment's
+// configuration first.
+func setup(t *testing.T, with ...func(*cmd.Config)) world {
+	w := levyantest.New(t, with...)
 	w.At(on(1, 1).Add(-24 * time.Hour))
 
 	loft := w.Product("loft")

@@ -73,7 +73,7 @@ func rat(s string) *big.Rat {
 
 func rate(t *testing.T, m rating.Meter, u rating.Usage, book pricing.Book, since time.Time) rating.Line {
 	t.Helper()
-	l, err := rating.Rate(m, u, jan, book, line, since)
+	l, err := rating.Rate(m, u, jan, book, line, rating.Customer{Since: since})
 	require.NoError(t, err)
 	return l
 }

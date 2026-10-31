@@ -18,6 +18,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent"
 	entgrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
+	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/lesomnus/levyan/internal/levyantest"
 	"github.com/lesomnus/levyan/server/payers"
 )
@@ -500,4 +501,74 @@ func (r *roster) Reconcile(ctx context.Context, accounts []pdid.Id, marked func(
 		}
 	}
 	return out, nil
+}
+
+// A workspace destroyed is nobody's to pay for (#14): every link that would
+// pay for it past its destruction ends there -- one to begin at the end of
+// the period is taken back before it begins -- what was offered of it is
+// withdrawn, and once destroyed nothing begins to be paid for or offered of
+// it: an account roster has back pays for it no more.
+func TestADestroyedWorkspaceIsNobodysToPayFor(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a, b := levyantest.Account(), levyantest.Account()
+	ws, gone := levyantest.Tenant(), levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	_, err = w.payers().Arrive(w.ctx, w.p, gone, a, on(1, 3))
+	x.NoError(err)
+
+	// Another account pays for it from February, as it accepted; and a
+	// third is asked.
+	o, err := w.payers().Offer(w.ctx, w.p, ws, b)
+	x.NoError(err)
+	oid, err := pdid.From(o.GetId())
+	x.NoError(err)
+	_, err = w.payers().Accept(w.ctx, w.p, b, oid, pdid.Nil)
+	x.NoError(err)
+	_, err = w.payers().Offer(w.ctx, w.p, ws, levyantest.Account())
+	x.NoError(err)
+
+	said, err := w.payers().Destroy(w.ctx, w.p, ws, on(1, 14))
+	x.NoError(err)
+	x.Equal(on(1, 14), said.Life.Destroyed)
+	x.False(said.Late)
+
+	ls, err := w.S.Ent.Link.Query().Where(entlink.HasWorkspaceWith(entworkspace.Key(ws.Bytes()))).All(w.ctx)
+	x.NoError(err)
+	x.Len(ls, 2)
+	for _, l := range ls {
+		x.Equal(int32(levyan.LinkEnded_LINK_ENDED_DESTROYED), l.Ended)
+		switch payer(l) {
+		case a:
+			x.Equal(on(1, 14), l.DateEnd.UTC(), "when it was destroyed")
+		case b:
+			x.Equal(l.DateStart.UTC(), l.DateEnd.UTC(), "taken back before it began")
+		}
+	}
+	st := w.state(ws)
+	x.Nil(st.Current)
+	x.Nil(st.Next)
+	x.Nil(st.Offer, "withdrawn")
+	x.False(st.Payerless(), "nobody's to pay for, and nothing to restrict")
+
+	_, err = w.payers().Offer(w.ctx, w.p, ws, levyantest.Account())
+	x.Equal(codes.FailedPrecondition, status.Code(err))
+	again, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err, "it arrived before, and is answered as it is")
+	x.Nil(again.Current)
+
+	// Suspended in January, the account's other link ends as February
+	// begins; that workspace is destroyed in February, and the account is
+	// back after it.
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a, Disabled: on(1, 15)}))
+	x.Equal(on(2, 1), w.state(gone).Current.DateEnd.UTC())
+	w.At(on(2, 10))
+	_, err = w.payers().Destroy(w.ctx, w.p, gone, on(2, 5))
+	x.NoError(err)
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a}))
+	st = w.state(gone)
+	x.Nil(st.Current)
+	x.Nil(st.Next, "it pays for what is destroyed no more")
 }

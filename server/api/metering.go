@@ -86,6 +86,8 @@ func refusal(r ledger.Refusal) levyanv1.Refusal {
 		return levyanv1.Refusal_REFUSAL_UNIT
 	case ledger.Conflict:
 		return levyanv1.Refusal_REFUSAL_CONFLICT
+	case ledger.Gone:
+		return levyanv1.Refusal_REFUSAL_DESTROYED
 	}
 
 	return levyanv1.Refusal_REFUSAL_UNSPECIFIED

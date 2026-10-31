@@ -349,3 +349,33 @@ func TestTheReceiverIsAProductsOwn(t *testing.T) {
 	x.Equal(int64(1), res.GetPartialSuccess().GetRejectedDataPoints(), "loft's meter is nothing to another product")
 	x.Empty(w.points(t))
 }
+
+// A point of a workspace its product destroyed (#14), counted at its
+// destruction or after, is not kept, and the export says so; one counted
+// before it is, and one kept before levyan was told is what it was.
+func TestAPointAfterAWorkspacesDestructionIsRefused(t *testing.T) {
+	w := setup(t)
+	x := w.X
+	ws := pdid.New(pd.TenantDomain)
+	start := day(0, 0)
+	bytes := func(ps ...*metricspb.NumberDataPoint) *metricspb.Metric {
+		return sumOf("loft.transfer.bytes", "By", ps...)
+	}
+
+	x.Zero(w.export(t, bytes(point(ws, start, day(1, 0), 10), point(ws, start, day(3, 0), 30))))
+	product, err := pdid.From(w.loft.GetId())
+	x.NoError(err)
+	_, err = w.S.Payers.Destroy(context.Background(), product, ws, day(2, 0))
+	x.NoError(err)
+
+	res, err := collectormetrics.NewMetricsServiceClient(w.conn).Export(w.ctx, export(bytes(
+		point(ws, start, day(1, 0), 10), // kept before, and again
+		point(ws, start, day(3, 0), 30), // kept before levyan was told, and as it was
+		point(ws, start, day(2, 0), 25), // at its destruction
+		point(ws, start, day(4, 0), 40), // after it
+	)))
+	x.NoError(err)
+	x.Equal(int64(2), res.GetPartialSuccess().GetRejectedDataPoints())
+	x.Contains(res.GetPartialSuccess().GetErrorMessage(), "destroyed")
+	x.Len(w.points(t), 2)
+}

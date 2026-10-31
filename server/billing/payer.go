@@ -44,6 +44,12 @@ type Payer struct {
 // whenever that was, so that a payer who moves a workspace to another billing
 // account, or stops and pays again, keeps its place. A workspace is counted
 // once, under the one payer of its period, whoever else owns it.
+//
+// A workspace away for the whole of the period -- closed through it, or
+// destroyed before it -- is none of what its payer paid for over it (#14,
+// Claude's): its place passes to the next, and it keeps its allowances
+// itself, should anything of it come to be rated for the period (when in
+// doubt, less). One closed for some of the period is counted.
 func (r Rater) PayerOf(ctx context.Context, product, ws uuid.UUID, p rating.Period) (Payer, error) {
 	ls, err := r.Db.Link.Query().
 		Where(
@@ -84,6 +90,18 @@ func (r Rater) PayerOf(ctx context.Context, product, ws uuid.UUID, p rating.Peri
 		if !empty(v) {
 			paid[v.WorkspaceId] = true
 		}
+	}
+	lives, err := Lives(ctx, r.Db, product, keysOf(paid)...)
+	if err != nil {
+		return Payer{}, err
+	}
+	for w, l := range lives {
+		if l.Through(p) {
+			delete(paid, w)
+		}
+	}
+	if !paid[ws] {
+		return out, nil
 	}
 
 	all, err := r.Db.Link.Query().

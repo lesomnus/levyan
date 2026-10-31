@@ -30,6 +30,13 @@
 // written in, of the product the call names and no other, and the
 // workspace's row is held first (`ledger.Lock`), as a period's close holds it
 // -- so a close never reads a payer half changed.
+//
+// # A workspace's life
+//
+// What a product says became of a workspace -- closed, restored, destroyed
+// ([Payers.Close], [Payers.Restore], [Payers.Destroy]) -- is when it is
+// billed and when not (#14). A destroyed workspace's links end then, and
+// nothing begins to be paid for, or offered, of it after.
 package payers
 
 import (
@@ -281,9 +288,18 @@ func (p Payers) state(ctx context.Context, db *ent.Client, product uuid.UUID, ke
 		out.Next = n
 	}
 	if out.Current == nil && out.Next == nil {
-		for _, l := range ls {
-			if l.DateEnd != nil && l.DateEnd.After(out.Since) {
-				out.Since = ledger.Moment(*l.DateEnd)
+		// Nobody pays for it: since when, and so from when it is restricted
+		// -- but for a workspace destroyed, which is nobody's to pay for and
+		// nothing to restrict ([Payerless]).
+		d, err := ledger.Destroyed(ctx, db, product, ws)
+		if err != nil {
+			return out, err
+		}
+		if _, ok := d[ws]; !ok {
+			for _, l := range ls {
+				if l.DateEnd != nil && l.DateEnd.After(out.Since) {
+					out.Since = ledger.Moment(*l.DateEnd)
+				}
 			}
 		}
 		if !out.Since.IsZero() {
@@ -412,6 +428,9 @@ func (p Payers) Arrive(ctx context.Context, product, key, creator pdid.Id, creat
 			return err
 		}
 		if !had {
+			if err := gone(ctx, db, product.Uuid(), ws, key); err != nil {
+				return err
+			}
 			ba, err := First(ctx, db, creator)
 			if err != nil {
 				return err
@@ -483,6 +502,9 @@ func (p Payers) Offer(ctx context.Context, product, key, account pdid.Id) (*levy
 
 	var out *levyan.Offer
 	err = p.held(ctx, ws, func(s levyan.Server, db *ent.Client) error {
+		if err := gone(ctx, db, product.Uuid(), ws, key); err != nil {
+			return err
+		}
 		st, err := p.state(ctx, db, product.Uuid(), key, ws)
 		if err != nil {
 			return err

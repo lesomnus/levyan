@@ -24,6 +24,7 @@ import (
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entoffer "github.com/lesomnus/levyan/internal/ent/offer"
 	entsubscription "github.com/lesomnus/levyan/internal/ent/subscription"
+	"github.com/lesomnus/levyan/server/ledger"
 )
 
 // Standing is what roster says of an account, asked as a call comes: whether
@@ -200,6 +201,11 @@ func (p Payers) Back(ctx context.Context, st standing.Standing) error {
 			continue
 		}
 		err := p.held(ctx, l.WorkspaceId, func(s levyan.Server, db *ent.Client) error {
+			// A workspace destroyed since is nobody's to pay for again.
+			d, err := ledger.Destroyed(ctx, db, l.TenantId, l.WorkspaceId)
+			if err != nil || len(d) > 0 {
+				return err
+			}
 			b, err := Boundary(ctx, db, l.TenantId, now)
 			if err != nil {
 				return err

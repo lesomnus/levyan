@@ -224,6 +224,15 @@ func (g Grants) give(ctx context.Context, v Give, ws uuid.UUID) (*levyan.Grant, 
 			return err
 		}
 
+		// A workspace destroyed is given nothing more (#14).
+		d, err := ledger.Destroyed(ctx, db, v.Product.Uuid(), ws)
+		if err != nil {
+			return err
+		}
+		if at, ok := d[ws]; ok {
+			return status.Errorf(codes.FailedPrecondition, "the workspace was destroyed at %s, and is given nothing", at.Format(time.RFC3339))
+		}
+
 		// Now, once the row is held: what a grant given after a wait for it
 		// begins at.
 		now := g.now()
@@ -422,7 +431,10 @@ func (g Grants) Renew(ctx context.Context) (int, error) {
 const page = 200
 
 // renew is one grant renewed, in a transaction that holds its row, if it
-// still renews and is still due.
+// still renews and is still due -- and ended rather than renewed, if its
+// workspace was destroyed (#14): what was given to it goes with it, within
+// half a horizon, and is not renewed for ever for nobody (implementation
+// decision).
 func (g Grants) renew(ctx context.Context, id uuid.UUID, now, due time.Time) (bool, error) {
 	ok := false
 	err := g.tx(ctx, func(s levyan.Server, db *ent.Client) error {
@@ -435,6 +447,14 @@ func (g Grants) renew(ctx context.Context, id uuid.UUID, now, due time.Time) (bo
 		}
 		if !v.Renews || v.DateErased != nil || !Moment(v.ValidUntil).Before(due) {
 			return nil
+		}
+		d, err := ledger.Destroyed(ctx, db, v.TenantId, v.WorkspaceId)
+		if err != nil {
+			return err
+		}
+		if _, gone := d[v.WorkspaceId]; gone {
+			_, err := g.end(ctx, s, db, id, now)
+			return err
 		}
 
 		_, err = s.Grant().Patch(ctx, levyan.GrantPatchRequest_builder{

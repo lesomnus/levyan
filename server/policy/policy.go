@@ -87,6 +87,10 @@ func init() {
 	// account asked to pay, and who pays (#4).
 	allow(Product, "levyan.v1.WorkspaceService", "Arrive", "Leave", "Offer", "GetPayer")
 
+	// And what became of them, which is when they are billed: one closed,
+	// restored, destroyed, and what levyan has heard of that (#14).
+	allow(Product, "levyan.v1.WorkspaceService", "Close", "Restore", "Destroy", "GetLifecycle")
+
 	// And an account's own, relayed by a product for one of its users: its
 	// billing accounts, the offers made to it and the workspaces it pays for.
 	allow(Payer, "levyan.v1.PayerService",

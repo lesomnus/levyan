@@ -35,6 +35,15 @@
 //
 // So every increase is counted once and in one stretch: what a series counted
 // over two stretches is what it counted over each, added.
+//
+// # Away
+//
+// A workspace is no customer while it is closed, nor from its destruction on
+// (#14): what it held then is held by nobody who is billed, and what its
+// series counted then is counted for nobody. Those stretches are taken out of
+// what a stretch held ([Cut]) and of where a flow is counted ([Open]); a
+// reading measured in one is none of the period's ([In]). The time it was
+// away counts as nothing, as the time before it began does.
 package usage
 
 import (
@@ -226,6 +235,85 @@ func Share(a, b, from, to time.Time) *big.Rat {
 	}
 
 	return new(big.Rat).Quo(span(a, b), whole)
+}
+
+// Stretch is a stretch of time, [From, To).
+type Stretch struct {
+	From time.Time
+	To   time.Time
+}
+
+// Open is what of [from, to) is in none of `away`, as stretches one after
+// another: the time a workspace was a customer, when `away` is when it was
+// not. `away` is in any order, and its stretches may overlap.
+func Open(from, to time.Time, away []Stretch) []Stretch {
+	if !from.Before(to) {
+		return nil
+	}
+
+	away = slices.Clone(away)
+	slices.SortFunc(away, func(a, b Stretch) int { return a.From.Compare(b.From) })
+
+	out := []Stretch{}
+	at := from
+	for _, s := range away {
+		if !s.From.Before(to) {
+			break
+		}
+		if !s.From.Before(s.To) || !s.To.After(at) {
+			continue
+		}
+		if s.From.After(at) {
+			out = append(out, Stretch{From: at, To: s.From})
+		}
+		if at = latest(at, s.To); !at.Before(to) {
+			return out
+		}
+	}
+	if at.Before(to) {
+		out = append(out, Stretch{From: at, To: to})
+	}
+
+	return out
+}
+
+// Cut is what `hs` held outside `away`: each piece with the time it was away
+// taken out of it.
+func Cut(hs []Held, away []Stretch) []Held {
+	if len(away) == 0 {
+		return hs
+	}
+
+	out := []Held{}
+	for _, h := range hs {
+		for _, s := range Open(h.From, h.To, away) {
+			out = append(out, Held{From: s.From, To: s.To, Value: h.Value})
+		}
+	}
+
+	return out
+}
+
+// In says whether `t` is in one of `ss`.
+func In(t time.Time, ss []Stretch) bool {
+	for _, s := range ss {
+		if !t.Before(s.From) && t.Before(s.To) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Length is how long `ss` are in all, in microseconds: what a share of them
+// is weighed by.
+func Length(ss []Stretch) *big.Rat {
+	out := new(big.Rat)
+	for _, s := range ss {
+		out.Add(out, span(s.From, s.To))
+	}
+
+	return out
 }
 
 // span is how long [a, b) is, in microseconds, and nothing when it is not a

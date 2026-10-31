@@ -31,6 +31,14 @@
 // its period's row before it reads anything, so a reading is either in the
 // statement it reads, or written after the row and marked [Result.Late] -- or
 // both, which a correction finds to be nothing.
+//
+// # A workspace destroyed
+//
+// A workspace its product said was destroyed (`WorkspaceEvent`, #14) is
+// measured no further: a reading or a point of a moment at its destruction
+// or after is refused ([Destroyed]), under the same lock as the event is
+// written, so that one of the two comes first. One kept before levyan was
+// told is kept, and billed for nothing (`internal/rating`).
 package ledger
 
 import (
@@ -58,6 +66,7 @@ import (
 	entmeter "github.com/lesomnus/levyan/internal/ent/meter"
 	entperiod "github.com/lesomnus/levyan/internal/ent/period"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
+	entworkspaceevent "github.com/lesomnus/levyan/internal/ent/workspaceevent"
 	"github.com/lesomnus/levyan/server/pd"
 )
 
@@ -136,6 +145,10 @@ const (
 
 	// Conflict is the same moment kept with another value.
 	Conflict
+
+	// Gone is of a moment at which its workspace had been destroyed, as its
+	// product said (#14): nothing of it after that is billed, or kept.
+	Gone
 )
 
 func (r Refusal) String() string {
@@ -150,6 +163,8 @@ func (r Refusal) String() string {
 		return "unit"
 	case Conflict:
 		return "conflict"
+	case Gone:
+		return "destroyed"
 	}
 	return fmt.Sprintf("Refusal(%d)", int(r))
 }
@@ -341,6 +356,41 @@ func Closed(ctx context.Context, db *ent.Client, product pdid.Id, from, to time.
 		).
 		Order(ent.Asc(entperiod.FieldDateStart)).
 		All(ctx)
+}
+
+// Destroyed is when each of `ws`, workspaces of `product`, was destroyed, as
+// the product said (#14): the first destruction said of each, which is for
+// good. A workspace not destroyed is not in it.
+func Destroyed(ctx context.Context, db *ent.Client, product uuid.UUID, ws ...uuid.UUID) (map[uuid.UUID]time.Time, error) {
+	out := map[uuid.UUID]time.Time{}
+	if len(ws) == 0 {
+		return out, nil
+	}
+
+	vs, err := db.WorkspaceEvent.Query().
+		Where(
+			entworkspaceevent.TenantId(product),
+			entworkspaceevent.WorkspaceIdIn(ws...),
+			entworkspaceevent.Kind(int32(levyan.WorkspaceEventKind_WORKSPACE_EVENT_KIND_DESTROYED)),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range vs {
+		at := Moment(v.HappenedAt)
+		if was, ok := out[v.WorkspaceId]; !ok || at.Before(was) {
+			out[v.WorkspaceId] = at
+		}
+	}
+
+	return out, nil
+}
+
+// gone is the refusal of what `what` says of workspace `ws` at a moment it
+// had been destroyed by, at `at`.
+func gone(what string, ws pdid.Id, at time.Time) Result {
+	return refused(Gone, "%s: workspace %s was destroyed at %s, and nothing of it from then is kept", what, ws, at.Format(time.RFC3339Nano))
 }
 
 // reaches says whether [from, to) reaches into one of `ps`.

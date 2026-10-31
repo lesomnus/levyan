@@ -9,8 +9,9 @@ payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. �
 - **가격표.** 제품, 미터 정의, 가격 버전. 가격은 고치지 않고 새 버전을 낸다. 어느 기간에 어느 버전이 적용되는지 답한다. 보존 기간 미터는 구간마다 요금을 둔다.
 - **호출자.** 제품은 서비스 키로 부르고 자기 tenant만 본다. 운영자는 따로 된 바이너리로 들어온다.
 - **금액 계산.** 통화의 최소 단위 정수로, 무료량을 빼고, 끝에서 한 번 내림한다. 통화가 다른 금액은 더하지 않는다.
+- **계량.** 제품이 보낸 보유량(읽은 값)과 흐름(OpenTelemetry 누적 Sum)을 바뀌지 않는 원장에 남긴다. 같은 값이 두 번 와도 한 행이고, 같은 시각에 다른 값이 오면 거부하고 로그에 남긴다. 이미 닫힌 기간에 대한 늦은 값도 받아서 정정 대상으로 표시한다. 와야 할 보유량이 오지 않으면 경보를 낸다.
 
-계량, 결제 계정, 기간 닫기, 권한 부여는 다음 하위 이슈(#4–#7)에서 온다.
+결제 계정, 기간 닫기, 권한 부여는 다음 하위 이슈(#4, #6, #7)에서 온다.
 
 ## 두 바이너리
 
@@ -97,6 +98,46 @@ curl로 보려면 HTTP 리스너를 연다(`server.http.addr`, `server.http.allo
 curl -sX POST http://localhost:8080/levyan.v1.PriceBookService/ListMeters \
   -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
   -H "Authorization: Bearer $KEY" -d '{}'
+```
+
+### 계량: 보유량과 흐름
+
+제품이 보내는 것은 두 가지다. 어느 쪽이든 제품의 서비스 키로 부르고, 자기 미터와 자기 워크스페이스에 대해서만 말할 수 있다.
+
+**보유량**(자산 수, 저장량, 보존 기간)은 `levyan.v1.MeteringService/Record`로 보낸다. payday의 `meter.Reader`가 잰 값(`meter.Reading`)을 그대로 옮긴 것이고, 워크스페이스는 제품 쪽 payday tenant id의 정식 텍스트다.
+
+```sh
+curl -sX POST http://localhost:8080/levyan.v1.MeteringService/Record \
+  -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
+  -H "Authorization: Bearer $KEY" \
+  -d '{"readings":[{"workspace":"<워크스페이스의 tenant id>","meter":"loft.assets.active",
+       "measuredAt":"2027-01-15T00:00:00Z","value":120,"unit":"{asset}"}]}'
+```
+
+답은 보낸 값마다 하나다. `OUTCOME_KEPT`는 새로 남긴 것, `OUTCOME_ALREADY`는 이미 같은 값이 있던 것, `OUTCOME_REFUSED`는 남기지 않은 것이다(이유는 `refusal`과 `why`). 거부는 값 하나씩이라 나머지는 남는다. 호출이 실패하면 아무것도 남지 않았으므로 그대로 다시 보내면 된다. `late`는 이미 닫힌 기간에 대한 값이라 다음 내역에서 정정된다는 뜻이다.
+
+**흐름**(전송량, 호출 수)은 OpenTelemetry 누적 Sum으로, 같은 주소(`server.addr`)에 OTLP/gRPC로 보낸다. payday의 `docs/guide/meters.md` 7장 그대로다. 모니터링 파이프라인이 아니라 청구용 `MeterProvider`를 따로 둔다.
+
+```go
+exp, err := otlpmetricgrpc.New(ctx,
+	otlpmetricgrpc.WithEndpoint("levyan:50051"),
+	otlpmetricgrpc.WithHeaders(map[string]string{"authorization": "Bearer " + key}),
+)
+billing := sdkmetric.NewMeterProvider(
+	sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp)),
+	sdkmetric.WithResource(res), // service.name, 프로세스마다 service.instance.id
+)
+sent, err := billing.Meter("loft").Int64Counter("loft.transfer.bytes", metric.WithUnit("By"))
+sent.Add(ctx, n, metric.WithAttributes(attribute.String(meter.TenantAttribute, tenant.String())))
+```
+
+받는 것은 미터 키로 이름 붙은, 단조 증가하는 누적 Sum의 정수 점뿐이다. 점마다 `payday.tenant`와 시작 시각이 있어야 하고, 단위는 미터의 것이어야 한다. 그 밖의 점은 하나씩 거부하고 OTLP의 partial success로 몇 개를 왜 거부했는지 알린다. 같은 점이 두 번 와도 한 번 센다.
+
+**빠진 값.** `levyan serve`의 루프(`levyan.readings.gaps`)가 매시간, 최근 7일 안에 보유량을 보냈지만 36시간 넘게 보내지 않은 워크스페이스를 찾아 로그와 게이지 `levyan.readings.gaps`로 알린다. 기준은 `readings.gap`, `readings.recent`, `readings.every`로 바꾼다. 운영자는 바로 물을 수 있다.
+
+```sh
+admin gap ls                  # 모든 제품
+admin gap ls --product loft
 ```
 
 ## 배포

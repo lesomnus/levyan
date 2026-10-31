@@ -162,7 +162,9 @@ that test.
 `server/policy` is one table of method → kind of caller, and what is not in it
 is refused. A new RPC is closed until it is added there. The kinds:
 
-- **product** — a `ServiceKey` frame, which sees its own tenant and nothing else;
+- **product** — a `ServiceKey` frame, which sees its own tenant and nothing else:
+  `levyan.v1`, and the receiver of its flows
+  (`opentelemetry.proto.collector.metrics.v1.MetricsService/Export`);
 - **payer** — not yet: an account, in no tenant, once payday says how an account
   calls (payday#184);
 - operators never call here.
@@ -190,6 +192,53 @@ a generated one.
   before it is exact (`math/big`). Do not round a share, a band or a quantity on
   the way.
 
+## The ledger
+
+What products send of their workspaces (`server/ledger`, docs/design.md §8):
+a stock's **readings** (`levyan.v1.MeteringService/Record`) and a flow's
+**points** (OpenTelemetry's `MetricsService/Export`, `server/otlp`). Both are
+rows that are never changed: every field immutable, no Patch, no Erase.
+
+- **Kept once.** A reading is (product, workspace, meter, measured_at) and a
+  point (series, start, time), each a unique index. The same again is
+  `Already`; the same key with another value is refused (`Conflict`) and said
+  in the log -- never one of the two values picked. A point that counts no
+  more than one before it under the same start adds nothing to any period and
+  is not written (`Nothing`).
+- **Refused one at a time.** A call answers each reading or point on its own
+  (OTLP's partial success, for the receiver), so a meter the price book does
+  not have yet does not cost the workspace its other readings.
+- **Written through the servers, as the caller.** `ledger.Ledger.S` is the
+  walled stack for a product's calls, so the trail names the key that sent
+  each row. What the ledger reads to decide -- meters, workspaces, rows already
+  kept, periods -- it reads with ent on the transaction it writes in, and only
+  of the product the frame names, never one a request names.
+- **A workspace's row is held by every write of its ledger** (`ledger.Lock`:
+  `FOR UPDATE` on PostgreSQL; SQLite has one writer, `_txlock=immediate`), and
+  by the close of a period for it (#6). Do not write the ledger without it:
+  it is what makes "late" exact.
+- **Late** is a row that speaks for a period whose close has begun -- a
+  `Period` row exists: a reading measured in it, or within `usage.Hold` before
+  it; a point counted in it, or whose next point is. It is kept and marked, and
+  a later statement corrects the period.
+- **`usage.Hold` is the rating's**, not configuration: how long a reading
+  speaks for its value when no later one comes. `readings.gap` is only the
+  warning (`levyan.readings.gaps`); a bill must not move because somebody tuned
+  an alert.
+- `Workspace` is the set (field 3) of every ledger row. `Workspace` and
+  `Series` have a Patch only because protobuf-orm writes `<Entity>GetKey`,
+  which an edge to them needs, beside a Patch; every field is immutable and no
+  caller is given it.
+- **An aggregate read through ent** scans a time with `ledger.instant` (SQLite
+  answers one as nanoseconds) and an identifier with `ledger.key` (the
+  standard library's `uuid.UUID` is no `sql.Scanner`). A struct field ent
+  cannot scan is read as JSON, and the panic inside `Rows.Scan` then hangs the
+  call rather than failing it.
+
+The receiver is gRPC on purpose: it is the same door, behind the same chain,
+as `levyan.v1`, and the operator's binary does not link it (`cmd/levyan`'s
+test).
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -199,6 +248,11 @@ of its own, `levyan.…` (`spin.Called`), and `spin.Run` refuses an unnamed one.
 A lease is at most one at a time but for a moment around a failover, not exactly
 once: a loop is still safe run twice. `levyan-admin serve` runs only its own
 process's access writer.
+
+levyan's own: `levyan.readings.gaps` (`ledger.LookForGaps`), which warns of
+workspaces that have stopped sending a stock meter's readings, in the log and
+in the gauge `levyan.readings.gaps`. A pass that fails is logged and the next
+tries again.
 
 ## Configuration and secrets
 

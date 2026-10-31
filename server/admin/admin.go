@@ -1,7 +1,8 @@
 // Package admin is the operator's entry point: what an operator does to the
 // price book from outside every product -- puts a product up, issues and
 // revokes its keys, writes its meters, publishes its prices and asks which
-// was in force when -- over HTTP, on a listener of its own.
+// was in force when -- and what it asks of the ledger -- which workspaces have
+// stopped sending readings -- over HTTP, on a listener of its own.
 //
 // It is served by `levyan-admin serve`, and `levyan serve` links none of it:
 // the public binary has no path that writes as the deployment. Every request
@@ -48,6 +49,7 @@ import (
 	enttenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	"github.com/lesomnus/levyan/internal/pricing"
 	"github.com/lesomnus/levyan/server/keys"
+	"github.com/lesomnus/levyan/server/ledger"
 )
 
 // Operator is somebody who may use this entry point: their name, and the
@@ -89,6 +91,10 @@ func Operators(keys map[string]cfg.Secret) ([]Operator, error) {
 type Routes struct {
 	S         *cmd.Server
 	Operators []Operator
+
+	// Expect is what is expected of readings, which says what a gap is
+	// (`readings` of the configuration).
+	Expect ledger.Expect
 
 	// rows is each operator's row, by name, which [Routes.Sync] makes -- and
 	// may make again while the door is open.
@@ -164,6 +170,7 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("GET /admin/products/{product}/prices", a.prices)
 	api.HandleFunc("POST /admin/products/{product}/prices", a.publish)
 	api.HandleFunc("GET /admin/products/{product}/timeline", a.timeline)
+	api.HandleFunc("GET /admin/gaps", a.gaps)
 
 	mux := http.NewServeMux()
 	mux.Handle("/admin/", a.authorized(api))
@@ -762,6 +769,37 @@ func (a *Routes) timeline(w http.ResponseWriter, r *http.Request) {
 			v.Price = &p
 		}
 		out = append(out, v)
+	}
+
+	answer(w, http.StatusOK, out)
+}
+
+// Gap is a workspace that has been sending a stock meter's readings and has
+// sent none for longer than it should have.
+type Gap struct {
+	Product   string    `json:"product"`
+	Workspace string    `json:"workspace"`
+	Meter     string    `json:"meter"`
+	Last      time.Time `json:"last"`
+}
+
+// gaps is every workspace without a reading for longer than it should have
+// gone, as the loop that looks for them finds them (`levyan.readings.gaps`):
+// of one product, when the query names one.
+func (a *Routes) gaps(w http.ResponseWriter, r *http.Request) {
+	product := strings.TrimSpace(r.URL.Query().Get("product"))
+	vs, _, err := ledger.Gaps(r.Context(), a.S.Ent, ledger.Moment(a.S.Clock()), a.Expect)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+
+	out := []Gap{}
+	for _, v := range vs {
+		if product != "" && v.Product != product {
+			continue
+		}
+		out = append(out, Gap{Product: v.Product, Workspace: v.Workspace.String(), Meter: v.Meter, Last: v.Last})
 	}
 
 	answer(w, http.StatusOK, out)

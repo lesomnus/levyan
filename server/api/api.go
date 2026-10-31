@@ -1,12 +1,15 @@
-// Package api is `levyan.v1` served: what a product calls, answered from its
-// price book (docs/design.md, "앱이 levyan을 부르는 길").
+// Package api is `levyan.v1` served: what a product calls -- its price book,
+// and the ledger its readings are kept in (docs/design.md, "앱이 levyan을
+// 부르는 길").
 //
 // Every method reads through the stack a caller reaches, with the caller's
 // frame, so the wall keeps a product to its own rows here as it does
 // everywhere, and asks it nothing it could get round by naming another
-// product. What it answers is `levyan.v1`'s messages and never the schema's:
-// the schema is levyan's to change, and the API is what was promised to the
-// apps that call it.
+// product. A write to the ledger goes through the same stack as the product
+// (`server/ledger`), which decides what to write from rows of the product the
+// call is framed in and of no other. What it answers is `levyan.v1`'s
+// messages and never the schema's: the schema is levyan's to change, and the
+// API is what was promised to the apps that call it.
 package api
 
 import (
@@ -23,6 +26,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/server/ledger"
 )
 
 // PriceBook is `levyan.v1.PriceBookService`.
@@ -34,9 +38,11 @@ type PriceBook struct {
 }
 
 // Register serves `levyan.v1` on g, from s -- which is the walled stack, and
-// never the one the deployment works through.
-func Register(g grpc.ServiceRegistrar, s levyan.Server) {
+// never the one the deployment works through -- and writes the ledger through
+// l, which is on it.
+func Register(g grpc.ServiceRegistrar, s levyan.Server, l ledger.Ledger) {
 	levyanv1.RegisterPriceBookServiceServer(g, PriceBook{S: s})
+	levyanv1.RegisterMeteringServiceServer(g, Metering{L: l})
 }
 
 // page is how many rows one read through the stack asks for at a time.

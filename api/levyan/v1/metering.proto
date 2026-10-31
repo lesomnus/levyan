@@ -1,0 +1,111 @@
+edition = "2023";
+
+// What a product tells levyan its workspaces hold. What they do -- a flow --
+// is exported to the same address as an OpenTelemetry Sum, through
+// OpenTelemetry's own `MetricsService` (README, "흐름").
+package levyan.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
+
+// MeteringService is how a product hands levyan what its workspaces hold:
+// the readings payday's `meter.Reader` makes (payday#186), sent as they are.
+//
+// Every call is the calling product's own, as `PriceBookService`'s are: a
+// reading is of one of its meters, for one of its workspaces, and nothing here
+// names a product.
+service MeteringService {
+  // Record keeps readings of stock meters in the ledger, and answers what came
+  // of each, in the order they were sent.
+  //
+  // A reading is its workspace, its meter and the moment it was measured: the
+  // ledger keeps one of each, so one sent again -- a retry of a call that did
+  // arrive -- is the one kept already, and the same three with another value is
+  // refused. A reading refused is refused alone; the others are kept. An error
+  // is none of them kept, and the call is safe to make again as it was.
+  rpc Record(RecordRequest) returns (RecordResponse);
+}
+
+message RecordRequest {
+  // At most 10,000.
+  repeated Reading readings = 1;
+}
+
+// Reading is what one workspace held of one stock meter at one moment:
+// payday's `meter.Reading`.
+message Reading {
+  // The workspace: the canonical text of the identifier of the product's own
+  // payday tenant.
+  string workspace = 1;
+
+  // The meter, by its key: `loft.assets.active`.
+  string meter = 2;
+
+  // When it was measured. Kept to the microsecond, in UTC.
+  google.protobuf.Timestamp measured_at = 3;
+
+  // How much the workspace held, in the meter's unit.
+  int64 value = 4;
+
+  // The meter's unit, which a reading in another is refused for not being.
+  string unit = 5;
+}
+
+message RecordResponse {
+  // One for each reading, in the order they were sent.
+  repeated Recorded results = 1;
+}
+
+// Recorded is what came of one reading.
+message Recorded {
+  Outcome outcome = 1;
+
+  // Why it was refused; unset for one that was not.
+  Refusal refusal = 2;
+
+  // The refusal in a sentence, for a log.
+  string why = 3;
+
+  // Kept, and measured in a period that was closed already -- or near enough
+  // the end of one that it speaks for some of it -- so that what that period
+  // was billed is corrected on a later statement.
+  bool late = 4;
+}
+
+// Outcome is what came of a reading or a point.
+enum Outcome {
+  OUTCOME_UNSPECIFIED = 0;
+
+  // Kept: a row of the ledger now.
+  OUTCOME_KEPT = 1;
+
+  // The same was kept before, and nothing was written.
+  OUTCOME_ALREADY = 2;
+
+  // Not kept, and `refusal` says why.
+  OUTCOME_REFUSED = 3;
+}
+
+// Refusal is why a reading was not kept.
+enum Refusal {
+  REFUSAL_UNSPECIFIED = 0;
+
+  // Not a reading: no workspace, a workspace that is not the identifier of a
+  // payday tenant, no moment or one ahead of now, a value below nothing.
+  REFUSAL_INVALID = 1;
+
+  // No meter of the product has the key.
+  REFUSAL_NO_METER = 2;
+
+  // The meter is a flow, which is exported as an OpenTelemetry Sum and not
+  // recorded.
+  REFUSAL_FLOW = 3;
+
+  // The unit is not the meter's.
+  REFUSAL_UNIT = 4;
+
+  // The same workspace, meter and moment were kept with another value.
+  REFUSAL_CONFLICT = 5;
+}

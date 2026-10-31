@@ -20,20 +20,28 @@ import (
 	entmigrate "github.com/lesomnus/levyan/internal/ent/migrate"
 	"github.com/lesomnus/levyan/server/api"
 	"github.com/lesomnus/levyan/server/keys"
+	"github.com/lesomnus/levyan/server/ledger"
+	"github.com/lesomnus/levyan/server/otlp"
 	"github.com/lesomnus/levyan/server/policy"
 )
 
 // Front is the door `levyan serve` puts on what `cmd.Build` made: a product,
 // by the service key it sends, served as that key in its own tenant
 // (`server/keys`); what it may call, the policy table (`server/policy`); and
-// `levyan.v1`, what it calls (`server/api`), on the walled stack.
+// what it calls, on the walled stack -- `levyan.v1` (`server/api`), and
+// OpenTelemetry's `MetricsService` for what its workspaces do
+// (`server/otlp`), both writing the ledger as the product (`server/ledger`).
 //
 // A function rather than lines in the command so that a test serves exactly
 // this, over a connection, and asks it what a product is told.
 func Front(s *cmd.Server) {
 	s.Auth = auth.Bearer(keys.Store(s.Ungated, s.Clock))
 	s.Policy = policy.Policy{}
-	s.Register = append(s.Register, func(g grpc.ServiceRegistrar) { api.Register(g, s.Walled) })
+	l := ledger.Ledger{S: s.Walled, Drv: s.Drv, Dialect: s.Dialect, Now: s.Clock}
+	s.Register = append(s.Register,
+		func(g grpc.ServiceRegistrar) { api.Register(g, s.Walled, l) },
+		func(g grpc.ServiceRegistrar) { otlp.Register(g, l) },
+	)
 }
 
 // NewCmdServe is `levyan serve`: products' calls, on `server.addr`.

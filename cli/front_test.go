@@ -153,6 +153,18 @@ func TestAProductCallsLevyanV1AndNothingElse(t *testing.T) {
 	_, err = levyan.NewServiceKeyServiceClient(conn).List(ctx, levyan.ServiceKeyListRequest_builder{}.Build())
 	x.Equal(codes.PermissionDenied, status.Code(err), "nor reads its keys")
 
+	_, err = levyan.NewReadingServiceClient(conn).Add(ctx, levyan.ReadingAddRequest_builder{Tenant: levyantest.Ref(loft)}.Build())
+	x.Equal(codes.PermissionDenied, status.Code(err), "a reading is recorded through levyan.v1, which says what came of it, and never written as a row")
+
+	_, err = levyan.NewPointServiceClient(conn).List(ctx, levyan.PointListRequest_builder{}.Build())
+	x.Equal(codes.PermissionDenied, status.Code(err), "nor the ledger read as rows")
+
+	_, err = levyan.NewWorkspaceServiceClient(conn).Patch(ctx, levyan.WorkspacePatchRequest_builder{}.Build())
+	x.Equal(codes.PermissionDenied, status.Code(err), "nor a workspace patched, which no caller may")
+
+	_, err = levyan.NewPeriodServiceClient(conn).Add(ctx, levyan.PeriodAddRequest_builder{Tenant: levyantest.Ref(loft)}.Build())
+	x.Equal(codes.PermissionDenied, status.Code(err), "nor a period of its own closed")
+
 	_, err = levyan.NewTenantServiceClient(conn).Patch(ctx, levyan.TenantPatchRequest_builder{
 		Ref: levyantest.Ref(loft), Name: proto.String("free"),
 	}.Build())

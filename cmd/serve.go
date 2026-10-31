@@ -30,6 +30,7 @@ import (
 	"github.com/lesomnus/levyan/server/bare"
 	"github.com/lesomnus/levyan/server/book"
 	"github.com/lesomnus/levyan/server/keys"
+	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/pd"
 )
 
@@ -190,6 +191,15 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		// The loop that makes an event durable.
 		s.Spin = append(s.Spin, pd.Drain(client, b, c.Watch.Every()))
 	}
+
+	// The loop that looks for readings that should have come and have not
+	// (`levyan.readings.gaps`): a workspace that has been sending a stock
+	// meter's readings and has stopped is one whose bill would be short, and
+	// nothing else would say so.
+	s.Spin = append(s.Spin, ledger.LookForGaps(client, clock, c.Readings.LookEvery(), ledger.Expect{
+		Gap:    c.Readings.GapAfter(),
+		Recent: c.Readings.RecentWithin(),
+	}))
 
 	// And the trail's retention, which is the one loop here that is a
 	// **mechanism** rather than a tidy-up: nothing else applies a window, so an

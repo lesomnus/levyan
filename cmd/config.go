@@ -13,6 +13,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/lesomnus/xli/cfg"
 
 	"github.com/lesomnus/payday/config"
@@ -49,6 +51,58 @@ type Config struct {
 	// Admin is the operator's entry point, which `levyan-admin serve` serves
 	// and `levyan serve` does not.
 	Admin AdminConfig `yaml:"admin"`
+
+	// Readings is what is expected of the readings products send.
+	Readings ReadingsConfig `yaml:"readings"`
+}
+
+// ReadingsConfig is what is expected of the readings products send: how long
+// a workspace that has been sending them may go without one before it is a
+// gap, warned of in the log and in the gauge `levyan.readings.gaps` by the
+// loop that looks for them (`levyan.readings.gaps`).
+//
+// It is about the warning and nothing else. How long a reading speaks for its
+// value when no later one comes is the rating's (`usage.Hold`), since a bill
+// moved by a threshold somebody tuned for an alert is a bill nobody can
+// explain.
+type ReadingsConfig struct {
+	// Gap is how long a workspace may go without a reading of a stock meter it
+	// has been sending readings of: 36h when unset, a day's reading and half a
+	// day more.
+	Gap time.Duration `yaml:"gap"`
+
+	// Recent is how long ago a workspace's last reading of a meter may be for
+	// it still to be looked for: a week when unset. One silent for longer is
+	// gone from the product, most likely, and has been warned of all that
+	// while.
+	Recent time.Duration `yaml:"recent"`
+
+	// Every is how often they are looked for: an hour when unset.
+	Every time.Duration `yaml:"every"`
+}
+
+// GapAfter is [ReadingsConfig.Gap], or its default.
+func (c ReadingsConfig) GapAfter() time.Duration {
+	if c.Gap <= 0 {
+		return 36 * time.Hour
+	}
+	return c.Gap
+}
+
+// RecentWithin is [ReadingsConfig.Recent], or its default.
+func (c ReadingsConfig) RecentWithin() time.Duration {
+	if c.Recent <= 0 {
+		return 7 * 24 * time.Hour
+	}
+	return c.Recent
+}
+
+// LookEvery is [ReadingsConfig.Every], or its default.
+func (c ReadingsConfig) LookEvery() time.Duration {
+	if c.Every <= 0 {
+		return time.Hour
+	}
+	return c.Every
 }
 
 // AdminConfig is the operator's entry point: a listener of its own that only

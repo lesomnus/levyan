@@ -19,9 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StatementService_Add_FullMethodName  = "/levyan.StatementService/Add"
-	StatementService_Get_FullMethodName  = "/levyan.StatementService/Get"
-	StatementService_List_FullMethodName = "/levyan.StatementService/List"
+	StatementService_Add_FullMethodName   = "/levyan.StatementService/Add"
+	StatementService_Get_FullMethodName   = "/levyan.StatementService/Get"
+	StatementService_Patch_FullMethodName = "/levyan.StatementService/Patch"
+	StatementService_Apply_FullMethodName = "/levyan.StatementService/Apply"
+	StatementService_List_FullMethodName  = "/levyan.StatementService/List"
 )
 
 // StatementServiceClient is the client API for StatementService service.
@@ -32,6 +34,10 @@ type StatementServiceClient interface {
 	Add(ctx context.Context, in *StatementAddRequest, opts ...grpc.CallOption) (*Statement, error)
 	// Get retrieves a Statement
 	Get(ctx context.Context, in *StatementGetRequest, opts ...grpc.CallOption) (*Statement, error)
+	// Patch updates an existing Statement
+	Patch(ctx context.Context, in *StatementPatchRequest, opts ...grpc.CallOption) (*Statement, error)
+	// Apply applies a patch document to an existing Statement
+	Apply(ctx context.Context, in *StatementApplyRequest, opts ...grpc.CallOption) (*Statement, error)
 	// List reads Statements a page at a time.
 	List(ctx context.Context, in *StatementListRequest, opts ...grpc.CallOption) (*StatementListResponse, error)
 }
@@ -64,6 +70,26 @@ func (c *statementServiceClient) Get(ctx context.Context, in *StatementGetReques
 	return out, nil
 }
 
+func (c *statementServiceClient) Patch(ctx context.Context, in *StatementPatchRequest, opts ...grpc.CallOption) (*Statement, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Statement)
+	err := c.cc.Invoke(ctx, StatementService_Patch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statementServiceClient) Apply(ctx context.Context, in *StatementApplyRequest, opts ...grpc.CallOption) (*Statement, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Statement)
+	err := c.cc.Invoke(ctx, StatementService_Apply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *statementServiceClient) List(ctx context.Context, in *StatementListRequest, opts ...grpc.CallOption) (*StatementListResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatementListResponse)
@@ -82,6 +108,10 @@ type StatementServiceServer interface {
 	Add(context.Context, *StatementAddRequest) (*Statement, error)
 	// Get retrieves a Statement
 	Get(context.Context, *StatementGetRequest) (*Statement, error)
+	// Patch updates an existing Statement
+	Patch(context.Context, *StatementPatchRequest) (*Statement, error)
+	// Apply applies a patch document to an existing Statement
+	Apply(context.Context, *StatementApplyRequest) (*Statement, error)
 	// List reads Statements a page at a time.
 	List(context.Context, *StatementListRequest) (*StatementListResponse, error)
 	mustEmbedUnimplementedStatementServiceServer()
@@ -99,6 +129,12 @@ func (UnimplementedStatementServiceServer) Add(context.Context, *StatementAddReq
 }
 func (UnimplementedStatementServiceServer) Get(context.Context, *StatementGetRequest) (*Statement, error) {
 	return nil, status.Error(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedStatementServiceServer) Patch(context.Context, *StatementPatchRequest) (*Statement, error) {
+	return nil, status.Error(codes.Unimplemented, "method Patch not implemented")
+}
+func (UnimplementedStatementServiceServer) Apply(context.Context, *StatementApplyRequest) (*Statement, error) {
+	return nil, status.Error(codes.Unimplemented, "method Apply not implemented")
 }
 func (UnimplementedStatementServiceServer) List(context.Context, *StatementListRequest) (*StatementListResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
@@ -160,6 +196,42 @@ func _StatementService_Get_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StatementService_Patch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatementPatchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatementServiceServer).Patch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatementService_Patch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatementServiceServer).Patch(ctx, req.(*StatementPatchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatementService_Apply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatementApplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatementServiceServer).Apply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatementService_Apply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatementServiceServer).Apply(ctx, req.(*StatementApplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StatementService_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StatementListRequest)
 	if err := dec(in); err != nil {
@@ -192,6 +264,14 @@ var StatementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Get",
 			Handler:    _StatementService_Get_Handler,
+		},
+		{
+			MethodName: "Patch",
+			Handler:    _StatementService_Patch_Handler,
+		},
+		{
+			MethodName: "Apply",
+			Handler:    _StatementService_Apply_Handler,
 		},
 		{
 			MethodName: "List",

@@ -17,7 +17,7 @@ option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
 service WorkspaceService {
   // Arrive says a workspace was made, and by whom: its creator is its payer
   // from when it was made, with the first billing account they made, if they
-  // have made one. Said again, it changes nothing.
+  // have made one. Said again, it changes nothing but its label.
   rpc Arrive(ArriveRequest) returns (ArriveResponse);
 
   // Leave says an account is no longer in a workspace. If it paid for the
@@ -43,6 +43,12 @@ message ArriveRequest {
   // When it was made; unset is now. Never after now, and what a workspace
   // made before levyan heard of it is billed from.
   google.protobuf.Timestamp created = 3;
+
+  // What the product calls it, for an invoice to name it by: its name
+  // there, at most 100 characters. Said again, it is what the workspace is
+  // called from then on; an invoice keeps what each of its lines was written
+  // with. Empty leaves it as it was.
+  string label = 4;
 }
 
 message ArriveResponse {

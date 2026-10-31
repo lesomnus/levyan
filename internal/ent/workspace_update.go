@@ -29,6 +29,20 @@ func (_u *WorkspaceUpdate) Where(ps ...predicate.Workspace) *WorkspaceUpdate {
 	return _u
 }
 
+// SetLabel sets the "label" field.
+func (_u *WorkspaceUpdate) SetLabel(v string) *WorkspaceUpdate {
+	_u.mutation.SetLabel(v)
+	return _u
+}
+
+// SetNillableLabel sets the "label" field if the given value is not nil.
+func (_u *WorkspaceUpdate) SetNillableLabel(v *string) *WorkspaceUpdate {
+	if v != nil {
+		_u.SetLabel(*v)
+	}
+	return _u
+}
+
 // SetDateErased sets the "date_erased" field.
 func (_u *WorkspaceUpdate) SetDateErased(v time.Time) *WorkspaceUpdate {
 	_u.mutation.SetDateErased(v)
@@ -107,6 +121,12 @@ func (_u *WorkspaceUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.Label(); ok {
+		_spec.SetField(workspace.FieldLabel, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(workspace.FieldLabel); ok {
+		_spec.SetField(workspace.FieldLabel, field.TypeString, e)
+	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(workspace.FieldDateErased, field.TypeTime, value)
 	}
@@ -139,6 +159,20 @@ type WorkspaceUpdateOne struct {
 	hooks     []Hook
 	mutation  *WorkspaceMutation
 	modifiers []func(*sql.UpdateBuilder)
+}
+
+// SetLabel sets the "label" field.
+func (_u *WorkspaceUpdateOne) SetLabel(v string) *WorkspaceUpdateOne {
+	_u.mutation.SetLabel(v)
+	return _u
+}
+
+// SetNillableLabel sets the "label" field if the given value is not nil.
+func (_u *WorkspaceUpdateOne) SetNillableLabel(v *string) *WorkspaceUpdateOne {
+	if v != nil {
+		_u.SetLabel(*v)
+	}
+	return _u
 }
 
 // SetDateErased sets the "date_erased" field.
@@ -248,6 +282,12 @@ func (_u *WorkspaceUpdateOne) sqlSave(ctx context.Context) (_node *Workspace, er
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Label(); ok {
+		_spec.SetField(workspace.FieldLabel, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(workspace.FieldLabel); ok {
+		_spec.SetField(workspace.FieldLabel, field.TypeString, e)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(workspace.FieldDateErased, field.TypeTime, value)

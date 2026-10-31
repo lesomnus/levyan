@@ -144,6 +144,7 @@ func (st WorkspaceServiceServer) create(ctx context.Context, req *levyan.Workspa
 		})
 	}
 	q.SetKey(req.GetKey())
+	q.SetLabel(req.GetLabel())
 	if req.HasDateCreated() {
 		q.SetDateCreated(req.GetDateCreated().AsTime())
 	} else {
@@ -279,6 +280,9 @@ func WorkspaceSelectedFields(m *levyan.WorkspaceSelect) []string {
 	if m.GetKey() {
 		vs = append(vs, workspace.FieldKey)
 	}
+	if m.GetLabel() {
+		vs = append(vs, workspace.FieldLabel)
+	}
 	if m.GetDateErased() {
 		vs = append(vs, workspace.FieldDateErased)
 	}
@@ -354,7 +358,7 @@ func WorkspaceGetKey(ctx context.Context, db *ent.Client, ref *levyan.WorkspaceR
 var workspaceOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_workspace_proto, "Workspace")
 
 var workspacePatchColumns = entpatch.Columns{
-	1: workspace.FieldId, 2: workspace.TenantColumn, 8: workspace.FieldKey, 14: workspace.FieldDateErased, 15: workspace.FieldDateCreated}
+	1: workspace.FieldId, 2: workspace.TenantColumn, 8: workspace.FieldKey, 9: workspace.FieldLabel, 14: workspace.FieldDateErased, 15: workspace.FieldDateCreated}
 
 func (s WorkspaceServiceServer) Apply(ctx context.Context, req *levyan.WorkspaceApplyRequest) (*levyan.Workspace, error) {
 	if !req.HasPatch() {

@@ -7,6 +7,8 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/invoice"
+	"github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	"github.com/lesomnus/levyan/internal/ent/price"
 	"github.com/lesomnus/levyan/internal/ent/schema"
 	"github.com/lesomnus/levyan/internal/ent/statement"
@@ -36,6 +38,16 @@ func init() {
 	// billingaccountDescBusiness is the schema descriptor for business field.
 	billingaccountDescBusiness := billingaccountFields[9].Descriptor()
 	billingaccount.ValueScanner.Business = billingaccountDescBusiness.ValueScanner.(field.TypeValueScanner[*levyan.BillingBusiness])
+	invoiceFields := schema.Invoice{}.Fields()
+	_ = invoiceFields
+	// invoiceDescBillTo is the schema descriptor for bill_to field.
+	invoiceDescBillTo := invoiceFields[20].Descriptor()
+	invoice.ValueScanner.BillTo = invoiceDescBillTo.ValueScanner.(field.TypeValueScanner[*levyan.BillTo])
+	paymentattemptFields := schema.PaymentAttempt{}.Fields()
+	_ = paymentattemptFields
+	// paymentattemptDescFailure is the schema descriptor for failure field.
+	paymentattemptDescFailure := paymentattemptFields[9].Descriptor()
+	paymentattempt.ValueScanner.Failure = paymentattemptDescFailure.ValueScanner.(field.TypeValueScanner[*levyan.AttemptFailure])
 	priceFields := schema.Price{}.Fields()
 	_ = priceFields
 	// priceDescBands is the schema descriptor for bands field.

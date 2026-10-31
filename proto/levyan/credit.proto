@@ -1,0 +1,150 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "levyan/credit_note.proto";
+import "levyan/invoice.proto";
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Credit is one movement of what a billing account is owed by a product --
+// its credit balance -- in levyan's own ledger (#9): what is owed back is
+// never paid out on its own, it is taken off the billing account's next
+// invoices, and a channel only ever sees what is left to collect.
+//
+// It comes from an invoice that came to less than nothing (corrections that
+// outweigh what was used), a credit note that takes back more than is due and
+// gives nothing back through the channel, or a transfer of more than was due;
+// and it goes to the invoices it pays, or back to an invoice voided. The
+// balance is what its movements add up to, never less than nothing.
+//
+// Written once and never changed: every field is immutable, and there is no
+// Patch and no Erase.
+message Credit {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is owed in.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The billing account it is owed to.
+  BillingAccount billing_account = 8 [(orm.edge) = {immutable: true}];
+
+  // How much it moves the balance, in the currency's minor unit: more than
+  // nothing owed, less than nothing taken off an invoice.
+  int64 amount = 9 [(orm.field) = {immutable: true}];
+  string currency = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  CreditKind kind = 11 [(orm.field) = {immutable: true}];
+
+  // The invoice it came from or went to, and the credit note it came from.
+  Invoice invoice = 12 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+  CreditNote credit_note = 16 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A billing account's balance, added up.
+        name: "billing"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "billing_account"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 27
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "billing_account"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// CreditKind is where a movement of a credit balance comes from, or goes.
+enum CreditKind {
+  CREDIT_KIND_UNSPECIFIED = 0;
+
+  // Owed: an invoice that came to less than nothing.
+  CREDIT_KIND_NEGATIVE = 1;
+
+  // Owed: what a credit note took back past what was due, and did not give
+  // back through the channel.
+  CREDIT_KIND_CREDIT_NOTE = 2;
+
+  // Owed: what was paid past what was due.
+  CREDIT_KIND_OVERPAID = 3;
+
+  // Taken: what of an invoice the balance paid.
+  CREDIT_KIND_APPLIED = 4;
+
+  // Owed again: what the balance paid of an invoice that was then voided.
+  CREDIT_KIND_RETURNED = 5;
+}

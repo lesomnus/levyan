@@ -1,0 +1,289 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "levyan/payday/tenant.proto";
+import "levyan/period.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Invoice is what one billing account is asked to pay for a product's
+// period: every statement of the workspaces it paid for over the period, a
+// line each (`InvoiceLine`), added up (#9).
+//
+// It is begun as a draft once a statement of the billing account is written,
+// and is finalized once its period is closed (`server/invoices`). A draft
+// whose amount is more than nothing and less than its channel collects waits
+// for the next period, and is then the invoice of both: its lines are added to
+// and its end is moved on, and nothing else of a draft changes after it is
+// finalized. So a statement with a billing account is on one invoice, ever
+// -- the line is unique by its statement -- which reconciliation (#13) relies
+// on.
+//
+// Finalized, it is never changed: what it asks for, its lines, its bill-to
+// and, on a channel levyan sells on itself, its number stay as they were.
+// What moves after is how it is settled -- paid, credited by a credit note,
+// voided, given up -- and the channel's word on it. A correction is a credit
+// note (`CreditNote`) or a correction line on a later statement, never this
+// row.
+//
+// Who issues the legal document depends on the channel. On a merchant of
+// record the MoR is the seller and issues it: this is the record of what
+// levyan asked the MoR to collect, with the MoR's references once collected,
+// and no number of levyan's. On a channel levyan sells on (a bank transfer,
+// a Korean gateway) it is the legal invoice: numbered at finalization, and
+// the tax invoice issued for it names it.
+//
+// Kept for as long as tax law keeps what was billed -- five years -- even
+// after the account that paid it is gone: there is no Erase.
+message Invoice {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The billing account it bills.
+  BillingAccount billing_account = 8 [(orm.edge) = {immutable: true}];
+
+  // The period it was begun for: the first it covers.
+  Period period = 9 [(orm.edge) = {immutable: true}];
+
+  // The first moment it covers, which is its first period's, and the first
+  // after the last it covers: moved on while it is a draft that waits for
+  // another period, and never again once it is finalized.
+  google.protobuf.Timestamp date_start = 10 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+  google.protobuf.Timestamp date_end = 11 [(orm.field) = {default: ""}];
+
+  // The channel it is collected through, by its name (`CHANNEL_MOR`), and the
+  // currency it is in: its billing account's, which never change.
+  string channel = 12 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string currency = 16 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  InvoiceState state = 17;
+
+  // What its lines come to: each statement's total added, in the currency's
+  // minor unit. Less than nothing when corrections outweigh what was used.
+  int64 subtotal = 18;
+
+  // The tax a seller adds, on a channel levyan sells on: `tax_rate` of the
+  // subtotal, rounded toward zero to the minor unit. Nothing on a merchant of
+  // record, whose tax is its own.
+  int64 tax = 19;
+  string tax_rate = 20 [(payday.field) = {personal: false}];
+
+  // The subtotal and the tax: what the billing account is billed.
+  int64 total = 21;
+
+  // What of the total its credit balance paid (`Credit`), and what was then
+  // asked of the channel: the total less that, never less than nothing.
+  int64 credited = 22;
+  int64 due = 23;
+
+  // How it is settled, of what was due: what the channel collected, or an
+  // operator recorded, and what credit notes took off it. What is left is
+  // due less the two.
+  int64 paid = 24;
+  int64 reduced = 25;
+
+  // Its number, on a channel levyan sells on: given as it is finalized, one
+  // after another across the deployment, and never given again. Unset on a
+  // merchant of record's, which the MoR numbers, and on a draft.
+  int64 number = 26 [(orm.field) = {nullable: true}];
+
+  // When it was finalized; unset while it is a draft.
+  google.protobuf.Timestamp date_finalized = 27 [(orm.field) = {nullable: true}];
+
+  // When the legal document a seller issues for it was issued, and the
+  // channel's reference of it -- a tax invoice's approval number. Unset on a
+  // merchant of record's, and until it is issued.
+  google.protobuf.Timestamp date_issued = 28 [(orm.field) = {nullable: true}];
+  string document = 29 [(payday.field) = {personal: false}];
+
+  // When it is due, where its channel says one: a transfer's.
+  google.protobuf.Timestamp date_due = 30 [(orm.field) = {nullable: true}];
+
+  // When it was settled: paid, voided, given up or written off.
+  google.protobuf.Timestamp date_settled = 31 [(orm.field) = {nullable: true}];
+
+  // Who it was billed to as it was finalized: kept as it was, whatever its
+  // billing account says later.
+  BillTo bill_to = 32 [
+    (orm.field) = {nullable: true},
+    (payday.field) = {personal: true}
+  ];
+
+  // The channel's references of what it collected: a transaction's or a
+  // payment's id, and a merchant of record's invoice number.
+  string channel_ref = 33 [(payday.field) = {personal: false}];
+  string channel_number = 34 [(payday.field) = {personal: false}];
+
+  // How many times it was found to be less than its channel collects, and
+  // waited for the next period.
+  uint32 carried = 35;
+
+  // Why it was voided, given up or written off, in its writer's words.
+  string reason = 36 [(payday.field) = {personal: true}];
+
+  // The end of the period a draft last waited at, being less than its
+  // channel collects: it is looked at again once it covers a later one.
+  google.protobuf.Timestamp date_carried = 37 [(orm.field) = {nullable: true}];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_start"
+            number: 10
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A billing account's invoices, in the order of their periods.
+        name: "billing"
+        refs: [
+          {
+            name: "billing_account"
+            number: 8
+          },
+          {
+            name: "date_start"
+            number: 10
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // What the invoices' loop looks for: drafts, and what is open.
+        name: "state"
+        refs: [
+          {
+            name: "state"
+            number: 17
+          },
+          {
+            name: "date_end"
+            number: 11
+          }
+        ]
+      },
+      {
+        // A seller's numbers, one invoice each.
+        name: "number"
+        refs: [
+          {
+            name: "number"
+            number: 26
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 23
+    tenanted: {
+      via: "tenant"
+      agrees: ["period.tenant"]
+    }
+    list: {
+      order: [
+        {field: {name: "date_start"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "billing_account"}
+      ]
+      size: 20
+      max: 100
+    }
+  };
+}
+
+// InvoiceState is where an invoice is.
+enum InvoiceState {
+  INVOICE_STATE_UNSPECIFIED = 0;
+
+  // Being made: statements are added to it as they are written, and it waits
+  // for the next period while it comes to less than its channel collects.
+  INVOICE_STATE_DRAFT = 1;
+
+  // Finalized, and not settled: what is due is being collected, or waited for.
+  INVOICE_STATE_OPEN = 2;
+
+  // Settled in full: collected, paid by credit, or taken off by credit notes
+  // -- or it came to nothing.
+  INVOICE_STATE_PAID = 3;
+
+  // Finalized and given up: what is left of it will not be collected.
+  INVOICE_STATE_UNCOLLECTIBLE = 4;
+
+  // Finalized and voided: nothing of it is owed.
+  INVOICE_STATE_VOID = 5;
+
+  // A draft that came to more than nothing and less than its channel
+  // collects, and to which nothing more will come -- every link of its
+  // billing account ended -- written off rather than collected. Claude's
+  // proposal, which the owner has not confirmed.
+  INVOICE_STATE_WRITTEN_OFF = 6;
+}
+
+// BillTo is who an invoice was billed to as it was finalized: its billing
+// account's recipient and business then.
+message BillTo {
+  // The billing account's name, its country, and who receives what it is
+  // billed.
+  string name = 1;
+  string country = 2;
+  string recipient = 3;
+  string email = 4;
+  string address = 5;
+
+  // The business it was billed to, for a tax invoice; unset for a person.
+  BillingBusiness business = 6;
+}

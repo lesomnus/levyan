@@ -89,4 +89,20 @@ service PayerService {
   rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty) {
     option (payday.method) = {account: {}};
   }
+
+  // The invoices of the account's billing accounts, of the product that
+  // relays the call, once each is finalized (#9).
+  rpc ListInvoices(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
+
+  // One of them, with its lines and its credit notes.
+  rpc GetInvoice(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
+
+  // The credit notes of them.
+  rpc ListCreditNotes(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
 }

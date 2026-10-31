@@ -20,8 +20,8 @@ option go_package = "github.com/lesomnus/levyan";
 // beside the wall that keeps a product to its own.
 //
 // Written the first time anything is heard of it, through the servers, and
-// never changed or erased: what it was billed outlives the workspace at the
-// product, as a seller's records outlive its customers. Every write of the
+// never changed but for its label, nor erased: what it was billed outlives
+// the workspace at the product, as a seller's records outlive its customers. Every write of the
 // ledger for a workspace holds its row until the write is done
 // (`server/ledger`), which is what makes "measured in a period that was closed
 // already" a question with one answer.
@@ -40,6 +40,13 @@ message Workspace {
   // as `payday.tenant` on a flow, is the canonical text of it.
   bytes key = 8 [(orm.field) = {immutable: true}];
 
+  // What the product calls it, for a bill to name it by: its name there, as
+  // the product says it as the workspace arrives (#9). An invoice keeps the
+  // label each of its lines was written with. Empty is a workspace named by
+  // its identifier. It is an organisation's name and nobody's, as payday's
+  // own tenant's name is.
+  string label = 9 [(payday.field) = {personal: false}];
+
   // Never stamped: there is no Erase. The rows of its ledger and its
   // statements name it for as long as they are kept.
   google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
@@ -51,10 +58,10 @@ message Workspace {
   }];
 
   option (orm.message) = {
-    // Patch is generated though nothing here may change -- every field is
-    // immutable -- because protobuf-orm writes `<Entity>GetKey`, which an
-    // edge to this entity is resolved by, only beside a Patch. No caller is
-    // given it (`server/policy`).
+    // Patch is generated for the label, the one field that changes, and
+    // because protobuf-orm writes `<Entity>GetKey`, which an edge to this
+    // entity is resolved by, only beside a Patch. No caller is given it
+    // (`server/policy`).
     rpc: {
       crud: true
       erase: {disabled: true}

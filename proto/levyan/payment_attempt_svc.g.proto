@@ -1,0 +1,180 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/credit_note_svc.g.proto";
+import "levyan/invoice_svc.g.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/payment_attempt.proto";
+import "patch/patch.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service PaymentAttemptService {
+  // Add creates a new PaymentAttempt
+  rpc Add(PaymentAttemptAddRequest) returns (PaymentAttempt);
+  // Get retrieves a PaymentAttempt
+  rpc Get(PaymentAttemptGetRequest) returns (PaymentAttempt);
+  // Patch updates an existing PaymentAttempt
+  rpc Patch(PaymentAttemptPatchRequest) returns (PaymentAttempt);
+  // Apply applies a patch document to an existing PaymentAttempt
+  rpc Apply(PaymentAttemptApplyRequest) returns (PaymentAttempt);
+  // List reads PaymentAttempts a page at a time.
+  rpc List(PaymentAttemptListRequest) returns (PaymentAttemptListResponse);
+}
+
+message PaymentAttemptAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  InvoiceRef invoice = 8;
+  CreditNoteRef credit_note = 9;
+  AttemptKind kind = 10 [features.field_presence = IMPLICIT];
+  string attempt_key = 11 [features.field_presence = IMPLICIT];
+  string channel = 12 [features.field_presence = IMPLICIT];
+  string currency = 16 [features.field_presence = IMPLICIT];
+  int64 amount = 17 [features.field_presence = IMPLICIT];
+  AttemptState state = 18 [features.field_presence = IMPLICIT];
+  uint32 sends = 19 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_sent = 20;
+  AttemptFailure failure = 21;
+  string channel_ref = 22 [features.field_presence = IMPLICIT];
+  string channel_number = 23 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_resolved = 24;
+  google.protobuf.Timestamp date_paid = 25;
+  bool recorded = 26 [features.field_presence = IMPLICIT];
+  string reference = 27 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message PaymentAttemptGetRequest {
+  PaymentAttemptRef ref = 1;
+  PaymentAttemptSelect select = 2;
+}
+
+message PaymentAttemptRef {
+  oneof key {
+    bytes id = 1;
+    PaymentAttemptRefByOnce once = 11;
+  }
+}
+
+message PaymentAttemptRefByOnce {
+  string attempt_key = 11;
+}
+
+message PaymentAttemptSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  InvoiceSelect invoice = 8;
+  CreditNoteSelect credit_note = 9;
+  bool kind = 10;
+  bool attempt_key = 11;
+  bool channel = 12;
+  bool currency = 16;
+  bool amount = 17;
+  bool state = 18;
+  bool sends = 19;
+  bool date_sent = 20;
+  bool failure = 21;
+  bool channel_ref = 22;
+  bool channel_number = 23;
+  bool date_resolved = 24;
+  bool date_paid = 25;
+  bool recorded = 26;
+  bool reference = 27;
+  bool date_updated = 13;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message PaymentAttemptPatchRequest {
+  PaymentAttemptRef ref = 1;
+  AttemptState state = 36;
+  uint32 sends = 38;
+  google.protobuf.Timestamp date_sent = 40;
+  // Clear date_sent instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_sent clears.
+  bool date_sent_null = 41;
+  AttemptFailure failure = 42;
+  // Clear failure instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and failure clears.
+  bool failure_null = 43;
+  string channel_ref = 44;
+  string channel_number = 46;
+  google.protobuf.Timestamp date_resolved = 48;
+  // Clear date_resolved instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_resolved clears.
+  bool date_resolved_null = 49;
+  google.protobuf.Timestamp date_paid = 50;
+  // Clear date_paid instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_paid clears.
+  bool date_paid_null = 51;
+  // The version this update requires the stored date_updated to be.
+  // It is a precondition, not a write: the update applies only if the row
+  // still holds this value, and the server stamps the new version itself.
+  // Setting it together with date_updated_force is an error --
+  // the version is the token every client's compare-and-swap is measured
+  // against, so it is not the caller's to choose.
+  google.protobuf.Timestamp date_updated = 26;
+  // Update whatever the stored date_updated is, with no precondition.
+  // The server still stamps a new version, so other clients' tokens are
+  // invalidated as usual; this declines the check for THIS update only.
+  // One of date_updated or this must be set. An omitted version is
+  // refused rather than assumed, because an unset field cannot be told
+  // apart from a caller who never considered locking at all.
+  bool date_updated_force = 27;
+}
+
+message PaymentAttemptApplyRequest {
+  PaymentAttemptRef ref = 1;
+  patch.Patch patch = 2;
+}
+
+message PaymentAttemptListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated PaymentAttemptFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message PaymentAttemptListResponse {
+  repeated PaymentAttempt items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message PaymentAttemptFilter {
+  PaymentAttemptRef ref = 1;
+  InvoiceRef invoice = 2;
+}

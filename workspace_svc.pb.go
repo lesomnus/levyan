@@ -27,6 +27,7 @@ type WorkspaceAddRequest struct {
 	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_Tenant      *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Key         []byte                 `protobuf:"bytes,8,opt,name=key"`
+	xxx_hidden_Label       string                 `protobuf:"bytes,9,opt,name=label"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
@@ -80,6 +81,13 @@ func (x *WorkspaceAddRequest) GetKey() []byte {
 	return nil
 }
 
+func (x *WorkspaceAddRequest) GetLabel() string {
+	if x != nil {
+		return x.xxx_hidden_Label
+	}
+	return ""
+}
+
 func (x *WorkspaceAddRequest) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateCreated
@@ -92,7 +100,7 @@ func (x *WorkspaceAddRequest) SetId(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *WorkspaceAddRequest) SetTenant(v *TenantRef) {
@@ -104,6 +112,10 @@ func (x *WorkspaceAddRequest) SetKey(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Key = v
+}
+
+func (x *WorkspaceAddRequest) SetLabel(v string) {
+	x.xxx_hidden_Label = v
 }
 
 func (x *WorkspaceAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
@@ -150,6 +162,7 @@ type WorkspaceAddRequest_builder struct {
 	Id          []byte
 	Tenant      *TenantRef
 	Key         []byte
+	Label       string
 	DateCreated *timestamppb.Timestamp
 }
 
@@ -158,11 +171,12 @@ func (b0 WorkspaceAddRequest_builder) Build() *WorkspaceAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_Label = b.Label
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
@@ -538,6 +552,7 @@ type WorkspaceSelect struct {
 	xxx_hidden_All         bool                   `protobuf:"varint,1,opt,name=all"`
 	xxx_hidden_Tenant      *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Key         bool                   `protobuf:"varint,8,opt,name=key"`
+	xxx_hidden_Label       bool                   `protobuf:"varint,9,opt,name=label"`
 	xxx_hidden_DateErased  bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
@@ -592,6 +607,13 @@ func (x *WorkspaceSelect) GetKey() bool {
 	return false
 }
 
+func (x *WorkspaceSelect) GetLabel() bool {
+	if x != nil {
+		return x.xxx_hidden_Label
+	}
+	return false
+}
+
 func (x *WorkspaceSelect) GetDateErased() bool {
 	if x != nil {
 		return x.xxx_hidden_DateErased
@@ -608,7 +630,7 @@ func (x *WorkspaceSelect) GetDateCreated() bool {
 
 func (x *WorkspaceSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *WorkspaceSelect) SetTenant(v *TenantSelect) {
@@ -617,17 +639,22 @@ func (x *WorkspaceSelect) SetTenant(v *TenantSelect) {
 
 func (x *WorkspaceSelect) SetKey(v bool) {
 	x.xxx_hidden_Key = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+}
+
+func (x *WorkspaceSelect) SetLabel(v bool) {
+	x.xxx_hidden_Label = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
 func (x *WorkspaceSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
 }
 
 func (x *WorkspaceSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *WorkspaceSelect) HasAll() bool {
@@ -651,18 +678,25 @@ func (x *WorkspaceSelect) HasKey() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *WorkspaceSelect) HasDateErased() bool {
+func (x *WorkspaceSelect) HasLabel() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *WorkspaceSelect) HasDateCreated() bool {
+func (x *WorkspaceSelect) HasDateErased() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *WorkspaceSelect) HasDateCreated() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
 func (x *WorkspaceSelect) ClearAll() {
@@ -679,13 +713,18 @@ func (x *WorkspaceSelect) ClearKey() {
 	x.xxx_hidden_Key = false
 }
 
-func (x *WorkspaceSelect) ClearDateErased() {
+func (x *WorkspaceSelect) ClearLabel() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Label = false
+}
+
+func (x *WorkspaceSelect) ClearDateErased() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_DateErased = false
 }
 
 func (x *WorkspaceSelect) ClearDateCreated() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
 	x.xxx_hidden_DateCreated = false
 }
 
@@ -695,6 +734,7 @@ type WorkspaceSelect_builder struct {
 	All         *bool
 	Tenant      *TenantSelect
 	Key         *bool
+	Label       *bool
 	DateErased  *bool
 	DateCreated *bool
 }
@@ -704,30 +744,37 @@ func (b0 WorkspaceSelect_builder) Build() *WorkspaceSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_All = *b.All
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	if b.Key != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_Key = *b.Key
 	}
+	if b.Label != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		x.xxx_hidden_Label = *b.Label
+	}
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
 		x.xxx_hidden_DateCreated = *b.DateCreated
 	}
 	return m0
 }
 
 type WorkspacePatchRequest struct {
-	state          protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ref *WorkspaceRef          `protobuf:"bytes,1,opt,name=ref"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ref         *WorkspaceRef          `protobuf:"bytes,1,opt,name=ref"`
+	xxx_hidden_Label       *string                `protobuf:"bytes,18,opt,name=label"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *WorkspacePatchRequest) Reset() {
@@ -762,8 +809,23 @@ func (x *WorkspacePatchRequest) GetRef() *WorkspaceRef {
 	return nil
 }
 
+func (x *WorkspacePatchRequest) GetLabel() string {
+	if x != nil {
+		if x.xxx_hidden_Label != nil {
+			return *x.xxx_hidden_Label
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *WorkspacePatchRequest) SetRef(v *WorkspaceRef) {
 	x.xxx_hidden_Ref = v
+}
+
+func (x *WorkspacePatchRequest) SetLabel(v string) {
+	x.xxx_hidden_Label = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *WorkspacePatchRequest) HasRef() bool {
@@ -773,14 +835,27 @@ func (x *WorkspacePatchRequest) HasRef() bool {
 	return x.xxx_hidden_Ref != nil
 }
 
+func (x *WorkspacePatchRequest) HasLabel() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *WorkspacePatchRequest) ClearRef() {
 	x.xxx_hidden_Ref = nil
+}
+
+func (x *WorkspacePatchRequest) ClearLabel() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Label = nil
 }
 
 type WorkspacePatchRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ref *WorkspaceRef
+	Ref   *WorkspaceRef
+	Label *string
 }
 
 func (b0 WorkspacePatchRequest_builder) Build() *WorkspacePatchRequest {
@@ -788,6 +863,10 @@ func (b0 WorkspacePatchRequest_builder) Build() *WorkspacePatchRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Ref = b.Ref
+	if b.Label != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Label = b.Label
+	}
 	return m0
 }
 
@@ -1150,11 +1229,12 @@ var File_levyan_workspace_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_workspace_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/workspace_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x16levyan/workspace.proto\x1a\x11patch/patch.proto\"\xa8\x01\n" +
+	"\x1clevyan/workspace_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x16levyan/workspace.proto\x1a\x11patch/patch.proto\"\xc5\x01\n" +
 	"\x13WorkspaceAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x12\x17\n" +
-	"\x03key\x18\b \x01(\fB\x05\xaa\x01\x02\b\x02R\x03key\x12=\n" +
+	"\x03key\x18\b \x01(\fB\x05\xaa\x01\x02\b\x02R\x03key\x12\x1b\n" +
+	"\x05label\x18\t \x01(\tB\x05\xaa\x01\x02\b\x02R\x05label\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"n\n" +
 	"\x13WorkspaceGetRequest\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.WorkspaceRefR\x03ref\x12/\n" +
@@ -1165,16 +1245,18 @@ const file_levyan_workspace_svc_g_proto_rawDesc = "" +
 	"\x03key\"R\n" +
 	"\x13WorkspaceRefByKeyed\x12\x10\n" +
 	"\x03key\x18\b \x01(\fR\x03key\x12)\n" +
-	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\"\xa7\x01\n" +
+	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\"\xbd\x01\n" +
 	"\x0fWorkspaceSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x12\x10\n" +
-	"\x03key\x18\b \x01(\bR\x03key\x12\x1f\n" +
+	"\x03key\x18\b \x01(\bR\x03key\x12\x14\n" +
+	"\x05label\x18\t \x01(\bR\x05label\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
 	"dateErased\x12!\n" +
-	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"?\n" +
+	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"U\n" +
 	"\x15WorkspacePatchRequest\x12&\n" +
-	"\x03ref\x18\x01 \x01(\v2\x14.levyan.WorkspaceRefR\x03ref\"c\n" +
+	"\x03ref\x18\x01 \x01(\v2\x14.levyan.WorkspaceRefR\x03ref\x12\x14\n" +
+	"\x05label\x18\x12 \x01(\tR\x05label\"c\n" +
 	"\x15WorkspaceApplyRequest\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.WorkspaceRefR\x03ref\x12\"\n" +
 	"\x05patch\x18\x02 \x01(\v2\f.patch.PatchR\x05patch\"\xa2\x01\n" +

@@ -1,0 +1,290 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/credit_note.proto";
+import "levyan/invoice.proto";
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// PaymentAttempt is one attempt to move an invoice's money through its
+// channel: a charge of what is due, or a refund of what a credit note gives
+// back -- the payment ledger, which reconciliation (#13) holds the channels
+// to (#9).
+//
+// Each has its own key, which is what keeps it once at the channel: a
+// gateway's order id, a merchant of record's charge key. Each time it is sent
+// is written down and committed **before** it is sent -- `sends`,
+// `date_sent`, and the state `UNKNOWN` -- so that a send whose answer never
+// came, or that the process did not live to hear, is known to have been made.
+// What came of an unknown send is found out only by asking the channel, never
+// by sending it again blind; a send the channel says it never had is sent
+// again, as a send of its own.
+//
+// A confirmed decline ends the attempt, and the invoice stays open and past
+// due: trying again is another attempt, which dunning (#11) decides on. A
+// transfer an operator saw is recorded as one that succeeded, never sent.
+//
+// Kept as invoices are, five years and beyond the account: there is no Erase.
+message PaymentAttempt {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The invoice it moves money for.
+  Invoice invoice = 8 [(orm.edge) = {immutable: true}];
+
+  // For a refund, the credit note it gives back for.
+  CreditNote credit_note = 9 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  AttemptKind kind = 10 [(orm.field) = {immutable: true}];
+
+  // What keeps it once at the channel: a gateway's order, a merchant of
+  // record's charge key. A send of it is this and its number,
+  // `<key>-<n>` -- what a gateway keeps one request by.
+  string attempt_key = 11 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // The channel it is made through, by its name, and how much: of what is
+  // due for a charge, of what is given back for a refund.
+  string channel = 12 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string currency = 16 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  int64 amount = 17 [(orm.field) = {immutable: true}];
+
+  AttemptState state = 18;
+
+  // How many times it was sent, and when it was last: each written before the
+  // send is made.
+  uint32 sends = 19;
+  google.protobuf.Timestamp date_sent = 20 [(orm.field) = {nullable: true}];
+
+  // Why it failed, as the channel said.
+  AttemptFailure failure = 21 [
+    (orm.field) = {nullable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // The channel's references of it: its payment's or transaction's id -- or a
+  // refund's -- and a merchant of record's invoice number.
+  string channel_ref = 22 [(payday.field) = {personal: false}];
+  string channel_number = 23 [(payday.field) = {personal: false}];
+
+  // When it succeeded or failed, by this deployment's clock, and when the
+  // money moved, by the channel's -- or the day an operator says a transfer
+  // came.
+  google.protobuf.Timestamp date_resolved = 24 [(orm.field) = {nullable: true}];
+  google.protobuf.Timestamp date_paid = 25 [(orm.field) = {nullable: true}];
+
+  // Recorded by an operator's hand, as a transfer they saw, and never sent.
+  bool recorded = 26 [(orm.field) = {immutable: true}];
+
+  // What the operator who recorded it says identifies the transfer: the
+  // bank's reference, which may be a person's name.
+  string reference = 27 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: true}
+  ];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // An invoice's attempts, in the order they were made.
+        name: "invoice"
+        refs: [
+          {
+            name: "invoice"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      },
+      {
+        // What the loop drives: attempts whose outcome is not settled.
+        name: "state"
+        refs: [
+          {
+            name: "state"
+            number: 18
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      },
+      {
+        // One attempt to a key, ever: the channel keeps it once by it.
+        name: "once"
+        refs: [
+          {
+            name: "attempt_key"
+            number: 11
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 26
+    tenanted: {
+      via: "tenant"
+      agrees: ["invoice.tenant"]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "invoice"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// AttemptKind is which way an attempt moves money.
+enum AttemptKind {
+  ATTEMPT_KIND_UNSPECIFIED = 0;
+
+  // A charge of what an invoice has due.
+  ATTEMPT_KIND_CHARGE = 1;
+
+  // A refund of what a credit note gives back.
+  ATTEMPT_KIND_REFUND = 2;
+}
+
+// AttemptState is where an attempt is.
+enum AttemptState {
+  ATTEMPT_STATE_UNSPECIFIED = 0;
+
+  // Written, and nothing of it is out: never sent, or every send of it the
+  // channel said came to nothing. It is sent next.
+  ATTEMPT_STATE_REQUESTED = 1;
+
+  // A send of it is out, or was, and what came of it is not known: no answer
+  // came, the answer could not be read, or the process ended between writing
+  // the send down and hearing back. The channel is asked next, and nothing is
+  // sent before it answers.
+  ATTEMPT_STATE_UNKNOWN = 2;
+
+  // The channel has it and says it is not done: collecting, waiting for the
+  // payer, a refund waiting for approval. It is asked again.
+  ATTEMPT_STATE_PENDING = 3;
+
+  // The money moved.
+  ATTEMPT_STATE_SUCCEEDED = 4;
+
+  // It will not move: declined, refused, or something the channel said
+  // cannot be done as asked. Another attempt is another key.
+  ATTEMPT_STATE_FAILED = 5;
+}
+
+// AttemptFailure is why an attempt failed, as its channel said.
+message AttemptFailure {
+  FailureKind kind = 1;
+
+  // Which kind of decline, for a failure of DECLINED: what dunning (#11)
+  // sets its policy by.
+  DeclineKind decline = 2;
+
+  // The channel's own code and words.
+  string code = 3;
+  string message = 4;
+}
+
+// FailureKind is why an attempt failed, by the kinds the channels' adapters
+// say a failure in (`pg.Kind`, `mor.Kind`), value for value.
+enum FailureKind {
+  // Not known, or a reason of the channel's own that says nothing of the
+  // payer's method.
+  FAILURE_KIND_UNSPECIFIED = 0;
+
+  // The payer's method refused it.
+  FAILURE_KIND_DECLINED = 1;
+
+  // Not something the channel does as asked: an amount less than it
+  // collects, a subscription that ended.
+  FAILURE_KIND_INVALID = 2;
+
+  // The channel refusing levyan: its key, its contract.
+  FAILURE_KIND_AUTH = 3;
+
+  FAILURE_KIND_RATE_LIMITED = 4;
+  FAILURE_KIND_NOT_FOUND = 5;
+}
+
+// DeclineKind is which kind of decline a method's refusal is, as `pg.Decline`
+// says them, value for value.
+enum DeclineKind {
+  // A refusal that says no more than that it is one, or a code its channel
+  // does not place.
+  DECLINE_KIND_UNSPECIFIED = 0;
+
+  // It may go through later on the same method.
+  DECLINE_KIND_TEMPORARY = 1;
+
+  // The method will not be charged as it is: another is needed.
+  DECLINE_KIND_REPLACE = 2;
+
+  // Refused as suspected fraud, or blocked by a check of risk.
+  DECLINE_KIND_FRAUD = 3;
+}

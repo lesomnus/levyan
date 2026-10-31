@@ -30,6 +30,12 @@ func (_c *WorkspaceCreate) SetKey(v []byte) *WorkspaceCreate {
 	return _c
 }
 
+// SetLabel sets the "label" field.
+func (_c *WorkspaceCreate) SetLabel(v string) *WorkspaceCreate {
+	_c.mutation.SetLabel(v)
+	return _c
+}
+
 // SetDateErased sets the "date_erased" field.
 func (_c *WorkspaceCreate) SetDateErased(v time.Time) *WorkspaceCreate {
 	_c.mutation.SetDateErased(v)
@@ -115,6 +121,9 @@ func (_c *WorkspaceCreate) check() error {
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`ent: missing required field "Workspace.key"`)}
 	}
+	if _, ok := _c.mutation.Label(); !ok {
+		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "Workspace.label"`)}
+	}
 	if _, ok := _c.mutation.TenantId(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Workspace.tenant_id"`)}
 	}
@@ -175,6 +184,10 @@ func (_c *WorkspaceCreate) createSpec() (*Workspace, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(workspace.FieldKey, field.TypeBytes, value)
 		_node.Key = value
+	}
+	if value, ok := _c.mutation.Label(); ok {
+		_spec.SetField(workspace.FieldLabel, field.TypeString, value)
+		_node.Label = value
 	}
 	if value, ok := _c.mutation.DateErased(); ok {
 		_spec.SetField(workspace.FieldDateErased, field.TypeTime, value)

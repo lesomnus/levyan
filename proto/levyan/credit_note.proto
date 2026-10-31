@@ -1,0 +1,203 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "levyan/invoice.proto";
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// CreditNote takes some or all of a finalized invoice back (#9): a
+// correction of what it billed (scenario 7), a refund (scenario 13), or its
+// cancellation as it is voided. The invoice stays as it was finalized; what
+// the credit note takes back is said here, and what came of it.
+//
+// What it takes back is taken off what is still due, and what is more than
+// that is given back through the channel or kept as the billing account's
+// credit balance (`Credit`), to be taken off its next invoices: money goes
+// back only so, against an invoice that was paid. What it did is decided as
+// it is written, and written with it: `reduced`, `refunded` and `credited`
+// add up to its total.
+//
+// On a channel levyan sells on it is a legal document too: numbered, one
+// after another across the deployment as invoices are, and the amended tax
+// invoice issued for it names it.
+//
+// Kept as invoices are, five years and beyond the account: there is no Erase.
+message CreditNote {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The invoice it takes back from, and that invoice's billing account.
+  Invoice invoice = 8 [(orm.edge) = {immutable: true}];
+  BillingAccount billing_account = 9 [(orm.edge) = {immutable: true}];
+
+  CreditNoteReason reason = 10 [(orm.field) = {immutable: true}];
+
+  // What it takes back of the invoice's subtotal, in the currency's minor
+  // unit, and of its tax: the tax of that amount, or what is left of the
+  // invoice's tax when it takes back what is left of the subtotal.
+  int64 amount = 11 [(orm.field) = {immutable: true}];
+  int64 tax = 12 [(orm.field) = {immutable: true}];
+
+  // Its amount and its tax.
+  int64 total = 16 [(orm.field) = {immutable: true}];
+
+  // Of its total, what it took off what the invoice still had due, what is
+  // given back through the channel (`PaymentAttempt` of a refund), and what
+  // the billing account keeps as credit.
+  int64 reduced = 17 [(orm.field) = {immutable: true}];
+  int64 refunded = 18 [(orm.field) = {immutable: true}];
+  int64 credited = 19 [(orm.field) = {immutable: true}];
+
+  // The invoice's channel, by its name, and its currency.
+  string channel = 20 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string currency = 21 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // Its number, on a channel levyan sells on: one after another across the
+  // deployment, a series of its own beside invoices', never given again.
+  int64 number = 22 [(orm.field) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // When the amended tax invoice behind it was issued, and the channel's
+  // reference of it, on a channel levyan sells on.
+  google.protobuf.Timestamp date_issued = 23 [(orm.field) = {nullable: true}];
+  string document = 24 [(payday.field) = {personal: false}];
+
+  // Why, in its writer's words.
+  string words = 25 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: true}
+  ];
+
+  // Stamped as it is issued, which is all of it that is written again.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // An invoice's credit notes, in the order they were written.
+        name: "invoice"
+        refs: [
+          {
+            name: "invoice"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      },
+      {
+        // A billing account's.
+        name: "billing"
+        refs: [
+          {
+            name: "billing_account"
+            number: 9
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      },
+      {
+        // A seller's numbers, one credit note each.
+        name: "number"
+        refs: [
+          {
+            name: "number"
+            number: 22
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 25
+    tenanted: {
+      via: "tenant"
+      agrees: ["invoice.tenant"]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "invoice"},
+        {name: "billing_account"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// CreditNoteReason is why a credit note takes back of an invoice.
+enum CreditNoteReason {
+  CREDIT_NOTE_REASON_UNSPECIFIED = 0;
+
+  // What the invoice billed was more than it should have been, in a way the
+  // ledger does not correct by itself: a rating found wrong (scenario 7).
+  CREDIT_NOTE_REASON_CORRECTION = 1;
+
+  // Money given back of a paid invoice (scenario 13). What was used is not
+  // taken back from the ledger: the statements stay what they said.
+  CREDIT_NOTE_REASON_REFUND = 2;
+
+  // The invoice voided: all that is left of it, taken back.
+  CREDIT_NOTE_REASON_CANCELLATION = 3;
+}

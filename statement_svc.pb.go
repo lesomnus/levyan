@@ -7,6 +7,7 @@
 package levyan
 
 import (
+	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1332,6 +1333,167 @@ func (b0 StatementSelect_builder) Build() *StatementSelect {
 	return m0
 }
 
+type StatementPatchRequest struct {
+	state          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ref *StatementRef          `protobuf:"bytes,1,opt,name=ref"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *StatementPatchRequest) Reset() {
+	*x = StatementPatchRequest{}
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatementPatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatementPatchRequest) ProtoMessage() {}
+
+func (x *StatementPatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *StatementPatchRequest) GetRef() *StatementRef {
+	if x != nil {
+		return x.xxx_hidden_Ref
+	}
+	return nil
+}
+
+func (x *StatementPatchRequest) SetRef(v *StatementRef) {
+	x.xxx_hidden_Ref = v
+}
+
+func (x *StatementPatchRequest) HasRef() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Ref != nil
+}
+
+func (x *StatementPatchRequest) ClearRef() {
+	x.xxx_hidden_Ref = nil
+}
+
+type StatementPatchRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ref *StatementRef
+}
+
+func (b0 StatementPatchRequest_builder) Build() *StatementPatchRequest {
+	m0 := &StatementPatchRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Ref = b.Ref
+	return m0
+}
+
+type StatementApplyRequest struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ref   *StatementRef          `protobuf:"bytes,1,opt,name=ref"`
+	xxx_hidden_Patch *patchpb.Patch         `protobuf:"bytes,2,opt,name=patch"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *StatementApplyRequest) Reset() {
+	*x = StatementApplyRequest{}
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatementApplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatementApplyRequest) ProtoMessage() {}
+
+func (x *StatementApplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *StatementApplyRequest) GetRef() *StatementRef {
+	if x != nil {
+		return x.xxx_hidden_Ref
+	}
+	return nil
+}
+
+func (x *StatementApplyRequest) GetPatch() *patchpb.Patch {
+	if x != nil {
+		return x.xxx_hidden_Patch
+	}
+	return nil
+}
+
+func (x *StatementApplyRequest) SetRef(v *StatementRef) {
+	x.xxx_hidden_Ref = v
+}
+
+func (x *StatementApplyRequest) SetPatch(v *patchpb.Patch) {
+	x.xxx_hidden_Patch = v
+}
+
+func (x *StatementApplyRequest) HasRef() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Ref != nil
+}
+
+func (x *StatementApplyRequest) HasPatch() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Patch != nil
+}
+
+func (x *StatementApplyRequest) ClearRef() {
+	x.xxx_hidden_Ref = nil
+}
+
+func (x *StatementApplyRequest) ClearPatch() {
+	x.xxx_hidden_Patch = nil
+}
+
+type StatementApplyRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ref   *StatementRef
+	Patch *patchpb.Patch
+}
+
+func (b0 StatementApplyRequest_builder) Build() *StatementApplyRequest {
+	m0 := &StatementApplyRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Ref = b.Ref
+	x.xxx_hidden_Patch = b.Patch
+	return m0
+}
+
 type StatementListRequest struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Filters *[]*StatementFilter    `protobuf:"bytes,1,rep,name=filters"`
@@ -1344,7 +1506,7 @@ type StatementListRequest struct {
 
 func (x *StatementListRequest) Reset() {
 	*x = StatementListRequest{}
-	mi := &file_levyan_statement_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1356,7 +1518,7 @@ func (x *StatementListRequest) String() string {
 func (*StatementListRequest) ProtoMessage() {}
 
 func (x *StatementListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_statement_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1456,7 +1618,7 @@ type StatementListResponse struct {
 
 func (x *StatementListResponse) Reset() {
 	*x = StatementListResponse{}
-	mi := &file_levyan_statement_svc_g_proto_msgTypes[6]
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1468,7 +1630,7 @@ func (x *StatementListResponse) String() string {
 func (*StatementListResponse) ProtoMessage() {}
 
 func (x *StatementListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_statement_svc_g_proto_msgTypes[6]
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1536,7 +1698,7 @@ type StatementFilter struct {
 
 func (x *StatementFilter) Reset() {
 	*x = StatementFilter{}
-	mi := &file_levyan_statement_svc_g_proto_msgTypes[7]
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1548,7 +1710,7 @@ func (x *StatementFilter) String() string {
 func (*StatementFilter) ProtoMessage() {}
 
 func (x *StatementFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_statement_svc_g_proto_msgTypes[7]
+	mi := &file_levyan_statement_svc_g_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1623,7 +1785,7 @@ var File_levyan_statement_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/statement_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x19levyan/period_svc.g.proto\x1a\x16levyan/statement.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xab\x05\n" +
+	"\x1clevyan/statement_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x19levyan/period_svc.g.proto\x1a\x16levyan/statement.proto\x1a\x1clevyan/workspace_svc.g.proto\x1a\x11patch/patch.proto\"\xab\x05\n" +
 	"\x13StatementAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
@@ -1676,7 +1838,12 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\x05payer\x18\x14 \x01(\bR\x05payer\x12E\n" +
 	"\x0fbilling_account\x18\x15 \x01(\v2\x1c.levyan.BillingAccountSelectR\x0ebillingAccount\x12\x1d\n" +
 	"\n" +
-	"first_unit\x18\x16 \x01(\bR\tfirstUnit\"\xa2\x01\n" +
+	"first_unit\x18\x16 \x01(\bR\tfirstUnit\"?\n" +
+	"\x15StatementPatchRequest\x12&\n" +
+	"\x03ref\x18\x01 \x01(\v2\x14.levyan.StatementRefR\x03ref\"c\n" +
+	"\x15StatementApplyRequest\x12&\n" +
+	"\x03ref\x18\x01 \x01(\v2\x14.levyan.StatementRefR\x03ref\x12\"\n" +
+	"\x05patch\x18\x02 \x01(\v2\f.patch.PatchR\x05patch\"\xa2\x01\n" +
 	"\x14StatementListRequest\x121\n" +
 	"\afilters\x18\x01 \x03(\v2\x17.levyan.StatementFilterR\afilters\x12\x19\n" +
 	"\x04size\x18\x02 \x01(\x05B\x05\xaa\x01\x02\b\x02R\x04size\x12\x1b\n" +
@@ -1687,68 +1854,80 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"m\n" +
 	"\x0fStatementFilter\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.StatementRefR\x03ref\x122\n" +
-	"\tworkspace\x18\x02 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace2\xc5\x01\n" +
+	"\tworkspace\x18\x02 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace2\xbb\x02\n" +
 	"\x10StatementService\x125\n" +
 	"\x03Add\x12\x1b.levyan.StatementAddRequest\x1a\x11.levyan.Statement\x125\n" +
-	"\x03Get\x12\x1b.levyan.StatementGetRequest\x1a\x11.levyan.Statement\x12C\n" +
+	"\x03Get\x12\x1b.levyan.StatementGetRequest\x1a\x11.levyan.Statement\x129\n" +
+	"\x05Patch\x12\x1d.levyan.StatementPatchRequest\x1a\x11.levyan.Statement\x129\n" +
+	"\x05Apply\x12\x1d.levyan.StatementApplyRequest\x1a\x11.levyan.Statement\x12C\n" +
 	"\x04List\x12\x1c.levyan.StatementListRequest\x1a\x1d.levyan.StatementListResponseB\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
 
-var file_levyan_statement_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_levyan_statement_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_levyan_statement_svc_g_proto_goTypes = []any{
 	(*StatementAddRequest)(nil),   // 0: levyan.StatementAddRequest
 	(*StatementGetRequest)(nil),   // 1: levyan.StatementGetRequest
 	(*StatementRef)(nil),          // 2: levyan.StatementRef
 	(*StatementRefByClosed)(nil),  // 3: levyan.StatementRefByClosed
 	(*StatementSelect)(nil),       // 4: levyan.StatementSelect
-	(*StatementListRequest)(nil),  // 5: levyan.StatementListRequest
-	(*StatementListResponse)(nil), // 6: levyan.StatementListResponse
-	(*StatementFilter)(nil),       // 7: levyan.StatementFilter
-	(*TenantRef)(nil),             // 8: levyan.TenantRef
-	(*WorkspaceRef)(nil),          // 9: levyan.WorkspaceRef
-	(*PeriodRef)(nil),             // 10: levyan.PeriodRef
-	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
-	(*StatementLines)(nil),        // 12: levyan.StatementLines
-	(*BillingAccountRef)(nil),     // 13: levyan.BillingAccountRef
-	(*TenantSelect)(nil),          // 14: levyan.TenantSelect
-	(*WorkspaceSelect)(nil),       // 15: levyan.WorkspaceSelect
-	(*PeriodSelect)(nil),          // 16: levyan.PeriodSelect
-	(*BillingAccountSelect)(nil),  // 17: levyan.BillingAccountSelect
-	(*Statement)(nil),             // 18: levyan.Statement
+	(*StatementPatchRequest)(nil), // 5: levyan.StatementPatchRequest
+	(*StatementApplyRequest)(nil), // 6: levyan.StatementApplyRequest
+	(*StatementListRequest)(nil),  // 7: levyan.StatementListRequest
+	(*StatementListResponse)(nil), // 8: levyan.StatementListResponse
+	(*StatementFilter)(nil),       // 9: levyan.StatementFilter
+	(*TenantRef)(nil),             // 10: levyan.TenantRef
+	(*WorkspaceRef)(nil),          // 11: levyan.WorkspaceRef
+	(*PeriodRef)(nil),             // 12: levyan.PeriodRef
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
+	(*StatementLines)(nil),        // 14: levyan.StatementLines
+	(*BillingAccountRef)(nil),     // 15: levyan.BillingAccountRef
+	(*TenantSelect)(nil),          // 16: levyan.TenantSelect
+	(*WorkspaceSelect)(nil),       // 17: levyan.WorkspaceSelect
+	(*PeriodSelect)(nil),          // 18: levyan.PeriodSelect
+	(*BillingAccountSelect)(nil),  // 19: levyan.BillingAccountSelect
+	(*patchpb.Patch)(nil),         // 20: patch.Patch
+	(*Statement)(nil),             // 21: levyan.Statement
 }
 var file_levyan_statement_svc_g_proto_depIdxs = []int32{
-	8,  // 0: levyan.StatementAddRequest.tenant:type_name -> levyan.TenantRef
-	9,  // 1: levyan.StatementAddRequest.workspace:type_name -> levyan.WorkspaceRef
-	10, // 2: levyan.StatementAddRequest.period:type_name -> levyan.PeriodRef
-	11, // 3: levyan.StatementAddRequest.date_start:type_name -> google.protobuf.Timestamp
-	11, // 4: levyan.StatementAddRequest.date_end:type_name -> google.protobuf.Timestamp
-	11, // 5: levyan.StatementAddRequest.date_created:type_name -> google.protobuf.Timestamp
-	12, // 6: levyan.StatementAddRequest.lines:type_name -> levyan.StatementLines
-	13, // 7: levyan.StatementAddRequest.billing_account:type_name -> levyan.BillingAccountRef
+	10, // 0: levyan.StatementAddRequest.tenant:type_name -> levyan.TenantRef
+	11, // 1: levyan.StatementAddRequest.workspace:type_name -> levyan.WorkspaceRef
+	12, // 2: levyan.StatementAddRequest.period:type_name -> levyan.PeriodRef
+	13, // 3: levyan.StatementAddRequest.date_start:type_name -> google.protobuf.Timestamp
+	13, // 4: levyan.StatementAddRequest.date_end:type_name -> google.protobuf.Timestamp
+	13, // 5: levyan.StatementAddRequest.date_created:type_name -> google.protobuf.Timestamp
+	14, // 6: levyan.StatementAddRequest.lines:type_name -> levyan.StatementLines
+	15, // 7: levyan.StatementAddRequest.billing_account:type_name -> levyan.BillingAccountRef
 	2,  // 8: levyan.StatementGetRequest.ref:type_name -> levyan.StatementRef
 	4,  // 9: levyan.StatementGetRequest.select:type_name -> levyan.StatementSelect
 	3,  // 10: levyan.StatementRef.closed:type_name -> levyan.StatementRefByClosed
-	8,  // 11: levyan.StatementRefByClosed.tenant:type_name -> levyan.TenantRef
-	9,  // 12: levyan.StatementRefByClosed.workspace:type_name -> levyan.WorkspaceRef
-	10, // 13: levyan.StatementRefByClosed.period:type_name -> levyan.PeriodRef
-	14, // 14: levyan.StatementSelect.tenant:type_name -> levyan.TenantSelect
-	15, // 15: levyan.StatementSelect.workspace:type_name -> levyan.WorkspaceSelect
-	16, // 16: levyan.StatementSelect.period:type_name -> levyan.PeriodSelect
-	17, // 17: levyan.StatementSelect.billing_account:type_name -> levyan.BillingAccountSelect
-	7,  // 18: levyan.StatementListRequest.filters:type_name -> levyan.StatementFilter
-	18, // 19: levyan.StatementListResponse.items:type_name -> levyan.Statement
-	2,  // 20: levyan.StatementFilter.ref:type_name -> levyan.StatementRef
-	9,  // 21: levyan.StatementFilter.workspace:type_name -> levyan.WorkspaceRef
-	0,  // 22: levyan.StatementService.Add:input_type -> levyan.StatementAddRequest
-	1,  // 23: levyan.StatementService.Get:input_type -> levyan.StatementGetRequest
-	5,  // 24: levyan.StatementService.List:input_type -> levyan.StatementListRequest
-	18, // 25: levyan.StatementService.Add:output_type -> levyan.Statement
-	18, // 26: levyan.StatementService.Get:output_type -> levyan.Statement
-	6,  // 27: levyan.StatementService.List:output_type -> levyan.StatementListResponse
-	25, // [25:28] is the sub-list for method output_type
-	22, // [22:25] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	10, // 11: levyan.StatementRefByClosed.tenant:type_name -> levyan.TenantRef
+	11, // 12: levyan.StatementRefByClosed.workspace:type_name -> levyan.WorkspaceRef
+	12, // 13: levyan.StatementRefByClosed.period:type_name -> levyan.PeriodRef
+	16, // 14: levyan.StatementSelect.tenant:type_name -> levyan.TenantSelect
+	17, // 15: levyan.StatementSelect.workspace:type_name -> levyan.WorkspaceSelect
+	18, // 16: levyan.StatementSelect.period:type_name -> levyan.PeriodSelect
+	19, // 17: levyan.StatementSelect.billing_account:type_name -> levyan.BillingAccountSelect
+	2,  // 18: levyan.StatementPatchRequest.ref:type_name -> levyan.StatementRef
+	2,  // 19: levyan.StatementApplyRequest.ref:type_name -> levyan.StatementRef
+	20, // 20: levyan.StatementApplyRequest.patch:type_name -> patch.Patch
+	9,  // 21: levyan.StatementListRequest.filters:type_name -> levyan.StatementFilter
+	21, // 22: levyan.StatementListResponse.items:type_name -> levyan.Statement
+	2,  // 23: levyan.StatementFilter.ref:type_name -> levyan.StatementRef
+	11, // 24: levyan.StatementFilter.workspace:type_name -> levyan.WorkspaceRef
+	0,  // 25: levyan.StatementService.Add:input_type -> levyan.StatementAddRequest
+	1,  // 26: levyan.StatementService.Get:input_type -> levyan.StatementGetRequest
+	5,  // 27: levyan.StatementService.Patch:input_type -> levyan.StatementPatchRequest
+	6,  // 28: levyan.StatementService.Apply:input_type -> levyan.StatementApplyRequest
+	7,  // 29: levyan.StatementService.List:input_type -> levyan.StatementListRequest
+	21, // 30: levyan.StatementService.Add:output_type -> levyan.Statement
+	21, // 31: levyan.StatementService.Get:output_type -> levyan.Statement
+	21, // 32: levyan.StatementService.Patch:output_type -> levyan.Statement
+	21, // 33: levyan.StatementService.Apply:output_type -> levyan.Statement
+	8,  // 34: levyan.StatementService.List:output_type -> levyan.StatementListResponse
+	30, // [30:35] is the sub-list for method output_type
+	25, // [25:30] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_levyan_statement_svc_g_proto_init() }
@@ -1771,7 +1950,7 @@ func file_levyan_statement_svc_g_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_statement_svc_g_proto_rawDesc), len(file_levyan_statement_svc_g_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

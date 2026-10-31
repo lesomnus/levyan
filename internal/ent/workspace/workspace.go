@@ -14,6 +14,8 @@ const (
 	FieldId = "id"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
+	// FieldLabel holds the string denoting the label field in the database.
+	FieldLabel = "label"
 	// FieldDateErased holds the string denoting the date_erased field in the database.
 	FieldDateErased = "date_erased"
 	// FieldDateCreated holds the string denoting the date_created field in the database.
@@ -37,6 +39,7 @@ const (
 var Columns = []string{
 	FieldId,
 	FieldKey,
+	FieldLabel,
 	FieldDateErased,
 	FieldDateCreated,
 	FieldTenantId,
@@ -58,6 +61,11 @@ type OrderOption func(*sql.Selector)
 // ById orders the results by the id field.
 func ById(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldId, opts...).ToFunc()
+}
+
+// ByLabel orders the results by the label field.
+func ByLabel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLabel, opts...).ToFunc()
 }
 
 // ByDateErased orders the results by the date_erased field.

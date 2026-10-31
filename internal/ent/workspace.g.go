@@ -20,6 +20,7 @@ func (e *Workspace) Proto() *levyan.Workspace {
 		x.SetTenant(r)
 	}
 	x.SetKey(e.Key)
+	x.SetLabel(e.Label)
 	if e.DateErased != nil {
 		x.SetDateErased(timestamppb.New(*e.DateErased))
 	}

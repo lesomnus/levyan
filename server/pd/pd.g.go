@@ -21,15 +21,20 @@ import (
 	entArchived "github.com/lesomnus/levyan/internal/ent/archived"
 	entAudit "github.com/lesomnus/levyan/internal/ent/audit"
 	entBillingAccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
+	entCredit "github.com/lesomnus/levyan/internal/ent/credit"
+	entCreditNote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	entDeparture "github.com/lesomnus/levyan/internal/ent/departure"
 	entGrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entHolder "github.com/lesomnus/levyan/internal/ent/holder"
+	entInvoice "github.com/lesomnus/levyan/internal/ent/invoice"
+	entInvoiceLine "github.com/lesomnus/levyan/internal/ent/invoiceline"
 	entLink "github.com/lesomnus/levyan/internal/ent/link"
 	entMeter "github.com/lesomnus/levyan/internal/ent/meter"
 	entOffer "github.com/lesomnus/levyan/internal/ent/offer"
 	entOperator "github.com/lesomnus/levyan/internal/ent/operator"
 	entOutbox "github.com/lesomnus/levyan/internal/ent/outbox"
 	entOwed "github.com/lesomnus/levyan/internal/ent/owed"
+	entPaymentAttempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	entPeriod "github.com/lesomnus/levyan/internal/ent/period"
 	entPoint "github.com/lesomnus/levyan/internal/ent/point"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
@@ -115,15 +120,20 @@ const (
 	ArchivedDomain       pdid.Domain = 5   // "archived"
 	AuditDomain          pdid.Domain = 3   // "audit"
 	BillingAccountDomain pdid.Domain = 19  // "billing-account"
+	CreditDomain         pdid.Domain = 27  // "credit"
+	CreditNoteDomain     pdid.Domain = 25  // "credit-note"
 	DepartureDomain      pdid.Domain = 22  // "departure"
 	GrantDomain          pdid.Domain = 18  // "grant"
 	HolderDomain         pdid.Domain = 2   // "holder"
+	InvoiceDomain        pdid.Domain = 23  // "invoice"
+	InvoiceLineDomain    pdid.Domain = 24  // "invoice-line"
 	LinkDomain           pdid.Domain = 20  // "link"
 	MeterDomain          pdid.Domain = 10  // "meter"
 	OfferDomain          pdid.Domain = 21  // "offer"
 	OperatorDomain       pdid.Domain = 8   // "operator"
 	OutboxDomain         pdid.Domain = 4   // "outbox"
 	OwedDomain           pdid.Domain = 254 // "owed"
+	PaymentAttemptDomain pdid.Domain = 26  // "payment-attempt"
 	PeriodDomain         pdid.Domain = 16  // "period"
 	PointDomain          pdid.Domain = 15  // "point"
 	PriceDomain          pdid.Domain = 11  // "price"
@@ -141,15 +151,20 @@ func init() {
 	pdid.Register("levyan.Archived", ArchivedDomain, "archived")
 	pdid.Register("levyan.Audit", AuditDomain, "audit")
 	pdid.Register("levyan.BillingAccount", BillingAccountDomain, "billing-account")
+	pdid.Register("levyan.Credit", CreditDomain, "credit")
+	pdid.Register("levyan.CreditNote", CreditNoteDomain, "credit-note")
 	pdid.Register("levyan.Departure", DepartureDomain, "departure")
 	pdid.Register("levyan.Grant", GrantDomain, "grant")
 	pdid.Register("levyan.Holder", HolderDomain, "holder")
+	pdid.Register("levyan.Invoice", InvoiceDomain, "invoice")
+	pdid.Register("levyan.InvoiceLine", InvoiceLineDomain, "invoice-line")
 	pdid.Register("levyan.Link", LinkDomain, "link")
 	pdid.Register("levyan.Meter", MeterDomain, "meter")
 	pdid.Register("levyan.Offer", OfferDomain, "offer")
 	pdid.Register("levyan.Operator", OperatorDomain, "operator")
 	pdid.Register("levyan.Outbox", OutboxDomain, "outbox")
 	pdid.Register("levyan.Owed", OwedDomain, "owed")
+	pdid.Register("levyan.PaymentAttempt", PaymentAttemptDomain, "payment-attempt")
 	pdid.Register("levyan.Period", PeriodDomain, "period")
 	pdid.Register("levyan.Point", PointDomain, "point")
 	pdid.Register("levyan.Price", PriceDomain, "price")
@@ -171,15 +186,20 @@ var Domains = map[string]pdid.Domain{
 	"levyan.Archived":       ArchivedDomain,
 	"levyan.Audit":          AuditDomain,
 	"levyan.BillingAccount": BillingAccountDomain,
+	"levyan.Credit":         CreditDomain,
+	"levyan.CreditNote":     CreditNoteDomain,
 	"levyan.Departure":      DepartureDomain,
 	"levyan.Grant":          GrantDomain,
 	"levyan.Holder":         HolderDomain,
+	"levyan.Invoice":        InvoiceDomain,
+	"levyan.InvoiceLine":    InvoiceLineDomain,
 	"levyan.Link":           LinkDomain,
 	"levyan.Meter":          MeterDomain,
 	"levyan.Offer":          OfferDomain,
 	"levyan.Operator":       OperatorDomain,
 	"levyan.Outbox":         OutboxDomain,
 	"levyan.Owed":           OwedDomain,
+	"levyan.PaymentAttempt": PaymentAttemptDomain,
 	"levyan.Period":         PeriodDomain,
 	"levyan.Point":          PointDomain,
 	"levyan.Price":          PriceDomain,
@@ -212,6 +232,11 @@ var IndexRenames = []rename.Index{
 	{Table: "audit", From: "audit_date_created_id", To: "audit_by_time"},
 	{Table: "billingaccount", From: "billingaccount_date_created_id", To: "billingaccount_page"},
 	{Table: "billingaccount", From: "billingaccount_owner_date_created_id", To: "billingaccount_owner"},
+	{Table: "credit", From: "credit_tenant_id_date_created_id", To: "credit_page"},
+	{Table: "credit", From: "credit_tenant_id_billing_account_id_date_created", To: "credit_billing"},
+	{Table: "creditnote", From: "creditnote_tenant_id_date_created_id", To: "creditnote_page"},
+	{Table: "creditnote", From: "creditnote_invoice_id_date_created", To: "creditnote_invoice"},
+	{Table: "creditnote", From: "creditnote_billing_account_id_date_created", To: "creditnote_billing"},
 	{Table: "grant", From: "grant_tenant_id_date_created_id", To: "grant_page"},
 	{Table: "grant", From: "grant_workspace_id_date_created_id", To: "grant_workspace"},
 	{Table: "grant", From: "grant_renews_valid_until", To: "grant_renewal"},
@@ -219,6 +244,12 @@ var IndexRenames = []rename.Index{
 	{Table: "holder", From: "holder_alias_tenant_id", To: "holder_slug"},
 	{Table: "holder", From: "holder_tenant_id_date_created_id", To: "holder_page"},
 	{Table: "holder", From: "holder_account_tenant_id", To: "holder_by_account"},
+	{Table: "invoice", From: "invoice_tenant_id_date_start_id", To: "invoice_page"},
+	{Table: "invoice", From: "invoice_billing_account_id_date_start_id", To: "invoice_billing"},
+	{Table: "invoice", From: "invoice_state_date_end", To: "invoice_state"},
+	{Table: "invoiceline", From: "invoiceline_invoice_id_date_start_id", To: "invoiceline_invoice"},
+	{Table: "invoiceline", From: "invoiceline_statement_id", To: "invoiceline_statement"},
+	{Table: "invoiceline", From: "invoiceline_tenant_id_date_start_id", To: "invoiceline_page"},
 	{Table: "link", From: "link_tenant_id_date_created_id", To: "link_page"},
 	{Table: "link", From: "link_workspace_id_date_start", To: "link_workspace"},
 	{Table: "link", From: "link_tenant_id_payer_date_start", To: "link_payer"},
@@ -230,6 +261,10 @@ var IndexRenames = []rename.Index{
 	{Table: "operator", From: "operator_alias", To: "operator_slug"},
 	{Table: "outbox", From: "outbox_id", To: "outbox_queue"},
 	{Table: "owed", From: "owed_date_created_id", To: "owed_owed"},
+	{Table: "paymentattempt", From: "paymentattempt_tenant_id_date_created_id", To: "paymentattempt_page"},
+	{Table: "paymentattempt", From: "paymentattempt_invoice_id_date_created", To: "paymentattempt_invoice"},
+	{Table: "paymentattempt", From: "paymentattempt_state_date_created", To: "paymentattempt_state"},
+	{Table: "paymentattempt", From: "paymentattempt_attempt_key", To: "paymentattempt_once"},
 	{Table: "period", From: "period_tenant_id_date_start_id", To: "period_page"},
 	{Table: "period", From: "period_tenant_id_date_start", To: "period_begins"},
 	{Table: "point", From: "point_tenant_id_date_created_id", To: "point_page"},
@@ -370,6 +405,42 @@ func (wall) BillingAccountScope(ctx context.Context) (predicate.BillingAccount, 
 	return nil, nil
 }
 
+// CreditScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) CreditScope(ctx context.Context) (predicate.Credit, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Credit == nil {
+			return nothing[predicate.Credit](), nil
+		}
+
+		return r.Credit(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entCredit.TenantIdIn(vs...), nil
+}
+
+// CreditNoteScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) CreditNoteScope(ctx context.Context) (predicate.CreditNote, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.CreditNote == nil {
+			return nothing[predicate.CreditNote](), nil
+		}
+
+		return r.CreditNote(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entCreditNote.TenantIdIn(vs...), nil
+}
+
 // DepartureScope: declared `global`, so it is not behind the wall at all.
 func (wall) DepartureScope(ctx context.Context) (predicate.Departure, error) {
 	if a, r, ok := accountReads(ctx); ok {
@@ -417,6 +488,42 @@ func (wall) HolderScope(ctx context.Context) (predicate.Holder, error) {
 	}
 
 	return entHolder.TenantIdIn(vs...), nil
+}
+
+// InvoiceScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) InvoiceScope(ctx context.Context) (predicate.Invoice, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Invoice == nil {
+			return nothing[predicate.Invoice](), nil
+		}
+
+		return r.Invoice(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entInvoice.TenantIdIn(vs...), nil
+}
+
+// InvoiceLineScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) InvoiceLineScope(ctx context.Context) (predicate.InvoiceLine, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.InvoiceLine == nil {
+			return nothing[predicate.InvoiceLine](), nil
+		}
+
+		return r.InvoiceLine(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entInvoiceLine.TenantIdIn(vs...), nil
 }
 
 // LinkScope: a row belongs to the tenant its "tenant" reaches.
@@ -510,6 +617,24 @@ func (wall) OwedScope(ctx context.Context) (predicate.Owed, error) {
 	}
 
 	return nil, nil
+}
+
+// PaymentAttemptScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) PaymentAttemptScope(ctx context.Context) (predicate.PaymentAttempt, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.PaymentAttempt == nil {
+			return nothing[predicate.PaymentAttempt](), nil
+		}
+
+		return r.PaymentAttempt(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entPaymentAttempt.TenantIdIn(vs...), nil
 }
 
 // PeriodScope: a row belongs to the tenant its "tenant" reaches.
@@ -748,6 +873,16 @@ func (x grouped) BillingAccountScope(ctx context.Context) (predicate.BillingAcco
 	return nil, nil
 }
 
+// CreditScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) CreditScope(ctx context.Context) (predicate.Credit, error) {
+	return nil, nil
+}
+
+// CreditNoteScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) CreditNoteScope(ctx context.Context) (predicate.CreditNote, error) {
+	return nil, nil
+}
+
 // DepartureScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) DepartureScope(ctx context.Context) (predicate.Departure, error) {
 	return nil, nil
@@ -774,6 +909,29 @@ func (x grouped) GrantScope(ctx context.Context) (predicate.Grant, error) {
 // HolderScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) HolderScope(ctx context.Context) (predicate.Holder, error) {
 	return nil, nil
+}
+
+// InvoiceScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) InvoiceScope(ctx context.Context) (predicate.Invoice, error) {
+	return nil, nil
+}
+
+// InvoiceLineScope: in the Workspace its "workspace" names.
+func (x grouped) InvoiceLineScope(ctx context.Context) (predicate.InvoiceLine, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.InvoiceLine == nil {
+			return nothing[predicate.InvoiceLine](), nil
+		}
+
+		return r.InvoiceLine(ctx, a)
+	}
+
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entInvoiceLine.WorkspaceIdIn(vs...), nil
 }
 
 // LinkScope: in the Workspace its "workspace" names.
@@ -829,6 +987,11 @@ func (x grouped) OutboxScope(ctx context.Context) (predicate.Outbox, error) {
 
 // OwedScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) OwedScope(ctx context.Context) (predicate.Owed, error) {
+	return nil, nil
+}
+
+// PaymentAttemptScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) PaymentAttemptScope(ctx context.Context) (predicate.PaymentAttempt, error) {
 	return nil, nil
 }
 
@@ -1659,6 +1822,547 @@ func filterBillingAccount(f *levyan.BillingAccountFilter) (predicate.BillingAcco
 	}
 
 	return entBillingAccount.And(ps...), nil
+}
+
+type sinkCredit struct {
+	levyan.CreditServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Credit() levyan.CreditServiceServer {
+	return sinkCredit{s.Server.Credit(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// orderCredit is how Credits come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderCredit = []sqlpage.Order{
+	{Column: entCredit.FieldDateCreated, Desc: false},
+	{Column: entCredit.FieldId, Desc: false},
+}
+
+func afterCredit(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextCredit(last *ent.Credit, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByCredit is an order as ent orders a query by it.
+func orderByCredit(by []sqlpage.Order) []entCredit.OrderOption {
+	out := make([]entCredit.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// CreditPageSize is what a request that did not say gets, and
+	// CreditPageLimit is the most it gets however loudly it asks.
+	CreditPageSize  = 50
+	CreditPageLimit = 200
+
+	// CreditFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	CreditFilterLimit = 32
+)
+
+// List answers with the Credits that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkCredit) List(ctx context.Context, req *levyan.CreditListRequest) (*levyan.CreditListResponse, error) {
+	q := s.store.Db.Credit.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.CreditNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > CreditFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), CreditFilterLimit)
+		}
+
+		ps := make([]predicate.Credit, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterCredit(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entCredit.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderCredit, afterCredit, nextCredit, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), CreditPageSize, CreditPageLimit)
+	us, err := q.Order(orderByCredit(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Credit, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.CreditListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterCredit turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterCredit(f *levyan.CreditFilter) (predicate.Credit, error) {
+	ps := make([]predicate.Credit, 0, 1)
+	if f.HasRef() {
+		p, err := bare.CreditPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasBillingAccount() {
+		w := f.GetBillingAccount()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "billing_account: %s", err)
+			}
+
+			ps = append(ps, entCredit.BillingAccountIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.BillingAccountPick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entCredit.HasBillingAccountWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entCredit.And(ps...), nil
+}
+
+type sinkCreditNote struct {
+	levyan.CreditNoteServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) CreditNote() levyan.CreditNoteServiceServer {
+	v := sinkCreditNote{s.Server.CreditNote(), s.Server.Store, s.w, s.namer, s.joined}
+	v.CreditNoteServiceServer = bare.CreditNoteWithAddRule(v.CreditNoteServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of CreditNote
+// writes: it refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.CreditNote].
+func (s sinkCreditNote) admit(ctx context.Context, req *levyan.CreditNoteAddRequest) (*levyan.CreditNoteAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkCreditNote) Apply(ctx context.Context, req *levyan.CreditNoteApplyRequest) (*levyan.CreditNote, error) {
+	seen.Forget(s.store.Db.Driver(), "CreditNote", req.GetRef())
+
+	return s.CreditNoteServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkCreditNote.Apply].
+func (s sinkCreditNote) Patch(ctx context.Context, req *levyan.CreditNotePatchRequest) (*levyan.CreditNote, error) {
+	seen.Forget(s.store.Db.Driver(), "CreditNote", req.GetRef())
+
+	return s.CreditNoteServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkCreditNote) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtInvoiceTenant is the tenant "invoice.tenant" arrives at.
+func (s sinkCreditNote) tenantAtInvoiceTenant(ctx context.Context, ref *levyan.InvoiceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("invoice", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Invoice", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.InvoicePick(ref)
+		if err != nil {
+			return nil, pderr.At("invoice", err)
+		}
+
+		k, err := s.store.Db.Invoice.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("invoice", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkCreditNote) tenancy(ctx context.Context, req *levyan.CreditNoteAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasInvoice() {
+		got, err := s.tenantAtInvoiceTenant(ctx, req.GetInvoice())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("invoice",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderCreditNote is how CreditNotes come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderCreditNote = []sqlpage.Order{
+	{Column: entCreditNote.FieldDateCreated, Desc: false},
+	{Column: entCreditNote.FieldId, Desc: false},
+}
+
+func afterCreditNote(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextCreditNote(last *ent.CreditNote, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByCreditNote is an order as ent orders a query by it.
+func orderByCreditNote(by []sqlpage.Order) []entCreditNote.OrderOption {
+	out := make([]entCreditNote.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// CreditNotePageSize is what a request that did not say gets, and
+	// CreditNotePageLimit is the most it gets however loudly it asks.
+	CreditNotePageSize  = 50
+	CreditNotePageLimit = 200
+
+	// CreditNoteFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	CreditNoteFilterLimit = 32
+)
+
+// List answers with the CreditNotes that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkCreditNote) List(ctx context.Context, req *levyan.CreditNoteListRequest) (*levyan.CreditNoteListResponse, error) {
+	q := s.store.Db.CreditNote.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.CreditNoteNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > CreditNoteFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), CreditNoteFilterLimit)
+		}
+
+		ps := make([]predicate.CreditNote, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterCreditNote(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entCreditNote.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderCreditNote, afterCreditNote, nextCreditNote, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), CreditNotePageSize, CreditNotePageLimit)
+	us, err := q.Order(orderByCreditNote(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.CreditNote, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.CreditNoteListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterCreditNote turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterCreditNote(f *levyan.CreditNoteFilter) (predicate.CreditNote, error) {
+	ps := make([]predicate.CreditNote, 0, 1)
+	if f.HasRef() {
+		p, err := bare.CreditNotePick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasInvoice() {
+		w := f.GetInvoice()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invoice: %s", err)
+			}
+
+			ps = append(ps, entCreditNote.InvoiceIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.InvoicePick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entCreditNote.HasInvoiceWith(q))
+		}
+	}
+	if f.HasBillingAccount() {
+		w := f.GetBillingAccount()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "billing_account: %s", err)
+			}
+
+			ps = append(ps, entCreditNote.BillingAccountIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.BillingAccountPick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entCreditNote.HasBillingAccountWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entCreditNote.And(ps...), nil
 }
 
 type sinkDeparture struct {
@@ -2523,6 +3227,709 @@ func (s sinkHolder) watchHolderKeys(
 	return ks, nil
 }
 
+type sinkInvoice struct {
+	levyan.InvoiceServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Invoice() levyan.InvoiceServiceServer {
+	v := sinkInvoice{s.Server.Invoice(), s.Server.Store, s.w, s.namer, s.joined}
+	v.InvoiceServiceServer = bare.InvoiceWithAddRule(v.InvoiceServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Invoice writes:
+// it refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Invoice].
+func (s sinkInvoice) admit(ctx context.Context, req *levyan.InvoiceAddRequest) (*levyan.InvoiceAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkInvoice) Apply(ctx context.Context, req *levyan.InvoiceApplyRequest) (*levyan.Invoice, error) {
+	seen.Forget(s.store.Db.Driver(), "Invoice", req.GetRef())
+
+	return s.InvoiceServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkInvoice.Apply].
+func (s sinkInvoice) Patch(ctx context.Context, req *levyan.InvoicePatchRequest) (*levyan.Invoice, error) {
+	seen.Forget(s.store.Db.Driver(), "Invoice", req.GetRef())
+
+	return s.InvoiceServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkInvoice) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtPeriodTenant is the tenant "period.tenant" arrives at.
+func (s sinkInvoice) tenantAtPeriodTenant(ctx context.Context, ref *levyan.PeriodRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("period", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Period", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.PeriodPick(ref)
+		if err != nil {
+			return nil, pderr.At("period", err)
+		}
+
+		k, err := s.store.Db.Period.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("period", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkInvoice) tenancy(ctx context.Context, req *levyan.InvoiceAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasPeriod() {
+		got, err := s.tenantAtPeriodTenant(ctx, req.GetPeriod())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("period",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderInvoice is how Invoices come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderInvoice = []sqlpage.Order{
+	{Column: entInvoice.FieldDateStart, Desc: false},
+	{Column: entInvoice.FieldId, Desc: false},
+}
+
+func afterInvoice(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextInvoice(last *ent.Invoice, tag string) (string, error) {
+	return pdNext(tag, last.DateStart, last.Id)
+}
+
+// orderByInvoice is an order as ent orders a query by it.
+func orderByInvoice(by []sqlpage.Order) []entInvoice.OrderOption {
+	out := make([]entInvoice.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// InvoicePageSize is what a request that did not say gets, and
+	// InvoicePageLimit is the most it gets however loudly it asks.
+	InvoicePageSize  = 20
+	InvoicePageLimit = 100
+
+	// InvoiceFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	InvoiceFilterLimit = 32
+)
+
+// List answers with the Invoices that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkInvoice) List(ctx context.Context, req *levyan.InvoiceListRequest) (*levyan.InvoiceListResponse, error) {
+	q := s.store.Db.Invoice.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.InvoiceNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > InvoiceFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), InvoiceFilterLimit)
+		}
+
+		ps := make([]predicate.Invoice, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterInvoice(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entInvoice.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderInvoice, afterInvoice, nextInvoice, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), InvoicePageSize, InvoicePageLimit)
+	us, err := q.Order(orderByInvoice(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Invoice, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.InvoiceListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterInvoice turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterInvoice(f *levyan.InvoiceFilter) (predicate.Invoice, error) {
+	ps := make([]predicate.Invoice, 0, 1)
+	if f.HasRef() {
+		p, err := bare.InvoicePick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasBillingAccount() {
+		w := f.GetBillingAccount()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "billing_account: %s", err)
+			}
+
+			ps = append(ps, entInvoice.BillingAccountIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.BillingAccountPick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entInvoice.HasBillingAccountWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entInvoice.And(ps...), nil
+}
+
+type sinkInvoiceLine struct {
+	levyan.InvoiceLineServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) InvoiceLine() levyan.InvoiceLineServiceServer {
+	v := sinkInvoiceLine{s.Server.InvoiceLine(), s.Server.Store, s.w, s.namer, s.joined}
+	v.InvoiceLineServiceServer = bare.InvoiceLineWithAddRule(v.InvoiceLineServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of InvoiceLine
+// writes: it refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.InvoiceLine].
+func (s sinkInvoiceLine) admit(ctx context.Context, req *levyan.InvoiceLineAddRequest) (*levyan.InvoiceLineAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkInvoiceLine) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtInvoiceTenant is the tenant "invoice.tenant" arrives at.
+func (s sinkInvoiceLine) tenantAtInvoiceTenant(ctx context.Context, ref *levyan.InvoiceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("invoice", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Invoice", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.InvoicePick(ref)
+		if err != nil {
+			return nil, pderr.At("invoice", err)
+		}
+
+		k, err := s.store.Db.Invoice.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("invoice", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtStatementTenant is the tenant "statement.tenant" arrives at.
+func (s sinkInvoiceLine) tenantAtStatementTenant(ctx context.Context, ref *levyan.StatementRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("statement", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Statement", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.StatementPick(ref)
+		if err != nil {
+			return nil, pderr.At("statement", err)
+		}
+
+		k, err := s.store.Db.Statement.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("statement", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkInvoiceLine) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkInvoiceLine) tenancy(ctx context.Context, req *levyan.InvoiceLineAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasInvoice() {
+		got, err := s.tenantAtInvoiceTenant(ctx, req.GetInvoice())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("invoice",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	if req.HasStatement() {
+		got, err := s.tenantAtStatementTenant(ctx, req.GetStatement())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("statement",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderInvoiceLine is how InvoiceLines come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderInvoiceLine = []sqlpage.Order{
+	{Column: entInvoiceLine.FieldDateStart, Desc: false},
+	{Column: entInvoiceLine.FieldId, Desc: false},
+}
+
+func afterInvoiceLine(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextInvoiceLine(last *ent.InvoiceLine, tag string) (string, error) {
+	return pdNext(tag, last.DateStart, last.Id)
+}
+
+// orderByInvoiceLine is an order as ent orders a query by it.
+func orderByInvoiceLine(by []sqlpage.Order) []entInvoiceLine.OrderOption {
+	out := make([]entInvoiceLine.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// InvoiceLinePageSize is what a request that did not say gets, and
+	// InvoiceLinePageLimit is the most it gets however loudly it asks.
+	InvoiceLinePageSize  = 100
+	InvoiceLinePageLimit = 500
+
+	// InvoiceLineFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	InvoiceLineFilterLimit = 32
+)
+
+// List answers with the InvoiceLines that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkInvoiceLine) List(ctx context.Context, req *levyan.InvoiceLineListRequest) (*levyan.InvoiceLineListResponse, error) {
+	q := s.store.Db.InvoiceLine.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.InvoiceLineNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > InvoiceLineFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), InvoiceLineFilterLimit)
+		}
+
+		ps := make([]predicate.InvoiceLine, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterInvoiceLine(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entInvoiceLine.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderInvoiceLine, afterInvoiceLine, nextInvoiceLine, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), InvoiceLinePageSize, InvoiceLinePageLimit)
+	us, err := q.Order(orderByInvoiceLine(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.InvoiceLine, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.InvoiceLineListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterInvoiceLine turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterInvoiceLine(f *levyan.InvoiceLineFilter) (predicate.InvoiceLine, error) {
+	ps := make([]predicate.InvoiceLine, 0, 1)
+	if f.HasRef() {
+		p, err := bare.InvoiceLinePick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasInvoice() {
+		w := f.GetInvoice()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invoice: %s", err)
+			}
+
+			ps = append(ps, entInvoiceLine.InvoiceIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.InvoicePick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entInvoiceLine.HasInvoiceWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entInvoiceLine.And(ps...), nil
+}
+
 type sinkLink struct {
 	levyan.LinkServiceServer
 	store  bare.Store
@@ -3136,6 +4543,324 @@ func (s sinkOperator) Apply(ctx context.Context, req *levyan.OperatorApplyReques
 	seen.Forget(s.store.Db.Driver(), "Operator", req.GetRef())
 
 	return s.OperatorServiceServer.Apply(ctx, req)
+}
+
+type sinkPaymentAttempt struct {
+	levyan.PaymentAttemptServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) PaymentAttempt() levyan.PaymentAttemptServiceServer {
+	v := sinkPaymentAttempt{s.Server.PaymentAttempt(), s.Server.Store, s.w, s.namer, s.joined}
+	v.PaymentAttemptServiceServer = bare.PaymentAttemptWithAddRule(v.PaymentAttemptServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of PaymentAttempt
+// writes: it refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.PaymentAttempt].
+func (s sinkPaymentAttempt) admit(ctx context.Context, req *levyan.PaymentAttemptAddRequest) (*levyan.PaymentAttemptAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkPaymentAttempt) Apply(ctx context.Context, req *levyan.PaymentAttemptApplyRequest) (*levyan.PaymentAttempt, error) {
+	seen.Forget(s.store.Db.Driver(), "PaymentAttempt", req.GetRef())
+
+	return s.PaymentAttemptServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkPaymentAttempt.Apply].
+func (s sinkPaymentAttempt) Patch(ctx context.Context, req *levyan.PaymentAttemptPatchRequest) (*levyan.PaymentAttempt, error) {
+	seen.Forget(s.store.Db.Driver(), "PaymentAttempt", req.GetRef())
+
+	return s.PaymentAttemptServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkPaymentAttempt) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtInvoiceTenant is the tenant "invoice.tenant" arrives at.
+func (s sinkPaymentAttempt) tenantAtInvoiceTenant(ctx context.Context, ref *levyan.InvoiceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("invoice", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Invoice", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.InvoicePick(ref)
+		if err != nil {
+			return nil, pderr.At("invoice", err)
+		}
+
+		k, err := s.store.Db.Invoice.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("invoice", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkPaymentAttempt) tenancy(ctx context.Context, req *levyan.PaymentAttemptAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasInvoice() {
+		got, err := s.tenantAtInvoiceTenant(ctx, req.GetInvoice())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("invoice",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderPaymentAttempt is how PaymentAttempts come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderPaymentAttempt = []sqlpage.Order{
+	{Column: entPaymentAttempt.FieldDateCreated, Desc: false},
+	{Column: entPaymentAttempt.FieldId, Desc: false},
+}
+
+func afterPaymentAttempt(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextPaymentAttempt(last *ent.PaymentAttempt, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByPaymentAttempt is an order as ent orders a query by it.
+func orderByPaymentAttempt(by []sqlpage.Order) []entPaymentAttempt.OrderOption {
+	out := make([]entPaymentAttempt.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// PaymentAttemptPageSize is what a request that did not say gets, and
+	// PaymentAttemptPageLimit is the most it gets however loudly it asks.
+	PaymentAttemptPageSize  = 50
+	PaymentAttemptPageLimit = 200
+
+	// PaymentAttemptFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	PaymentAttemptFilterLimit = 32
+)
+
+// List answers with the PaymentAttempts that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkPaymentAttempt) List(ctx context.Context, req *levyan.PaymentAttemptListRequest) (*levyan.PaymentAttemptListResponse, error) {
+	q := s.store.Db.PaymentAttempt.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.PaymentAttemptNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > PaymentAttemptFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), PaymentAttemptFilterLimit)
+		}
+
+		ps := make([]predicate.PaymentAttempt, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterPaymentAttempt(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entPaymentAttempt.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderPaymentAttempt, afterPaymentAttempt, nextPaymentAttempt, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), PaymentAttemptPageSize, PaymentAttemptPageLimit)
+	us, err := q.Order(orderByPaymentAttempt(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.PaymentAttempt, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.PaymentAttemptListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterPaymentAttempt turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterPaymentAttempt(f *levyan.PaymentAttemptFilter) (predicate.PaymentAttempt, error) {
+	ps := make([]predicate.PaymentAttempt, 0, 1)
+	if f.HasRef() {
+		p, err := bare.PaymentAttemptPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasInvoice() {
+		w := f.GetInvoice()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invoice: %s", err)
+			}
+
+			ps = append(ps, entPaymentAttempt.InvoiceIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.InvoicePick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entPaymentAttempt.HasInvoiceWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entPaymentAttempt.And(ps...), nil
 }
 
 type sinkPeriod struct {
@@ -4912,6 +6637,23 @@ func (s sinkStatement) admit(ctx context.Context, req *levyan.StatementAddReques
 	return r, nil
 }
 
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkStatement) Apply(ctx context.Context, req *levyan.StatementApplyRequest) (*levyan.Statement, error) {
+	seen.Forget(s.store.Db.Driver(), "Statement", req.GetRef())
+
+	return s.StatementServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkStatement.Apply].
+func (s sinkStatement) Patch(ctx context.Context, req *levyan.StatementPatchRequest) (*levyan.Statement, error) {
+	seen.Forget(s.store.Db.Driver(), "Statement", req.GetRef())
+
+	return s.StatementServiceServer.Patch(ctx, req)
+}
+
 // tenantAtTenant is the tenant "tenant" arrives at.
 func (s sinkStatement) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
 	if ref == nil {
@@ -5918,6 +7660,139 @@ func (s gateHolder) Apply(ctx context.Context, req *levyan.HolderApplyRequest) (
 // parsed from the file that declares it, as the server behind parses it.
 var gateHolderEntity = ormpatch.MustEntityOf((*levyan.Holder)(nil).ProtoReflect().Descriptor().ParentFile(), "Holder")
 
+type gateCredit struct {
+	Gate
+	levyan.CreditServiceServer
+}
+
+func (s Gate) Credit() levyan.CreditServiceServer {
+	v := gateCredit{s, s.Next().Credit()}
+	v.CreditServiceServer = bare.CreditWithAddRule(v.CreditServiceServer, v.admit)
+	return accountsCredit{v}
+}
+
+// admit refuses a Credit put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Credit].
+func (s gateCredit) admit(ctx context.Context, req *levyan.CreditAddRequest) (*levyan.CreditAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetInvoice(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Invoice", ref, func() error {
+			_, err := s.Gate.Next().Invoice().Get(ctx, levyan.InvoiceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Invoice")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetCreditNote(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "CreditNote", ref, func() error {
+			_, err := s.Gate.Next().CreditNote().Get(ctx, levyan.CreditNoteGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("CreditNote")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
+type gateCreditNote struct {
+	Gate
+	levyan.CreditNoteServiceServer
+}
+
+func (s Gate) CreditNote() levyan.CreditNoteServiceServer {
+	v := gateCreditNote{s, s.Next().CreditNote()}
+	v.CreditNoteServiceServer = bare.CreditNoteWithAddRule(v.CreditNoteServiceServer, v.admit)
+	return accountsCreditNote{v}
+}
+
+// admit refuses a CreditNote put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.CreditNote].
+func (s gateCreditNote) admit(ctx context.Context, req *levyan.CreditNoteAddRequest) (*levyan.CreditNoteAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetInvoice(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Invoice", ref, func() error {
+			_, err := s.Gate.Next().Invoice().Get(ctx, levyan.InvoiceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Invoice")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 type gateGrant struct {
 	Gate
 	levyan.GrantServiceServer
@@ -5968,6 +7843,154 @@ func (s gateGrant) admit(ctx context.Context, req *levyan.GrantAddRequest) (*lev
 		}); err != nil {
 			if status.Code(err) == codes.NotFound {
 				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
+type gateInvoice struct {
+	Gate
+	levyan.InvoiceServiceServer
+}
+
+func (s Gate) Invoice() levyan.InvoiceServiceServer {
+	v := gateInvoice{s, s.Next().Invoice()}
+	v.InvoiceServiceServer = bare.InvoiceWithAddRule(v.InvoiceServiceServer, v.admit)
+	return accountsInvoice{v}
+}
+
+// admit refuses a Invoice put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Invoice].
+func (s gateInvoice) admit(ctx context.Context, req *levyan.InvoiceAddRequest) (*levyan.InvoiceAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetPeriod(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Period", ref, func() error {
+			_, err := s.Gate.Next().Period().Get(ctx, levyan.PeriodGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Period")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
+type gateInvoiceLine struct {
+	Gate
+	levyan.InvoiceLineServiceServer
+}
+
+func (s Gate) InvoiceLine() levyan.InvoiceLineServiceServer {
+	v := gateInvoiceLine{s, s.Next().InvoiceLine()}
+	v.InvoiceLineServiceServer = bare.InvoiceLineWithAddRule(v.InvoiceLineServiceServer, v.admit)
+	return accountsInvoiceLine{v}
+}
+
+// admit refuses a InvoiceLine put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.InvoiceLine].
+func (s gateInvoiceLine) admit(ctx context.Context, req *levyan.InvoiceLineAddRequest) (*levyan.InvoiceLineAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetInvoice(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Invoice", ref, func() error {
+			_, err := s.Gate.Next().Invoice().Get(ctx, levyan.InvoiceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Invoice")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetStatement(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Statement", ref, func() error {
+			_, err := s.Gate.Next().Statement().Get(ctx, levyan.StatementGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Statement")
 			}
 
 			return nil, err
@@ -6145,6 +8168,80 @@ func (s gateOffer) admit(ctx context.Context, req *levyan.OfferAddRequest) (*lev
 		}); err != nil {
 			if status.Code(err) == codes.NotFound {
 				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
+type gatePaymentAttempt struct {
+	Gate
+	levyan.PaymentAttemptServiceServer
+}
+
+func (s Gate) PaymentAttempt() levyan.PaymentAttemptServiceServer {
+	v := gatePaymentAttempt{s, s.Next().PaymentAttempt()}
+	v.PaymentAttemptServiceServer = bare.PaymentAttemptWithAddRule(v.PaymentAttemptServiceServer, v.admit)
+	return accountsPaymentAttempt{v}
+}
+
+// admit refuses a PaymentAttempt put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.PaymentAttempt].
+func (s gatePaymentAttempt) admit(ctx context.Context, req *levyan.PaymentAttemptAddRequest) (*levyan.PaymentAttemptAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetInvoice(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Invoice", ref, func() error {
+			_, err := s.Gate.Next().Invoice().Get(ctx, levyan.InvoiceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Invoice")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetCreditNote(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "CreditNote", ref, func() error {
+			_, err := s.Gate.Next().CreditNote().Get(ctx, levyan.CreditNoteGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("CreditNote")
 			}
 
 			return nil, err
@@ -6692,47 +8789,6 @@ func (s accountsBillingAccount) List(ctx context.Context, req *levyan.BillingAcc
 	return s.BillingAccountServiceServer.List(ctx, req)
 }
 
-func (s Gate) Departure() levyan.DepartureServiceServer {
-	return accountsDeparture{s.Next().Departure()}
-}
-
-// accountsDeparture is DepartureService as the gate serves it to a call an account
-// makes as itself: refused every method but the ones the schema marks the
-// account's own. See [gate.AsAccount].
-type accountsDeparture struct{ levyan.DepartureServiceServer }
-
-func (s accountsDeparture) Add(ctx context.Context, req *levyan.DepartureAddRequest) (*levyan.Departure, error) {
-	if err := gate.AsAccount(ctx, levyan.DepartureService_Add_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.DepartureServiceServer.Add(ctx, req)
-}
-
-func (s accountsDeparture) Get(ctx context.Context, req *levyan.DepartureGetRequest) (*levyan.Departure, error) {
-	if err := gate.AsAccount(ctx, levyan.DepartureService_Get_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.DepartureServiceServer.Get(ctx, req)
-}
-
-func (s accountsDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
-	if err := gate.AsAccount(ctx, levyan.DepartureService_Patch_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.DepartureServiceServer.Patch(ctx, req)
-}
-
-func (s accountsDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
-	if err := gate.AsAccount(ctx, levyan.DepartureService_Apply_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.DepartureServiceServer.Apply(ctx, req)
-}
-
 // accountsTenant is TenantService as the gate serves it to a call an account
 // makes as itself: refused every method but the ones the schema marks the
 // account's own. See [gate.AsAccount].
@@ -6784,6 +8840,211 @@ func (s accountsTenant) List(ctx context.Context, req *levyan.TenantListRequest)
 	}
 
 	return s.TenantServiceServer.List(ctx, req)
+}
+
+// accountsPeriod is PeriodService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsPeriod struct{ levyan.PeriodServiceServer }
+
+func (s accountsPeriod) Add(ctx context.Context, req *levyan.PeriodAddRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Add(ctx, req)
+}
+
+func (s accountsPeriod) Get(ctx context.Context, req *levyan.PeriodGetRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Get(ctx, req)
+}
+
+func (s accountsPeriod) Patch(ctx context.Context, req *levyan.PeriodPatchRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Patch(ctx, req)
+}
+
+func (s accountsPeriod) Apply(ctx context.Context, req *levyan.PeriodApplyRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Apply(ctx, req)
+}
+
+func (s accountsPeriod) List(ctx context.Context, req *levyan.PeriodListRequest) (*levyan.PeriodListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.List(ctx, req)
+}
+
+// accountsInvoice is InvoiceService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsInvoice struct{ levyan.InvoiceServiceServer }
+
+func (s accountsInvoice) Add(ctx context.Context, req *levyan.InvoiceAddRequest) (*levyan.Invoice, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceServiceServer.Add(ctx, req)
+}
+
+func (s accountsInvoice) Get(ctx context.Context, req *levyan.InvoiceGetRequest) (*levyan.Invoice, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceServiceServer.Get(ctx, req)
+}
+
+func (s accountsInvoice) Patch(ctx context.Context, req *levyan.InvoicePatchRequest) (*levyan.Invoice, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceServiceServer.Patch(ctx, req)
+}
+
+func (s accountsInvoice) Apply(ctx context.Context, req *levyan.InvoiceApplyRequest) (*levyan.Invoice, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceServiceServer.Apply(ctx, req)
+}
+
+func (s accountsInvoice) List(ctx context.Context, req *levyan.InvoiceListRequest) (*levyan.InvoiceListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceServiceServer.List(ctx, req)
+}
+
+// accountsCreditNote is CreditNoteService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsCreditNote struct{ levyan.CreditNoteServiceServer }
+
+func (s accountsCreditNote) Add(ctx context.Context, req *levyan.CreditNoteAddRequest) (*levyan.CreditNote, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditNoteService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditNoteServiceServer.Add(ctx, req)
+}
+
+func (s accountsCreditNote) Get(ctx context.Context, req *levyan.CreditNoteGetRequest) (*levyan.CreditNote, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditNoteService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditNoteServiceServer.Get(ctx, req)
+}
+
+func (s accountsCreditNote) Patch(ctx context.Context, req *levyan.CreditNotePatchRequest) (*levyan.CreditNote, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditNoteService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditNoteServiceServer.Patch(ctx, req)
+}
+
+func (s accountsCreditNote) Apply(ctx context.Context, req *levyan.CreditNoteApplyRequest) (*levyan.CreditNote, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditNoteService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditNoteServiceServer.Apply(ctx, req)
+}
+
+func (s accountsCreditNote) List(ctx context.Context, req *levyan.CreditNoteListRequest) (*levyan.CreditNoteListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditNoteService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditNoteServiceServer.List(ctx, req)
+}
+
+// accountsCredit is CreditService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsCredit struct{ levyan.CreditServiceServer }
+
+func (s accountsCredit) Add(ctx context.Context, req *levyan.CreditAddRequest) (*levyan.Credit, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditServiceServer.Add(ctx, req)
+}
+
+func (s accountsCredit) Get(ctx context.Context, req *levyan.CreditGetRequest) (*levyan.Credit, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditServiceServer.Get(ctx, req)
+}
+
+func (s accountsCredit) List(ctx context.Context, req *levyan.CreditListRequest) (*levyan.CreditListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.CreditService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CreditServiceServer.List(ctx, req)
+}
+
+func (s Gate) Departure() levyan.DepartureServiceServer {
+	return accountsDeparture{s.Next().Departure()}
+}
+
+// accountsDeparture is DepartureService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsDeparture struct{ levyan.DepartureServiceServer }
+
+func (s accountsDeparture) Add(ctx context.Context, req *levyan.DepartureAddRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Add(ctx, req)
+}
+
+func (s accountsDeparture) Get(ctx context.Context, req *levyan.DepartureGetRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Get(ctx, req)
+}
+
+func (s accountsDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Patch(ctx, req)
+}
+
+func (s accountsDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Apply(ctx, req)
 }
 
 // accountsWorkspace is WorkspaceService as the gate serves it to a call an account
@@ -6882,6 +9143,82 @@ func (s accountsGrant) List(ctx context.Context, req *levyan.GrantListRequest) (
 	}
 
 	return s.GrantServiceServer.List(ctx, req)
+}
+
+// accountsStatement is StatementService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsStatement struct{ levyan.StatementServiceServer }
+
+func (s accountsStatement) Add(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.Statement, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.Add(ctx, req)
+}
+
+func (s accountsStatement) Get(ctx context.Context, req *levyan.StatementGetRequest) (*levyan.Statement, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.Get(ctx, req)
+}
+
+func (s accountsStatement) Patch(ctx context.Context, req *levyan.StatementPatchRequest) (*levyan.Statement, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.Patch(ctx, req)
+}
+
+func (s accountsStatement) Apply(ctx context.Context, req *levyan.StatementApplyRequest) (*levyan.Statement, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.Apply(ctx, req)
+}
+
+func (s accountsStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.List(ctx, req)
+}
+
+// accountsInvoiceLine is InvoiceLineService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsInvoiceLine struct {
+	levyan.InvoiceLineServiceServer
+}
+
+func (s accountsInvoiceLine) Add(ctx context.Context, req *levyan.InvoiceLineAddRequest) (*levyan.InvoiceLine, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceLineService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceLineServiceServer.Add(ctx, req)
+}
+
+func (s accountsInvoiceLine) Get(ctx context.Context, req *levyan.InvoiceLineGetRequest) (*levyan.InvoiceLine, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceLineService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceLineServiceServer.Get(ctx, req)
+}
+
+func (s accountsInvoiceLine) List(ctx context.Context, req *levyan.InvoiceLineListRequest) (*levyan.InvoiceLineListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.InvoiceLineService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.InvoiceLineServiceServer.List(ctx, req)
 }
 
 // accountsOffer is OfferService as the gate serves it to a call an account
@@ -7195,49 +9532,51 @@ func (s accountsHolder) Watch(req *levyan.HolderWatchRequest, out grpc.ServerStr
 	return s.HolderServiceServer.Watch(req, out)
 }
 
-// accountsPeriod is PeriodService as the gate serves it to a call an account
+// accountsPaymentAttempt is PaymentAttemptService as the gate serves it to a call an account
 // makes as itself: refused every method but the ones the schema marks the
 // account's own. See [gate.AsAccount].
-type accountsPeriod struct{ levyan.PeriodServiceServer }
-
-func (s accountsPeriod) Add(ctx context.Context, req *levyan.PeriodAddRequest) (*levyan.Period, error) {
-	if err := gate.AsAccount(ctx, levyan.PeriodService_Add_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.PeriodServiceServer.Add(ctx, req)
+type accountsPaymentAttempt struct {
+	levyan.PaymentAttemptServiceServer
 }
 
-func (s accountsPeriod) Get(ctx context.Context, req *levyan.PeriodGetRequest) (*levyan.Period, error) {
-	if err := gate.AsAccount(ctx, levyan.PeriodService_Get_FullMethodName, AccountMethod); err != nil {
+func (s accountsPaymentAttempt) Add(ctx context.Context, req *levyan.PaymentAttemptAddRequest) (*levyan.PaymentAttempt, error) {
+	if err := gate.AsAccount(ctx, levyan.PaymentAttemptService_Add_FullMethodName, AccountMethod); err != nil {
 		return nil, err
 	}
 
-	return s.PeriodServiceServer.Get(ctx, req)
+	return s.PaymentAttemptServiceServer.Add(ctx, req)
 }
 
-func (s accountsPeriod) Patch(ctx context.Context, req *levyan.PeriodPatchRequest) (*levyan.Period, error) {
-	if err := gate.AsAccount(ctx, levyan.PeriodService_Patch_FullMethodName, AccountMethod); err != nil {
+func (s accountsPaymentAttempt) Get(ctx context.Context, req *levyan.PaymentAttemptGetRequest) (*levyan.PaymentAttempt, error) {
+	if err := gate.AsAccount(ctx, levyan.PaymentAttemptService_Get_FullMethodName, AccountMethod); err != nil {
 		return nil, err
 	}
 
-	return s.PeriodServiceServer.Patch(ctx, req)
+	return s.PaymentAttemptServiceServer.Get(ctx, req)
 }
 
-func (s accountsPeriod) Apply(ctx context.Context, req *levyan.PeriodApplyRequest) (*levyan.Period, error) {
-	if err := gate.AsAccount(ctx, levyan.PeriodService_Apply_FullMethodName, AccountMethod); err != nil {
+func (s accountsPaymentAttempt) Patch(ctx context.Context, req *levyan.PaymentAttemptPatchRequest) (*levyan.PaymentAttempt, error) {
+	if err := gate.AsAccount(ctx, levyan.PaymentAttemptService_Patch_FullMethodName, AccountMethod); err != nil {
 		return nil, err
 	}
 
-	return s.PeriodServiceServer.Apply(ctx, req)
+	return s.PaymentAttemptServiceServer.Patch(ctx, req)
 }
 
-func (s accountsPeriod) List(ctx context.Context, req *levyan.PeriodListRequest) (*levyan.PeriodListResponse, error) {
-	if err := gate.AsAccount(ctx, levyan.PeriodService_List_FullMethodName, AccountMethod); err != nil {
+func (s accountsPaymentAttempt) Apply(ctx context.Context, req *levyan.PaymentAttemptApplyRequest) (*levyan.PaymentAttempt, error) {
+	if err := gate.AsAccount(ctx, levyan.PaymentAttemptService_Apply_FullMethodName, AccountMethod); err != nil {
 		return nil, err
 	}
 
-	return s.PeriodServiceServer.List(ctx, req)
+	return s.PaymentAttemptServiceServer.Apply(ctx, req)
+}
+
+func (s accountsPaymentAttempt) List(ctx context.Context, req *levyan.PaymentAttemptListRequest) (*levyan.PaymentAttemptListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PaymentAttemptService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PaymentAttemptServiceServer.List(ctx, req)
 }
 
 // accountsSeries is SeriesService as the gate serves it to a call an account
@@ -7439,35 +9778,6 @@ func (s accountsServiceKey) List(ctx context.Context, req *levyan.ServiceKeyList
 	}
 
 	return s.ServiceKeyServiceServer.List(ctx, req)
-}
-
-// accountsStatement is StatementService as the gate serves it to a call an account
-// makes as itself: refused every method but the ones the schema marks the
-// account's own. See [gate.AsAccount].
-type accountsStatement struct{ levyan.StatementServiceServer }
-
-func (s accountsStatement) Add(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.Statement, error) {
-	if err := gate.AsAccount(ctx, levyan.StatementService_Add_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.StatementServiceServer.Add(ctx, req)
-}
-
-func (s accountsStatement) Get(ctx context.Context, req *levyan.StatementGetRequest) (*levyan.Statement, error) {
-	if err := gate.AsAccount(ctx, levyan.StatementService_Get_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.StatementServiceServer.Get(ctx, req)
-}
-
-func (s accountsStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
-	if err := gate.AsAccount(ctx, levyan.StatementService_List_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.StatementServiceServer.List(ctx, req)
 }
 
 // Audit is the layer that refuses a trail row written by hand.
@@ -7740,12 +10050,20 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedAudit.md, describedAudit.secret, describedAudit.personal
 	case BillingAccountDomain:
 		return describedBillingAccount.md, describedBillingAccount.secret, describedBillingAccount.personal
+	case CreditDomain:
+		return describedCredit.md, describedCredit.secret, describedCredit.personal
+	case CreditNoteDomain:
+		return describedCreditNote.md, describedCreditNote.secret, describedCreditNote.personal
 	case DepartureDomain:
 		return describedDeparture.md, describedDeparture.secret, describedDeparture.personal
 	case GrantDomain:
 		return describedGrant.md, describedGrant.secret, describedGrant.personal
 	case HolderDomain:
 		return describedHolder.md, describedHolder.secret, describedHolder.personal
+	case InvoiceDomain:
+		return describedInvoice.md, describedInvoice.secret, describedInvoice.personal
+	case InvoiceLineDomain:
+		return describedInvoiceLine.md, describedInvoiceLine.secret, describedInvoiceLine.personal
 	case LinkDomain:
 		return describedLink.md, describedLink.secret, describedLink.personal
 	case MeterDomain:
@@ -7758,6 +10076,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedOutbox.md, describedOutbox.secret, describedOutbox.personal
 	case OwedDomain:
 		return describedOwed.md, describedOwed.secret, describedOwed.personal
+	case PaymentAttemptDomain:
+		return describedPaymentAttempt.md, describedPaymentAttempt.secret, describedPaymentAttempt.personal
 	case PeriodDomain:
 		return describedPeriod.md, describedPeriod.secret, describedPeriod.personal
 	case PointDomain:
@@ -7815,6 +10135,12 @@ var (
 	describedBillingAccount = describe((*levyan.BillingAccount)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{5, 12, 16, 17, 18})
+	describedCredit = describe((*levyan.Credit)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
+	describedCreditNote = describe((*levyan.CreditNote)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{25})
 	describedDeparture = describe((*levyan.Departure)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -7824,6 +10150,12 @@ var (
 	describedHolder = describe((*levyan.Holder)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{4, 5, 6, 7})
+	describedInvoice = describe((*levyan.Invoice)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{32, 36})
+	describedInvoiceLine = describe((*levyan.InvoiceLine)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 	describedLink = describe((*levyan.Link)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -7842,6 +10174,9 @@ var (
 	describedOwed = describe((*levyan.Owed)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedPaymentAttempt = describe((*levyan.PaymentAttempt)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{27})
 	describedPeriod = describe((*levyan.Period)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -7894,13 +10229,18 @@ func added(by string) bool {
 	switch by {
 	case levyan.AuditService_Add_FullMethodName,
 		levyan.BillingAccountService_Add_FullMethodName,
+		levyan.CreditService_Add_FullMethodName,
+		levyan.CreditNoteService_Add_FullMethodName,
 		levyan.DepartureService_Add_FullMethodName,
 		levyan.GrantService_Add_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
+		levyan.InvoiceService_Add_FullMethodName,
+		levyan.InvoiceLineService_Add_FullMethodName,
 		levyan.LinkService_Add_FullMethodName,
 		levyan.MeterService_Add_FullMethodName,
 		levyan.OfferService_Add_FullMethodName,
 		levyan.OperatorService_Add_FullMethodName,
+		levyan.PaymentAttemptService_Add_FullMethodName,
 		levyan.PeriodService_Add_FullMethodName,
 		levyan.PointService_Add_FullMethodName,
 		levyan.PointService_AddMany_FullMethodName,
@@ -7976,6 +10316,65 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 
 		return k, b, nil
 
+	case CreditDomain:
+		row, ok := image.(*levyan.Credit)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case CreditNoteDomain:
+		row, ok := image.(*levyan.CreditNote)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			kept = proto.Clone(row).(*levyan.CreditNote)
+			_, secret, personal := described(key)
+			audit.Clear(kept, secret)
+			audit.Clear(kept, personal)
+
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
 	case GrantDomain:
 		row, ok := image.(*levyan.Grant)
 		if !ok {
@@ -8017,6 +10416,65 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 			audit.Clear(kept, secret)
 			audit.Clear(kept, personal)
 
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case InvoiceDomain:
+		row, ok := image.(*levyan.Invoice)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			kept = proto.Clone(row).(*levyan.Invoice)
+			_, secret, personal := described(key)
+			audit.Clear(kept, secret)
+			audit.Clear(kept, personal)
+
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case InvoiceLineDomain:
+		row, ok := image.(*levyan.InvoiceLine)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
 			v, err := proto.Marshal(kept)
 			if err != nil {
 				return uuid.Nil(), nil, err
@@ -8098,6 +10556,38 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 		b := []byte{}
 		if keep {
 			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case PaymentAttemptDomain:
+		row, ok := image.(*levyan.PaymentAttempt)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			kept = proto.Clone(row).(*levyan.PaymentAttempt)
+			_, secret, personal := described(key)
+			audit.Clear(kept, secret)
+			audit.Clear(kept, personal)
+
 			v, err := proto.Marshal(kept)
 			if err != nil {
 				return uuid.Nil(), nil, err
@@ -8382,12 +10872,20 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 	switch key.Domain() {
 	case BillingAccountDomain:
 		vs, err = rowsBillingAccount(ctx, s.Db, entBillingAccount.IdEQ(uuid.UUID(key)))
+	case CreditDomain:
+		vs, err = rowsCredit(ctx, s.Db, entCredit.IdEQ(uuid.UUID(key)))
+	case CreditNoteDomain:
+		vs, err = rowsCreditNote(ctx, s.Db, entCreditNote.IdEQ(uuid.UUID(key)))
 	case DepartureDomain:
 		vs, err = rowsDeparture(ctx, s.Db, entDeparture.IdEQ(uuid.UUID(key)))
 	case GrantDomain:
 		vs, err = rowsGrant(ctx, s.Db, entGrant.IdEQ(uuid.UUID(key)))
 	case HolderDomain:
 		vs, err = rowsHolder(ctx, s.Db, entHolder.IdEQ(uuid.UUID(key)))
+	case InvoiceDomain:
+		vs, err = rowsInvoice(ctx, s.Db, entInvoice.IdEQ(uuid.UUID(key)))
+	case InvoiceLineDomain:
+		vs, err = rowsInvoiceLine(ctx, s.Db, entInvoiceLine.IdEQ(uuid.UUID(key)))
 	case LinkDomain:
 		vs, err = rowsLink(ctx, s.Db, entLink.IdEQ(uuid.UUID(key)))
 	case MeterDomain:
@@ -8396,6 +10894,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsOffer(ctx, s.Db, entOffer.IdEQ(uuid.UUID(key)))
 	case OperatorDomain:
 		vs, err = rowsOperator(ctx, s.Db, entOperator.IdEQ(uuid.UUID(key)))
+	case PaymentAttemptDomain:
+		vs, err = rowsPaymentAttempt(ctx, s.Db, entPaymentAttempt.IdEQ(uuid.UUID(key)))
 	case PeriodDomain:
 		vs, err = rowsPeriod(ctx, s.Db, entPeriod.IdEQ(uuid.UUID(key)))
 	case PointDomain:
@@ -8558,7 +11058,7 @@ func (v *keptTrail) write(ctx context.Context) error {
 // row's seal covers (payday#115).
 func isSealed(key pdid.Id) bool {
 	switch key.Domain() {
-	case BillingAccountDomain, HolderDomain, OperatorDomain:
+	case BillingAccountDomain, CreditNoteDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain:
 		return true
 	}
 
@@ -8779,6 +11279,12 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	if err := audit.CheckKind(ctx, d, checkedBillingAccount(db), archived, &out); err != nil {
 		return out, fmt.Errorf("billing-account: %w", err)
 	}
+	if err := audit.CheckKind(ctx, d, checkedCredit(db), archived, &out); err != nil {
+		return out, fmt.Errorf("credit: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedCreditNote(db), archived, &out); err != nil {
+		return out, fmt.Errorf("credit-note: %w", err)
+	}
 	if err := audit.CheckKind(ctx, d, checkedDeparture(db), archived, &out); err != nil {
 		return out, fmt.Errorf("departure: %w", err)
 	}
@@ -8787,6 +11293,12 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 	if err := audit.CheckKind(ctx, d, checkedHolder(db), archived, &out); err != nil {
 		return out, fmt.Errorf("holder: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedInvoice(db), archived, &out); err != nil {
+		return out, fmt.Errorf("invoice: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedInvoiceLine(db), archived, &out); err != nil {
+		return out, fmt.Errorf("invoice-line: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedLink(db), archived, &out); err != nil {
 		return out, fmt.Errorf("link: %w", err)
@@ -8799,6 +11311,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 	if err := audit.CheckKind(ctx, d, checkedOperator(db), archived, &out); err != nil {
 		return out, fmt.Errorf("operator: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedPaymentAttempt(db), archived, &out); err != nil {
+		return out, fmt.Errorf("payment-attempt: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedPeriod(db), archived, &out); err != nil {
 		return out, fmt.Errorf("period: %w", err)
@@ -8870,6 +11385,104 @@ func checkedBillingAccount(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsBillingAccount(ctx, db, entBillingAccount.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedCredit is what a check of the rows reads of the credit kind.
+func checkedCredit(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Credit) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsCredit(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: CreditDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entCredit.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entCredit.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, CreditDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsCredit(ctx, db, entCredit.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedCreditNote is what a check of the rows reads of the credit-note kind.
+func checkedCreditNote(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.CreditNote) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsCreditNote(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: CreditNoteDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entCreditNote.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entCreditNote.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, CreditNoteDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsCreditNote(ctx, db, entCreditNote.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -9014,6 +11627,104 @@ func checkedHolder(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsHolder(ctx, db, entHolder.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedInvoice is what a check of the rows reads of the invoice kind.
+func checkedInvoice(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Invoice) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsInvoice(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: InvoiceDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entInvoice.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entInvoice.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, InvoiceDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsInvoice(ctx, db, entInvoice.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedInvoiceLine is what a check of the rows reads of the invoice-line kind.
+func checkedInvoiceLine(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.InvoiceLine) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsInvoiceLine(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: InvoiceLineDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entInvoiceLine.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entInvoiceLine.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, InvoiceLineDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsInvoiceLine(ctx, db, entInvoiceLine.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -9204,6 +11915,58 @@ func checkedOperator(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsOperator(ctx, db, entOperator.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedPaymentAttempt is what a check of the rows reads of the payment-attempt kind.
+func checkedPaymentAttempt(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.PaymentAttempt) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsPaymentAttempt(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: PaymentAttemptDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entPaymentAttempt.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entPaymentAttempt.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, PaymentAttemptDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsPaymentAttempt(ctx, db, entPaymentAttempt.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -9651,6 +12414,46 @@ func rowsBillingAccount(ctx context.Context, db *ent.Client, ps ...predicate.Bil
 	return out, nil
 }
 
+// rowsCredit is the rows `ps` says of the credit kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsCredit(ctx context.Context, db *ent.Client, ps ...predicate.Credit) ([]audit.Live, error) {
+	q := db.Credit.Query().Where(ps...)
+	bare.CreditSelectInit(q, nil)
+
+	vs, err := q.Order(entCredit.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsCreditNote is the rows `ps` says of the credit-note kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsCreditNote(ctx context.Context, db *ent.Client, ps ...predicate.CreditNote) ([]audit.Live, error) {
+	q := db.CreditNote.Query().Where(ps...)
+	bare.CreditNoteSelectInit(q, nil)
+
+	vs, err := q.Order(entCreditNote.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // rowsDeparture is the rows `ps` says of the departure kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -9699,6 +12502,46 @@ func rowsHolder(ctx context.Context, db *ent.Client, ps ...predicate.Holder) ([]
 	bare.HolderSelectInit(q, nil)
 
 	vs, err := q.Order(entHolder.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsInvoice is the rows `ps` says of the invoice kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsInvoice(ctx context.Context, db *ent.Client, ps ...predicate.Invoice) ([]audit.Live, error) {
+	q := db.Invoice.Query().Where(ps...)
+	bare.InvoiceSelectInit(q, nil)
+
+	vs, err := q.Order(entInvoice.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsInvoiceLine is the rows `ps` says of the invoice-line kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsInvoiceLine(ctx context.Context, db *ent.Client, ps ...predicate.InvoiceLine) ([]audit.Live, error) {
+	q := db.InvoiceLine.Query().Where(ps...)
+	bare.InvoiceLineSelectInit(q, nil)
+
+	vs, err := q.Order(entInvoiceLine.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -9779,6 +12622,26 @@ func rowsOperator(ctx context.Context, db *ent.Client, ps ...predicate.Operator)
 	bare.OperatorSelectInit(q, nil)
 
 	vs, err := q.Order(entOperator.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsPaymentAttempt is the rows `ps` says of the payment-attempt kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsPaymentAttempt(ctx context.Context, db *ent.Client, ps ...predicate.PaymentAttempt) ([]audit.Live, error) {
+	q := db.PaymentAttempt.Query().Where(ps...)
+	bare.PaymentAttemptSelectInit(q, nil)
+
+	vs, err := q.Order(entPaymentAttempt.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -10196,12 +13059,20 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 			switch d {
 			case BillingAccountDomain:
 				rows, err = rowsBillingAccount(ctx, db, entBillingAccount.IdIn(uuids(page)...))
+			case CreditDomain:
+				rows, err = rowsCredit(ctx, db, entCredit.IdIn(uuids(page)...))
+			case CreditNoteDomain:
+				rows, err = rowsCreditNote(ctx, db, entCreditNote.IdIn(uuids(page)...))
 			case DepartureDomain:
 				rows, err = rowsDeparture(ctx, db, entDeparture.IdIn(uuids(page)...))
 			case GrantDomain:
 				rows, err = rowsGrant(ctx, db, entGrant.IdIn(uuids(page)...))
 			case HolderDomain:
 				rows, err = rowsHolder(ctx, db, entHolder.IdIn(uuids(page)...))
+			case InvoiceDomain:
+				rows, err = rowsInvoice(ctx, db, entInvoice.IdIn(uuids(page)...))
+			case InvoiceLineDomain:
+				rows, err = rowsInvoiceLine(ctx, db, entInvoiceLine.IdIn(uuids(page)...))
 			case LinkDomain:
 				rows, err = rowsLink(ctx, db, entLink.IdIn(uuids(page)...))
 			case MeterDomain:
@@ -10210,6 +13081,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 				rows, err = rowsOffer(ctx, db, entOffer.IdIn(uuids(page)...))
 			case OperatorDomain:
 				rows, err = rowsOperator(ctx, db, entOperator.IdIn(uuids(page)...))
+			case PaymentAttemptDomain:
+				rows, err = rowsPaymentAttempt(ctx, db, entPaymentAttempt.IdIn(uuids(page)...))
 			case PeriodDomain:
 				rows, err = rowsPeriod(ctx, db, entPeriod.IdIn(uuids(page)...))
 			case PointDomain:
@@ -10344,12 +13217,20 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 		switch d {
 		case BillingAccountDomain:
 			rows, err = rowsBillingAccount(ctx, s.db, entBillingAccount.IdIn(uuids(ids)...))
+		case CreditDomain:
+			rows, err = rowsCredit(ctx, s.db, entCredit.IdIn(uuids(ids)...))
+		case CreditNoteDomain:
+			rows, err = rowsCreditNote(ctx, s.db, entCreditNote.IdIn(uuids(ids)...))
 		case DepartureDomain:
 			rows, err = rowsDeparture(ctx, s.db, entDeparture.IdIn(uuids(ids)...))
 		case GrantDomain:
 			rows, err = rowsGrant(ctx, s.db, entGrant.IdIn(uuids(ids)...))
 		case HolderDomain:
 			rows, err = rowsHolder(ctx, s.db, entHolder.IdIn(uuids(ids)...))
+		case InvoiceDomain:
+			rows, err = rowsInvoice(ctx, s.db, entInvoice.IdIn(uuids(ids)...))
+		case InvoiceLineDomain:
+			rows, err = rowsInvoiceLine(ctx, s.db, entInvoiceLine.IdIn(uuids(ids)...))
 		case LinkDomain:
 			rows, err = rowsLink(ctx, s.db, entLink.IdIn(uuids(ids)...))
 		case MeterDomain:
@@ -10358,6 +13239,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 			rows, err = rowsOffer(ctx, s.db, entOffer.IdIn(uuids(ids)...))
 		case OperatorDomain:
 			rows, err = rowsOperator(ctx, s.db, entOperator.IdIn(uuids(ids)...))
+		case PaymentAttemptDomain:
+			rows, err = rowsPaymentAttempt(ctx, s.db, entPaymentAttempt.IdIn(uuids(ids)...))
 		case PeriodDomain:
 			rows, err = rowsPeriod(ctx, s.db, entPeriod.IdIn(uuids(ids)...))
 		case PointDomain:
@@ -10687,35 +13570,6 @@ func (s interceptBillingAccount) List(ctx context.Context, req *levyan.BillingAc
 		levyan.BillingAccountService_List_FullMethodName, req, s.BillingAccountServiceServer.List)
 }
 
-func (s Intercept) Departure() levyan.DepartureServiceServer {
-	return interceptDeparture{s, s.Next().Departure()}
-}
-
-type interceptDeparture struct {
-	Intercept
-	levyan.DepartureServiceServer
-}
-
-func (s interceptDeparture) Add(ctx context.Context, req *levyan.DepartureAddRequest) (*levyan.Departure, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
-		levyan.DepartureService_Add_FullMethodName, req, s.DepartureServiceServer.Add)
-}
-
-func (s interceptDeparture) Get(ctx context.Context, req *levyan.DepartureGetRequest) (*levyan.Departure, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
-		levyan.DepartureService_Get_FullMethodName, req, s.DepartureServiceServer.Get)
-}
-
-func (s interceptDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
-		levyan.DepartureService_Patch_FullMethodName, req, s.DepartureServiceServer.Patch)
-}
-
-func (s interceptDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
-		levyan.DepartureService_Apply_FullMethodName, req, s.DepartureServiceServer.Apply)
-}
-
 func (s Intercept) Tenant() levyan.TenantServiceServer {
 	return interceptTenant{s, s.Next().Tenant()}
 }
@@ -10753,6 +13607,161 @@ func (s interceptTenant) Erase(ctx context.Context, req *levyan.TenantRef) (*lev
 func (s interceptTenant) List(ctx context.Context, req *levyan.TenantListRequest) (*levyan.TenantListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
 		levyan.TenantService_List_FullMethodName, req, s.TenantServiceServer.List)
+}
+
+func (s Intercept) Period() levyan.PeriodServiceServer {
+	return interceptPeriod{s, s.Next().Period()}
+}
+
+type interceptPeriod struct {
+	Intercept
+	levyan.PeriodServiceServer
+}
+
+func (s interceptPeriod) Add(ctx context.Context, req *levyan.PeriodAddRequest) (*levyan.Period, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
+		levyan.PeriodService_Add_FullMethodName, req, s.PeriodServiceServer.Add)
+}
+
+func (s interceptPeriod) Get(ctx context.Context, req *levyan.PeriodGetRequest) (*levyan.Period, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
+		levyan.PeriodService_Get_FullMethodName, req, s.PeriodServiceServer.Get)
+}
+
+func (s interceptPeriod) Patch(ctx context.Context, req *levyan.PeriodPatchRequest) (*levyan.Period, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
+		levyan.PeriodService_Patch_FullMethodName, req, s.PeriodServiceServer.Patch)
+}
+
+func (s interceptPeriod) Apply(ctx context.Context, req *levyan.PeriodApplyRequest) (*levyan.Period, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
+		levyan.PeriodService_Apply_FullMethodName, req, s.PeriodServiceServer.Apply)
+}
+
+func (s interceptPeriod) List(ctx context.Context, req *levyan.PeriodListRequest) (*levyan.PeriodListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
+		levyan.PeriodService_List_FullMethodName, req, s.PeriodServiceServer.List)
+}
+
+func (s Intercept) Invoice() levyan.InvoiceServiceServer {
+	return interceptInvoice{s, s.Next().Invoice()}
+}
+
+type interceptInvoice struct {
+	Intercept
+	levyan.InvoiceServiceServer
+}
+
+func (s interceptInvoice) Add(ctx context.Context, req *levyan.InvoiceAddRequest) (*levyan.Invoice, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceServiceServer,
+		levyan.InvoiceService_Add_FullMethodName, req, s.InvoiceServiceServer.Add)
+}
+
+func (s interceptInvoice) Get(ctx context.Context, req *levyan.InvoiceGetRequest) (*levyan.Invoice, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceServiceServer,
+		levyan.InvoiceService_Get_FullMethodName, req, s.InvoiceServiceServer.Get)
+}
+
+func (s interceptInvoice) Patch(ctx context.Context, req *levyan.InvoicePatchRequest) (*levyan.Invoice, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceServiceServer,
+		levyan.InvoiceService_Patch_FullMethodName, req, s.InvoiceServiceServer.Patch)
+}
+
+func (s interceptInvoice) Apply(ctx context.Context, req *levyan.InvoiceApplyRequest) (*levyan.Invoice, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceServiceServer,
+		levyan.InvoiceService_Apply_FullMethodName, req, s.InvoiceServiceServer.Apply)
+}
+
+func (s interceptInvoice) List(ctx context.Context, req *levyan.InvoiceListRequest) (*levyan.InvoiceListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceServiceServer,
+		levyan.InvoiceService_List_FullMethodName, req, s.InvoiceServiceServer.List)
+}
+
+func (s Intercept) CreditNote() levyan.CreditNoteServiceServer {
+	return interceptCreditNote{s, s.Next().CreditNote()}
+}
+
+type interceptCreditNote struct {
+	Intercept
+	levyan.CreditNoteServiceServer
+}
+
+func (s interceptCreditNote) Add(ctx context.Context, req *levyan.CreditNoteAddRequest) (*levyan.CreditNote, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditNoteServiceServer,
+		levyan.CreditNoteService_Add_FullMethodName, req, s.CreditNoteServiceServer.Add)
+}
+
+func (s interceptCreditNote) Get(ctx context.Context, req *levyan.CreditNoteGetRequest) (*levyan.CreditNote, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditNoteServiceServer,
+		levyan.CreditNoteService_Get_FullMethodName, req, s.CreditNoteServiceServer.Get)
+}
+
+func (s interceptCreditNote) Patch(ctx context.Context, req *levyan.CreditNotePatchRequest) (*levyan.CreditNote, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditNoteServiceServer,
+		levyan.CreditNoteService_Patch_FullMethodName, req, s.CreditNoteServiceServer.Patch)
+}
+
+func (s interceptCreditNote) Apply(ctx context.Context, req *levyan.CreditNoteApplyRequest) (*levyan.CreditNote, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditNoteServiceServer,
+		levyan.CreditNoteService_Apply_FullMethodName, req, s.CreditNoteServiceServer.Apply)
+}
+
+func (s interceptCreditNote) List(ctx context.Context, req *levyan.CreditNoteListRequest) (*levyan.CreditNoteListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditNoteServiceServer,
+		levyan.CreditNoteService_List_FullMethodName, req, s.CreditNoteServiceServer.List)
+}
+
+func (s Intercept) Credit() levyan.CreditServiceServer {
+	return interceptCredit{s, s.Next().Credit()}
+}
+
+type interceptCredit struct {
+	Intercept
+	levyan.CreditServiceServer
+}
+
+func (s interceptCredit) Add(ctx context.Context, req *levyan.CreditAddRequest) (*levyan.Credit, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditServiceServer,
+		levyan.CreditService_Add_FullMethodName, req, s.CreditServiceServer.Add)
+}
+
+func (s interceptCredit) Get(ctx context.Context, req *levyan.CreditGetRequest) (*levyan.Credit, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditServiceServer,
+		levyan.CreditService_Get_FullMethodName, req, s.CreditServiceServer.Get)
+}
+
+func (s interceptCredit) List(ctx context.Context, req *levyan.CreditListRequest) (*levyan.CreditListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CreditServiceServer,
+		levyan.CreditService_List_FullMethodName, req, s.CreditServiceServer.List)
+}
+
+func (s Intercept) Departure() levyan.DepartureServiceServer {
+	return interceptDeparture{s, s.Next().Departure()}
+}
+
+type interceptDeparture struct {
+	Intercept
+	levyan.DepartureServiceServer
+}
+
+func (s interceptDeparture) Add(ctx context.Context, req *levyan.DepartureAddRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Add_FullMethodName, req, s.DepartureServiceServer.Add)
+}
+
+func (s interceptDeparture) Get(ctx context.Context, req *levyan.DepartureGetRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Get_FullMethodName, req, s.DepartureServiceServer.Get)
+}
+
+func (s interceptDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Patch_FullMethodName, req, s.DepartureServiceServer.Patch)
+}
+
+func (s interceptDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Apply_FullMethodName, req, s.DepartureServiceServer.Apply)
 }
 
 func (s Intercept) Workspace() levyan.WorkspaceServiceServer {
@@ -10826,6 +13835,64 @@ func (s interceptGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levya
 func (s interceptGrant) List(ctx context.Context, req *levyan.GrantListRequest) (*levyan.GrantListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
 		levyan.GrantService_List_FullMethodName, req, s.GrantServiceServer.List)
+}
+
+func (s Intercept) Statement() levyan.StatementServiceServer {
+	return interceptStatement{s, s.Next().Statement()}
+}
+
+type interceptStatement struct {
+	Intercept
+	levyan.StatementServiceServer
+}
+
+func (s interceptStatement) Add(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.Statement, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_Add_FullMethodName, req, s.StatementServiceServer.Add)
+}
+
+func (s interceptStatement) Get(ctx context.Context, req *levyan.StatementGetRequest) (*levyan.Statement, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_Get_FullMethodName, req, s.StatementServiceServer.Get)
+}
+
+func (s interceptStatement) Patch(ctx context.Context, req *levyan.StatementPatchRequest) (*levyan.Statement, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_Patch_FullMethodName, req, s.StatementServiceServer.Patch)
+}
+
+func (s interceptStatement) Apply(ctx context.Context, req *levyan.StatementApplyRequest) (*levyan.Statement, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_Apply_FullMethodName, req, s.StatementServiceServer.Apply)
+}
+
+func (s interceptStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_List_FullMethodName, req, s.StatementServiceServer.List)
+}
+
+func (s Intercept) InvoiceLine() levyan.InvoiceLineServiceServer {
+	return interceptInvoiceLine{s, s.Next().InvoiceLine()}
+}
+
+type interceptInvoiceLine struct {
+	Intercept
+	levyan.InvoiceLineServiceServer
+}
+
+func (s interceptInvoiceLine) Add(ctx context.Context, req *levyan.InvoiceLineAddRequest) (*levyan.InvoiceLine, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceLineServiceServer,
+		levyan.InvoiceLineService_Add_FullMethodName, req, s.InvoiceLineServiceServer.Add)
+}
+
+func (s interceptInvoiceLine) Get(ctx context.Context, req *levyan.InvoiceLineGetRequest) (*levyan.InvoiceLine, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceLineServiceServer,
+		levyan.InvoiceLineService_Get_FullMethodName, req, s.InvoiceLineServiceServer.Get)
+}
+
+func (s interceptInvoiceLine) List(ctx context.Context, req *levyan.InvoiceLineListRequest) (*levyan.InvoiceLineListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.InvoiceLineServiceServer,
+		levyan.InvoiceLineService_List_FullMethodName, req, s.InvoiceLineServiceServer.List)
 }
 
 func (s Intercept) Offer() levyan.OfferServiceServer {
@@ -11056,38 +14123,38 @@ func (s interceptHolder) Watch(req *levyan.HolderWatchRequest, out grpc.ServerSt
 		levyan.HolderService_Watch_FullMethodName, req, out, s.HolderServiceServer.Watch)
 }
 
-func (s Intercept) Period() levyan.PeriodServiceServer {
-	return interceptPeriod{s, s.Next().Period()}
+func (s Intercept) PaymentAttempt() levyan.PaymentAttemptServiceServer {
+	return interceptPaymentAttempt{s, s.Next().PaymentAttempt()}
 }
 
-type interceptPeriod struct {
+type interceptPaymentAttempt struct {
 	Intercept
-	levyan.PeriodServiceServer
+	levyan.PaymentAttemptServiceServer
 }
 
-func (s interceptPeriod) Add(ctx context.Context, req *levyan.PeriodAddRequest) (*levyan.Period, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
-		levyan.PeriodService_Add_FullMethodName, req, s.PeriodServiceServer.Add)
+func (s interceptPaymentAttempt) Add(ctx context.Context, req *levyan.PaymentAttemptAddRequest) (*levyan.PaymentAttempt, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PaymentAttemptServiceServer,
+		levyan.PaymentAttemptService_Add_FullMethodName, req, s.PaymentAttemptServiceServer.Add)
 }
 
-func (s interceptPeriod) Get(ctx context.Context, req *levyan.PeriodGetRequest) (*levyan.Period, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
-		levyan.PeriodService_Get_FullMethodName, req, s.PeriodServiceServer.Get)
+func (s interceptPaymentAttempt) Get(ctx context.Context, req *levyan.PaymentAttemptGetRequest) (*levyan.PaymentAttempt, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PaymentAttemptServiceServer,
+		levyan.PaymentAttemptService_Get_FullMethodName, req, s.PaymentAttemptServiceServer.Get)
 }
 
-func (s interceptPeriod) Patch(ctx context.Context, req *levyan.PeriodPatchRequest) (*levyan.Period, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
-		levyan.PeriodService_Patch_FullMethodName, req, s.PeriodServiceServer.Patch)
+func (s interceptPaymentAttempt) Patch(ctx context.Context, req *levyan.PaymentAttemptPatchRequest) (*levyan.PaymentAttempt, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PaymentAttemptServiceServer,
+		levyan.PaymentAttemptService_Patch_FullMethodName, req, s.PaymentAttemptServiceServer.Patch)
 }
 
-func (s interceptPeriod) Apply(ctx context.Context, req *levyan.PeriodApplyRequest) (*levyan.Period, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
-		levyan.PeriodService_Apply_FullMethodName, req, s.PeriodServiceServer.Apply)
+func (s interceptPaymentAttempt) Apply(ctx context.Context, req *levyan.PaymentAttemptApplyRequest) (*levyan.PaymentAttempt, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PaymentAttemptServiceServer,
+		levyan.PaymentAttemptService_Apply_FullMethodName, req, s.PaymentAttemptServiceServer.Apply)
 }
 
-func (s interceptPeriod) List(ctx context.Context, req *levyan.PeriodListRequest) (*levyan.PeriodListResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
-		levyan.PeriodService_List_FullMethodName, req, s.PeriodServiceServer.List)
+func (s interceptPaymentAttempt) List(ctx context.Context, req *levyan.PaymentAttemptListRequest) (*levyan.PaymentAttemptListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PaymentAttemptServiceServer,
+		levyan.PaymentAttemptService_List_FullMethodName, req, s.PaymentAttemptServiceServer.List)
 }
 
 func (s Intercept) Series() levyan.SeriesServiceServer {
@@ -11243,30 +14310,6 @@ func (s interceptServiceKey) Erase(ctx context.Context, req *levyan.ServiceKeyRe
 func (s interceptServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
 		levyan.ServiceKeyService_List_FullMethodName, req, s.ServiceKeyServiceServer.List)
-}
-
-func (s Intercept) Statement() levyan.StatementServiceServer {
-	return interceptStatement{s, s.Next().Statement()}
-}
-
-type interceptStatement struct {
-	Intercept
-	levyan.StatementServiceServer
-}
-
-func (s interceptStatement) Add(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.Statement, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
-		levyan.StatementService_Add_FullMethodName, req, s.StatementServiceServer.Add)
-}
-
-func (s interceptStatement) Get(ctx context.Context, req *levyan.StatementGetRequest) (*levyan.Statement, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
-		levyan.StatementService_Get_FullMethodName, req, s.StatementServiceServer.Get)
-}
-
-func (s interceptStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
-		levyan.StatementService_List_FullMethodName, req, s.StatementServiceServer.List)
 }
 
 // WatchRecorder answers with the recorder that remembers a write for `w`.
@@ -12385,6 +15428,9 @@ var AccountMethods = []string{
 	levyan.PayerService_ListLinks_FullMethodName,
 	levyan.PayerService_Use_FullMethodName,
 	levyan.PayerService_Stop_FullMethodName,
+	levyan.PayerService_ListInvoices_FullMethodName,
+	levyan.PayerService_GetInvoice_FullMethodName,
+	levyan.PayerService_ListCreditNotes_FullMethodName,
 }
 
 var accountMethods = func() map[string]bool {
@@ -12489,15 +15535,20 @@ type Reads struct {
 	Archived       func(ctx context.Context, account pdid.Id) (predicate.Archived, error)
 	Audit          func(ctx context.Context, account pdid.Id) (predicate.Audit, error)
 	BillingAccount func(ctx context.Context, account pdid.Id) (predicate.BillingAccount, error)
+	Credit         func(ctx context.Context, account pdid.Id) (predicate.Credit, error)
+	CreditNote     func(ctx context.Context, account pdid.Id) (predicate.CreditNote, error)
 	Departure      func(ctx context.Context, account pdid.Id) (predicate.Departure, error)
 	Grant          func(ctx context.Context, account pdid.Id) (predicate.Grant, error)
 	Holder         func(ctx context.Context, account pdid.Id) (predicate.Holder, error)
+	Invoice        func(ctx context.Context, account pdid.Id) (predicate.Invoice, error)
+	InvoiceLine    func(ctx context.Context, account pdid.Id) (predicate.InvoiceLine, error)
 	Link           func(ctx context.Context, account pdid.Id) (predicate.Link, error)
 	Meter          func(ctx context.Context, account pdid.Id) (predicate.Meter, error)
 	Offer          func(ctx context.Context, account pdid.Id) (predicate.Offer, error)
 	Operator       func(ctx context.Context, account pdid.Id) (predicate.Operator, error)
 	Outbox         func(ctx context.Context, account pdid.Id) (predicate.Outbox, error)
 	Owed           func(ctx context.Context, account pdid.Id) (predicate.Owed, error)
+	PaymentAttempt func(ctx context.Context, account pdid.Id) (predicate.PaymentAttempt, error)
 	Period         func(ctx context.Context, account pdid.Id) (predicate.Period, error)
 	Point          func(ctx context.Context, account pdid.Id) (predicate.Point, error)
 	Price          func(ctx context.Context, account pdid.Id) (predicate.Price, error)
@@ -12600,6 +15651,21 @@ func init() {
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
 	{
+		md := (&levyan.CreditNote{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(25),
+			},
+			tenant: func(m protoreflect.Message) pdid.Id {
+				return accessKeyOf(m.Get(fs.ByName("tenant")).Message())
+			},
+		}
+		r := (&levyan.CreditNoteRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
+	{
 		md := (&levyan.Holder{}).ProtoReflect().Descriptor()
 		fs := md.Fields()
 		personals[md.FullName()] = personal{
@@ -12618,6 +15684,22 @@ func init() {
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
 	{
+		md := (&levyan.Invoice{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(32),
+				fs.ByNumber(36),
+			},
+			tenant: func(m protoreflect.Message) pdid.Id {
+				return accessKeyOf(m.Get(fs.ByName("tenant")).Message())
+			},
+		}
+		r := (&levyan.InvoiceRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
+	{
 		md := (&levyan.Operator{}).ProtoReflect().Descriptor()
 		fs := md.Fields()
 		personals[md.FullName()] = personal{
@@ -12627,6 +15709,21 @@ func init() {
 			},
 		}
 		r := (&levyan.OperatorRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
+	{
+		md := (&levyan.PaymentAttempt{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(27),
+			},
+			tenant: func(m protoreflect.Message) pdid.Id {
+				return accessKeyOf(m.Get(fs.ByName("tenant")).Message())
+			},
+		}
+		r := (&levyan.PaymentAttemptRef{}).ProtoReflect().Descriptor()
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
 }
@@ -12876,12 +15973,21 @@ func (accessRecorder) Snapshots(method string) bare.SnapshotOptions {
 	case levyan.BillingAccountService_Add_FullMethodName,
 		levyan.BillingAccountService_Patch_FullMethodName,
 		levyan.BillingAccountService_Apply_FullMethodName,
+		levyan.CreditNoteService_Add_FullMethodName,
+		levyan.CreditNoteService_Patch_FullMethodName,
+		levyan.CreditNoteService_Apply_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
 		levyan.HolderService_Patch_FullMethodName,
 		levyan.HolderService_Apply_FullMethodName,
+		levyan.InvoiceService_Add_FullMethodName,
+		levyan.InvoiceService_Patch_FullMethodName,
+		levyan.InvoiceService_Apply_FullMethodName,
 		levyan.OperatorService_Add_FullMethodName,
 		levyan.OperatorService_Patch_FullMethodName,
-		levyan.OperatorService_Apply_FullMethodName:
+		levyan.OperatorService_Apply_FullMethodName,
+		levyan.PaymentAttemptService_Add_FullMethodName,
+		levyan.PaymentAttemptService_Patch_FullMethodName,
+		levyan.PaymentAttemptService_Apply_FullMethodName:
 		return bare.SnapshotOptions{Value: true}
 	case levyan.HolderService_Erase_FullMethodName,
 		levyan.OperatorService_Erase_FullMethodName:
@@ -13180,14 +16286,6 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.BillingAccountApplyRequest{}
 	case levyan.BillingAccountService_List_FullMethodName:
 		v = &levyan.BillingAccountListRequest{}
-	case levyan.DepartureService_Add_FullMethodName:
-		v = &levyan.DepartureAddRequest{}
-	case levyan.DepartureService_Get_FullMethodName:
-		v = &levyan.DepartureGetRequest{}
-	case levyan.DepartureService_Patch_FullMethodName:
-		v = &levyan.DeparturePatchRequest{}
-	case levyan.DepartureService_Apply_FullMethodName:
-		v = &levyan.DepartureApplyRequest{}
 	case levyan.TenantService_Add_FullMethodName:
 		v = &levyan.TenantAddRequest{}
 	case levyan.TenantService_Get_FullMethodName:
@@ -13200,6 +16298,50 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.TenantRef{}
 	case levyan.TenantService_List_FullMethodName:
 		v = &levyan.TenantListRequest{}
+	case levyan.PeriodService_Add_FullMethodName:
+		v = &levyan.PeriodAddRequest{}
+	case levyan.PeriodService_Get_FullMethodName:
+		v = &levyan.PeriodGetRequest{}
+	case levyan.PeriodService_Patch_FullMethodName:
+		v = &levyan.PeriodPatchRequest{}
+	case levyan.PeriodService_Apply_FullMethodName:
+		v = &levyan.PeriodApplyRequest{}
+	case levyan.PeriodService_List_FullMethodName:
+		v = &levyan.PeriodListRequest{}
+	case levyan.InvoiceService_Add_FullMethodName:
+		v = &levyan.InvoiceAddRequest{}
+	case levyan.InvoiceService_Get_FullMethodName:
+		v = &levyan.InvoiceGetRequest{}
+	case levyan.InvoiceService_Patch_FullMethodName:
+		v = &levyan.InvoicePatchRequest{}
+	case levyan.InvoiceService_Apply_FullMethodName:
+		v = &levyan.InvoiceApplyRequest{}
+	case levyan.InvoiceService_List_FullMethodName:
+		v = &levyan.InvoiceListRequest{}
+	case levyan.CreditNoteService_Add_FullMethodName:
+		v = &levyan.CreditNoteAddRequest{}
+	case levyan.CreditNoteService_Get_FullMethodName:
+		v = &levyan.CreditNoteGetRequest{}
+	case levyan.CreditNoteService_Patch_FullMethodName:
+		v = &levyan.CreditNotePatchRequest{}
+	case levyan.CreditNoteService_Apply_FullMethodName:
+		v = &levyan.CreditNoteApplyRequest{}
+	case levyan.CreditNoteService_List_FullMethodName:
+		v = &levyan.CreditNoteListRequest{}
+	case levyan.CreditService_Add_FullMethodName:
+		v = &levyan.CreditAddRequest{}
+	case levyan.CreditService_Get_FullMethodName:
+		v = &levyan.CreditGetRequest{}
+	case levyan.CreditService_List_FullMethodName:
+		v = &levyan.CreditListRequest{}
+	case levyan.DepartureService_Add_FullMethodName:
+		v = &levyan.DepartureAddRequest{}
+	case levyan.DepartureService_Get_FullMethodName:
+		v = &levyan.DepartureGetRequest{}
+	case levyan.DepartureService_Patch_FullMethodName:
+		v = &levyan.DeparturePatchRequest{}
+	case levyan.DepartureService_Apply_FullMethodName:
+		v = &levyan.DepartureApplyRequest{}
 	case levyan.WorkspaceService_Add_FullMethodName:
 		v = &levyan.WorkspaceAddRequest{}
 	case levyan.WorkspaceService_Get_FullMethodName:
@@ -13222,6 +16364,22 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.GrantRef{}
 	case levyan.GrantService_List_FullMethodName:
 		v = &levyan.GrantListRequest{}
+	case levyan.StatementService_Add_FullMethodName:
+		v = &levyan.StatementAddRequest{}
+	case levyan.StatementService_Get_FullMethodName:
+		v = &levyan.StatementGetRequest{}
+	case levyan.StatementService_Patch_FullMethodName:
+		v = &levyan.StatementPatchRequest{}
+	case levyan.StatementService_Apply_FullMethodName:
+		v = &levyan.StatementApplyRequest{}
+	case levyan.StatementService_List_FullMethodName:
+		v = &levyan.StatementListRequest{}
+	case levyan.InvoiceLineService_Add_FullMethodName:
+		v = &levyan.InvoiceLineAddRequest{}
+	case levyan.InvoiceLineService_Get_FullMethodName:
+		v = &levyan.InvoiceLineGetRequest{}
+	case levyan.InvoiceLineService_List_FullMethodName:
+		v = &levyan.InvoiceLineListRequest{}
 	case levyan.OfferService_Add_FullMethodName:
 		v = &levyan.OfferAddRequest{}
 	case levyan.OfferService_Get_FullMethodName:
@@ -13270,16 +16428,16 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.HolderRef{}
 	case levyan.HolderService_List_FullMethodName:
 		v = &levyan.HolderListRequest{}
-	case levyan.PeriodService_Add_FullMethodName:
-		v = &levyan.PeriodAddRequest{}
-	case levyan.PeriodService_Get_FullMethodName:
-		v = &levyan.PeriodGetRequest{}
-	case levyan.PeriodService_Patch_FullMethodName:
-		v = &levyan.PeriodPatchRequest{}
-	case levyan.PeriodService_Apply_FullMethodName:
-		v = &levyan.PeriodApplyRequest{}
-	case levyan.PeriodService_List_FullMethodName:
-		v = &levyan.PeriodListRequest{}
+	case levyan.PaymentAttemptService_Add_FullMethodName:
+		v = &levyan.PaymentAttemptAddRequest{}
+	case levyan.PaymentAttemptService_Get_FullMethodName:
+		v = &levyan.PaymentAttemptGetRequest{}
+	case levyan.PaymentAttemptService_Patch_FullMethodName:
+		v = &levyan.PaymentAttemptPatchRequest{}
+	case levyan.PaymentAttemptService_Apply_FullMethodName:
+		v = &levyan.PaymentAttemptApplyRequest{}
+	case levyan.PaymentAttemptService_List_FullMethodName:
+		v = &levyan.PaymentAttemptListRequest{}
 	case levyan.SeriesService_Add_FullMethodName:
 		v = &levyan.SeriesAddRequest{}
 	case levyan.SeriesService_Get_FullMethodName:
@@ -13324,12 +16482,6 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.ServiceKeyRef{}
 	case levyan.ServiceKeyService_List_FullMethodName:
 		v = &levyan.ServiceKeyListRequest{}
-	case levyan.StatementService_Add_FullMethodName:
-		v = &levyan.StatementAddRequest{}
-	case levyan.StatementService_Get_FullMethodName:
-		v = &levyan.StatementGetRequest{}
-	case levyan.StatementService_List_FullMethodName:
-		v = &levyan.StatementListRequest{}
 	default:
 		// Including every Rpc written by hand: those live on a service of
 		// their own, which `Server` has no accessor for.
@@ -13368,14 +16520,6 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.BillingAccount().Apply(ctx, v.(*levyan.BillingAccountApplyRequest))
 	case levyan.BillingAccountService_List_FullMethodName:
 		res, err = s.BillingAccount().List(ctx, v.(*levyan.BillingAccountListRequest))
-	case levyan.DepartureService_Add_FullMethodName:
-		res, err = s.Departure().Add(ctx, v.(*levyan.DepartureAddRequest))
-	case levyan.DepartureService_Get_FullMethodName:
-		res, err = s.Departure().Get(ctx, v.(*levyan.DepartureGetRequest))
-	case levyan.DepartureService_Patch_FullMethodName:
-		res, err = s.Departure().Patch(ctx, v.(*levyan.DeparturePatchRequest))
-	case levyan.DepartureService_Apply_FullMethodName:
-		res, err = s.Departure().Apply(ctx, v.(*levyan.DepartureApplyRequest))
 	case levyan.TenantService_Add_FullMethodName:
 		res, err = s.Tenant().Add(ctx, v.(*levyan.TenantAddRequest))
 	case levyan.TenantService_Get_FullMethodName:
@@ -13388,6 +16532,50 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Tenant().Erase(ctx, v.(*levyan.TenantRef))
 	case levyan.TenantService_List_FullMethodName:
 		res, err = s.Tenant().List(ctx, v.(*levyan.TenantListRequest))
+	case levyan.PeriodService_Add_FullMethodName:
+		res, err = s.Period().Add(ctx, v.(*levyan.PeriodAddRequest))
+	case levyan.PeriodService_Get_FullMethodName:
+		res, err = s.Period().Get(ctx, v.(*levyan.PeriodGetRequest))
+	case levyan.PeriodService_Patch_FullMethodName:
+		res, err = s.Period().Patch(ctx, v.(*levyan.PeriodPatchRequest))
+	case levyan.PeriodService_Apply_FullMethodName:
+		res, err = s.Period().Apply(ctx, v.(*levyan.PeriodApplyRequest))
+	case levyan.PeriodService_List_FullMethodName:
+		res, err = s.Period().List(ctx, v.(*levyan.PeriodListRequest))
+	case levyan.InvoiceService_Add_FullMethodName:
+		res, err = s.Invoice().Add(ctx, v.(*levyan.InvoiceAddRequest))
+	case levyan.InvoiceService_Get_FullMethodName:
+		res, err = s.Invoice().Get(ctx, v.(*levyan.InvoiceGetRequest))
+	case levyan.InvoiceService_Patch_FullMethodName:
+		res, err = s.Invoice().Patch(ctx, v.(*levyan.InvoicePatchRequest))
+	case levyan.InvoiceService_Apply_FullMethodName:
+		res, err = s.Invoice().Apply(ctx, v.(*levyan.InvoiceApplyRequest))
+	case levyan.InvoiceService_List_FullMethodName:
+		res, err = s.Invoice().List(ctx, v.(*levyan.InvoiceListRequest))
+	case levyan.CreditNoteService_Add_FullMethodName:
+		res, err = s.CreditNote().Add(ctx, v.(*levyan.CreditNoteAddRequest))
+	case levyan.CreditNoteService_Get_FullMethodName:
+		res, err = s.CreditNote().Get(ctx, v.(*levyan.CreditNoteGetRequest))
+	case levyan.CreditNoteService_Patch_FullMethodName:
+		res, err = s.CreditNote().Patch(ctx, v.(*levyan.CreditNotePatchRequest))
+	case levyan.CreditNoteService_Apply_FullMethodName:
+		res, err = s.CreditNote().Apply(ctx, v.(*levyan.CreditNoteApplyRequest))
+	case levyan.CreditNoteService_List_FullMethodName:
+		res, err = s.CreditNote().List(ctx, v.(*levyan.CreditNoteListRequest))
+	case levyan.CreditService_Add_FullMethodName:
+		res, err = s.Credit().Add(ctx, v.(*levyan.CreditAddRequest))
+	case levyan.CreditService_Get_FullMethodName:
+		res, err = s.Credit().Get(ctx, v.(*levyan.CreditGetRequest))
+	case levyan.CreditService_List_FullMethodName:
+		res, err = s.Credit().List(ctx, v.(*levyan.CreditListRequest))
+	case levyan.DepartureService_Add_FullMethodName:
+		res, err = s.Departure().Add(ctx, v.(*levyan.DepartureAddRequest))
+	case levyan.DepartureService_Get_FullMethodName:
+		res, err = s.Departure().Get(ctx, v.(*levyan.DepartureGetRequest))
+	case levyan.DepartureService_Patch_FullMethodName:
+		res, err = s.Departure().Patch(ctx, v.(*levyan.DeparturePatchRequest))
+	case levyan.DepartureService_Apply_FullMethodName:
+		res, err = s.Departure().Apply(ctx, v.(*levyan.DepartureApplyRequest))
 	case levyan.WorkspaceService_Add_FullMethodName:
 		res, err = s.Workspace().Add(ctx, v.(*levyan.WorkspaceAddRequest))
 	case levyan.WorkspaceService_Get_FullMethodName:
@@ -13410,6 +16598,22 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Grant().Erase(ctx, v.(*levyan.GrantRef))
 	case levyan.GrantService_List_FullMethodName:
 		res, err = s.Grant().List(ctx, v.(*levyan.GrantListRequest))
+	case levyan.StatementService_Add_FullMethodName:
+		res, err = s.Statement().Add(ctx, v.(*levyan.StatementAddRequest))
+	case levyan.StatementService_Get_FullMethodName:
+		res, err = s.Statement().Get(ctx, v.(*levyan.StatementGetRequest))
+	case levyan.StatementService_Patch_FullMethodName:
+		res, err = s.Statement().Patch(ctx, v.(*levyan.StatementPatchRequest))
+	case levyan.StatementService_Apply_FullMethodName:
+		res, err = s.Statement().Apply(ctx, v.(*levyan.StatementApplyRequest))
+	case levyan.StatementService_List_FullMethodName:
+		res, err = s.Statement().List(ctx, v.(*levyan.StatementListRequest))
+	case levyan.InvoiceLineService_Add_FullMethodName:
+		res, err = s.InvoiceLine().Add(ctx, v.(*levyan.InvoiceLineAddRequest))
+	case levyan.InvoiceLineService_Get_FullMethodName:
+		res, err = s.InvoiceLine().Get(ctx, v.(*levyan.InvoiceLineGetRequest))
+	case levyan.InvoiceLineService_List_FullMethodName:
+		res, err = s.InvoiceLine().List(ctx, v.(*levyan.InvoiceLineListRequest))
 	case levyan.OfferService_Add_FullMethodName:
 		res, err = s.Offer().Add(ctx, v.(*levyan.OfferAddRequest))
 	case levyan.OfferService_Get_FullMethodName:
@@ -13458,16 +16662,16 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Holder().Erase(ctx, v.(*levyan.HolderRef))
 	case levyan.HolderService_List_FullMethodName:
 		res, err = s.Holder().List(ctx, v.(*levyan.HolderListRequest))
-	case levyan.PeriodService_Add_FullMethodName:
-		res, err = s.Period().Add(ctx, v.(*levyan.PeriodAddRequest))
-	case levyan.PeriodService_Get_FullMethodName:
-		res, err = s.Period().Get(ctx, v.(*levyan.PeriodGetRequest))
-	case levyan.PeriodService_Patch_FullMethodName:
-		res, err = s.Period().Patch(ctx, v.(*levyan.PeriodPatchRequest))
-	case levyan.PeriodService_Apply_FullMethodName:
-		res, err = s.Period().Apply(ctx, v.(*levyan.PeriodApplyRequest))
-	case levyan.PeriodService_List_FullMethodName:
-		res, err = s.Period().List(ctx, v.(*levyan.PeriodListRequest))
+	case levyan.PaymentAttemptService_Add_FullMethodName:
+		res, err = s.PaymentAttempt().Add(ctx, v.(*levyan.PaymentAttemptAddRequest))
+	case levyan.PaymentAttemptService_Get_FullMethodName:
+		res, err = s.PaymentAttempt().Get(ctx, v.(*levyan.PaymentAttemptGetRequest))
+	case levyan.PaymentAttemptService_Patch_FullMethodName:
+		res, err = s.PaymentAttempt().Patch(ctx, v.(*levyan.PaymentAttemptPatchRequest))
+	case levyan.PaymentAttemptService_Apply_FullMethodName:
+		res, err = s.PaymentAttempt().Apply(ctx, v.(*levyan.PaymentAttemptApplyRequest))
+	case levyan.PaymentAttemptService_List_FullMethodName:
+		res, err = s.PaymentAttempt().List(ctx, v.(*levyan.PaymentAttemptListRequest))
 	case levyan.SeriesService_Add_FullMethodName:
 		res, err = s.Series().Add(ctx, v.(*levyan.SeriesAddRequest))
 	case levyan.SeriesService_Get_FullMethodName:
@@ -13512,12 +16716,6 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.ServiceKey().Erase(ctx, v.(*levyan.ServiceKeyRef))
 	case levyan.ServiceKeyService_List_FullMethodName:
 		res, err = s.ServiceKey().List(ctx, v.(*levyan.ServiceKeyListRequest))
-	case levyan.StatementService_Add_FullMethodName:
-		res, err = s.Statement().Add(ctx, v.(*levyan.StatementAddRequest))
-	case levyan.StatementService_Get_FullMethodName:
-		res, err = s.Statement().Get(ctx, v.(*levyan.StatementGetRequest))
-	case levyan.StatementService_List_FullMethodName:
-		res, err = s.Statement().List(ctx, v.(*levyan.StatementListRequest))
 	default:
 		return nil, batch.ErrNoMethod(m)
 	}
@@ -13545,15 +16743,20 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Archived{},
 		&levyan.Audit{},
 		&levyan.BillingAccount{},
+		&levyan.Credit{},
+		&levyan.CreditNote{},
 		&levyan.Departure{},
 		&levyan.Grant{},
 		&levyan.Holder{},
+		&levyan.Invoice{},
+		&levyan.InvoiceLine{},
 		&levyan.Link{},
 		&levyan.Meter{},
 		&levyan.Offer{},
 		&levyan.Operator{},
 		&levyan.Outbox{},
 		&levyan.Owed{},
+		&levyan.PaymentAttempt{},
 		&levyan.Period{},
 		&levyan.Point{},
 		&levyan.Price{},
@@ -13706,6 +16909,89 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.Credit:
+			ctx, err := read.Allow(ctx, levyan.CreditService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.CreditNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entCredit.Table, []resourcesql.Column{
+				{Number: 1, Name: entCredit.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entCredit.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entCredit.BillingAccountColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entCredit.FieldAmount, Type: 3, Nullable: false, Key: 0},
+				{Number: 10, Name: entCredit.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entCredit.FieldKind, Type: 14, Nullable: false, Key: 0},
+				{Number: 12, Name: entCredit.InvoiceColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 16, Name: entCredit.CreditNoteColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 14, Name: entCredit.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entCredit.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Credit.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.CreditNote:
+			ctx, err := read.Allow(ctx, levyan.CreditNoteService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.CreditNoteNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entCreditNote.Table, []resourcesql.Column{
+				{Number: 1, Name: entCreditNote.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entCreditNote.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entCreditNote.InvoiceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entCreditNote.BillingAccountColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 10, Name: entCreditNote.FieldReason, Type: 14, Nullable: false, Key: 0},
+				{Number: 11, Name: entCreditNote.FieldAmount, Type: 3, Nullable: false, Key: 0},
+				{Number: 12, Name: entCreditNote.FieldTax, Type: 3, Nullable: false, Key: 0},
+				{Number: 16, Name: entCreditNote.FieldTotal, Type: 3, Nullable: false, Key: 0},
+				{Number: 17, Name: entCreditNote.FieldReduced, Type: 3, Nullable: false, Key: 0},
+				{Number: 18, Name: entCreditNote.FieldRefunded, Type: 3, Nullable: false, Key: 0},
+				{Number: 19, Name: entCreditNote.FieldCredited, Type: 3, Nullable: false, Key: 0},
+				{Number: 20, Name: entCreditNote.FieldChannel, Type: 9, Nullable: false, Key: 0},
+				{Number: 21, Name: entCreditNote.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 23, Name: entCreditNote.FieldDateIssued, Type: 65, Nullable: true, Key: 0},
+				{Number: 24, Name: entCreditNote.FieldDocument, Type: 9, Nullable: false, Key: 0},
+				{Number: 25, Name: entCreditNote.FieldWords, Type: 9, Nullable: false, Key: 0},
+				{Number: 13, Name: entCreditNote.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entCreditNote.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entCreditNote.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.CreditNote.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Departure:
 			ctx, err := read.Allow(ctx, levyan.DepartureService_Get_FullMethodName, 1)
 			if err != nil {
@@ -13812,6 +17098,101 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.Holder.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Invoice:
+			ctx, err := read.Allow(ctx, levyan.InvoiceService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.InvoiceNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entInvoice.Table, []resourcesql.Column{
+				{Number: 1, Name: entInvoice.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entInvoice.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entInvoice.BillingAccountColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entInvoice.PeriodColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 10, Name: entInvoice.FieldDateStart, Type: 65, Nullable: false, Key: 0},
+				{Number: 11, Name: entInvoice.FieldDateEnd, Type: 65, Nullable: false, Key: 0},
+				{Number: 12, Name: entInvoice.FieldChannel, Type: 9, Nullable: false, Key: 0},
+				{Number: 16, Name: entInvoice.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 17, Name: entInvoice.FieldState, Type: 14, Nullable: false, Key: 0},
+				{Number: 18, Name: entInvoice.FieldSubtotal, Type: 3, Nullable: false, Key: 0},
+				{Number: 19, Name: entInvoice.FieldTax, Type: 3, Nullable: false, Key: 0},
+				{Number: 20, Name: entInvoice.FieldTaxRate, Type: 9, Nullable: false, Key: 0},
+				{Number: 21, Name: entInvoice.FieldTotal, Type: 3, Nullable: false, Key: 0},
+				{Number: 22, Name: entInvoice.FieldCredited, Type: 3, Nullable: false, Key: 0},
+				{Number: 23, Name: entInvoice.FieldDue, Type: 3, Nullable: false, Key: 0},
+				{Number: 24, Name: entInvoice.FieldPaid, Type: 3, Nullable: false, Key: 0},
+				{Number: 25, Name: entInvoice.FieldReduced, Type: 3, Nullable: false, Key: 0},
+				{Number: 27, Name: entInvoice.FieldDateFinalized, Type: 65, Nullable: true, Key: 0},
+				{Number: 28, Name: entInvoice.FieldDateIssued, Type: 65, Nullable: true, Key: 0},
+				{Number: 29, Name: entInvoice.FieldDocument, Type: 9, Nullable: false, Key: 0},
+				{Number: 30, Name: entInvoice.FieldDateDue, Type: 65, Nullable: true, Key: 0},
+				{Number: 31, Name: entInvoice.FieldDateSettled, Type: 65, Nullable: true, Key: 0},
+				{Number: 33, Name: entInvoice.FieldChannelRef, Type: 9, Nullable: false, Key: 0},
+				{Number: 34, Name: entInvoice.FieldChannelNumber, Type: 9, Nullable: false, Key: 0},
+				{Number: 35, Name: entInvoice.FieldCarried, Type: 13, Nullable: false, Key: 0},
+				{Number: 36, Name: entInvoice.FieldReason, Type: 9, Nullable: false, Key: 0},
+				{Number: 37, Name: entInvoice.FieldDateCarried, Type: 65, Nullable: true, Key: 0},
+				{Number: 13, Name: entInvoice.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entInvoice.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entInvoice.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Invoice.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.InvoiceLine:
+			ctx, err := read.Allow(ctx, levyan.InvoiceLineService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.InvoiceLineNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entInvoiceLine.Table, []resourcesql.Column{
+				{Number: 1, Name: entInvoiceLine.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entInvoiceLine.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entInvoiceLine.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entInvoiceLine.InvoiceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entInvoiceLine.StatementColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 10, Name: entInvoiceLine.FieldLabel, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entInvoiceLine.FieldDateStart, Type: 65, Nullable: false, Key: 0},
+				{Number: 12, Name: entInvoiceLine.FieldDateEnd, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entInvoiceLine.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entInvoiceLine.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+				{Number: 16, Name: entInvoiceLine.FieldTotal, Type: 3, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.InvoiceLine.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -13958,6 +17339,54 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.Operator.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.PaymentAttempt:
+			ctx, err := read.Allow(ctx, levyan.PaymentAttemptService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.PaymentAttemptNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entPaymentAttempt.Table, []resourcesql.Column{
+				{Number: 1, Name: entPaymentAttempt.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entPaymentAttempt.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entPaymentAttempt.InvoiceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entPaymentAttempt.CreditNoteColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 10, Name: entPaymentAttempt.FieldKind, Type: 14, Nullable: false, Key: 0},
+				{Number: 11, Name: entPaymentAttempt.FieldAttemptKey, Type: 9, Nullable: false, Key: 0},
+				{Number: 12, Name: entPaymentAttempt.FieldChannel, Type: 9, Nullable: false, Key: 0},
+				{Number: 16, Name: entPaymentAttempt.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 17, Name: entPaymentAttempt.FieldAmount, Type: 3, Nullable: false, Key: 0},
+				{Number: 18, Name: entPaymentAttempt.FieldState, Type: 14, Nullable: false, Key: 0},
+				{Number: 19, Name: entPaymentAttempt.FieldSends, Type: 13, Nullable: false, Key: 0},
+				{Number: 20, Name: entPaymentAttempt.FieldDateSent, Type: 65, Nullable: true, Key: 0},
+				{Number: 22, Name: entPaymentAttempt.FieldChannelRef, Type: 9, Nullable: false, Key: 0},
+				{Number: 23, Name: entPaymentAttempt.FieldChannelNumber, Type: 9, Nullable: false, Key: 0},
+				{Number: 24, Name: entPaymentAttempt.FieldDateResolved, Type: 65, Nullable: true, Key: 0},
+				{Number: 25, Name: entPaymentAttempt.FieldDatePaid, Type: 65, Nullable: true, Key: 0},
+				{Number: 26, Name: entPaymentAttempt.FieldRecorded, Type: 8, Nullable: false, Key: 0},
+				{Number: 27, Name: entPaymentAttempt.FieldReference, Type: 9, Nullable: false, Key: 0},
+				{Number: 13, Name: entPaymentAttempt.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entPaymentAttempt.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entPaymentAttempt.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.PaymentAttempt.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -14279,6 +17708,7 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				{Number: 1, Name: entWorkspace.FieldId, Type: 64, Nullable: false, Key: 0},
 				{Number: 2, Name: entWorkspace.TenantColumn, Type: 64, Nullable: false, Key: 1},
 				{Number: 8, Name: entWorkspace.FieldKey, Type: 12, Nullable: false, Key: 0},
+				{Number: 9, Name: entWorkspace.FieldLabel, Type: 9, Nullable: false, Key: 0},
 				{Number: 14, Name: entWorkspace.FieldDateErased, Type: 65, Nullable: true, Key: 0},
 				{Number: 15, Name: entWorkspace.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
 			}, v)
@@ -14343,6 +17773,14 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.BillingAccountService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.CreditService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.CreditNoteService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.CreditNoteService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.CreditNoteService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.DepartureService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.DepartureService_Patch_FullMethodName:
@@ -14365,6 +17803,14 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.HolderService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.InvoiceService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.InvoiceService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.InvoiceService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.InvoiceLineService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.LinkService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.LinkService_Patch_FullMethodName:
@@ -14391,6 +17837,12 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.OperatorService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.PaymentAttemptService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.PaymentAttemptService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.PaymentAttemptService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.PeriodService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.PeriodService_Patch_FullMethodName:
@@ -14423,6 +17875,10 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
 	case levyan.StatementService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.StatementService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.StatementService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.TenantService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.TenantService_Patch_FullMethodName:
@@ -14455,7 +17911,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
+	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
 	default:
 		return nil
 	}

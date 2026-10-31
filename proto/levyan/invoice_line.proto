@@ -1,0 +1,151 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/invoice.proto";
+import "levyan/payday/tenant.proto";
+import "levyan/statement.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// InvoiceLine is one statement on an invoice: what one workspace came to over
+// one period, broken down under the workspace it is of (#9).
+//
+// One of each statement, ever: unique by its statement, so that a statement
+// with a billing account is on one invoice and on no other -- what
+// reconciliation (#13) relies on -- however often the loop that adds it runs.
+// A statement with no billing account, of a workspace nobody paid for, is on
+// none: nobody is there to bill.
+//
+// Written as a draft gathers its statements, and never changed: every field
+// is immutable, and there is no Patch and no Erase.
+message InvoiceLine {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace its statement is of: the set it is in.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The invoice it is on, and the statement it is.
+  Invoice invoice = 8 [(orm.edge) = {immutable: true}];
+  Statement statement = 9 [(orm.edge) = {immutable: true}];
+
+  // What the product calls the workspace, as it was when the line was
+  // written: what the invoice names it by. Empty for a workspace the product
+  // has named nothing, which is named by its identifier.
+  string label = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // The statement's period, from when to when.
+  google.protobuf.Timestamp date_start = 11 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+  google.protobuf.Timestamp date_end = 12 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // What the statement comes to, in the currency's minor unit: its total.
+  int64 total = 16 [(orm.field) = {immutable: true}];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        // An invoice's lines, in the order of their periods.
+        name: "invoice"
+        refs: [
+          {
+            name: "invoice"
+            number: 8
+          },
+          {
+            name: "date_start"
+            number: 11
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A statement on one invoice, and on no other.
+        name: "statement"
+        refs: [
+          {
+            name: "statement"
+            number: 9
+          }
+        ]
+        unique: true
+      },
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_start"
+            number: 11
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 24
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "invoice.tenant",
+        "statement.tenant",
+        "workspace.tenant"
+      ]
+    }
+    list: {
+      order: [
+        {field: {name: "date_start"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "invoice"}
+      ]
+      size: 100
+      max: 500
+    }
+  };
+}

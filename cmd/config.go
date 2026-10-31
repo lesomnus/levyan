@@ -54,6 +54,38 @@ type Config struct {
 
 	// Readings is what is expected of the readings products send.
 	Readings ReadingsConfig `yaml:"readings"`
+
+	// Periods is when a product's periods are closed.
+	Periods PeriodsConfig `yaml:"periods"`
+}
+
+// PeriodsConfig is when a product's periods are closed: by the loop
+// `levyan.periods.close`, once a period has ended and waited out a grace for
+// what comes late.
+type PeriodsConfig struct {
+	// Grace is how long after a period ends what comes late is waited for
+	// before the loop closes it: 48h when unset. What comes later still is
+	// kept, and corrected on a later statement.
+	Grace time.Duration `yaml:"grace"`
+
+	// Every is how often periods that are due are closed: an hour when unset.
+	Every time.Duration `yaml:"every"`
+}
+
+// GraceAfter is [PeriodsConfig.Grace], or its default.
+func (c PeriodsConfig) GraceAfter() time.Duration {
+	if c.Grace <= 0 {
+		return 48 * time.Hour
+	}
+	return c.Grace
+}
+
+// CloseEvery is [PeriodsConfig.Every], or its default.
+func (c PeriodsConfig) CloseEvery() time.Duration {
+	if c.Every <= 0 {
+		return time.Hour
+	}
+	return c.Every
 }
 
 // ReadingsConfig is what is expected of the readings products send: how long

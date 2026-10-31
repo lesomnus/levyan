@@ -1,5 +1,6 @@
-// Package book is the price book's rules: what a meter has to be, and what a
-// version of a price may be, said of every row an Add writes.
+// Package book is the price book's rules: what a product's terms may be, what
+// a meter has to be, and what a version of a price may be, said of every row
+// an Add writes.
 //
 // It is a layer on both stacks -- the one a caller reaches and the one the
 // deployment does its own work through (`cmd.Build`) -- so a product, an
@@ -19,6 +20,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/lesomnus/payday/audit"
 	"github.com/lesomnus/payday/meter"
 	"github.com/lesomnus/payday/pderr"
 	"github.com/protobuf-orm/ent/dialect"
@@ -26,12 +28,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/money"
 	"github.com/lesomnus/levyan/internal/pricing"
 	"github.com/lesomnus/levyan/server/bare"
+	"github.com/lesomnus/levyan/server/billing"
 )
 
 // Book is the layer.
@@ -73,6 +77,79 @@ var (
 	_ levyan.Server               = Book{}
 	_ enttx.Binder[levyan.Server] = Book{}
 )
+
+type bookTenant struct {
+	Book
+	levyan.TenantServiceServer
+}
+
+// Tenant is a product: what its terms -- the zone its periods are months in,
+// the channel and the currency its statements are priced on and in -- may be,
+// held on the way in by Add and by Patch.
+func (s Book) Tenant() levyan.TenantServiceServer {
+	v := bookTenant{s, s.Next().Tenant()}
+	v.TenantServiceServer = bare.TenantWithAddRule(v.TenantServiceServer, v.admit)
+	return v
+}
+
+func (s bookTenant) admit(ctx context.Context, req *levyan.TenantAddRequest) (*levyan.TenantAddRequest, error) {
+	if err := terms(req.GetZone(), req.GetChannel(), req.GetCurrency()); err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+func (s bookTenant) Patch(ctx context.Context, req *levyan.TenantPatchRequest) (*levyan.Tenant, error) {
+	if err := terms(req.GetZone(), req.GetChannel(), req.GetCurrency()); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.Patch(ctx, req)
+}
+
+// termsFields are a product's terms, by their numbers.
+var termsFields = func() map[uint32]string {
+	md := (&levyan.Tenant{}).ProtoReflect().Descriptor()
+	out := map[uint32]string{}
+	for _, name := range []string{"zone", "channel", "currency"} {
+		out[uint32(md.Fields().ByName(protoreflect.Name(name)).Number())] = name
+	}
+	return out
+}()
+
+// Apply may not say a product's terms: a document is not held to what they
+// may be, and Patch is.
+func (s bookTenant) Apply(ctx context.Context, req *levyan.TenantApplyRequest) (*levyan.Tenant, error) {
+	for _, n := range audit.FieldsOf(req.GetPatch(), (&levyan.Tenant{}).ProtoReflect().Descriptor()) {
+		if name, ok := termsFields[n]; ok {
+			return nil, pderr.Invalidf(name, "a product's terms are said by a Patch, which holds them to what they may be")
+		}
+	}
+
+	return s.TenantServiceServer.Apply(ctx, req)
+}
+
+// terms refuses what a product's terms may not be: a zone that is none, a
+// channel nothing is sold through, a currency levyan does not price in. Each
+// may be empty, which is the zone UTC, or a product not priced yet.
+func terms(zone, channel, currency string) error {
+	if _, err := billing.Zone(zone); err != nil {
+		return pderr.Invalidf("zone", "%s", err)
+	}
+	if channel != "" {
+		if _, err := billing.Channel(channel); err != nil {
+			return pderr.Invalidf("channel", "%s", err)
+		}
+	}
+	if currency != "" {
+		if err := money.Check(currency); err != nil {
+			return pderr.Invalidf("currency", "%s", err)
+		}
+	}
+
+	return nil
+}
 
 type bookMeter struct {
 	Book

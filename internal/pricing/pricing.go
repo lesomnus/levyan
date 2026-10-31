@@ -290,17 +290,28 @@ func (v Version) Check() error {
 	return nil
 }
 
+// Exact is what usage u of a period comes to under v, in v's currency's
+// minor unit, before it is rounded: what a statement adds up exactly and
+// rounds once, at its total.
+func (v Version) Exact(u Usage) (*big.Rat, error) {
+	if err := v.Check(); err != nil {
+		return nil, err
+	}
+	if err := u.Check(); err != nil {
+		return nil, err
+	}
+
+	return v.Rate.charge(u), nil
+}
+
 // Charge is what usage u of a period comes to under v, in v's currency,
 // rounded down to a whole minor unit (see the package comment).
 func (v Version) Charge(u Usage) (money.Amount, error) {
-	if err := v.Check(); err != nil {
-		return money.Amount{}, err
-	}
-	if err := u.Check(); err != nil {
+	r, err := v.Exact(u)
+	if err != nil {
 		return money.Amount{}, err
 	}
 
-	r := v.Rate.charge(u)
 	n := new(big.Int).Quo(r.Num(), r.Denom())
 	if !n.IsInt64() {
 		return money.Amount{}, ErrTooMuch

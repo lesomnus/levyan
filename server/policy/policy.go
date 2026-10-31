@@ -66,6 +66,10 @@ func init() {
 	// What its workspaces hold, as readings, into its own ledger.
 	allow(Product, "levyan.v1.MeteringService", "Record")
 
+	// What its workspaces come to: the period open, and the statements of
+	// the periods closed.
+	allow(Product, "levyan.v1.BillingService", "GetUsage", "GetStatement", "ListStatements")
+
 	// And what they do, as OpenTelemetry Sums, into the same ledger
 	// (`server/otlp`).
 	allow(Product, "opentelemetry.proto.collector.metrics.v1.MetricsService", "Export")

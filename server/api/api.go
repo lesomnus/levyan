@@ -1,6 +1,6 @@
 // Package api is `levyan.v1` served: what a product calls -- its price book,
-// and the ledger its readings are kept in (docs/design.md, "앱이 levyan을
-// 부르는 길").
+// the ledger its readings are kept in, and what its workspaces come to
+// (docs/design.md, "앱이 levyan을 부르는 길").
 //
 // Every method reads through the stack a caller reaches, with the caller's
 // frame, so the wall keeps a product to its own rows here as it does
@@ -14,6 +14,7 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -26,6 +27,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/ledger"
 )
 
@@ -37,12 +39,25 @@ type PriceBook struct {
 	S levyan.Server
 }
 
-// Register serves `levyan.v1` on g, from s -- which is the walled stack, and
-// never the one the deployment works through -- and writes the ledger through
-// l, which is on it.
-func Register(g grpc.ServiceRegistrar, s levyan.Server, l ledger.Ledger) {
-	levyanv1.RegisterPriceBookServiceServer(g, PriceBook{S: s})
-	levyanv1.RegisterMeteringServiceServer(g, Metering{L: l})
+// Deps is what `levyan.v1` is served from.
+type Deps struct {
+	// S is the walled stack, and never the one the deployment works through.
+	S levyan.Server
+
+	// L writes the ledger through S.
+	L ledger.Ledger
+
+	// Db is what an estimate reads the ledger from, narrowed to the caller's
+	// product (see [Billing]), and Now the deployment's clock.
+	Db  *ent.Client
+	Now func() time.Time
+}
+
+// Register serves `levyan.v1` on g, from d.
+func Register(g grpc.ServiceRegistrar, d Deps) {
+	levyanv1.RegisterPriceBookServiceServer(g, PriceBook{S: d.S})
+	levyanv1.RegisterMeteringServiceServer(g, Metering{L: d.L})
+	levyanv1.RegisterBillingServiceServer(g, Billing{S: d.S, Db: d.Db, Now: d.Now})
 }
 
 // page is how many rows one read through the stack asks for at a time.

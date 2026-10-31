@@ -307,9 +307,46 @@ names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
   inbox, `Recheck` asks the PG, and only that answer is believed. Two answers
   are ordered by `Payment.Progress`, never by time.
 
+## The MoR channel (`internal/mor`)
+
+What levyan asks of a merchant of record it sells through (docs/design.md
+§12): the interface, `mor.Channel`, and one candidate's adapter,
+`internal/mor/paddle`. **Which MoR is the owner's decision and is not made**;
+Paddle is the candidate Claude picked, and Polar the alternative levyan#1
+names. Nothing but the wiring names `paddle`, and the fake
+(`internal/mor/paddle/paddletest`) is what tests use.
+
+- **levyan computes the amount.** A closed period's amount goes to the MoR as
+  a one-time charge of the payer's subscription (`Charge`): an amount, never a
+  quantity for a usage feature of the MoR's to price.
+- **The subscription is the MoR's.** levyan keeps a mirror made of what the
+  MoR's API answers (`Subscription`, `Recheck`), never of a webhook's body; the
+  payer can cancel at the MoR without asking levyan.
+- **A charge is kept once by its key**, and the MoR keeps no key of levyan's:
+  the adapter writes the key into the charge and looks for it before every
+  send. Write each send down before making it, and hand the adapter the last
+  one before (`Charge.Sent`): within `mor.Settle` of it nothing is sent again,
+  and an absence is `ErrTooSoon`, not `NotFound`. `ErrTwice` is a key charged
+  twice; the rest are to give back.
+- **A declined charge is a result, not an error**: a `Failed` transaction.
+  Only `Unknown` may have moved money.
+- **No charge for a next period that will not come.** A subscription
+  scheduled to cancel or to pause has none, and Paddle forgives what was to
+  be billed in it: `NextPeriod` of one is `ErrNoNextPeriod`. Charge `Now`,
+  which is how a period's amount is handed over unless there is a reason not
+  to.
+- **A refund is an adjustment the MoR may take days to approve**, and one
+  pending blocks the next (`RateLimited`).
+- **A webhook is a hint**: `Webhook` checks the signature and that it is
+  fresh, and reads only what it names; `Recheck` asks the API. Keep it once by
+  `Notice.ID`; order a transaction's answers by `Transaction.Progress`, a
+  subscription's by `Subscription.Updated`.
+- **The API key and the webhook secret are `cfg.Secret`s**, sent in a header
+  and never in a URL; no error of the adapter's carries either.
+
 ## Grants
 
-What a product's workspaces are granted (`server/grants`, docs/design.md §12,
+What a product's workspaces are granted (`server/grants`, docs/design.md §13,
 #7): a key, a value and a window, which the product keeps a copy of with
 payday's `entitle.Follower` and checks in the transaction of the write each
 decides (payday#185). levyan is the source; the contract is payday's

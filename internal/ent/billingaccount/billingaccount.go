@@ -33,6 +33,10 @@ const (
 	FieldBusiness = "business"
 	// FieldDateForgotten holds the string denoting the date_forgotten field in the database.
 	FieldDateForgotten = "date_forgotten"
+	// FieldCollection holds the string denoting the collection field in the database.
+	FieldCollection = "collection"
+	// FieldDateCollection holds the string denoting the date_collection field in the database.
+	FieldDateCollection = "date_collection"
 	// FieldDateUpdated holds the string denoting the date_updated field in the database.
 	FieldDateUpdated = "date_updated"
 	// FieldDateErased holds the string denoting the date_erased field in the database.
@@ -56,6 +60,8 @@ var Columns = []string{
 	FieldAddress,
 	FieldBusiness,
 	FieldDateForgotten,
+	FieldCollection,
+	FieldDateCollection,
 	FieldDateUpdated,
 	FieldDateErased,
 	FieldDateCreated,
@@ -72,6 +78,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultCollection holds the default value on creation for the "collection" field.
+	DefaultCollection int32
 	// ValueScanner of all BillingAccount fields.
 	ValueScanner struct {
 		Business field.TypeValueScanner[*levyan.BillingBusiness]
@@ -129,6 +137,16 @@ func ByAddress(opts ...sql.OrderTermOption) OrderOption {
 // ByDateForgotten orders the results by the date_forgotten field.
 func ByDateForgotten(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDateForgotten, opts...).ToFunc()
+}
+
+// ByCollection orders the results by the collection field.
+func ByCollection(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCollection, opts...).ToFunc()
+}
+
+// ByDateCollection orders the results by the date_collection field.
+func ByDateCollection(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateCollection, opts...).ToFunc()
 }
 
 // ByDateUpdated orders the results by the date_updated field.

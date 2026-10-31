@@ -20,6 +20,8 @@ type Tx struct {
 	Audit *AuditClient
 	// BillingAccount is the client for interacting with the BillingAccount builders.
 	BillingAccount *BillingAccountClient
+	// Checkout is the client for interacting with the Checkout builders.
+	Checkout *CheckoutClient
 	// Credit is the client for interacting with the Credit builders.
 	Credit *CreditClient
 	// CreditNote is the client for interacting with the CreditNote builders.
@@ -38,6 +40,10 @@ type Tx struct {
 	Link *LinkClient
 	// Meter is the client for interacting with the Meter builders.
 	Meter *MeterClient
+	// Notice is the client for interacting with the Notice builders.
+	Notice *NoticeClient
+	// NoticeCursor is the client for interacting with the NoticeCursor builders.
+	NoticeCursor *NoticeCursorClient
 	// Offer is the client for interacting with the Offer builders.
 	Offer *OfferClient
 	// Operator is the client for interacting with the Operator builders.
@@ -64,6 +70,8 @@ type Tx struct {
 	ServiceKey *ServiceKeyClient
 	// Statement is the client for interacting with the Statement builders.
 	Statement *StatementClient
+	// Subscription is the client for interacting with the Subscription builders.
+	Subscription *SubscriptionClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
 	// Workspace is the client for interacting with the Workspace builders.
@@ -203,6 +211,7 @@ func (tx *Tx) init() {
 	tx.Archived = NewArchivedClient(tx.config)
 	tx.Audit = NewAuditClient(tx.config)
 	tx.BillingAccount = NewBillingAccountClient(tx.config)
+	tx.Checkout = NewCheckoutClient(tx.config)
 	tx.Credit = NewCreditClient(tx.config)
 	tx.CreditNote = NewCreditNoteClient(tx.config)
 	tx.Departure = NewDepartureClient(tx.config)
@@ -212,6 +221,8 @@ func (tx *Tx) init() {
 	tx.InvoiceLine = NewInvoiceLineClient(tx.config)
 	tx.Link = NewLinkClient(tx.config)
 	tx.Meter = NewMeterClient(tx.config)
+	tx.Notice = NewNoticeClient(tx.config)
+	tx.NoticeCursor = NewNoticeCursorClient(tx.config)
 	tx.Offer = NewOfferClient(tx.config)
 	tx.Operator = NewOperatorClient(tx.config)
 	tx.Outbox = NewOutboxClient(tx.config)
@@ -225,6 +236,7 @@ func (tx *Tx) init() {
 	tx.Series = NewSeriesClient(tx.config)
 	tx.ServiceKey = NewServiceKeyClient(tx.config)
 	tx.Statement = NewStatementClient(tx.config)
+	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.Workspace = NewWorkspaceClient(tx.config)
 }

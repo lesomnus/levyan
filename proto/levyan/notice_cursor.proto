@@ -1,0 +1,69 @@
+edition = "2023";
+
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// NoticeCursor is how far levyan has read a merchant of record's list of its
+// events (`levyan.mor.events`, #12): the MoR's id of the last one read past,
+// after which the next pull reads on.
+//
+// It is how a notice reaches levyan when the MoR cannot reach it -- a
+// deployment no webhook gets to -- and how a webhook missed is found before
+// anything reconciles: what is read goes into the inbox (`Notice`), beside
+// the webhooks, kept once by its id.
+//
+// One of each MoR, written by levyan's own code alone with ent, and kept off
+// the trail: it is a place, and read again from an earlier one, a pull finds
+// only what the inbox has already.
+message NoticeCursor {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The merchant of record, by the name its adapter answers ("paddle").
+  string mor = 8 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // The MoR's id of the last event read past (evt_…): what the next read
+  // begins after.
+  string mor_event = 9 [(payday.field) = {personal: false}];
+
+  // When the list was last read.
+  google.protobuf.Timestamp date_read = 10 [(orm.field) = {default: ""}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    indexes: [
+      {
+        name: "mor"
+        refs: [
+          {
+            name: "mor"
+            number: 8
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 43
+    global: {}
+    erase: {hard: {}}
+    trail: {off: {why: "where the pull of a merchant of record's events has read to: read again from an earlier place, a pull finds only what the inbox keeps already"}}
+  };
+}

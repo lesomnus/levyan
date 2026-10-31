@@ -2,7 +2,7 @@
 
 levyan(levy + an)은 payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. Lago 같은 청구 엔진을 payday로 직접 만들고, roster처럼 자기 DB를 가진 별도의 payday 앱으로 둔다. 처음 과금할 제품은 loft다.
 
-이 문서는 levyan#1(목표, 정한 것, 설계)을 줄여 옮기고, #2·#3·#4·#5·#6·#7·#9와 #10·#12의 일부(PG 어댑터와 MoR 어댑터의 라이브러리)를 만들면서 정한 것을 더한 것이다. 누가 정했는지를 나눠 적는다.
+이 문서는 levyan#1(목표, 정한 것, 설계)을 줄여 옮기고, #2·#3·#4·#5·#6·#7·#9와 #10의 일부(PG 어댑터의 라이브러리), #12의 일부(MoR 어댑터의 라이브러리와, 그것을 결제창·구독 사본·inbox로 서비스에 이은 것)를 만들면서 정한 것을 더한 것이다. 누가 정했는지를 나눠 적는다.
 
 - **대표**: 대표가 정한 것. levyan#1의 "정한 것 (2026-10-31, 대표)" 표(2장)와, 그 뒤에 대표가 답한 것이다. 뒤의 것은 날짜와 함께 적는다(예: 2026-10-31에 답한 25–27번, 11장).
 - **Claude**: 계획을 맡아 진행하는 Claude(리드)가 대표의 "남은 작업 모두 진행해줘"를 맡아 정한 것. 대표의 결정이 아니며, 대표가 뒤집을 수 있다.
@@ -32,7 +32,7 @@ levyan(levy + an)은 payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구�
 | 계정 | 계정 자체는 roster의 것. 계정을 가리키는 방식과 계정으로서 하는 호출은 payday가 정의한다 |
 | 저장소 | 공개. 라이선스는 아직 넣지 않는다 |
 
-판매 채널의 "국내 고객은 국내 PG"는 2026-10-31에 대표가 뒤로 미루는 쪽으로 기울었다. 국내도 먼저 MoR로 판다(대표, 2026-10-31, 잠정; Paddle 샌드박스에서 확인한다, 14장).
+판매 채널의 "국내 고객은 국내 PG"는 2026-10-31에 대표가 뒤로 미루는 쪽으로 기울었다. 국내도 먼저 MoR로 판다(대표, 2026-10-31, 잠정; Paddle 샌드박스에서 확인한다, 14장). MoR은 Paddle로 한다(대표, 2026-10-31, #12, 12장).
 
 ### Lago를 쓰지 않는 이유 (levyan#1)
 
@@ -456,17 +456,17 @@ billing_keys:
 - **거절의 종류.** `declines` 표 전체를 종류별로 적어 맞춰 보고, 표에 없는 코드가 그 밖(0값)인지, 거절이 아닌 코드와 겹치지 않는지 본다. 가짜 PG로 종류마다 결제하고 조회해서, 결제와 조회가 같은 종류와 코드를 말하는지 본다.
 - **키링.** 봉인과 열기, 다른 연관 데이터, 같은 id의 다른 키와 그 키가 없는 키링, 앞머리와 바이트 하나씩 바꾼 값, 교체의 네 단계와 다시 봉인, 키 파일의 소유자와 권한(그 프로세스의 것은 0400·0600만, root의 것은 0440·0640까지 받고, 0644·0660·0460 같은 것과 다른 사용자의 것은 거부)과 길이(줄바꿈, 16진수, base64), 링크, `kms`와 없는 kind, 키를 출력하지 않는지를 본다. `cmd.Build`가 `kms`와 남이 읽을 수 있는 키 파일을 DB에 닿기 전에 거부하는지, 파일 키링으로 빌링키를 봉인하고 여는지도 본다.
 
-## 12. MoR 채널의 경계 (라이브러리만 구현됨, #12)
+## 12. MoR 채널 (경계와 Paddle 어댑터, 결제창·구독 사본·inbox까지 구현됨, #12)
 
-MoR이 판매자인 채널에게 levyan이 무엇을 묻는지를 정한 경계다. MoR은 자기 이름으로 지불자에게 판다. 그래서 구독의 주기, 세금, 법적 청구서, 환불, 분쟁은 MoR의 몫이고, levyan은 구독의 사본을 갖는다. 국내 PG(11장)와 달리 levyan이 판매자가 아니다. 이 경계를 결제 계정(#4), 청구서(#9), 연체(#11)에 잇는 것은 그 이슈들의 몫이고, 여기에는 없다.
+MoR이 판매자인 채널에게 levyan이 무엇을 묻는지를 정한 경계와, 그것을 서비스에 이은 것이다. MoR은 자기 이름으로 지불자에게 판다. 그래서 구독의 주기, 세금, 법적 청구서, 환불, 분쟁은 MoR의 몫이고, levyan은 구독의 사본을 갖는다. 국내 PG(11장)와 달리 levyan이 판매자가 아니다. 결제 계정(#4, 14장)에 잇는 것은 이 장의 "연결"이다. 닫은 기간의 금액을 청구하는 수금은 청구서(#9)가 들어간 뒤의 일이고, 수금할 수 없을 때 무엇을 할지는 연체(#11)의 몫이다. 둘 다 여기에는 없다.
 
-### MoR은 아직 정하지 않았다
+### MoR은 Paddle이다 (대표, 2026-10-31)
 
-- **판매 채널은 기본이 MoR이다**(대표, 2장).
-- **어느 MoR을 쓸지는 대표가 정할 일이고 아직 정하지 않았다.** 비교 기준은 #12에 있다. 한국 판매자를 받는지, 수수료, 결제창 브랜딩, 떠날 때 카드 정보를 넘겨주는지다.
-- **Paddle Billing을 후보로 삼은 것은 Claude다.** Claude는 #12를 맡기며 채널 중립 인터페이스, 가짜, 그리고 Paddle의 후보 어댑터 하나를 만들게 했다. levyan#1이 대안으로 꼽은 것은 Polar다. 어댑터(`internal/mor/paddle`)는 **후보로서** 만들었다. Paddle의 샌드박스에서 시나리오를 돌려 보고, levyan이 MoR에게 무엇을 묻는지를 코드로 남기려는 것이다.
-- 다른 MoR로 정하면 그 MoR의 패키지가 같은 인터페이스(`mor.Channel`)를 구현한다. 경계를 쓰는 쪽은 MoR의 이름을 모른다.
-- Polar(2026-10-31 조사): levyan이 계산한 금액을 기존 구독에 청구하는 공개 API를 Polar의 문서에서 찾지 못했다. 문서에 나오는 길은 사용량 기능(이벤트와 미터)인데, levyan#1의 설계는 MoR의 사용량 기능에 기대지 않는다. Polar로 정하기 전에 확인할 것이다(17장 35번).
+- **판매 채널은 기본이 MoR이다**(대표, 2장). 국내도 먼저 MoR로 판다(대표, 2026-10-31, 잠정; Paddle 샌드박스에서 확인한다, 14장).
+- **MoR은 Paddle로 한다**(대표, 2026-10-31, #12의 댓글). #21의 Paddle 어댑터(`internal/mor/paddle`)가 MoR 채널의 구현이다.
+  - 그 어댑터는 Paddle을 후보로 삼은 Claude가 #12를 맡기며 **후보로서** 만들게 한 것이다. 비교 기준은 #12에 있었다. 한국 판매자를 받는지, 수수료, 결제창 브랜딩, 떠날 때 카드 정보를 넘겨주는지다. levyan#1이 대안으로 꼽은 것은 Polar였다(Polar에서는 levyan이 계산한 금액을 기존 구독에 청구하는 공개 API를 찾지 못했다, 2026-10-31 조사).
+- **대표는 아직 Paddle 판매자 계정을 만들지 않았다.** 샌드박스 키도 웹훅 비밀도 없다. 그래서 이 장의 모든 것은 가짜(`paddletest`)로만 시험했다. 라이브 시험(`TestLive`)은 키가 생기면 손으로 돌린다.
+- 다른 MoR을 들인다면 그 MoR의 패키지가 같은 인터페이스(`mor.Channel`)를 구현한다. 경계를 쓰는 쪽은 MoR의 이름을 모르고, 배선(`cmd`)만 `paddle`을 안다.
 
 ### 경계 (`internal/mor`)
 
@@ -528,7 +528,7 @@ Paddle은 멱등 키를 받지 않는다. 문서의 어느 API도 받지 않고,
 
 ### 결제창 (구현에서 정한 것)
 
-- `StartCheckout`은 levyan의 서버가 거래를 만든다(`POST /transactions`). 플랜(`Config.Plan`)을 담고, 결제 계정의 ID를 `custom_data`(`levyan_account`)에 쓴다. Paddle은 그 `custom_data`를 결제가 만든 구독에 옮긴다.
+- `StartCheckout`은 levyan의 서버가 거래를 만든다(`POST /transactions`). 결제창의 통화와 그 통화의 플랜(`Config.Plans`, 연결에서 통화마다로 바꿨다)을 담고, 결제 계정의 ID를 `custom_data`(`levyan_account`)에 쓴다. Paddle은 그 `custom_data`를 결제가 만든 구독에 옮긴다. 열린 결제창을 다시 열 때(`Start.Again`)는 같은 거래로 답한다(아래 "연결").
 - 페이지는 그 거래를 Paddle.js로 열거나(`transactionId`), 거래의 `checkout.url`(기본 결제 링크에 `?_ptxn=`)로 지불자를 보낸다. 페이지가 항목이나 `customData`를 만들지 않으므로, 페이지가 다른 결제 계정을 끼워 넣을 수 없다.
 - `CompleteCheckout`은 levyan이 기록한 결제창(`Checkout`)으로만 끝낸다. 거래의 계정이 다르면 `Invalid`다. 아직 결제되지 않았거나 구독이 아직 없으면 `NotFound`(`ErrOpen`)이고, 지불자가 돌아올 때나 웹훅이 올 때 다시 묻는다.
 - 플랜은 0원 월 구독으로 둘 수 있다. Paddle은 0원 기본 플랜으로 결제수단을 받고 사용량을 일회성 청구로 받는 방식을 직접 소개한다. 다만 Paddle은 0원 구독을 메일의 "결제수단 삭제" 링크로 **즉시** 해지한다(17장 41번).
@@ -543,7 +543,7 @@ Paddle은 멱등 키를 받지 않는다. 문서의 어느 API도 받지 않고,
 - **재전송과 재생.** `ts`는 본문과 함께 서명된다. 그래서 `ts`가 지금과 허용 오차(`Config.Tolerance`, 기본 5초. Paddle SDK의 기본값)보다 멀면 거부한다. 나중에 남이 다시 보낸 웹훅이 이렇게 걸린다. Paddle이 다시 보내는 웹훅은 그때 새로 서명하므로 받는다.
 - **중복**은 `event_id`(`Notice.ID`)로 거른다. Paddle이 다시 보낸 웹훅이든 허용 오차 안의 재생이든 같은 notice이고, inbox에 이미 있다.
 - **역행 금지.** 거래는 `Transaction.Progress`가 큰 쪽이 나중이다. 예정, 결제 중, 결제됨 또는 실패, 그리고 조정마다 요청과 결정 순이다. 구독은 `Subscription.Updated`가 늦은 쪽이 나중이다. 웹훅의 `occurred_at`으로는 순서를 정하지 않는다.
-- Paddle은 적어도 한 번, 순서 없이 보낸다. 받지 못하면 샌드박스는 2분 동안 3번, 라이브는 이틀 동안 60번까지 다시 보낸다. 놓친 웹훅은 대조(#13)가 찾는다.
+- Paddle은 적어도 한 번, 순서 없이 보낸다. 받지 못하면 샌드박스는 2분 동안 3번, 라이브는 이틀 동안 60번까지 다시 보낸다. 놓친 웹훅은 이벤트 스트림을 읽어 찾고(`Notices`, 아래 "연결"), 그 밖의 어긋남은 대조(#13)가 찾는다.
 
 ### 환불 (구현에서 정한 것)
 
@@ -565,7 +565,7 @@ Paddle은 멱등 키를 받지 않는다. 문서의 어느 API도 받지 않고,
 - 샌드박스와 라이브는 키도 주소도 따로다. `New`는 다른 환경의 키(`pdl_sdbx_`/`pdl_live_`)나 클라이언트 토큰(`test_`/`live_`)을 거부한다. 페이지로 가는 클라이언트 토큰 자리에 API 키를 넣는 것도 거부한다.
 - Paddle은 공개 GitHub 저장소에서 키를 찾아 폐기한다. 이 저장소의 시험은 키 모양의 문자열을 실행 중에 만들고, 파일에 쓰지 않는다.
 
-### Paddle에서 기댄 사실 (후보, 2026-10-31 문서)
+### Paddle에서 기댄 사실 (2026-10-31 문서)
 
 자세한 인용은 `internal/mor/paddle`의 패키지 문서에 있다.
 
@@ -609,6 +609,109 @@ Paddle은 멱등 키를 받지 않는다. 문서의 어느 API도 받지 않고,
   - `PADDLE_SANDBOX_SUBSCRIPTION`이 있으면 그 구독에 지금 청구와 다음 기간 청구를 하고, 부분 환불을 한다.
   - `PADDLE_SANDBOX_CANCEL=1`이면 해지 예약 뒤의 청구와 즉시 해지를 확인한다.
   - 이 시험은 아직 돌리지 않았다. 샌드박스 계정의 키가 없다.
+
+### 연결: 결제창, 구독 사본, 수금 상태, inbox (구현됨, #12)
+
+#### 정한 것 (Claude, 2026-10-31, 연결을 맡기며)
+
+대표의 결정이 아니며, 대표가 뒤집을 수 있다.
+
+- **설정은 `mor:` 블록이다.** `kind: paddle`(하나뿐), `environment: sandbox|live`, `api_key`와 `webhook_secret`(`cfg.Secret`, 출력하지 않는다), `client_token`, `plans`(통화마다 0원 월 플랜, 17장 41번), 웹훅 시각의 허용 오차. 설정을 읽을 때 파일의 위치와 함께 거부한다(`payers.channels`처럼). **블록이 없으면 MoR은 설정되지 않은 것이다.** 결제창 RPC는 FailedPrecondition이고, 루프는 돌지 않으며, 그 밖에는 아무것도 바뀌지 않는다. 대표가 키를 줄 때까지 스테이징은 이렇게 돈다.
+- **결제창은 지불자의 메서드다.** #4의 메서드처럼 제품이 대신 부르는 계정의 메서드이고 `pd.AccountReads`로 읽는 것을 선언한다.
+  - `StartCheckout(billing_account)`: MoR 채널의 결제 계정이고 부른 계정의 것일 때만 된다. `Checkout` 행(계정, 결제 계정, 거래, 상태)을 남긴다. `internal/mor`는 levyan이 기록한 결제창만 끝낸다. 페이지에 필요한 것(거래 id, URL, 클라이언트 토큰, 환경)을 답한다. 결제 계정의 통화의 플랜을 쓴다.
+  - `CompleteCheckout(checkout)`: MoR에 묻는다. 끝났으면 구독 사본을 쓰고 결제 계정에 잇는다. `ErrOpen`이면 아직 열려 있는 것이다. 웹훅의 길로도 끝내며, 두 번 해도 해가 없다.
+  - 결제 계정마다 살아 있는 구독은 하나다. 두 번째 결제창을 어떻게 할지는 구현에서 정한다(아래).
+  - 국내 결제수단(17장 61번): Paddle은 국내 카드, 카카오페이, 네이버페이를 원화 가격과 한국 주소에만 보여 준다. 거래가 고객의 나라나 주소를 가져야 하는지 문서에서 찾고, 그렇다면 결제 계정의 나라를 넘긴다. 기댄 것과 샌드박스만 답할 수 있는 것을 적는다(아래).
+- **구독 사본은 결제 계정마다의 엔티티다.** MoR의 고객 id와 구독 id, 상태와 예정된 변경, 다음 청구 시각과 지금 기간, 결제수단의 종류와 가린 표시(카드의 그 이상은 두지 않는다), MoR의 `updated_at`과 levyan이 마지막으로 물은 때. **웹훅의 본문이 아니라 API의 답(`Recheck`, `Subscription`)으로만 만들고, `updated_at`으로 순서를 정해 뒤로 가지 않는다**(12장, 이미 정한 것).
+- **결제 계정의 수금 상태(collectable)와, 수금할 수 없을 때의 이유를 둔다.** 구독 없음, 연체, 일시정지, 해지, 그리고 #12의 댓글이 말한 "고객 행동 필요"(갱신에 승인이 필요한 국내 카드). 지불자의 `GetBillingAccount`와 제품의 `GetPayer`에 낸다(loft의 배너와 결제 화면, loft PR D). **수금할 수 없을 때 무엇을 할지(제한, 유예)는 #11의 몫이다.** 상태와 그 변화를 볼 수 있게만 하고 정책은 만들지 않는다.
+- **지불자가 levyan에 묻지 않고 Paddle에서 해지한 구독도 다룬다.** 0원 구독은 Paddle 메일의 링크로 바로 해지된다(41번). 사본은 해지되고 결제 계정은 수금할 수 없다. 열린 기간의 금액은 #9와 #11의 질문으로 적는다.
+- **웹훅은 levyan의 공개 리스너의 HTTP다.** 채널과 어댑터를 이름에 담은 경로에서, 본문 크기를 제한하고, `mor.Channel.Webhook`으로 확인하고, inbox 엔티티(이벤트 id는 유일, 종류, 가리키는 것, 받은 때, 처리한 때, 시도 횟수, 마지막 오류)에 담고, Paddle이 기다리는 5초 안에 200으로 답한다. 핸들러는 네트워크를 쓰지 않는다. 이름 있는 루프(`levyan.mor.…`)가 inbox를 처리한다. `Recheck`하고 그 답을 사본에 쓴다. 거래는 알림이 가리킨 것과 `Recheck`의 답을 기록한다. 그것을 청구서와 결제 시도에 쓰는 것은 수금(#9 다음)의 몫이다. 이벤트 id로 중복을 거른다. inbox가 trail에 어떻게 닿는지 정하고 이유를 적는다. 사본의 변경은 서버를 거친다.
+- **Paddle의 Events API가 있으면 같은 inbox로 끌어온다.** 그러면 배달이 Paddle이 levyan에 닿는지에 기대지 않는다(스테이징의 levyan은 인터넷에서 닿지 않고, 네트워크 정책은 loft의 파드만 받는다). 그리고 대조(#13)가 생기기 전에 놓친 웹훅을 찾는다.
+- **이 작업에 없는 것: 닫힌 청구서를 청구로 바꾸는 수금.** #9(청구서, 결제 원장, 채널마다의 수금기, 계좌이체 채널)가 따로 만들어지고 있고, MoR 수금기는 둘이 들어간 뒤에 만든다.
+
+#### 만든 것
+
+- **엔티티**(도메인 40–43, 모두 global)
+  - `Checkout`(40): 결제창. 시작한 계정(`account`), 결제 계정, MoR의 이름(`mor`, `paddle`)과 그 거래(`mor_transaction`, MoR마다 유일), 상태(`OPEN`, `COMPLETED`, `CANCELED`), 만든 구독, 끝난 때(`date_done`). 계정의 호출이 계정으로서 서버를 거쳐 쓴다(trail의 actor는 그 계정). 알림이 끝낸 것은 deployment가 쓴다.
+  - `Subscription`(41): 구독 사본. 결제 계정, `mor`, MoR의 구독 id(`mor_subscription`, MoR마다 유일)와 고객 id, 상태(`SubscriptionStatus`, `mor.SubscriptionStatus`와 같은 값), 통화, 지금 기간, 다음 청구(`date_next`), 예정된 변경(`change`: CANCEL, PAUSE, RESUME과 `date_change`), 해지된 때, 결제수단(`method_type`, `method_brand`, `method_last4`; `method_last4`만 `personal`), 가장 새 거래(`last_transaction`, `last_progress`, `awaiting_payer`), MoR의 `updated_at`(`date_mor_updated`), levyan이 물은 때(`date_checked`). 서버를 거쳐 쓴다.
+  - `Notice`(42): inbox. `mor`, 이벤트 id(`mor_event`, MoR마다 유일), 종류(`type`, `kind`), 온 길(`via`: WEBHOOK, EVENTS), 가리키는 것(`mor_transaction`, `mor_subscription`, `mor_adjustment`), MoR이 말한 일어난 때, 거래를 물은 답(`transaction`: 상태, `Progress`, 합계, 결제된 때, 기다림, 결제수단의 종류, 실패, 줄과 조정), 결과(`outcome`: APPLIED, UNCHANGED, FOREIGN, DROPPED, REFUSED), 찾은 결제 계정·사본·결제창, 시도 횟수와 마지막 오류와 다음 시도, 끝난 때. ent로만 쓰고 trail에서 뺀다(`trail: off`, 아래).
+  - `NoticeCursor`(43): 이벤트 스트림을 어디까지 읽었는지. MoR마다 하나. ent로만 쓰고 trail에서 뺀다.
+  - `BillingAccount`에 `collection`(`CollectionState`)과 `date_collection`(그렇게 된 때)을 더했다.
+- **API**(`levyan.v1.PayerService`, 지불자): `GetBillingAccount`(결제 계정, 수금 상태, 살아 있는 구독이나 마지막 구독), `StartCheckout`(결제 계정, 돌아올 주소 → 결제창과 그것을 여는 값: `merchant`, `environment`, `transaction`, `client_token`, `script`, `url`, `country`), `CompleteCheckout`(levyan의 결제창 id → 결제창의 상태, 구독, 수금 상태). 스키마의 `levyan.PayerService`에 같은 이름으로 선언했고 policy 표의 지불자 열에 더했다.
+  - 제품의 `WorkspaceService`: `Payer`에 `collection`을 더했다. 지금 내는 결제 계정의 상태, 이유, 그리고 예정된 해지·일시정지의 때(`ends`)다. 결제수단은 제품에게 보이지 않는다.
+  - API의 열거형(`CheckoutState`, `CollectionState`, `SubscriptionStatus`, `SubscriptionChange`)은 스키마의 것과 값마다 같다(`server/api`의 시험).
+- **`server/subscriptions`**: 결제창(`Start`, `Complete`), 사본(`Observe`, `ObserveTransaction`), 수금 상태(`CollectionOf`), inbox(`Inbox`: `Keep`, 웹훅 핸들러), 처리(`Taker`), 끌어오기(`Puller`). 결제 계정 하나의 결제창·사본·수금 상태를 쓰는 트랜잭션은 그 결제 계정 행을 먼저 잡는다(PostgreSQL은 `FOR UPDATE`).
+- **웹훅**: `POST /webhooks/mor/paddle`, 두 번째 리스너(`server.http`)에. 본문은 1 MiB까지, 4초 안에 담고 답한다. 서명이 맞지 않거나 낡으면 400, 담지 못하거나 비밀을 읽지 못하면 503(Paddle이 다시 보낸다). `server.http.addr`가 없으면 경고하고 받지 않는다.
+- **루프**: `levyan.mor.inbox`(5초마다, 그리고 이 프로세스에서 웹훅을 담으면 바로)와 `levyan.mor.events`(`mor.pull`, 기본 1분). 둘 다 한 프로세스에서만 돈다. MoR이 설정되지 않으면 둘 다 없다.
+- **어댑터**(`internal/mor`, `paddle`, `paddletest`)에 더한 것
+  - 플랜은 통화마다다(`Config.Plans`, 예전의 `Plan` 대신). 결제창은 통화가 있어야 하고 그 통화의 플랜을 쓴다.
+  - 열린 결제창을 다시 열기(`mor.Start.Again`): Paddle이 아직 받으면 같은 거래, 취소했으면 새 거래, 그 사이 결제되었으면 `ErrFinished`.
+  - `mor.Window.Environment`, `Token`. 결제수단(`mor.Method`: 종류, 브랜드나 카드사, 끝 네 자리)을 거래(`Transaction.Method`)와 결제창이 만든 구독(`Subscription.Method`)에. 고객 행동을 기다리는 결제(`Transaction.Awaiting`, `action_required`).
+  - 이벤트 스트림(`mor.Channel.Notices`, `GET /events`): 웹훅과 같은 `Notice`로 읽는다. 잘못된 이벤트는 건너뛰되 커서는 넘어간다(`Notices.Last`).
+  - 가짜: 통화마다의 플랜, 바뀔 때마다 기록하는 이벤트와 `GET /events`, `Deliver`(기록된 이벤트를 다시 서명해 배달), `Behind`(늦게 보이는 스트림), `CancelNow`(메일 링크의 즉시 해지), `PayWith`(결제수단), `AwaitAction`·`Act`(승인을 기다리는 갱신), `Abandon`(Paddle이 취소한 결제창). 문서가 말하지 않는 곳에서 가짜가 어떻게 하는지는 `paddletest`의 패키지 문서에 적었다.
+- **roster의 말**: 지워진 계정의 개인정보를 지울 때(`payers.Forget`) 그 결제 계정들의 구독 사본에서 카드 끝 네 자리도 지운다.
+
+#### 구현에서 정한 것
+
+- **두 번째 결제창은 첫 번째다.** 열린 결제창이 있는 결제 계정의 `StartCheckout`은 같은 결제창을 다시 연다(Paddle의 같은 거래, 새 거래를 만들지 않는다). 그래서 두 탭, 새로 고침, 며칠 뒤 다시 와도 한 결제창만 끝나고 구독은 하나다. Paddle이 그 거래를 더 받지 않으면 새로 열고 앞의 것을 `CANCELED`로 남긴다. 그 사이 결제가 끝났다면 끝내고(사본을 쓰고) FailedPrecondition으로 답한다.
+- **살아 있는 구독이 있으면 결제창을 거부한다(FailedPrecondition).** 다만 거부하기 전에 MoR에 그 구독을 다시 묻는다. 지불자가 Paddle에서 해지했는데 levyan이 아직 듣지 못했을 수 있기 때문이다. 해지되었으면 새 결제창을 연다. 앞 구독의 고객 id를 넘겨 Paddle이 그 지불자를 알게 한다.
+- **그래도 두 구독이 생기면 나중에 안 것을 바로 해지한다.** 같은 순간에 두 결제창이 열리고 둘 다 끝난 경우다. levyan이 먼저 안 것으로 수금하고, 두 번째는 Paddle에 즉시 해지(`Cancel{Now}`)를 보낸 뒤 그 답을 사본에 쓴다. 해지가 실패하면 로그에 남기고, 그 구독을 다시 들을 때 또 해지한다. 0원 플랜이면 청구된 것이 없다(17장 88번).
+- **결제창을 끝내는 것은 levyan의 기록이다.** `CompleteCheckout`은 levyan의 결제창 id를 받고 MoR의 거래 id는 받지 않는다. 다른 계정의 결제창은 NotFound다.
+- **수금 상태의 규칙**(`subscriptions.state`): MoR 채널이 아닌 결제 계정은 말하지 않는다(UNSPECIFIED). 사본이 없으면 NO_SUBSCRIPTION. 해지는 CANCELED, 일시정지는 PAUSED. 연체(past_due)나 활성인데 가장 새 거래의 결제가 지불자를 기다리면 NEEDS_ACTION, 아니면 연체는 PAST_DUE, 활성과 체험은 COLLECTABLE. 기간 말 해지나 일시정지가 예약된 구독은 그때까지 COLLECTABLE이고, 그때를 `ends`로 알린다(해지가 예약된 구독이 지금 청구를 받는지는 45번).
+- **수금 상태는 결제 계정의 행에 쓴다.** 사본을 쓰는 같은 트랜잭션에서, 상태가 바뀔 때만 쓴다. 그래서 바뀔 때마다 trail에 남고(결제 계정의 Patch), 로그(`subscriptions: collection`, from → to)에도 남는다. #11은 이 행과 그 시각(`date_collection`)을 읽으면 된다. 시각은 levyan이 안 때다(89번). 한 번도 사본이 없던 MoR 결제 계정은 만든 때부터 NO_SUBSCRIPTION으로 읽는다.
+- **결제수단은 가장 새 거래가 말하는 것이다.** 거래는 Paddle의 id 순서(만든 순서)로, 같은 거래는 `Progress`로 순서를 정한다. 더 오래된 거래의 답은 사본을 바꾸지 않는다. 결제창으로 시작한 구독은 그 결제창의 결제가 말하는 것이다. 카드에서 두는 것은 브랜드(또는 국내 카드사)와 끝 네 자리뿐이고, 끝 네 자리는 `personal`이다(접속기록에 남고, roster에 그 사람이 더 없으면 지운다).
+- **"고객 행동 필요"는 Paddle의 `action_required`다.** 가장 새 거래가 결제 중이고 그 마지막 결제 시도가 `action_required`이면 지불자를 기다리는 것으로 읽는다. 국내 카드의 갱신이 실제로 그렇게 보이는지는 샌드박스만 답한다(86번).
+- **inbox는 trail에서 뺀다(`trail: off`).** 이유는 이렇다.
+  - notice는 힌트다. 무엇도 믿지 않고, 가리키는 것을 MoR에 다시 물은 답만 믿는다. 그 답이 이끄는 쓰기(사본, 결제창, 결제 계정의 수금 상태)는 서버를 거쳐 trail에 남는다. 누가 inbox 행을 DB에서 고쳐도 다시 묻는 답은 바뀌지 않는다.
+  - 웹훅의 엔드포인트는 누구나 닿는 문이다. 그래서 그 문이 쥔 것은 inbox 테이블과 채널의 서명 확인뿐이고, 서버 스택(`Ungated`)은 쥐지 않는다. inbox를 서버로 쓰려면 그 문에 서버를 쥐여 줘야 한다.
+  - payday가 `off`의 예로 든 "루프가 몇 초 안에 비우는 큐"와 같다. 다만 행은 지우지 않는다. 중복을 거르고, 대조(#13)가 무엇을 언제 들었는지 읽게 하려는 것이다(93번).
+  - 커서(`NoticeCursor`)도 `off`다. 자리일 뿐이고, 앞에서 다시 읽으면 inbox가 이미 가진 것만 찾는다.
+- **notice의 처리**: 거래와 구독의 notice만 다시 묻는다. 나머지(고객, 주소 등)는 받을 때 바로 끝낸다(DROPPED). 구독의 답은 그 사본에 쓰고, 사본이 없으면 그 구독이 말하는 결제 계정의 열린 결제창을 끝내 본다. levyan이 시작하지 않은 구독과 거래는 FOREIGN으로 끝내고 아무것도 쓰지 않는다. 거래의 답은 notice에 남기고, 그 거래가 levyan의 결제창이면 결제창을 끝내고, 사본의 구독이면 결제수단과 기다림을 쓴다. 수금기가 끼울 자리(`Taker.Transaction`)에 그 답을 넘긴다. 지금은 비어 있다.
+- **다시 시도**: MoR에 묻지 못하면(Unknown, RateLimited, Auth, NotFound) 10초부터 두 배씩, 한 시간까지 늦춰 다시 묻는다. 횟수의 끝은 두지 않는다. MoR이 그 id를 받지 않으면(Invalid) REFUSED로 끝낸다.
+- **이벤트 스트림의 커서**: 읽은 것은 모두 inbox에 담지만, 커서는 지금보다 10분(`subscriptions.Overlap`, `mor.Settle`과 같다) 넘게 지난 이벤트까지만 넘어간다. 그 뒤의 것은 다음에 다시 읽고, inbox가 한 번만 담는다. Paddle이 나중에 만든 이벤트를 먼저 보이고 먼저 만든 것을 늦게 보이더라도 건너뛰지 않으려는 것이다(92번). 첫 읽기는 levyan이 그 MoR에 처음 연 결제창보다 10분 전부터다. 결제창이 없으면 MoR에 levyan의 것이 없으므로 읽지 않는다(95번). 한 번에 200개씩 열 쪽까지 읽는다.
+- **웹훅 비밀이 없으면 엔드포인트가 없다.** 모든 웹훅을 거부하는 문을 열어 두는 대신 문을 열지 않고 이벤트 스트림만 읽는다. 스테이징이 그렇다.
+- **levyan의 서버는 Paddle에 개인정보를 보내지 않는다.** 결제창의 거래에는 플랜, 통화, 결제 계정의 id(`custom_data`)와, 전에 구독이 있었다면 그 고객 id만 담는다. 나라는 페이지가 넘긴다(`CheckoutWindow.country`, 아래 "국내 결제수단").
+- **결제창의 통화는 결제 계정의 통화이고, 그 통화의 플랜이다.** `payers.channels`가 MoR로 파는 통화마다 플랜이 있어야 한다. 없으면 levyan은 뜨지 않는다(`cmd.Build`, DB를 열기 전).
+- **`mor.pull`을 더했다.** 이벤트 스트림을 읽는 주기다(기본 1분). inbox의 주기(5초)는 설정이 아니다.
+
+#### 국내 결제수단 (61번): 기댄 것과 고른 것
+
+- Paddle은 국내 카드, 카카오페이, 네이버페이, PAYCO, 삼성페이를 "원화로 가격을 매긴 항목"에, "고객의 주소가 한국일 때"만 보여 준다([국내 카드](https://developer.paddle.com/concepts/payment-methods/korean/local-cobranded-cards), [2025 변경](https://developer.paddle.com/changelog/2025/improved-korean-payment-methods)). 결제창의 첫 화면에서 나라로 한국을 고르게 한다.
+- 결제창의 거래가 주소를 가지려면 고객의 주소(`address_id`)여야 하고, 그것은 `customer_id`를 요구한다. 둘이 있어야 거래가 `ready`로 만들어지고 첫 화면을 건너뛴다([Create a transaction](https://developer.paddle.com/api-reference/transactions/create-transaction)). 고객은 이메일로 만든다.
+- Paddle.js의 미리 채움은 `customer.address.countryCode`를 받지만 **나라만 채울 수는 없고** 이메일이나 고객 id와 함께여야 한다([Paddle.Checkout.open](https://developer.paddle.com/paddle-js/methods/paddle-checkout-open), [Prefill checkout properties](https://developer.paddle.com/build/checkout/prefill-checkout-properties)). `transactionId`로 연 결제창에서도 그 미리 채움을 쓰는지는 문서에 없다.
+- **고른 것(구현에서 정한 것)**: 거래의 통화를 결제 계정의 통화(국내는 원)로 하고, 결제 계정의 나라를 `CheckoutWindow.country`로 답한다. 페이지는 로그인한 지불자의 이메일과 함께 `customer: {email, address: {countryCode}}`로 미리 채울 수 있다. 그러면 지불자 자신의 브라우저가 Paddle에 넘기고, levyan의 서버는 개인정보를 보내지 않는다. 미리 채우지 않아도 지불자가 첫 화면에서 한국을 고르면 된다.
+- **샌드박스만 답하는 것**: `transactionId`의 결제창이 미리 채움을 받는지, 원화 결제창에 국내 결제수단이 보이는지, 국내 카드(저장 미지원)의 매달 갱신이 고객 확인 없이 되는지와 그 결제 시도가 어떻게 보이는지(85번, 86번).
+
+#### Paddle에서 기댄 사실 (2026-10-31 문서, 연결)
+
+- 이벤트 스트림은 `GET /events`다. 지난 90일의 이벤트이고, 하나는 웹훅과 같은 `{event_id, event_type, occurred_at, data}`다. 쪽마다 기본 50개, 많아야 200개, `order_by=id[ASC]`로 오래된 것부터, `after`(이벤트 id) 뒤부터, `from`·`to`로 때를 묶는다. 키에 `notification.read` 권한이 필요하다([List events](https://developer.paddle.com/api-reference/events/list-events)).
+- Paddle의 id는 사전순으로 정렬되고, 그 순서는 만든 순서와 같다([Paddle IDs](https://developer.paddle.com/api-reference/about/paddle-ids)). 커서 다음 쪽의 `next`를 두었다가 나중에 다시 써서 처음부터 다시 읽지 않고 새것을 받을 수 있다([Pagination](https://developer.paddle.com/api-reference/about/pagination)).
+- 거래의 `payments`는 수금 시도들이고 새것이 앞이다. 상태 중 `action_required`는 "고객이 무언가를 해야 진행된다(보통 3DS)"이다. `method_details`의 `type`은 `card`, `south_korea_local_card`, `kakao_pay`, `naver_pay`, `payco`, `samsung_pay`, `apple_pay`, `paypal` 등이고, 카드는 `card.type`(브랜드)과 `card.last4`, 국내 카드는 `south_korea_local_card.type`(카드사)과 그 `last4`를 준다. 거래의 `origin` 중 `subscription_payment_method_change`는 결제수단을 바꿀 때 생기는 거래다(0원일 수 있다)([Get a transaction](https://developer.paddle.com/api-reference/transactions/get-transaction)).
+- 구독에는 결제수단이 없다. 고객이 결제수단을 바꾸거나 해지하는 고객 포털의 링크(`management_urls`)는 임시 토큰이 붙고, 저장하지 말라고 한다([Get a subscription](https://developer.paddle.com/api-reference/subscriptions/get-subscription)).
+- 국내 카드는 "구독 지원", "고객 저장 미지원"이다. 카카오페이와 네이버페이는 2025년부터 정기결제가 되고, 처음 결제한 수단을 저장해 갱신과 일회성 청구에 쓴다([정기결제](https://developer.paddle.com/changelog/2025/recurring-kakaopay-naverpay-subscriptions)).
+- 웹훅에는 5초 안에 200으로 답한다([Handle webhook delivery](https://developer.paddle.com/webhooks/about/respond-to-webhooks)).
+
+#### 시험
+
+- 가짜(`paddletest`)를 상대로 SQLite와 PostgreSQL에서 돈다.
+  - 결제창: 시작과 끝내기, 아직 열림, 다른 계정, 두 번 끝내기, 다른 채널의 결제 계정, 두 번째 결제창이 첫 번째인 것, Paddle이 취소한 결제창 뒤의 새 결제창, 그 사이 끝난 결제창, 해지된 뒤의 새 결제창. 결제창의 trail actor는 그 계정이다.
+  - inbox: 서명 확인, 담기, 중복(같은 배달, 다시 서명한 배달, 웹훅과 스트림), 다시 보낸 웹훅, 틀린 서명과 없는 서명, 큰 본문, POST가 아닌 요청, 웹훅 비밀이 없으면 없는 엔드포인트, 묻지 못한 notice의 다시 시도, levyan의 것이 아닌 notice.
+  - 순서: 낡은 본문의 웹훅(활성이라 말하는)이 지금 해지된 구독을 해지로 쓰는 것, 늦게 온 더 오래된 답이 사본을 바꾸지 않는 것, 더 오래된 거래의 답이 결제수단과 기다림을 바꾸지 않는 것.
+  - 이벤트 스트림: 결제창이 없으면 읽지 않음, 웹훅 없이 결제창을 끝내는 것, 커서가 10분 안의 것을 넘지 않는 것, 늦게 보인 이벤트, 웹훅과 겹침.
+  - 밖에서 해지된 구독(메일의 즉시 해지), 고객 행동이 필요한 국내 카드의 갱신과 그 뒤의 승인, 연체, 두 번째 구독의 해지, 거래의 답을 notice에 남기고 수금기의 자리에 넘기는 것.
+  - 설정: 없음, 잘못된 kind·environment·plans(파일의 위치와 함께), 빠진 키·토큰·플랜, 다른 환경의 키, 페이지 토큰 자리의 API 키, 플랜 없는 통화(`cmd.Build`가 DB 전에 거부).
+  - 격리: 다른 지불자의 결제 계정에 결제창을 열 수 없고, 다른 계정의 결제창을 끝낼 수 없고, 제품 키만으로는 부를 수 없다. 결제 계정은 어느 제품을 거쳐도 그 계정의 것이고, 다른 제품의 같은 id 워크스페이스에는 아무것도 보이지 않는다.
+- 중요한 경로는 일부러 망가뜨려 시험이 실패하는 것을 확인했다. 망가뜨린 것은 뒤로 가지 않는 규칙, 중복 거르기, 커서의 겹침, 결제창 다시 열기, 결제창의 계정 확인(시작과 끝내기), 두 번째 구독 해지, 고객 행동, 거래의 순서다.
+
+#### MoR 수금기가 이 연결에서 쓸 것
+
+MoR 수금기는 15장의 `invoices.Collector`(`Minimum`, `Pushes`, `Due`, `Issue`, `Send`, `Ask`)를 MoR에 대해 구현하는 다음 PR이다. 무엇을 할지는 15장의 "MoR 수금기 PR이 할 것"에 있다. 이 연결에서 쓸 것은 이렇다.
+
+- **`Send`(CHARGE)가 청구할 구독**: `subscriptions.CollectionOf(ctx, db, 결제 계정)`의 `Mirror.MorSubscription`이다. 그 `State`가 COLLECTABLE이 아니면 보낼 곳이 없거나(NO_SUBSCRIPTION, CANCELED) Paddle이 받지 않는다(PAST_DUE는 `ErrPastDue`, PAUSED, NEEDS_ACTION). 그때 `Send`가 "지금은 아님"으로 답할지 실패로 답할지는 15장이 남긴 질문이고 그 PR이 정한다.
+- **`Ask`**는 `mor.Charged`, 환불은 `mor.Refunded`다. 결과를 더 빨리 옮기려면 `subscriptions.Taker.Transaction`에 끼운다. inbox가 거래의 notice마다 `Recheck`의 지금 답(`mor.Transaction`)을 넘기고, 줄의 `Key`가 시도의 키(`levyan_key`)다. 실패하면 그 notice는 다시 시도된다. inbox의 기록(`Notice.transaction`)은 trail 밖이므로, 그것으로 시도를 옮기지 않고 다시 묻는다.
+- **`Minimum`**과 Paddle의 `invoice_number`는 어댑터에 더한다(15장).
+- **`cmd`**: `mor:`가 있을 때 `s.Subscriptions.Channel`과 같은 `mor.Channel`로 수금기를 만들어 `s.Invoices.Collectors[CHANNEL_MOR]`에 넣는다.
+- 두 번째 구독의 해지가 돌려주지 않는 첫 결제(0원이 아닌 플랜, 17장 88번)는 그 PR이 환불로 다룰지 정한다.
 
 ## 13. 권한 부여와 앱으로 보내는 스트림 (구현됨, #7)
 
@@ -953,11 +1056,11 @@ invoices:
 
 ### MoR 수금기 PR이 할 것
 
-다른 에이전트가 MoR의 결제창과 웹훅을 잇는 중이다(#12, `mor/lifecycle`). 그 다음 PR이 `invoices.Collector`를 MoR에 대해 구현한다.
+MoR의 결제창, 구독 사본, 수금 상태, 웹훅 inbox는 #12의 연결(12장)이 이었다. 그 다음 PR이 `invoices.Collector`를 MoR에 대해 구현한다. 이 연결에서 쓸 것은 12장의 "MoR 수금기가 이 연결에서 쓸 것"에 있다.
 
 - `Minimum(currency)`: Paddle의 최소(980 KRW, 70 USD 센트, 65 EUR 센트, 100 JPY). 어댑터가 말하게 한다(`mor` 패키지에 통화별 최소를 내는 것을 더한다).
 - `Pushes()`는 참, `Due`는 0, `Issue`는 불리지 않는다(MoR은 판매자가 아니다).
-- `Send`: CHARGE이면 그 결제 계정의 구독 사본에서 구독 id를 찾아 `mor.Charge{Subscription, Key: 시도의 키, When: Now, Amount, Description: 청구서의 설명, Sent: Send.Previous}`. REFUND이면 `mor.Refund{Transaction: Attempt.Refunds, Amount 또는 All, Reason: Attempt.Reason, Key: 시도의 키, Sent: Send.Previous}`.
+- `Send`: CHARGE이면 그 결제 계정의 구독 사본(`subscriptions.CollectionOf`의 `Mirror`)에서 구독 id를 찾아 `mor.Charge{Subscription, Key: 시도의 키, When: Now, Amount, Description: 청구서의 설명, Sent: Send.Previous}`. REFUND이면 `mor.Refund{Transaction: Attempt.Refunds, Amount 또는 All, Reason: Attempt.Reason, Key: 시도의 키, Sent: Send.Previous}`.
 - `Ask`: CHARGE이면 `mor.Charged(Charge{… Sent: Attempt.Sent})`, REFUND이면 `mor.Refunded`. 어댑터의 `NotFound`를 그대로 넘긴다(Settle 뒤에만 나온다). `ErrTooSoon`은 `Unknown`이라 시도가 UNKNOWN으로 남는다.
 - 결과로 옮기기: `Transaction.Status`의 Paid는 SUCCEEDED(Ref는 거래 id, Number는 Paddle의 `invoice_number`, At은 결제 시각), Failed는 FAILED(`Failure.Kind`와 코드, 거절의 종류는 MoR이 말하지 않으면 `DECLINE_KIND_UNSPECIFIED`), Pending과 Scheduled는 PENDING. 환불의 `Adjustment` Requested는 PENDING, Approved는 SUCCEEDED, Rejected는 FAILED다. `ErrTwice`는 첫 거래로 SUCCEEDED로 답하고 오류 로그를 남긴다(#13이 나머지를 돌려준다).
 - `mor.Transaction`에 MoR의 청구서 번호가 없다. Paddle 거래의 `invoice_number`를 읽어 더한다.
@@ -1040,13 +1143,13 @@ levyan#1에서:
 
 #12(MoR 어댑터 라이브러리)를 만들며 생긴 것:
 
-35. MoR 선정: Paddle로 할지, Polar나 다른 MoR로 할지. #12의 비교 기준은 한국 판매자를 받는지, 수수료, 결제창 브랜딩, 떠날 때 카드 정보다(36~38번). Polar에서는 levyan이 계산한 금액을 구독에 청구하는 공개 API를 찾지 못했다. 문서에 나오는 길은 사용량 기능이다(12장)
+35. ~~MoR 선정: Paddle로 할지, Polar나 다른 MoR로 할지. #12의 비교 기준은 한국 판매자를 받는지, 수수료, 결제창 브랜딩, 떠날 때 카드 정보다(36~38번). Polar에서는 levyan이 계산한 금액을 구독에 청구하는 공개 API를 찾지 못했다. 문서에 나오는 길은 사용량 기능이다(12장)~~ Paddle로 한다(대표, 2026-10-31, #12). 36~38번은 남았다
 36. 판매자(seller of record) 계약: MoR이 판매자이므로 계약은 MoR과 levyan의 사업자 사이다. 한국 사업자로 가입과 심사를 받는지, 정산의 통화와 주기, 허용 업종. levyan을 쓰는 제품마다 심사를 받아야 하는지. levyan#1은 MoR 계정을 제품마다 두지 않는다
 37. 결제창의 브랜딩: Paddle의 결제창, 영수증, 청구서, 카드 명세서에 판매자로 무엇이 보이는지. MoR이 판매자이므로 Paddle의 이름이 보인다. levyan이나 loft의 브랜드를 어디까지 넣을 수 있는지. 샌드박스의 결제창에는 "Test Mode" 표시가 붙는다
 38. 떠날 때의 카드 정보: MoR을 떠날 때(시나리오 11, 지역 PG 도입) 고객의 카드 정보를 넘겨받을 수 있는지. 2026-10-31의 Paddle 문서에서는 찾지 못했고, Paddle에 물어야 한다. 받지 못하면 levyan#1의 설계대로 새 고객부터 새 PG로 받고, 기존 고객은 갱신 때 다시 등록하게 한다
 39. 세금 모드: levyan이 계산한 금액이 세전인지(`external`, 기본으로 둠) 세금을 포함하는지(`internal`). 가격표의 단가가 무엇을 뜻하는지와 같은 질문이고, 8번(부가세의 반올림)과도 이어진다
 40. 지금 청구할지 다음 기간에 붙일지: 기본을 지금 청구로 두었다(12장, 구현에서 정한 것). 다음 기간에 붙이면 갱신 청구서와 한 장이 된다. 대신 해지 예약에 버려질 수 있고, Paddle의 갱신일까지 기다린다. 거래마다 붙는 수수료의 차이도 기준이다
-41. 0원 플랜의 즉시 해지: Paddle은 0원 구독을 메일의 "결제수단 삭제" 링크로 바로 해지한다. 그러면 닫지 않은 기간의 사용 금액은 그 구독으로 청구할 수 없다. 지불자가 없어진 워크스페이스로 다룰지(#4·#11), 그 기간의 금액을 어떻게 할지, 플랜에 0원이 아닌 기본 요금을 둘지
+41. 0원 플랜의 즉시 해지: Paddle은 0원 구독을 메일의 "결제수단 삭제" 링크로 바로 해지한다. 그러면 닫지 않은 기간의 사용 금액은 그 구독으로 청구할 수 없다. 지불자가 없어진 워크스페이스로 다룰지(#4·#11), 그 기간의 금액을 어떻게 할지, 플랜에 0원이 아닌 기본 요금을 둘지. 연결에서는 사본을 해지로, 결제 계정을 CANCELED로 쓴다(12장). 남은 것은 90번이다
 42. ~~최소 청구 금액: Paddle은 0.70 USD, 0.65 EUR, 100 JPY, 980 KRW보다 적게 청구하지 않는다(`ErrBelowMinimum`). 다음 기간으로 넘길지, 받지 않을지(#9, 25번과 같은 질문)~~ 다음 기간으로 넘긴다(대표, 25번과 같은 답). 최소는 채널의 수금기가 말한다(15장)
 43. 환불의 승인: 라이브의 환불은 대부분 Paddle의 검토를 기다리고, 기다리는 환불이 있으면 다음 환불을 받지 않는다. 정정과 환불(#9, 시나리오 13)이 "요청됨"과 "거절됨"을 어떻게 다룰지. 환불은 결제 시도이고 "요청됨"은 PENDING으로 다시 묻는다(15장). "거절됨"은 70번
 44. Settle 10분: 응답이 오지 않은 청구는 10분 동안 다시 보내지 않고, 그 동안의 "없음"을 믿지 않는다(구현에서 정한 것). Paddle이 그보다 늦게 기록할 수 있다면 늘려야 한다. 라이브 시험과 운영의 기록으로 확인할지
@@ -1072,7 +1175,7 @@ levyan#1에서:
 58. 지불자 없는 워크스페이스를 채우는 받아들이기도 다음 기간부터다. 바로 시작할지
 59. 계정이 많아지면 `levyan.payers.reconcile`이 하루에 한 번 모든 계정을 roster에 묻는다. 그 비용
 60. 운영자 명령: 연결과 결제 계정을 보는 `levyan-admin` 명령이 없다
-61. 국내를 MoR로(대표, 2026-10-31, 잠정): Paddle 샌드박스에서 확인할 것. 원화 가격의 결제창에 한국 카드, 카카오페이, 네이버페이가 보이는지. "한국 주소"를 Paddle이 무엇으로 정하는지, 그래서 결제창에 결제 계정의 나라를 넘겨야 하는지(#12). 국내 카드 매출이 얼마일 때 토스를 들일지
+61. 국내를 MoR로(대표, 2026-10-31, 잠정): Paddle 샌드박스에서 확인할 것. 원화 가격의 결제창에 한국 카드, 카카오페이, 네이버페이가 보이는지. "한국 주소"를 Paddle이 무엇으로 정하는지, 그래서 결제창에 결제 계정의 나라를 넘겨야 하는지(#12). 국내 카드 매출이 얼마일 때 토스를 들일지. 문서에서 찾은 것과 고른 것은 12장의 "국내 결제수단"에, 남은 것은 85번과 86번에 있다
 62. 기간 경계의 채널 전환: 지도를 바꾼 뒤 이미 있는 결제 계정을 옮기는 길이 아직 없다. 토스를 들여 국내 결제 계정을 MoR에서 국내 PG로 옮길 때 필요하다. 카드는 새 채널에서 다시 받아야 한다(38번). 결제 계정의 채널을 기간 경계에서 바꿀지, 새 결제 계정을 만들어 `Use`하게 할지. 다른 통화로 쓴 기간의 정정(19번)과 이어진다
 
 #9를 만들며 생긴 것:
@@ -1100,12 +1203,29 @@ levyan#1에서:
 83. 등록번호의 검사: 열 자리의 모양만 보고 검사 숫자는 보지 않는다(구현에서 정한 것). 고유번호의 규칙을 확인하고 둘 다 검사할지
 84. 세금계산서가 늦을 때: 월합계는 다음 달 10일까지다(제34조③). 기간을 닫는 것이 늦거나 발행 대행이 오래 실패하면 늦은 발급(1%)이 된다(제60조②). 발행하지 못한 채 며칠이 지나면 경보를 낼지(#13)
 
+
+#12(MoR을 결제창·구독 사본·inbox로 이은 것)를 만들며 생긴 것:
+
+85. 결제창에 한국 주소를 넘기는 길(61번): levyan의 서버는 Paddle에 개인정보를 보내지 않는다(구현에서 정한 것, 12장). 그래서 국내 결제수단이 보이려면 지불자가 결제창의 첫 화면에서 한국을 고르거나, 페이지가 지불자의 이메일과 함께 나라를 미리 채워야 한다. Paddle이 `transactionId`로 연 결제창에서도 그 미리 채움을 받는지는 문서에 없다(샌드박스). 받지 않는다면, levyan이 결제 계정의 이메일로 Paddle의 고객과 주소를 만들어 거래에 `customer_id`·`address_id`를 넣을지. 그것은 levyan이 개인정보를 Paddle에 넘기는 것이라(제3자 제공) 대표가 정할 일이다
+86. 국내 카드의 갱신(#12의 댓글): Paddle은 국내 카드를 "구독 지원, 저장 미지원"이라 한다. 매달 갱신이 고객 확인 없이 되는지, 안 된다면 Paddle이 지불자에게 어떻게 승인을 받는지, 그때 결제 시도가 `action_required`로 보이는지. 지금은 가장 새 거래의 마지막 시도가 `action_required`이면 "고객 행동 필요"로 읽는다(12장). 다르게 보이면 읽는 법을 바꾼다. 카카오페이와 네이버페이는 처음 결제한 수단을 저장해 갱신에 쓴다고 한다
+87. 열어 둔 결제창: 같은 결제창을 다시 연다(구현에서 정한 것). Paddle이 결제되지 않은 결제창의 거래를 언제 취소하는지, 아예 하지 않는지 문서에 없다. 오래 열어 둔 거래를 다시 열면 그 사이 바꾼 플랜(`mor.plans`)이 반영되지 않는다. 일정 기간이 지난 결제창은 levyan이 새로 열지
+88. 두 번째 구독의 즉시 해지: 같은 순간에 열린 두 결제창이 둘 다 끝나면 나중에 안 구독을 바로 해지한다(구현에서 정한 것). 0원 플랜이면 청구된 것이 없다. 0원이 아닌 플랜이라면 그 첫 결제를 돌려줘야 하는데, 지금은 돌려주지 않는다(#9의 환불). 플랜이 0원인지 levyan은 확인하지 않는다
+89. 수금 상태의 "언제부터": levyan이 안 때다(구현에서 정한 것). levyan이 멈췄다 돌아오면 그만큼 늦게 시작한다(의심스러우면 덜 청구한다). #11이 유예를 셀 때 MoR의 시각(구독의 `updated_at`, 결제 시도의 시각)을 쓸지
+90. 밖에서 해지된 구독의 열린 기간(41번): 지불자가 Paddle 메일의 링크로 0원 구독을 해지하면 사본은 해지되고 결제 계정은 CANCELED가 된다. 그 결제 계정이 내던 워크스페이스의 닫지 않은 기간의 금액을 어떻게 받을지(#9, #11). 같은 결제 계정에 새 결제창을 받아 청구할지, 지불자 없는 워크스페이스로 다룰지, 받지 않을지
+91. 결제수단을 바꾸는 길: 연체되었거나 고객 행동이 필요한 결제 계정의 지불자가 카드를 바꿀 길이 levyan에 없다. Paddle은 구독의 `management_urls`(임시 토큰이 붙고, 저장하지 말라고 한다)와 결제수단 변경용 거래를 준다. loft의 결제 화면(PR D)이나 #11이 필요로 하면 `PayerService`에 메서드를 더할지
+92. 이벤트 스트림: 키에 `notification.read` 권한을 넣어야 한다. 스트림이 나중에 만든 이벤트를 먼저 보이고 먼저 만든 것을 늦게 보이는지 문서에 없어서, 10분(`subscriptions.Overlap`) 안의 것은 다시 읽는다. 샌드박스와 운영에서 지연을 재서 줄이거나 늘릴지
+93. inbox의 보존: 끝난 notice를 지우지 않는다. 언제까지 둘지(대조 #13이 읽는 기간), Paddle이 이벤트를 90일 두는 것과 맞출지
+94. 운영자 명령: inbox, 구독 사본, 결제창을 보는 `levyan-admin` 명령이 없다(60번과 같다). 실패가 쌓인 notice를 지금 다시 돌리는 명령도 없다. 지금은 길어야 한 시간마다 다시 묻는다
+95. 이벤트 스트림의 첫 읽기: levyan이 그 MoR에 처음 연 결제창보다 10분 전부터 읽는다. 그 전의 이벤트(대시보드에서 만든 상품과 가격 등)는 읽지 않는다. 다른 일에 쓰던 Paddle 계정을 붙인다면 그 전의 구독은 levyan의 것이 아니다(FOREIGN). 계정은 levyan 전용으로 둘지
+
 ## 18. 구현 계획
 
 1단계, 결제 없이 loft 파일럿의 그림자 청구까지: #2 뼈대, #3 가격표, #4 결제 계정과 지불자(14장), #5 계량, #6 금액 계산과 기간 닫기, #7 권한 부여와 스트림(13장), #14 loft 연동, #8 그림자 청구.
 
 2단계, 국내 판매: #9 청구서·정정·결제 원장(15장), #10 국내 PG 어댑터(경계와 후보 어댑터는 11장, 연결과 PG 시험 환경의 완료 기준은 남았다), #11 연체·유예·제한, #13 대조와 경보.
 
-3단계, 해외 판매: #12 MoR 어댑터(경계와 Paddle 후보 어댑터는 12장, 연결과 MoR 샌드박스의 완료 기준인 시나리오 2, 3, 6, 11은 남았다).
+3단계, 해외 판매: #12 MoR(12장). 경계와 Paddle 어댑터, 그리고 결제창·구독 사본·수금 상태·inbox와 이벤트 스트림까지 이었다. 닫은 기간의 금액을 청구하는 MoR 수금기(15장의 `invoices.Collector`)는 다음 PR이고, MoR 샌드박스의 완료 기준인 시나리오 2, 3, 6, 11은 키가 생기면 돌린다.
+
+MoR은 Paddle로 한다(대표, 2026-10-31). 대표의 "국내도 처음에는 MoR" 방향에 따라 MoR 채널을 국내 PG(#10)보다 먼저 잇는다(Claude, 2026-10-31, #12의 댓글): #4의 결제 계정, #9와 #12의 연결, 그 다음 #11과 #13.
 
 다른 저장소: payday#184(계정 호출, payday#190으로 들어갔다), payday#185(권한 사본, payday#188로 들어갔다), payday#186(미터: 선언과 `meter.Reader`는 payday#187로 payday 027b311에 들어갔다), roster#210(계정 상태 확인과 동기 스트림, roster#211로 들어갔고 levyan은 roster 81df289의 `standing`을 쓴다). levyan은 payday 0d342d8을 쓴다.

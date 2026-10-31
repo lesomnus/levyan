@@ -21,6 +21,7 @@ import (
 	"github.com/lesomnus/levyan/server/payers"
 	"github.com/lesomnus/levyan/server/pd"
 	"github.com/lesomnus/levyan/server/relay"
+	"github.com/lesomnus/levyan/server/subscriptions"
 )
 
 // Payers is `levyan.v1.PayerService`: what an account asks of levyan, as
@@ -43,8 +44,13 @@ type Payers struct {
 	// P is who pays, written through S.
 	P payers.Payers
 
+	// M is billing accounts' subscriptions with the merchant of record,
+	// written through S ([Payers.StartCheckout]).
+	M subscriptions.Subscriptions
+
 	// Db is what is read of the workspaces and periods an answer names, once
-	// the walled stack has said the account may see what names them.
+	// the walled stack has said the account may see what names them, and
+	// what a billing account's collection is read with.
 	Db *ent.Client
 }
 

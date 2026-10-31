@@ -1,0 +1,143 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "levyan/subscription.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Checkout is a checkout levyan began with a merchant of record for a billing
+// account on its channel (#12, docs/design.md §12): the MoR's own window, in
+// which the payer gives the MoR a card -- never levyan, never the product --
+// and subscribes to the plan of the billing account's currency (`mor.plans`).
+//
+// It is what a checkout is completed by. A checkout is completed only as
+// levyan recorded it here, for the billing account it was begun for: an id
+// of the MoR's that a page hands back is believed of nothing (`internal/mor`).
+//
+// A billing account has one open at a time, as far as levyan can see to it:
+// a payer who begins again is handed the same one while the MoR still takes
+// it, so that one checkout is finished and one subscription made
+// (`server/subscriptions`).
+//
+// Global, and the account's own, as its billing account is: begun by the
+// account's call (`levyan.v1.PayerService/StartCheckout`), as itself, and
+// completed by that call or by the deployment, when the MoR's notice says it
+// was finished.
+message Checkout {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The account that began it: roster's, by its identifier, and the owner of
+  // the billing account.
+  bytes account = 8 [
+    (orm.field) = {
+      type: TYPE_UUID
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+
+  // The billing account it subscribes.
+  BillingAccount billing_account = 9 [(orm.edge) = {immutable: true}];
+
+  // The merchant of record it was begun with, by the name its adapter
+  // answers (`mor.Channel.Name`: "paddle"), and the MoR's id of it there:
+  // Paddle's transaction, txn_….
+  string mor = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string mor_transaction = 11 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  CheckoutState state = 12;
+
+  // The subscription it started, once the MoR made one.
+  Subscription subscription = 16 [(orm.edge) = {nullable: true}];
+
+  // When the MoR said it was finished, or that it never will be.
+  google.protobuf.Timestamp date_done = 17 [(orm.field) = {nullable: true}];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase. Which checkout started a subscription
+  // is a record of what the payer agreed to.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        // A billing account's checkouts, in the order they were begun.
+        name: "billing_account"
+        refs: [
+          {
+            name: "billing_account"
+            number: 9
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // One row of each checkout of the MoR's: what its notice names.
+        name: "mor_transaction"
+        refs: [
+          {
+            name: "mor"
+            number: 10
+          },
+          {
+            name: "mor_transaction"
+            number: 11
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 40
+    global: {}
+  };
+}
+
+// CheckoutState is where a checkout is.
+enum CheckoutState {
+  CHECKOUT_STATE_UNSPECIFIED = 0;
+
+  // Begun, and not finished: the payer may still be in it, or have left it
+  // for later.
+  CHECKOUT_STATE_OPEN = 1;
+
+  // Finished: the MoR made the subscription it started.
+  CHECKOUT_STATE_COMPLETED = 2;
+
+  // One the MoR says can no longer be finished: another is begun.
+  CHECKOUT_STATE_CANCELED = 3;
+}

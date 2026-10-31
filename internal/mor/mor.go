@@ -6,11 +6,11 @@
 // itself.
 //
 // It is the boundary, and nothing behind it. Which MoR levyan sells through
-// is the owner's decision and has not been made (levyan#12); package paddle
-// is one candidate's adapter, another MoR is another package implementing
-// [Channel], and nothing that uses a channel names one. It knows nothing of
+// is the owner's decision: Paddle (2026-10-31, levyan#12), whose adapter is
+// package paddle. Another MoR is another package implementing [Channel], and
+// nothing that uses a channel names one but the wiring. It knows nothing of
 // billing accounts (#4), invoices (#9) or dunning (#11): they are what calls
-// it.
+// it (`server/subscriptions` is what keeps a billing account's subscription).
 //
 // # What it promises
 //
@@ -36,7 +36,10 @@
 //   - An unknown outcome is asked about before anything is sent again, and
 //     not before [Settle] has passed.
 //   - A webhook is a hint. What it says is not believed: what it names is
-//     asked of the MoR ([Channel.Recheck]), and the answer is.
+//     asked of the MoR ([Channel.Recheck]), and the answer is. And it is not
+//     waited for alone: the MoR's own list of what it noticed
+//     ([Channel.Notices]) is read too, so that a notice reaches levyan when
+//     its webhook cannot.
 //
 // # Once for its key
 //
@@ -192,6 +195,34 @@ type Channel interface {
 	// Recheck asks the MoR about what a notice names, and answers what the
 	// MoR's API says of it now: the only thing of a webhook that is believed.
 	Recheck(ctx context.Context, n Notice) (Rechecked, error)
+
+	// Notices is what the MoR has noticed, as its own list of them answers:
+	// the notices its webhooks are deliveries of, oldest first, a page at a
+	// time ([Read]). It is how a notice reaches levyan when no webhook can --
+	// a deployment the MoR cannot reach -- and how a webhook that never came
+	// is found: a notice read here is the one its webhook delivers, by the
+	// same [Notice.ID], and is no more believed.
+	Notices(ctx context.Context, r Read) (Notices, error)
+}
+
+// Read is where a read of an MoR's notices begins: after the notice After
+// names, or, for a first read with none, with the notices since Since.
+type Read struct {
+	After string
+	Since time.Time
+}
+
+// Notices is a page of an MoR's notices, oldest first, and whether there are
+// more after it.
+type Notices struct {
+	Notices []Notice
+
+	// Last is the ID of the last notice the page read, which the next read
+	// begins after: the last of Notices, or one after it that was no notice
+	// levyan could read -- passed over, as a webhook of it would be refused.
+	Last string
+
+	More bool
 }
 
 // Start is what a checkout starts from.
@@ -214,6 +245,15 @@ type Start struct {
 	// Success is where the checkout sends the payer once they have finished:
 	// an absolute URL.
 	Success string
+
+	// Again is a checkout begun for the same account before and not
+	// finished, as levyan recorded it: answered again -- the same checkout,
+	// opened anew -- while the MoR still takes it, so that a payer who
+	// begins twice finishes one, and one subscription is made. One the MoR
+	// no longer takes is begun anew, and answered with another ID; one that
+	// was finished meanwhile is [Invalid] with [ErrFinished], to complete
+	// instead. Nil begins one.
+	Again *Checkout
 }
 
 // Checkout is a checkout begun.
@@ -236,6 +276,15 @@ type Window struct {
 	Script string
 	Values map[string]string
 	URL    string
+
+	// Environment is the MoR's environment the checkout is in, which its SDK
+	// is told: "sandbox", where test cards move no money, or "production".
+	Environment string
+
+	// Token is the client-side token its SDK is initialized with, among
+	// Values: public, the checkout's, and no key. Empty for an MoR whose
+	// checkout takes none.
+	Token string
 }
 
 // Subscription is a subscription as the MoR says it is: what levyan keeps a
@@ -274,6 +323,29 @@ type Subscription struct {
 	// answers about one subscription, the one updated later is the later,
 	// whatever order they came back in.
 	Updated time.Time
+
+	// Method is how the payer pays, when the answer says: what the checkout
+	// that started it was paid with, from [Channel.CompleteCheckout]. Nil
+	// for an answer that does not say -- [Channel.Subscription] and
+	// [Channel.Recheck] of one -- which is no answer that it has none; how a
+	// subscription is paid afterwards is in its transactions
+	// ([Transaction.Method]).
+	Method *Method
+}
+
+// Method is how a payment was made, as much of it as levyan keeps: never
+// more of a card than its brand and its last four digits.
+type Method struct {
+	// Type is the MoR's name of the kind: card, south_korea_local_card,
+	// kakao_pay, naver_pay, paypal, apple_pay, ….
+	Type string
+
+	// Brand is a card's brand (visa), or the company of a Korean card
+	// (hyundai); empty for a method that is no card.
+	Brand string
+
+	// Last4 is a card's last four digits, when the MoR says them.
+	Last4 string
 }
 
 // Renews is whether the subscription has a next period to bill a charge with:
@@ -463,6 +535,15 @@ type Transaction struct {
 	// Failure is why the last attempt to collect it failed: of a [Failed]
 	// transaction, and of a [Pending] one the MoR is retrying.
 	Failure *Failure
+
+	// Awaiting is whether the MoR waits for the payer to act on its latest
+	// attempt to collect it -- approve it in their card company's app, pass
+	// their bank's check -- before it can: of a [Pending] transaction.
+	Awaiting bool
+
+	// Method is what its latest attempt to collect it was made with: nil
+	// for one never attempted, as a charge [Scheduled] is.
+	Method *Method
 }
 
 // Line is a line of a transaction.

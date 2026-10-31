@@ -13,6 +13,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
 )
@@ -28,6 +29,10 @@ type Workspaces struct {
 
 	// P is who pays, written through S.
 	P payers.Payers
+
+	// Db is what the collection of the billing account a workspace is paid
+	// for with is read with.
+	Db *ent.Client
 }
 
 func (h Workspaces) product(ctx context.Context) (pdid.Id, error) {
@@ -73,8 +78,12 @@ func (h Workspaces) Arrive(ctx context.Context, req *levyanv1.ArriveRequest) (*l
 	if err := h.P.On(h.S).Label(ctx, product, ws, req.GetLabel()); err != nil {
 		return nil, err
 	}
+	p, err := h.payer(ctx, st)
+	if err != nil {
+		return nil, err
+	}
 
-	return levyanv1.ArriveResponse_builder{Payer: payerOf(st)}.Build(), nil
+	return levyanv1.ArriveResponse_builder{Payer: p}.Build(), nil
 }
 
 func (h Workspaces) Leave(ctx context.Context, req *levyanv1.LeaveRequest) (*levyanv1.LeaveResponse, error) {
@@ -95,8 +104,12 @@ func (h Workspaces) Leave(ctx context.Context, req *levyanv1.LeaveRequest) (*lev
 	if err != nil {
 		return nil, err
 	}
+	p, err := h.payer(ctx, st)
+	if err != nil {
+		return nil, err
+	}
 
-	return levyanv1.LeaveResponse_builder{Payer: payerOf(st)}.Build(), nil
+	return levyanv1.LeaveResponse_builder{Payer: p}.Build(), nil
 }
 
 func (h Workspaces) Offer(ctx context.Context, req *levyanv1.OfferRequest) (*levyanv1.OfferResponse, error) {
@@ -140,8 +153,31 @@ func (h Workspaces) GetPayer(ctx context.Context, req *levyanv1.GetPayerRequest)
 	if err != nil {
 		return nil, err
 	}
+	p, err := h.payer(ctx, st)
+	if err != nil {
+		return nil, err
+	}
 
-	return levyanv1.GetPayerResponse_builder{Payer: payerOf(st)}.Build(), nil
+	return levyanv1.GetPayerResponse_builder{Payer: p}.Build(), nil
+}
+
+// payer is who pays for a workspace, as the API says it, with the collection
+// of the billing account it is paid for with now: of whether what it is
+// billed can be collected, and why not, and nothing of how the payer pays.
+func (h Workspaces) payer(ctx context.Context, st payers.State) (*levyanv1.Payer, error) {
+	out := payerOf(st)
+	if st.Current == nil || h.Db == nil {
+		return out, nil
+	}
+	c, err := collectionOfLink(ctx, h.Db, st.Current.BillingAccountId)
+	if err != nil {
+		return nil, err
+	}
+	if c != nil {
+		out.SetCollection(c)
+	}
+
+	return out, nil
 }
 
 // payerOf is who pays for a workspace, as the API says it.

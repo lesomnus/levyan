@@ -13,6 +13,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/checkout"
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/departure"
@@ -22,6 +23,8 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/invoiceline"
 	"github.com/lesomnus/levyan/internal/ent/link"
 	"github.com/lesomnus/levyan/internal/ent/meter"
+	"github.com/lesomnus/levyan/internal/ent/notice"
+	"github.com/lesomnus/levyan/internal/ent/noticecursor"
 	"github.com/lesomnus/levyan/internal/ent/offer"
 	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
@@ -35,6 +38,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/series"
 	"github.com/lesomnus/levyan/internal/ent/servicekey"
 	"github.com/lesomnus/levyan/internal/ent/statement"
+	"github.com/lesomnus/levyan/internal/ent/subscription"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
 	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent"
@@ -104,6 +108,7 @@ func checkColumn(t, c string) error {
 			archived.Table:       archived.ValidColumn,
 			audit.Table:          audit.ValidColumn,
 			billingaccount.Table: billingaccount.ValidColumn,
+			checkout.Table:       checkout.ValidColumn,
 			credit.Table:         credit.ValidColumn,
 			creditnote.Table:     creditnote.ValidColumn,
 			departure.Table:      departure.ValidColumn,
@@ -113,6 +118,8 @@ func checkColumn(t, c string) error {
 			invoiceline.Table:    invoiceline.ValidColumn,
 			link.Table:           link.ValidColumn,
 			meter.Table:          meter.ValidColumn,
+			notice.Table:         notice.ValidColumn,
+			noticecursor.Table:   noticecursor.ValidColumn,
 			offer.Table:          offer.ValidColumn,
 			operator.Table:       operator.ValidColumn,
 			outbox.Table:         outbox.ValidColumn,
@@ -126,6 +133,7 @@ func checkColumn(t, c string) error {
 			series.Table:         series.ValidColumn,
 			servicekey.Table:     servicekey.ValidColumn,
 			statement.Table:      statement.ValidColumn,
+			subscription.Table:   subscription.ValidColumn,
 			tenant.Table:         tenant.ValidColumn,
 			workspace.Table:      workspace.ValidColumn,
 		})

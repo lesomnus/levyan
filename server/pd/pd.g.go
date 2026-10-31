@@ -21,6 +21,7 @@ import (
 	entArchived "github.com/lesomnus/levyan/internal/ent/archived"
 	entAudit "github.com/lesomnus/levyan/internal/ent/audit"
 	entBillingAccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
+	entCheckout "github.com/lesomnus/levyan/internal/ent/checkout"
 	entCredit "github.com/lesomnus/levyan/internal/ent/credit"
 	entCreditNote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	entDeparture "github.com/lesomnus/levyan/internal/ent/departure"
@@ -30,6 +31,8 @@ import (
 	entInvoiceLine "github.com/lesomnus/levyan/internal/ent/invoiceline"
 	entLink "github.com/lesomnus/levyan/internal/ent/link"
 	entMeter "github.com/lesomnus/levyan/internal/ent/meter"
+	entNotice "github.com/lesomnus/levyan/internal/ent/notice"
+	entNoticeCursor "github.com/lesomnus/levyan/internal/ent/noticecursor"
 	entOffer "github.com/lesomnus/levyan/internal/ent/offer"
 	entOperator "github.com/lesomnus/levyan/internal/ent/operator"
 	entOutbox "github.com/lesomnus/levyan/internal/ent/outbox"
@@ -44,6 +47,7 @@ import (
 	entSeries "github.com/lesomnus/levyan/internal/ent/series"
 	entServiceKey "github.com/lesomnus/levyan/internal/ent/servicekey"
 	entStatement "github.com/lesomnus/levyan/internal/ent/statement"
+	entSubscription "github.com/lesomnus/levyan/internal/ent/subscription"
 	entTenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	entWorkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	bare "github.com/lesomnus/levyan/server/bare"
@@ -120,6 +124,7 @@ const (
 	ArchivedDomain       pdid.Domain = 5   // "archived"
 	AuditDomain          pdid.Domain = 3   // "audit"
 	BillingAccountDomain pdid.Domain = 19  // "billing-account"
+	CheckoutDomain       pdid.Domain = 40  // "checkout"
 	CreditDomain         pdid.Domain = 27  // "credit"
 	CreditNoteDomain     pdid.Domain = 25  // "credit-note"
 	DepartureDomain      pdid.Domain = 22  // "departure"
@@ -129,6 +134,8 @@ const (
 	InvoiceLineDomain    pdid.Domain = 24  // "invoice-line"
 	LinkDomain           pdid.Domain = 20  // "link"
 	MeterDomain          pdid.Domain = 10  // "meter"
+	NoticeDomain         pdid.Domain = 42  // "notice"
+	NoticeCursorDomain   pdid.Domain = 43  // "notice-cursor"
 	OfferDomain          pdid.Domain = 21  // "offer"
 	OperatorDomain       pdid.Domain = 8   // "operator"
 	OutboxDomain         pdid.Domain = 4   // "outbox"
@@ -142,6 +149,7 @@ const (
 	SeriesDomain         pdid.Domain = 14  // "series"
 	ServiceKeyDomain     pdid.Domain = 9   // "service-key"
 	StatementDomain      pdid.Domain = 17  // "statement"
+	SubscriptionDomain   pdid.Domain = 41  // "subscription"
 	TenantDomain         pdid.Domain = 1   // "tenant"
 	WorkspaceDomain      pdid.Domain = 12  // "workspace"
 )
@@ -151,6 +159,7 @@ func init() {
 	pdid.Register("levyan.Archived", ArchivedDomain, "archived")
 	pdid.Register("levyan.Audit", AuditDomain, "audit")
 	pdid.Register("levyan.BillingAccount", BillingAccountDomain, "billing-account")
+	pdid.Register("levyan.Checkout", CheckoutDomain, "checkout")
 	pdid.Register("levyan.Credit", CreditDomain, "credit")
 	pdid.Register("levyan.CreditNote", CreditNoteDomain, "credit-note")
 	pdid.Register("levyan.Departure", DepartureDomain, "departure")
@@ -160,6 +169,8 @@ func init() {
 	pdid.Register("levyan.InvoiceLine", InvoiceLineDomain, "invoice-line")
 	pdid.Register("levyan.Link", LinkDomain, "link")
 	pdid.Register("levyan.Meter", MeterDomain, "meter")
+	pdid.Register("levyan.Notice", NoticeDomain, "notice")
+	pdid.Register("levyan.NoticeCursor", NoticeCursorDomain, "notice-cursor")
 	pdid.Register("levyan.Offer", OfferDomain, "offer")
 	pdid.Register("levyan.Operator", OperatorDomain, "operator")
 	pdid.Register("levyan.Outbox", OutboxDomain, "outbox")
@@ -173,6 +184,7 @@ func init() {
 	pdid.Register("levyan.Series", SeriesDomain, "series")
 	pdid.Register("levyan.ServiceKey", ServiceKeyDomain, "service-key")
 	pdid.Register("levyan.Statement", StatementDomain, "statement")
+	pdid.Register("levyan.Subscription", SubscriptionDomain, "subscription")
 	pdid.Register("levyan.Tenant", TenantDomain, "tenant")
 	pdid.Register("levyan.Workspace", WorkspaceDomain, "workspace")
 
@@ -186,6 +198,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.Archived":       ArchivedDomain,
 	"levyan.Audit":          AuditDomain,
 	"levyan.BillingAccount": BillingAccountDomain,
+	"levyan.Checkout":       CheckoutDomain,
 	"levyan.Credit":         CreditDomain,
 	"levyan.CreditNote":     CreditNoteDomain,
 	"levyan.Departure":      DepartureDomain,
@@ -195,6 +208,8 @@ var Domains = map[string]pdid.Domain{
 	"levyan.InvoiceLine":    InvoiceLineDomain,
 	"levyan.Link":           LinkDomain,
 	"levyan.Meter":          MeterDomain,
+	"levyan.Notice":         NoticeDomain,
+	"levyan.NoticeCursor":   NoticeCursorDomain,
 	"levyan.Offer":          OfferDomain,
 	"levyan.Operator":       OperatorDomain,
 	"levyan.Outbox":         OutboxDomain,
@@ -208,6 +223,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.Series":         SeriesDomain,
 	"levyan.ServiceKey":     ServiceKeyDomain,
 	"levyan.Statement":      StatementDomain,
+	"levyan.Subscription":   SubscriptionDomain,
 	"levyan.Tenant":         TenantDomain,
 	"levyan.Workspace":      WorkspaceDomain,
 }
@@ -232,6 +248,8 @@ var IndexRenames = []rename.Index{
 	{Table: "audit", From: "audit_date_created_id", To: "audit_by_time"},
 	{Table: "billingaccount", From: "billingaccount_date_created_id", To: "billingaccount_page"},
 	{Table: "billingaccount", From: "billingaccount_owner_date_created_id", To: "billingaccount_owner"},
+	{Table: "checkout", From: "checkout_billing_account_id_date_created_id", To: "checkout_billing_account"},
+	{Table: "checkout", From: "checkout_mor_mor_transaction", To: "checkout_mor_transaction"},
 	{Table: "credit", From: "credit_tenant_id_date_created_id", To: "credit_page"},
 	{Table: "credit", From: "credit_tenant_id_billing_account_id_date_created", To: "credit_billing"},
 	{Table: "creditnote", From: "creditnote_tenant_id_date_created_id", To: "creditnote_page"},
@@ -255,6 +273,9 @@ var IndexRenames = []rename.Index{
 	{Table: "link", From: "link_tenant_id_payer_date_start", To: "link_payer"},
 	{Table: "meter", From: "meter_tenant_id_date_created_id", To: "meter_page"},
 	{Table: "meter", From: "meter_key_tenant_id", To: "meter_keyed"},
+	{Table: "notice", From: "notice_mor_mor_event", To: "notice_mor_event"},
+	{Table: "notice", From: "notice_date_done_date_created", To: "notice_waiting"},
+	{Table: "notice", From: "notice_mor_mor_transaction", To: "notice_mor_transaction"},
 	{Table: "offer", From: "offer_tenant_id_date_created_id", To: "offer_page"},
 	{Table: "offer", From: "offer_tenant_id_account_answer", To: "offer_account"},
 	{Table: "offer", From: "offer_workspace_id_date_created_id", To: "offer_workspace"},
@@ -285,6 +306,9 @@ var IndexRenames = []rename.Index{
 	{Table: "statement", From: "statement_tenant_id_date_start_id", To: "statement_page"},
 	{Table: "statement", From: "statement_tenant_id_workspace_id_period_id", To: "statement_closed"},
 	{Table: "statement", From: "statement_workspace_id_date_start_id", To: "statement_workspace"},
+	{Table: "subscription", From: "subscription_date_created_id", To: "subscription_page"},
+	{Table: "subscription", From: "subscription_billing_account_id_date_created_id", To: "subscription_billing_account"},
+	{Table: "subscription", From: "subscription_mor_mor_subscription", To: "subscription_mor_subscription"},
 	{Table: "tenant", From: "tenant_date_created_id", To: "tenant_page"},
 	{Table: "workspace", From: "workspace_tenant_id_date_created_id", To: "workspace_page"},
 	{Table: "workspace", From: "workspace_key_tenant_id", To: "workspace_keyed"},
@@ -400,6 +424,19 @@ func (wall) BillingAccountScope(ctx context.Context) (predicate.BillingAccount, 
 		}
 
 		return r.BillingAccount(ctx, a)
+	}
+
+	return nil, nil
+}
+
+// CheckoutScope: declared `global`, so it is not behind the wall at all.
+func (wall) CheckoutScope(ctx context.Context) (predicate.Checkout, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Checkout == nil {
+			return nothing[predicate.Checkout](), nil
+		}
+
+		return r.Checkout(ctx, a)
 	}
 
 	return nil, nil
@@ -560,6 +597,32 @@ func (wall) MeterScope(ctx context.Context) (predicate.Meter, error) {
 	}
 
 	return entMeter.TenantIdIn(vs...), nil
+}
+
+// NoticeScope: declared `global`, so it is not behind the wall at all.
+func (wall) NoticeScope(ctx context.Context) (predicate.Notice, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Notice == nil {
+			return nothing[predicate.Notice](), nil
+		}
+
+		return r.Notice(ctx, a)
+	}
+
+	return nil, nil
+}
+
+// NoticeCursorScope: declared `global`, so it is not behind the wall at all.
+func (wall) NoticeCursorScope(ctx context.Context) (predicate.NoticeCursor, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.NoticeCursor == nil {
+			return nothing[predicate.NoticeCursor](), nil
+		}
+
+		return r.NoticeCursor(ctx, a)
+	}
+
+	return nil, nil
 }
 
 // OfferScope: a row belongs to the tenant its "tenant" reaches.
@@ -781,6 +844,19 @@ func (wall) StatementScope(ctx context.Context) (predicate.Statement, error) {
 	return entStatement.TenantIdIn(vs...), nil
 }
 
+// SubscriptionScope: declared `global`, so it is not behind the wall at all.
+func (wall) SubscriptionScope(ctx context.Context) (predicate.Subscription, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Subscription == nil {
+			return nothing[predicate.Subscription](), nil
+		}
+
+		return r.Subscription(ctx, a)
+	}
+
+	return nil, nil
+}
+
 // TenantScope: a tenant is inside itself, which is what a tenant being a wall comes down to.
 func (wall) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 	if a, r, ok := accountReads(ctx); ok {
@@ -873,6 +949,11 @@ func (x grouped) BillingAccountScope(ctx context.Context) (predicate.BillingAcco
 	return nil, nil
 }
 
+// CheckoutScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) CheckoutScope(ctx context.Context) (predicate.Checkout, error) {
+	return nil, nil
+}
+
 // CreditScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) CreditScope(ctx context.Context) (predicate.Credit, error) {
 	return nil, nil
@@ -954,6 +1035,16 @@ func (x grouped) LinkScope(ctx context.Context) (predicate.Link, error) {
 
 // MeterScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) MeterScope(ctx context.Context) (predicate.Meter, error) {
+	return nil, nil
+}
+
+// NoticeScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) NoticeScope(ctx context.Context) (predicate.Notice, error) {
+	return nil, nil
+}
+
+// NoticeCursorScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) NoticeCursorScope(ctx context.Context) (predicate.NoticeCursor, error) {
 	return nil, nil
 }
 
@@ -1085,6 +1176,11 @@ func (x grouped) StatementScope(ctx context.Context) (predicate.Statement, error
 	}
 
 	return entStatement.WorkspaceIdIn(vs...), nil
+}
+
+// SubscriptionScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) SubscriptionScope(ctx context.Context) (predicate.Subscription, error) {
+	return nil, nil
 }
 
 // TenantScope: in no set -- it declared no field 3, so this narrows nothing.
@@ -1822,6 +1918,35 @@ func filterBillingAccount(f *levyan.BillingAccountFilter) (predicate.BillingAcco
 	}
 
 	return entBillingAccount.And(ps...), nil
+}
+
+type sinkCheckout struct {
+	levyan.CheckoutServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Checkout() levyan.CheckoutServiceServer {
+	return sinkCheckout{s.Server.Checkout(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkCheckout) Apply(ctx context.Context, req *levyan.CheckoutApplyRequest) (*levyan.Checkout, error) {
+	seen.Forget(s.store.Db.Driver(), "Checkout", req.GetRef())
+
+	return s.CheckoutServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkCheckout.Apply].
+func (s sinkCheckout) Patch(ctx context.Context, req *levyan.CheckoutPatchRequest) (*levyan.Checkout, error) {
+	seen.Forget(s.store.Db.Driver(), "Checkout", req.GetRef())
+
+	return s.CheckoutServiceServer.Patch(ctx, req)
 }
 
 type sinkCredit struct {
@@ -6965,6 +7090,221 @@ func filterStatement(f *levyan.StatementFilter) (predicate.Statement, error) {
 	return entStatement.And(ps...), nil
 }
 
+type sinkSubscription struct {
+	levyan.SubscriptionServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Subscription() levyan.SubscriptionServiceServer {
+	return sinkSubscription{s.Server.Subscription(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkSubscription) Apply(ctx context.Context, req *levyan.SubscriptionApplyRequest) (*levyan.Subscription, error) {
+	seen.Forget(s.store.Db.Driver(), "Subscription", req.GetRef())
+
+	return s.SubscriptionServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkSubscription.Apply].
+func (s sinkSubscription) Patch(ctx context.Context, req *levyan.SubscriptionPatchRequest) (*levyan.Subscription, error) {
+	seen.Forget(s.store.Db.Driver(), "Subscription", req.GetRef())
+
+	return s.SubscriptionServiceServer.Patch(ctx, req)
+}
+
+// orderSubscription is how Subscriptions come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderSubscription = []sqlpage.Order{
+	{Column: entSubscription.FieldDateCreated, Desc: false},
+	{Column: entSubscription.FieldId, Desc: false},
+}
+
+func afterSubscription(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextSubscription(last *ent.Subscription, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderBySubscription is an order as ent orders a query by it.
+func orderBySubscription(by []sqlpage.Order) []entSubscription.OrderOption {
+	out := make([]entSubscription.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// SubscriptionPageSize is what a request that did not say gets, and
+	// SubscriptionPageLimit is the most it gets however loudly it asks.
+	SubscriptionPageSize  = 50
+	SubscriptionPageLimit = 200
+
+	// SubscriptionFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	SubscriptionFilterLimit = 32
+)
+
+// List answers with the Subscriptions that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkSubscription) List(ctx context.Context, req *levyan.SubscriptionListRequest) (*levyan.SubscriptionListResponse, error) {
+	q := s.store.Db.Subscription.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.SubscriptionNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > SubscriptionFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), SubscriptionFilterLimit)
+		}
+
+		ps := make([]predicate.Subscription, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterSubscription(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entSubscription.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderSubscription, afterSubscription, nextSubscription, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), SubscriptionPageSize, SubscriptionPageLimit)
+	us, err := q.Order(orderBySubscription(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Subscription, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.SubscriptionListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterSubscription turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterSubscription(f *levyan.SubscriptionFilter) (predicate.Subscription, error) {
+	ps := make([]predicate.Subscription, 0, 1)
+	if f.HasRef() {
+		p, err := bare.SubscriptionPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasBillingAccount() {
+		w := f.GetBillingAccount()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "billing_account: %s", err)
+			}
+
+			ps = append(ps, entSubscription.BillingAccountIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.BillingAccountPick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entSubscription.HasBillingAccountWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entSubscription.And(ps...), nil
+}
+
 type sinkTenant struct {
 	levyan.TenantServiceServer
 	store  bare.Store
@@ -8789,6 +9129,98 @@ func (s accountsBillingAccount) List(ctx context.Context, req *levyan.BillingAcc
 	return s.BillingAccountServiceServer.List(ctx, req)
 }
 
+func (s Gate) Subscription() levyan.SubscriptionServiceServer {
+	return accountsSubscription{s.Next().Subscription()}
+}
+
+// accountsSubscription is SubscriptionService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsSubscription struct {
+	levyan.SubscriptionServiceServer
+}
+
+func (s accountsSubscription) Add(ctx context.Context, req *levyan.SubscriptionAddRequest) (*levyan.Subscription, error) {
+	if err := gate.AsAccount(ctx, levyan.SubscriptionService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SubscriptionServiceServer.Add(ctx, req)
+}
+
+func (s accountsSubscription) Get(ctx context.Context, req *levyan.SubscriptionGetRequest) (*levyan.Subscription, error) {
+	if err := gate.AsAccount(ctx, levyan.SubscriptionService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SubscriptionServiceServer.Get(ctx, req)
+}
+
+func (s accountsSubscription) Patch(ctx context.Context, req *levyan.SubscriptionPatchRequest) (*levyan.Subscription, error) {
+	if err := gate.AsAccount(ctx, levyan.SubscriptionService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SubscriptionServiceServer.Patch(ctx, req)
+}
+
+func (s accountsSubscription) Apply(ctx context.Context, req *levyan.SubscriptionApplyRequest) (*levyan.Subscription, error) {
+	if err := gate.AsAccount(ctx, levyan.SubscriptionService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SubscriptionServiceServer.Apply(ctx, req)
+}
+
+func (s accountsSubscription) List(ctx context.Context, req *levyan.SubscriptionListRequest) (*levyan.SubscriptionListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.SubscriptionService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SubscriptionServiceServer.List(ctx, req)
+}
+
+func (s Gate) Checkout() levyan.CheckoutServiceServer {
+	return accountsCheckout{s.Next().Checkout()}
+}
+
+// accountsCheckout is CheckoutService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsCheckout struct{ levyan.CheckoutServiceServer }
+
+func (s accountsCheckout) Add(ctx context.Context, req *levyan.CheckoutAddRequest) (*levyan.Checkout, error) {
+	if err := gate.AsAccount(ctx, levyan.CheckoutService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CheckoutServiceServer.Add(ctx, req)
+}
+
+func (s accountsCheckout) Get(ctx context.Context, req *levyan.CheckoutGetRequest) (*levyan.Checkout, error) {
+	if err := gate.AsAccount(ctx, levyan.CheckoutService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CheckoutServiceServer.Get(ctx, req)
+}
+
+func (s accountsCheckout) Patch(ctx context.Context, req *levyan.CheckoutPatchRequest) (*levyan.Checkout, error) {
+	if err := gate.AsAccount(ctx, levyan.CheckoutService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CheckoutServiceServer.Patch(ctx, req)
+}
+
+func (s accountsCheckout) Apply(ctx context.Context, req *levyan.CheckoutApplyRequest) (*levyan.Checkout, error) {
+	if err := gate.AsAccount(ctx, levyan.CheckoutService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.CheckoutServiceServer.Apply(ctx, req)
+}
+
 // accountsTenant is TenantService as the gate serves it to a call an account
 // makes as itself: refused every method but the ones the schema marks the
 // account's own. See [gate.AsAccount].
@@ -10050,6 +10482,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedAudit.md, describedAudit.secret, describedAudit.personal
 	case BillingAccountDomain:
 		return describedBillingAccount.md, describedBillingAccount.secret, describedBillingAccount.personal
+	case CheckoutDomain:
+		return describedCheckout.md, describedCheckout.secret, describedCheckout.personal
 	case CreditDomain:
 		return describedCredit.md, describedCredit.secret, describedCredit.personal
 	case CreditNoteDomain:
@@ -10068,6 +10502,10 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedLink.md, describedLink.secret, describedLink.personal
 	case MeterDomain:
 		return describedMeter.md, describedMeter.secret, describedMeter.personal
+	case NoticeDomain:
+		return describedNotice.md, describedNotice.secret, describedNotice.personal
+	case NoticeCursorDomain:
+		return describedNoticeCursor.md, describedNoticeCursor.secret, describedNoticeCursor.personal
 	case OfferDomain:
 		return describedOffer.md, describedOffer.secret, describedOffer.personal
 	case OperatorDomain:
@@ -10094,6 +10532,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedServiceKey.md, describedServiceKey.secret, describedServiceKey.personal
 	case StatementDomain:
 		return describedStatement.md, describedStatement.secret, describedStatement.personal
+	case SubscriptionDomain:
+		return describedSubscription.md, describedSubscription.secret, describedSubscription.personal
 	case TenantDomain:
 		return describedTenant.md, describedTenant.secret, describedTenant.personal
 	case WorkspaceDomain:
@@ -10135,6 +10575,9 @@ var (
 	describedBillingAccount = describe((*levyan.BillingAccount)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{5, 12, 16, 17, 18})
+	describedCheckout = describe((*levyan.Checkout)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 	describedCredit = describe((*levyan.Credit)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -10160,6 +10603,12 @@ var (
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedMeter = describe((*levyan.Meter)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
+	describedNotice = describe((*levyan.Notice)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
+	describedNoticeCursor = describe((*levyan.NoticeCursor)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedOffer = describe((*levyan.Offer)(nil),
@@ -10201,6 +10650,9 @@ var (
 	describedStatement = describe((*levyan.Statement)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedSubscription = describe((*levyan.Subscription)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{25})
 	describedTenant = describe((*levyan.Tenant)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -10229,6 +10681,7 @@ func added(by string) bool {
 	switch by {
 	case levyan.AuditService_Add_FullMethodName,
 		levyan.BillingAccountService_Add_FullMethodName,
+		levyan.CheckoutService_Add_FullMethodName,
 		levyan.CreditService_Add_FullMethodName,
 		levyan.CreditNoteService_Add_FullMethodName,
 		levyan.DepartureService_Add_FullMethodName,
@@ -10250,6 +10703,7 @@ func added(by string) bool {
 		levyan.SeriesService_Add_FullMethodName,
 		levyan.ServiceKeyService_Add_FullMethodName,
 		levyan.StatementService_Add_FullMethodName,
+		levyan.SubscriptionService_Add_FullMethodName,
 		levyan.TenantService_Add_FullMethodName,
 		levyan.WorkspaceService_Add_FullMethodName:
 		return true
@@ -10872,6 +11326,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 	switch key.Domain() {
 	case BillingAccountDomain:
 		vs, err = rowsBillingAccount(ctx, s.Db, entBillingAccount.IdEQ(uuid.UUID(key)))
+	case CheckoutDomain:
+		vs, err = rowsCheckout(ctx, s.Db, entCheckout.IdEQ(uuid.UUID(key)))
 	case CreditDomain:
 		vs, err = rowsCredit(ctx, s.Db, entCredit.IdEQ(uuid.UUID(key)))
 	case CreditNoteDomain:
@@ -10890,6 +11346,10 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsLink(ctx, s.Db, entLink.IdEQ(uuid.UUID(key)))
 	case MeterDomain:
 		vs, err = rowsMeter(ctx, s.Db, entMeter.IdEQ(uuid.UUID(key)))
+	case NoticeDomain:
+		vs, err = rowsNotice(ctx, s.Db, entNotice.IdEQ(uuid.UUID(key)))
+	case NoticeCursorDomain:
+		vs, err = rowsNoticeCursor(ctx, s.Db, entNoticeCursor.IdEQ(uuid.UUID(key)))
 	case OfferDomain:
 		vs, err = rowsOffer(ctx, s.Db, entOffer.IdEQ(uuid.UUID(key)))
 	case OperatorDomain:
@@ -10910,6 +11370,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsServiceKey(ctx, s.Db, entServiceKey.IdEQ(uuid.UUID(key)))
 	case StatementDomain:
 		vs, err = rowsStatement(ctx, s.Db, entStatement.IdEQ(uuid.UUID(key)))
+	case SubscriptionDomain:
+		vs, err = rowsSubscription(ctx, s.Db, entSubscription.IdEQ(uuid.UUID(key)))
 	case TenantDomain:
 		vs, err = rowsTenant(ctx, s.Db, entTenant.IdEQ(uuid.UUID(key)))
 	case WorkspaceDomain:
@@ -11058,7 +11520,7 @@ func (v *keptTrail) write(ctx context.Context) error {
 // row's seal covers (payday#115).
 func isSealed(key pdid.Id) bool {
 	switch key.Domain() {
-	case BillingAccountDomain, CreditNoteDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain:
+	case BillingAccountDomain, CreditNoteDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain, SubscriptionDomain:
 		return true
 	}
 
@@ -11275,9 +11737,15 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 		archived = archivedDigests(n)
 	}
 
-	out := audit.Rows{Skipped: []audit.Skipped{}}
+	out := audit.Rows{Skipped: []audit.Skipped{
+		{Kind: "notice", Why: "the inbox of a merchant of record's notices: hints, none believed, each kept once by the MoR's id of it and taken by a loop within seconds; what one leads to is asked of the MoR and written through the servers"},
+		{Kind: "notice-cursor", Why: "where the pull of a merchant of record's events has read to: read again from an earlier place, a pull finds only what the inbox keeps already"},
+	}}
 	if err := audit.CheckKind(ctx, d, checkedBillingAccount(db), archived, &out); err != nil {
 		return out, fmt.Errorf("billing-account: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedCheckout(db), archived, &out); err != nil {
+		return out, fmt.Errorf("checkout: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedCredit(db), archived, &out); err != nil {
 		return out, fmt.Errorf("credit: %w", err)
@@ -11336,6 +11804,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	if err := audit.CheckKind(ctx, d, checkedStatement(db), archived, &out); err != nil {
 		return out, fmt.Errorf("statement: %w", err)
 	}
+	if err := audit.CheckKind(ctx, d, checkedSubscription(db), archived, &out); err != nil {
+		return out, fmt.Errorf("subscription: %w", err)
+	}
 	if err := audit.CheckKind(ctx, d, checkedTenant(db), archived, &out); err != nil {
 		return out, fmt.Errorf("tenant: %w", err)
 	}
@@ -11385,6 +11856,52 @@ func checkedBillingAccount(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsBillingAccount(ctx, db, entBillingAccount.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedCheckout is what a check of the rows reads of the checkout kind.
+func checkedCheckout(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Checkout) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsCheckout(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: CheckoutDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entCheckout.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entCheckout.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, CheckoutDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsCheckout(ctx, db, entCheckout.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -12302,6 +12819,58 @@ func checkedStatement(db *ent.Client) audit.Kind {
 	}
 }
 
+// checkedSubscription is what a check of the rows reads of the subscription kind.
+func checkedSubscription(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Subscription) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsSubscription(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: SubscriptionDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entSubscription.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entSubscription.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, SubscriptionDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsSubscription(ctx, db, entSubscription.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
 // checkedTenant is what a check of the rows reads of the tenant kind.
 func checkedTenant(db *ent.Client) audit.Kind {
 	read := func(ctx context.Context, ps ...predicate.Tenant) (audit.Page, error) {
@@ -12402,6 +12971,26 @@ func rowsBillingAccount(ctx context.Context, db *ent.Client, ps ...predicate.Bil
 	bare.BillingAccountSelectInit(q, nil)
 
 	vs, err := q.Order(entBillingAccount.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsCheckout is the rows `ps` says of the checkout kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsCheckout(ctx context.Context, db *ent.Client, ps ...predicate.Checkout) ([]audit.Live, error) {
+	q := db.Checkout.Query().Where(ps...)
+	bare.CheckoutSelectInit(q, nil)
+
+	vs, err := q.Order(entCheckout.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -12582,6 +13171,44 @@ func rowsMeter(ctx context.Context, db *ent.Client, ps ...predicate.Meter) ([]au
 	bare.MeterSelectInit(q, nil)
 
 	vs, err := q.Order(entMeter.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsNotice is the rows `ps` says of the notice kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsNotice(ctx context.Context, db *ent.Client, ps ...predicate.Notice) ([]audit.Live, error) {
+	q := db.Notice.Query().Where(ps...)
+
+	vs, err := q.Order(entNotice.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsNoticeCursor is the rows `ps` says of the notice-cursor kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsNoticeCursor(ctx context.Context, db *ent.Client, ps ...predicate.NoticeCursor) ([]audit.Live, error) {
+	q := db.NoticeCursor.Query().Where(ps...)
+
+	vs, err := q.Order(entNoticeCursor.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -12782,6 +13409,26 @@ func rowsStatement(ctx context.Context, db *ent.Client, ps ...predicate.Statemen
 	bare.StatementSelectInit(q, nil)
 
 	vs, err := q.Order(entStatement.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsSubscription is the rows `ps` says of the subscription kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsSubscription(ctx context.Context, db *ent.Client, ps ...predicate.Subscription) ([]audit.Live, error) {
+	q := db.Subscription.Query().Where(ps...)
+	bare.SubscriptionSelectInit(q, nil)
+
+	vs, err := q.Order(entSubscription.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -13059,6 +13706,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 			switch d {
 			case BillingAccountDomain:
 				rows, err = rowsBillingAccount(ctx, db, entBillingAccount.IdIn(uuids(page)...))
+			case CheckoutDomain:
+				rows, err = rowsCheckout(ctx, db, entCheckout.IdIn(uuids(page)...))
 			case CreditDomain:
 				rows, err = rowsCredit(ctx, db, entCredit.IdIn(uuids(page)...))
 			case CreditNoteDomain:
@@ -13097,6 +13746,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 				rows, err = rowsServiceKey(ctx, db, entServiceKey.IdIn(uuids(page)...))
 			case StatementDomain:
 				rows, err = rowsStatement(ctx, db, entStatement.IdIn(uuids(page)...))
+			case SubscriptionDomain:
+				rows, err = rowsSubscription(ctx, db, entSubscription.IdIn(uuids(page)...))
 			case TenantDomain:
 				rows, err = rowsTenant(ctx, db, entTenant.IdIn(uuids(page)...))
 			case WorkspaceDomain:
@@ -13217,6 +13868,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 		switch d {
 		case BillingAccountDomain:
 			rows, err = rowsBillingAccount(ctx, s.db, entBillingAccount.IdIn(uuids(ids)...))
+		case CheckoutDomain:
+			rows, err = rowsCheckout(ctx, s.db, entCheckout.IdIn(uuids(ids)...))
 		case CreditDomain:
 			rows, err = rowsCredit(ctx, s.db, entCredit.IdIn(uuids(ids)...))
 		case CreditNoteDomain:
@@ -13255,6 +13908,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 			rows, err = rowsServiceKey(ctx, s.db, entServiceKey.IdIn(uuids(ids)...))
 		case StatementDomain:
 			rows, err = rowsStatement(ctx, s.db, entStatement.IdIn(uuids(ids)...))
+		case SubscriptionDomain:
+			rows, err = rowsSubscription(ctx, s.db, entSubscription.IdIn(uuids(ids)...))
 		case TenantDomain:
 			rows, err = rowsTenant(ctx, s.db, entTenant.IdIn(uuids(ids)...))
 		case WorkspaceDomain:
@@ -13568,6 +14223,69 @@ func (s interceptBillingAccount) Apply(ctx context.Context, req *levyan.BillingA
 func (s interceptBillingAccount) List(ctx context.Context, req *levyan.BillingAccountListRequest) (*levyan.BillingAccountListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.BillingAccountServiceServer,
 		levyan.BillingAccountService_List_FullMethodName, req, s.BillingAccountServiceServer.List)
+}
+
+func (s Intercept) Subscription() levyan.SubscriptionServiceServer {
+	return interceptSubscription{s, s.Next().Subscription()}
+}
+
+type interceptSubscription struct {
+	Intercept
+	levyan.SubscriptionServiceServer
+}
+
+func (s interceptSubscription) Add(ctx context.Context, req *levyan.SubscriptionAddRequest) (*levyan.Subscription, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.SubscriptionServiceServer,
+		levyan.SubscriptionService_Add_FullMethodName, req, s.SubscriptionServiceServer.Add)
+}
+
+func (s interceptSubscription) Get(ctx context.Context, req *levyan.SubscriptionGetRequest) (*levyan.Subscription, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.SubscriptionServiceServer,
+		levyan.SubscriptionService_Get_FullMethodName, req, s.SubscriptionServiceServer.Get)
+}
+
+func (s interceptSubscription) Patch(ctx context.Context, req *levyan.SubscriptionPatchRequest) (*levyan.Subscription, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.SubscriptionServiceServer,
+		levyan.SubscriptionService_Patch_FullMethodName, req, s.SubscriptionServiceServer.Patch)
+}
+
+func (s interceptSubscription) Apply(ctx context.Context, req *levyan.SubscriptionApplyRequest) (*levyan.Subscription, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.SubscriptionServiceServer,
+		levyan.SubscriptionService_Apply_FullMethodName, req, s.SubscriptionServiceServer.Apply)
+}
+
+func (s interceptSubscription) List(ctx context.Context, req *levyan.SubscriptionListRequest) (*levyan.SubscriptionListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.SubscriptionServiceServer,
+		levyan.SubscriptionService_List_FullMethodName, req, s.SubscriptionServiceServer.List)
+}
+
+func (s Intercept) Checkout() levyan.CheckoutServiceServer {
+	return interceptCheckout{s, s.Next().Checkout()}
+}
+
+type interceptCheckout struct {
+	Intercept
+	levyan.CheckoutServiceServer
+}
+
+func (s interceptCheckout) Add(ctx context.Context, req *levyan.CheckoutAddRequest) (*levyan.Checkout, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CheckoutServiceServer,
+		levyan.CheckoutService_Add_FullMethodName, req, s.CheckoutServiceServer.Add)
+}
+
+func (s interceptCheckout) Get(ctx context.Context, req *levyan.CheckoutGetRequest) (*levyan.Checkout, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CheckoutServiceServer,
+		levyan.CheckoutService_Get_FullMethodName, req, s.CheckoutServiceServer.Get)
+}
+
+func (s interceptCheckout) Patch(ctx context.Context, req *levyan.CheckoutPatchRequest) (*levyan.Checkout, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CheckoutServiceServer,
+		levyan.CheckoutService_Patch_FullMethodName, req, s.CheckoutServiceServer.Patch)
+}
+
+func (s interceptCheckout) Apply(ctx context.Context, req *levyan.CheckoutApplyRequest) (*levyan.Checkout, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.CheckoutServiceServer,
+		levyan.CheckoutService_Apply_FullMethodName, req, s.CheckoutServiceServer.Apply)
 }
 
 func (s Intercept) Tenant() levyan.TenantServiceServer {
@@ -15431,6 +16149,9 @@ var AccountMethods = []string{
 	levyan.PayerService_ListInvoices_FullMethodName,
 	levyan.PayerService_GetInvoice_FullMethodName,
 	levyan.PayerService_ListCreditNotes_FullMethodName,
+	levyan.PayerService_GetBillingAccount_FullMethodName,
+	levyan.PayerService_StartCheckout_FullMethodName,
+	levyan.PayerService_CompleteCheckout_FullMethodName,
 }
 
 var accountMethods = func() map[string]bool {
@@ -15535,6 +16256,7 @@ type Reads struct {
 	Archived       func(ctx context.Context, account pdid.Id) (predicate.Archived, error)
 	Audit          func(ctx context.Context, account pdid.Id) (predicate.Audit, error)
 	BillingAccount func(ctx context.Context, account pdid.Id) (predicate.BillingAccount, error)
+	Checkout       func(ctx context.Context, account pdid.Id) (predicate.Checkout, error)
 	Credit         func(ctx context.Context, account pdid.Id) (predicate.Credit, error)
 	CreditNote     func(ctx context.Context, account pdid.Id) (predicate.CreditNote, error)
 	Departure      func(ctx context.Context, account pdid.Id) (predicate.Departure, error)
@@ -15544,6 +16266,8 @@ type Reads struct {
 	InvoiceLine    func(ctx context.Context, account pdid.Id) (predicate.InvoiceLine, error)
 	Link           func(ctx context.Context, account pdid.Id) (predicate.Link, error)
 	Meter          func(ctx context.Context, account pdid.Id) (predicate.Meter, error)
+	Notice         func(ctx context.Context, account pdid.Id) (predicate.Notice, error)
+	NoticeCursor   func(ctx context.Context, account pdid.Id) (predicate.NoticeCursor, error)
 	Offer          func(ctx context.Context, account pdid.Id) (predicate.Offer, error)
 	Operator       func(ctx context.Context, account pdid.Id) (predicate.Operator, error)
 	Outbox         func(ctx context.Context, account pdid.Id) (predicate.Outbox, error)
@@ -15557,6 +16281,7 @@ type Reads struct {
 	Series         func(ctx context.Context, account pdid.Id) (predicate.Series, error)
 	ServiceKey     func(ctx context.Context, account pdid.Id) (predicate.ServiceKey, error)
 	Statement      func(ctx context.Context, account pdid.Id) (predicate.Statement, error)
+	Subscription   func(ctx context.Context, account pdid.Id) (predicate.Subscription, error)
 	Tenant         func(ctx context.Context, account pdid.Id) (predicate.Tenant, error)
 	Workspace      func(ctx context.Context, account pdid.Id) (predicate.Workspace, error)
 }
@@ -15724,6 +16449,18 @@ func init() {
 			},
 		}
 		r := (&levyan.PaymentAttemptRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
+	{
+		md := (&levyan.Subscription{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(25),
+			},
+		}
+		r := (&levyan.SubscriptionRef{}).ProtoReflect().Descriptor()
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
 }
@@ -15987,7 +16724,10 @@ func (accessRecorder) Snapshots(method string) bare.SnapshotOptions {
 		levyan.OperatorService_Apply_FullMethodName,
 		levyan.PaymentAttemptService_Add_FullMethodName,
 		levyan.PaymentAttemptService_Patch_FullMethodName,
-		levyan.PaymentAttemptService_Apply_FullMethodName:
+		levyan.PaymentAttemptService_Apply_FullMethodName,
+		levyan.SubscriptionService_Add_FullMethodName,
+		levyan.SubscriptionService_Patch_FullMethodName,
+		levyan.SubscriptionService_Apply_FullMethodName:
 		return bare.SnapshotOptions{Value: true}
 	case levyan.HolderService_Erase_FullMethodName,
 		levyan.OperatorService_Erase_FullMethodName:
@@ -16286,6 +17026,24 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.BillingAccountApplyRequest{}
 	case levyan.BillingAccountService_List_FullMethodName:
 		v = &levyan.BillingAccountListRequest{}
+	case levyan.SubscriptionService_Add_FullMethodName:
+		v = &levyan.SubscriptionAddRequest{}
+	case levyan.SubscriptionService_Get_FullMethodName:
+		v = &levyan.SubscriptionGetRequest{}
+	case levyan.SubscriptionService_Patch_FullMethodName:
+		v = &levyan.SubscriptionPatchRequest{}
+	case levyan.SubscriptionService_Apply_FullMethodName:
+		v = &levyan.SubscriptionApplyRequest{}
+	case levyan.SubscriptionService_List_FullMethodName:
+		v = &levyan.SubscriptionListRequest{}
+	case levyan.CheckoutService_Add_FullMethodName:
+		v = &levyan.CheckoutAddRequest{}
+	case levyan.CheckoutService_Get_FullMethodName:
+		v = &levyan.CheckoutGetRequest{}
+	case levyan.CheckoutService_Patch_FullMethodName:
+		v = &levyan.CheckoutPatchRequest{}
+	case levyan.CheckoutService_Apply_FullMethodName:
+		v = &levyan.CheckoutApplyRequest{}
 	case levyan.TenantService_Add_FullMethodName:
 		v = &levyan.TenantAddRequest{}
 	case levyan.TenantService_Get_FullMethodName:
@@ -16520,6 +17278,24 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.BillingAccount().Apply(ctx, v.(*levyan.BillingAccountApplyRequest))
 	case levyan.BillingAccountService_List_FullMethodName:
 		res, err = s.BillingAccount().List(ctx, v.(*levyan.BillingAccountListRequest))
+	case levyan.SubscriptionService_Add_FullMethodName:
+		res, err = s.Subscription().Add(ctx, v.(*levyan.SubscriptionAddRequest))
+	case levyan.SubscriptionService_Get_FullMethodName:
+		res, err = s.Subscription().Get(ctx, v.(*levyan.SubscriptionGetRequest))
+	case levyan.SubscriptionService_Patch_FullMethodName:
+		res, err = s.Subscription().Patch(ctx, v.(*levyan.SubscriptionPatchRequest))
+	case levyan.SubscriptionService_Apply_FullMethodName:
+		res, err = s.Subscription().Apply(ctx, v.(*levyan.SubscriptionApplyRequest))
+	case levyan.SubscriptionService_List_FullMethodName:
+		res, err = s.Subscription().List(ctx, v.(*levyan.SubscriptionListRequest))
+	case levyan.CheckoutService_Add_FullMethodName:
+		res, err = s.Checkout().Add(ctx, v.(*levyan.CheckoutAddRequest))
+	case levyan.CheckoutService_Get_FullMethodName:
+		res, err = s.Checkout().Get(ctx, v.(*levyan.CheckoutGetRequest))
+	case levyan.CheckoutService_Patch_FullMethodName:
+		res, err = s.Checkout().Patch(ctx, v.(*levyan.CheckoutPatchRequest))
+	case levyan.CheckoutService_Apply_FullMethodName:
+		res, err = s.Checkout().Apply(ctx, v.(*levyan.CheckoutApplyRequest))
 	case levyan.TenantService_Add_FullMethodName:
 		res, err = s.Tenant().Add(ctx, v.(*levyan.TenantAddRequest))
 	case levyan.TenantService_Get_FullMethodName:
@@ -16743,6 +17519,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Archived{},
 		&levyan.Audit{},
 		&levyan.BillingAccount{},
+		&levyan.Checkout{},
 		&levyan.Credit{},
 		&levyan.CreditNote{},
 		&levyan.Departure{},
@@ -16752,6 +17529,8 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.InvoiceLine{},
 		&levyan.Link{},
 		&levyan.Meter{},
+		&levyan.Notice{},
+		&levyan.NoticeCursor{},
 		&levyan.Offer{},
 		&levyan.Operator{},
 		&levyan.Outbox{},
@@ -16765,6 +17544,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Series{},
 		&levyan.ServiceKey{},
 		&levyan.Statement{},
+		&levyan.Subscription{},
 		&levyan.Tenant{},
 		&levyan.Workspace{},
 	)
@@ -16893,6 +17673,8 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				{Number: 16, Name: entBillingAccount.FieldEmail, Type: 9, Nullable: false, Key: 0},
 				{Number: 17, Name: entBillingAccount.FieldAddress, Type: 9, Nullable: false, Key: 0},
 				{Number: 19, Name: entBillingAccount.FieldDateForgotten, Type: 65, Nullable: true, Key: 0},
+				{Number: 20, Name: entBillingAccount.FieldCollection, Type: 14, Nullable: false, Key: 0},
+				{Number: 21, Name: entBillingAccount.FieldDateCollection, Type: 65, Nullable: true, Key: 0},
 				{Number: 13, Name: entBillingAccount.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
 				{Number: 14, Name: entBillingAccount.FieldDateErased, Type: 65, Nullable: true, Key: 0},
 				{Number: 15, Name: entBillingAccount.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
@@ -16901,6 +17683,44 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.BillingAccount.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Checkout:
+			ctx, err := read.Allow(ctx, levyan.CheckoutService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.CheckoutNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entCheckout.Table, []resourcesql.Column{
+				{Number: 1, Name: entCheckout.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 8, Name: entCheckout.FieldAccount, Type: 64, Nullable: false, Key: 0},
+				{Number: 9, Name: entCheckout.BillingAccountColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 10, Name: entCheckout.FieldMor, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entCheckout.FieldMorTransaction, Type: 9, Nullable: false, Key: 0},
+				{Number: 12, Name: entCheckout.FieldState, Type: 14, Nullable: false, Key: 0},
+				{Number: 16, Name: entCheckout.SubscriptionColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 17, Name: entCheckout.FieldDateDone, Type: 65, Nullable: true, Key: 0},
+				{Number: 13, Name: entCheckout.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entCheckout.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entCheckout.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Checkout.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -17655,6 +18475,57 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.Subscription:
+			ctx, err := read.Allow(ctx, levyan.SubscriptionService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.SubscriptionNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entSubscription.Table, []resourcesql.Column{
+				{Number: 1, Name: entSubscription.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 8, Name: entSubscription.BillingAccountColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entSubscription.FieldMor, Type: 9, Nullable: false, Key: 0},
+				{Number: 10, Name: entSubscription.FieldMorSubscription, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entSubscription.FieldMorCustomer, Type: 9, Nullable: false, Key: 0},
+				{Number: 12, Name: entSubscription.FieldStatus, Type: 14, Nullable: false, Key: 0},
+				{Number: 16, Name: entSubscription.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 17, Name: entSubscription.FieldDatePeriodStart, Type: 65, Nullable: true, Key: 0},
+				{Number: 18, Name: entSubscription.FieldDatePeriodEnd, Type: 65, Nullable: true, Key: 0},
+				{Number: 19, Name: entSubscription.FieldDateNext, Type: 65, Nullable: true, Key: 0},
+				{Number: 20, Name: entSubscription.FieldChange, Type: 14, Nullable: false, Key: 0},
+				{Number: 21, Name: entSubscription.FieldDateChange, Type: 65, Nullable: true, Key: 0},
+				{Number: 22, Name: entSubscription.FieldDateCanceled, Type: 65, Nullable: true, Key: 0},
+				{Number: 23, Name: entSubscription.FieldMethodType, Type: 9, Nullable: false, Key: 0},
+				{Number: 24, Name: entSubscription.FieldMethodBrand, Type: 9, Nullable: false, Key: 0},
+				{Number: 25, Name: entSubscription.FieldMethodLast4, Type: 9, Nullable: false, Key: 0},
+				{Number: 26, Name: entSubscription.FieldLastTransaction, Type: 9, Nullable: false, Key: 0},
+				{Number: 27, Name: entSubscription.FieldLastProgress, Type: 5, Nullable: false, Key: 0},
+				{Number: 28, Name: entSubscription.FieldAwaitingPayer, Type: 8, Nullable: false, Key: 0},
+				{Number: 29, Name: entSubscription.FieldDateMorUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 30, Name: entSubscription.FieldDateChecked, Type: 65, Nullable: false, Key: 0},
+				{Number: 13, Name: entSubscription.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entSubscription.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entSubscription.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Subscription.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Tenant:
 			ctx, err := read.Allow(ctx, levyan.TenantService_Get_FullMethodName, 1)
 			if err != nil {
@@ -17773,6 +18644,12 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.BillingAccountService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.CheckoutService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.CheckoutService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.CheckoutService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.CreditService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.CreditNoteService_Add_FullMethodName:
@@ -17879,6 +18756,12 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.StatementService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.SubscriptionService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.SubscriptionService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.SubscriptionService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.TenantService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.TenantService_Patch_FullMethodName:
@@ -17911,7 +18794,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
+	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace":
 	default:
 		return nil
 	}

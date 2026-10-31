@@ -1,0 +1,223 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Subscription is levyan's mirror of a subscription a merchant of record runs
+// for a billing account (#12, docs/design.md §12). The subscription is the
+// MoR's: it renews it, retries a payment that failed, and cancels it -- when
+// levyan asks, and when the payer does, in the MoR's own pages, without
+// asking levyan. So the mirror is made of what the MoR's API answers of it
+// (`mor.Channel.Subscription`, `Recheck`), never of what a webhook's body
+// says, and an answer older than the one it holds -- by the MoR's own time
+// of its last change, `date_mor_updated` -- changes nothing.
+//
+// How the payer pays, and whether a payment waits for them, comes of the
+// newest transaction of it levyan has been told of, which is ordered by
+// itself: a transaction newer than the one held, or the same one further
+// along (`mor.Transaction.Progress`).
+//
+// What a billing account's collection is (`BillingAccount.collection`) is
+// read off its live mirror, and written beside it in the same transaction.
+//
+// A billing account has one live at a time. A second the MoR made all the
+// same -- two checkouts begun at once, and both finished -- is canceled at
+// the MoR as levyan learns of it (`server/subscriptions`).
+//
+// Global, as the billing account it is of.
+message Subscription {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The billing account it collects for.
+  BillingAccount billing_account = 8 [(orm.edge) = {immutable: true}];
+
+  // The merchant of record that runs it, by the name its adapter answers
+  // ("paddle"), and the MoR's ids: of the subscription (sub_…), and of the
+  // payer as its customer (ctm_…).
+  string mor = 9 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string mor_subscription = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string mor_customer = 11 [(payday.field) = {personal: false}];
+
+  SubscriptionStatus status = 12;
+
+  // What it is billed in: every charge of it is in this.
+  string currency = 16 [(payday.field) = {personal: false}];
+
+  // The billing period the MoR is in: unset for a subscription paused or
+  // canceled.
+  google.protobuf.Timestamp date_period_start = 17 [(orm.field) = {nullable: true}];
+  google.protobuf.Timestamp date_period_end = 18 [(orm.field) = {nullable: true}];
+
+  // When the MoR bills it next: unset when it will not.
+  google.protobuf.Timestamp date_next = 19 [(orm.field) = {nullable: true}];
+
+  // What the MoR will do to it at a time of its own -- cancel it, pause it,
+  // resume it -- and when; unspecified for nothing.
+  SubscriptionChange change = 20;
+  google.protobuf.Timestamp date_change = 21 [(orm.field) = {nullable: true}];
+
+  // When it was canceled: unset for one that is not.
+  google.protobuf.Timestamp date_canceled = 22 [(orm.field) = {nullable: true}];
+
+  // How the payer pays, as the newest payment levyan was told of says, and
+  // never more of a card than this: the MoR's name of the kind (card,
+  // south_korea_local_card, kakao_pay, naver_pay, …), the card's brand or
+  // its company (visa, hyundai), and its last four digits. Empty until a
+  // payment says.
+  string method_type = 23 [(payday.field) = {personal: false}];
+  string method_brand = 24 [(payday.field) = {personal: false}];
+  string method_last4 = 25 [(payday.field) = {personal: true}];
+
+  // The newest transaction of it levyan was told of (the MoR's id, txn_…),
+  // how far along its life it was then (`mor.Transaction.Progress`), and
+  // whether its latest payment waits for the payer to act -- approve it in
+  // their card company's app, or pass their bank's check -- before the MoR
+  // can collect it.
+  string last_transaction = 26 [(payday.field) = {personal: false}];
+  int32 last_progress = 27;
+  bool awaiting_payer = 28;
+
+  // When the MoR last changed it, by the MoR's clock: what orders two
+  // answers about it.
+  google.protobuf.Timestamp date_mor_updated = 29 [(orm.field) = {default: ""}];
+
+  // When levyan last asked the MoR, and had this answer or a later one.
+  google.protobuf.Timestamp date_checked = 30 [(orm.field) = {default: ""}];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase. A subscription something was charged
+  // through is a record of what was charged.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A billing account's subscriptions, in the order levyan learned of
+        // them.
+        name: "billing_account"
+        refs: [
+          {
+            name: "billing_account"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // One mirror of each subscription of the MoR's.
+        name: "mor_subscription"
+        refs: [
+          {
+            name: "mor"
+            number: 9
+          },
+          {
+            name: "mor_subscription"
+            number: 10
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 41
+    global: {}
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "billing_account"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// SubscriptionStatus is where a subscription is, as `mor.SubscriptionStatus`
+// says, value for value.
+enum SubscriptionStatus {
+  SUBSCRIPTION_STATUS_UNSPECIFIED = 0;
+
+  // Billed, and paid up.
+  SUBSCRIPTION_STATUS_ACTIVE = 1;
+
+  // In a trial the MoR has not billed yet.
+  SUBSCRIPTION_STATUS_TRIALING = 2;
+
+  // A payment the MoR has not collected, and is retrying: nothing more is
+  // charged of it until that is paid.
+  SUBSCRIPTION_STATUS_PAST_DUE = 3;
+
+  // Billed nothing until it resumes.
+  SUBSCRIPTION_STATUS_PAUSED = 4;
+
+  // Over: the MoR bills it nothing again, and never resumes it.
+  SUBSCRIPTION_STATUS_CANCELED = 5;
+}
+
+// SubscriptionChange is what the MoR has scheduled of a subscription, as
+// `mor.ChangeKind` says, value for value.
+enum SubscriptionChange {
+  SUBSCRIPTION_CHANGE_UNSPECIFIED = 0;
+
+  // Canceled at the end of its period.
+  SUBSCRIPTION_CHANGE_CANCEL = 1;
+
+  // Paused at the end of its period.
+  SUBSCRIPTION_CHANGE_PAUSE = 2;
+
+  // A paused one resumed.
+  SUBSCRIPTION_CHANGE_RESUME = 3;
+}

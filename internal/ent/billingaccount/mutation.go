@@ -16,24 +16,27 @@ import (
 
 // Mutation represents an operation that mutates the BillingAccount nodes in the graph.
 type Mutation struct {
-	op             ent.Op
-	typ            string
-	name           *string
-	owner          *uuid.UUID
-	country        *string
-	channel        *string
-	currency       *string
-	recipient      *string
-	email          *string
-	address        *string
-	business       **levyan.BillingBusiness
-	date_forgotten *time.Time
-	date_updated   *time.Time
-	date_erased    *time.Time
-	date_created   *time.Time
-	clearedFields  map[string]struct{}
-	exprs          map[string]sql.Querier
-	predicates     []predicate.BillingAccount
+	op              ent.Op
+	typ             string
+	name            *string
+	owner           *uuid.UUID
+	country         *string
+	channel         *string
+	currency        *string
+	recipient       *string
+	email           *string
+	address         *string
+	business        **levyan.BillingBusiness
+	date_forgotten  *time.Time
+	collection      *int32
+	addcollection   *int32
+	date_collection *time.Time
+	date_updated    *time.Time
+	date_erased     *time.Time
+	date_created    *time.Time
+	clearedFields   map[string]struct{}
+	exprs           map[string]sql.Querier
+	predicates      []predicate.BillingAccount
 }
 
 // NewMutation creates a new Mutation for the BillingAccount entity.
@@ -282,6 +285,99 @@ func (m *Mutation) ResetDateForgotten() {
 	delete(m.exprs, FieldDateForgotten)
 }
 
+// SetCollection sets the "collection" field.
+func (m *Mutation) SetCollection(i int32) {
+	m.collection = &i
+	m.addcollection = nil
+	delete(m.clearedFields, FieldCollection)
+	delete(m.exprs, FieldCollection)
+}
+
+// Collection returns the value of the "collection" field in the mutation.
+func (m *Mutation) Collection() (r int32, exists bool) {
+	v := m.collection
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// AddCollection adds i to the "collection" field.
+func (m *Mutation) AddCollection(i int32) {
+	if m.addcollection != nil {
+		*m.addcollection += i
+	} else {
+		m.addcollection = &i
+	}
+}
+
+// AddedCollection returns the value that was added to the "collection" field in this mutation.
+func (m *Mutation) AddedCollection() (r int32, exists bool) {
+	v := m.addcollection
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCollection clears the value of the "collection" field.
+func (m *Mutation) ClearCollection() {
+	m.collection = nil
+	m.addcollection = nil
+	delete(m.exprs, FieldCollection)
+	m.clearedFields[FieldCollection] = struct{}{}
+}
+
+// CollectionCleared returns if the "collection" field was cleared in this mutation.
+func (m *Mutation) CollectionCleared() bool {
+	_, ok := m.clearedFields[FieldCollection]
+	return ok
+}
+
+// ResetCollection resets all changes to the "collection" field.
+func (m *Mutation) ResetCollection() {
+	m.collection = nil
+	m.addcollection = nil
+	delete(m.clearedFields, FieldCollection)
+	delete(m.exprs, FieldCollection)
+}
+
+// SetDateCollection sets the "date_collection" field.
+func (m *Mutation) SetDateCollection(t time.Time) {
+	m.date_collection = &t
+	delete(m.clearedFields, FieldDateCollection)
+	delete(m.exprs, FieldDateCollection)
+}
+
+// DateCollection returns the value of the "date_collection" field in the mutation.
+func (m *Mutation) DateCollection() (r time.Time, exists bool) {
+	v := m.date_collection
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDateCollection clears the value of the "date_collection" field.
+func (m *Mutation) ClearDateCollection() {
+	m.date_collection = nil
+	delete(m.exprs, FieldDateCollection)
+	m.clearedFields[FieldDateCollection] = struct{}{}
+}
+
+// DateCollectionCleared returns if the "date_collection" field was cleared in this mutation.
+func (m *Mutation) DateCollectionCleared() bool {
+	_, ok := m.clearedFields[FieldDateCollection]
+	return ok
+}
+
+// ResetDateCollection resets all changes to the "date_collection" field.
+func (m *Mutation) ResetDateCollection() {
+	m.date_collection = nil
+	delete(m.clearedFields, FieldDateCollection)
+	delete(m.exprs, FieldDateCollection)
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (m *Mutation) SetDateUpdated(t time.Time) {
 	m.date_updated = &t
@@ -406,7 +502,7 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.name != nil || m.exprs[FieldName] != nil {
 		fields = append(fields, FieldName)
 	}
@@ -436,6 +532,12 @@ func (m *Mutation) Fields() []string {
 	}
 	if m.date_forgotten != nil || m.exprs[FieldDateForgotten] != nil {
 		fields = append(fields, FieldDateForgotten)
+	}
+	if m.collection != nil || m.exprs[FieldCollection] != nil {
+		fields = append(fields, FieldCollection)
+	}
+	if m.date_collection != nil || m.exprs[FieldDateCollection] != nil {
+		fields = append(fields, FieldDateCollection)
 	}
 	if m.date_updated != nil || m.exprs[FieldDateUpdated] != nil {
 		fields = append(fields, FieldDateUpdated)
@@ -480,6 +582,10 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.Business()
 	case FieldDateForgotten:
 		return m.DateForgotten()
+	case FieldCollection:
+		return m.Collection()
+	case FieldDateCollection:
+		return m.DateCollection()
 	case FieldDateUpdated:
 		return m.DateUpdated()
 	case FieldDateErased:
@@ -605,6 +711,26 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDateForgotten(v)
 		return nil
+	case FieldCollection:
+		v, ok := value.(int32)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollection(v)
+		return nil
+	case FieldDateCollection:
+		v, ok := value.(time.Time)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDateCollection(v)
+		return nil
 	case FieldDateUpdated:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -677,6 +803,10 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		m.ResetBusiness()
 	case FieldDateForgotten:
 		m.ResetDateForgotten()
+	case FieldCollection:
+		m.ResetCollection()
+	case FieldDateCollection:
+		m.ResetDateCollection()
 	case FieldDateUpdated:
 		m.ResetDateUpdated()
 	case FieldDateErased:
@@ -722,6 +852,12 @@ func (m *Mutation) ExprFields() []string {
 	if _, ok := m.exprs[FieldDateForgotten]; ok {
 		fields = append(fields, FieldDateForgotten)
 	}
+	if _, ok := m.exprs[FieldCollection]; ok {
+		fields = append(fields, FieldCollection)
+	}
+	if _, ok := m.exprs[FieldDateCollection]; ok {
+		fields = append(fields, FieldDateCollection)
+	}
 	if _, ok := m.exprs[FieldDateUpdated]; ok {
 		fields = append(fields, FieldDateUpdated)
 	}
@@ -734,13 +870,21 @@ func (m *Mutation) ExprFields() []string {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *Mutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addcollection != nil {
+		fields = append(fields, FieldCollection)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *Mutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case FieldCollection:
+		return m.AddedCollection()
+	}
 	return nil, false
 }
 
@@ -749,6 +893,13 @@ func (m *Mutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *Mutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case FieldCollection:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCollection(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingAccount numeric field %s", name)
 }
@@ -762,6 +913,12 @@ func (m *Mutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(FieldDateForgotten) {
 		fields = append(fields, FieldDateForgotten)
+	}
+	if m.FieldCleared(FieldCollection) {
+		fields = append(fields, FieldCollection)
+	}
+	if m.FieldCleared(FieldDateCollection) {
+		fields = append(fields, FieldDateCollection)
 	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
@@ -788,6 +945,12 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldDateForgotten:
 		m.ClearDateForgotten()
+		return nil
+	case FieldCollection:
+		m.ClearCollection()
+		return nil
+	case FieldDateCollection:
+		m.ClearDateCollection()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -832,6 +995,12 @@ func (m *Mutation) ResetField(name string) error {
 		return nil
 	case FieldDateForgotten:
 		m.ResetDateForgotten()
+		return nil
+	case FieldCollection:
+		m.ResetCollection()
+		return nil
+	case FieldDateCollection:
+		m.ResetDateCollection()
 		return nil
 	case FieldDateUpdated:
 		m.ResetDateUpdated()

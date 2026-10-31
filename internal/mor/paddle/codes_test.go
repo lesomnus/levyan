@@ -198,12 +198,7 @@ func TestATransactionIsReadAsLevyanHasOne(t *testing.T) {
 
 	due := transaction{Status: "past_due", CurrencyCode: "USD"}
 	code := "not_enough_balance"
-	due.Payments = append(due.Payments, struct {
-		Status     string  `json:"status"`
-		ErrorCode  *string `json:"error_code"`
-		CapturedAt *string `json:"captured_at"`
-		CreatedAt  string  `json:"created_at"`
-	}{Status: "error", ErrorCode: &code})
+	due.Payments = append(due.Payments, payment{Status: "error", ErrorCode: &code})
 	v, err = due.read("external")
 	require.NoError(t, err)
 	require.Equal(t, mor.Pending, v.Status, "Paddle is still collecting it")

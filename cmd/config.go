@@ -27,6 +27,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/keyring"
+	"github.com/lesomnus/levyan/internal/mor/paddle"
 	"github.com/lesomnus/levyan/internal/taxinvoice"
 	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/invoices/bank"
@@ -89,6 +90,12 @@ type Config struct {
 
 	// Invoices is what billing accounts are asked to pay (#9).
 	Invoices InvoicesConfig `yaml:"invoices"`
+
+	// Mor is the merchant of record a billing account on its channel is
+	// collected through (#12): Paddle. With no block, none is configured --
+	// a checkout is refused, and nothing is received from or pulled of a
+	// merchant -- and nothing else changes.
+	Mor *MorConfig `yaml:"mor"`
 }
 
 // InvoicesConfig is what billing accounts are asked to pay, and how often
@@ -199,6 +206,183 @@ func (c InvoicesConfig) TaxOf() (*big.Rat, error) {
 	}
 
 	return v.Quo(v, big.NewRat(100, 1)), nil
+}
+
+// MorConfig is the merchant of record levyan sells through, and how it is
+// reached (docs/design.md §12).
+type MorConfig struct {
+	// Kind is which merchant of record it is: `paddle`, the one there is.
+	Kind MorKind `yaml:"kind"`
+
+	// Environment is `sandbox`, where test cards move no money, or `live`.
+	// Each has keys of its own and an API of its own.
+	Environment MorEnvironment `yaml:"environment"`
+
+	// APIKey is levyan's key at the merchant, a secret (`${file:/run/…}`):
+	// for Paddle a pdl_sdbx_apikey_… or pdl_live_apikey_… of the
+	// environment's, with the permissions to read and write transactions,
+	// subscriptions and adjustments, and to read notifications (its event
+	// stream). It is read every time it is used, so a key rotated into its
+	// file is the next request's, and it is printed as its reference.
+	APIKey cfg.Secret `yaml:"api_key"`
+
+	// WebhookSecret is the secret the merchant signs its webhooks with -- for
+	// Paddle, the notification destination's endpoint secret key,
+	// pdl_ntfset_… -- a secret too. With none, no webhook is received: the
+	// endpoint is not served, and the merchant's events are read by the pull
+	// alone (`pull`).
+	WebhookSecret cfg.Secret `yaml:"webhook_secret"`
+
+	// ClientToken is what the merchant's checkout is opened with in a page --
+	// for Paddle, its client-side token, test_… or live_… -- which is public,
+	// and no key.
+	ClientToken string `yaml:"client_token"`
+
+	// Plans is the plan a checkout subscribes a billing account to, by the
+	// currency it is billed in -- for Paddle, a catalog price, pri_…, of a
+	// month of nothing, every amount being levyan's one-time charges
+	// (docs/design.md §17, 41). Every currency `payers.channels` bills on the
+	// merchant of record needs one.
+	Plans MorPlans `yaml:"plans"`
+
+	// Tolerance is how far from now a webhook may say it was signed: 5s
+	// when unset (Paddle's SDKs' own), against one replayed.
+	Tolerance time.Duration `yaml:"tolerance"`
+
+	// Pull is how often the merchant's list of its events is read into the
+	// inbox beside its webhooks: a minute when unset.
+	Pull time.Duration `yaml:"pull"`
+
+	// URL is the merchant's API, and Clock its channel's clock: a test's
+	// fake's. A deployment says neither, and is the environment's API on
+	// the wall clock.
+	URL   string           `yaml:"-"`
+	Clock func() time.Time `yaml:"-"`
+}
+
+// MorKind is which merchant of record levyan sells through: `paddle`.
+type MorKind string
+
+// Validate refuses a merchant of record there is no adapter of, where it is
+// written.
+func (k MorKind) Validate() error {
+	if strings.ToLower(strings.TrimSpace(string(k))) != "paddle" {
+		return fmt.Errorf("%q is none of paddle", string(k))
+	}
+	return nil
+}
+
+// MorEnvironment is the merchant's environment: `sandbox` or `live`.
+type MorEnvironment string
+
+// Validate refuses an environment that is neither, where it is written.
+func (e MorEnvironment) Validate() error {
+	_, err := e.sandbox()
+	return err
+}
+
+func (e MorEnvironment) sandbox() (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(string(e))) {
+	case "sandbox":
+		return true, nil
+	case "live":
+		return false, nil
+	}
+	return false, fmt.Errorf("%q is neither sandbox nor live", string(e))
+}
+
+// MorPlans is the plan a checkout subscribes a billing account to, by the
+// currency it is billed in.
+type MorPlans map[string]string
+
+// Validate refuses a plan in a currency levyan does not price in, or one that
+// is no price of the merchant's, where it is written.
+func (p MorPlans) Validate() error { return paddle.CheckPlans(p) }
+
+// Validate refuses a merchant of record that could not be reached, or would
+// take no checkout, as the configuration is loaded: what is missing from it,
+// and what its parts say of one another -- a key of the other environment's,
+// a key where the page's token goes. A part wrong of itself is said where it
+// is written, by its own.
+func (c MorConfig) Validate() error {
+	for _, v := range []cfg.Validator{c.Kind, c.Environment, c.Plans} {
+		if v.Validate() != nil {
+			return nil
+		}
+	}
+	_, err := c.Paddle()
+
+	return err
+}
+
+// Paddle is the configuration of the adapter `kind: paddle` is, checked.
+func (c MorConfig) Paddle() (paddle.Config, error) {
+	if err := c.Kind.Validate(); err != nil {
+		return paddle.Config{}, fmt.Errorf("kind: %w", err)
+	}
+	sandbox, err := c.Environment.sandbox()
+	if err != nil {
+		return paddle.Config{}, fmt.Errorf("environment: %w", err)
+	}
+	switch {
+	case c.APIKey.IsZero():
+		return paddle.Config{}, errors.New("api_key: none, and the merchant is reached with nothing else")
+	case c.ClientToken == "":
+		return paddle.Config{}, errors.New("client_token: none, and a checkout is opened with it")
+	case len(c.Plans) == 0:
+		return paddle.Config{}, errors.New("plans: none, and a checkout subscribes a billing account to the plan of its currency")
+	case c.Tolerance < 0:
+		return paddle.Config{}, errors.New("tolerance: less than nothing")
+	case c.Pull < 0:
+		return paddle.Config{}, errors.New("pull: less than nothing")
+	}
+	if err := c.Plans.Validate(); err != nil {
+		return paddle.Config{}, fmt.Errorf("plans: %w", err)
+	}
+
+	out := paddle.Config{
+		APIKey:        c.APIKey,
+		ClientToken:   c.ClientToken,
+		WebhookSecret: c.WebhookSecret,
+		Sandbox:       sandbox,
+		Plans:         c.Plans,
+		Tolerance:     c.Tolerance,
+		URL:           c.URL,
+		Clock:         c.Clock,
+	}
+	if _, err := paddle.New(out); err != nil {
+		return paddle.Config{}, errors.New(strings.TrimPrefix(err.Error(), "paddle: "))
+	}
+
+	return out, nil
+}
+
+// PullEvery is [MorConfig.Pull], or its default.
+func (c MorConfig) PullEvery() time.Duration {
+	if c.Pull <= 0 {
+		return time.Minute
+	}
+
+	return c.Pull
+}
+
+// PlansFor refuses plans that leave a currency `channels` bills on the
+// merchant of record with none: a billing account in it could begin no
+// checkout.
+func (c MorConfig) PlansFor(channels payers.Channels) error {
+	need := map[string]bool{}
+	for _, b := range channels {
+		if b.Channel == levyan.Channel_CHANNEL_MOR {
+			need[b.Currency] = true
+		}
+	}
+	for _, cur := range slices.Sorted(maps.Keys(need)) {
+		if c.Plans[cur] == "" {
+			return fmt.Errorf("plans: none in %s, which payers.channels bills on the merchant of record", cur)
+		}
+	}
+
+	return nil
 }
 
 // AuthConfig is who levyan asks about the people it bills.

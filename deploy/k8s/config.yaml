@@ -34,6 +34,21 @@ spin:
 #     key: "${file:/run/secrets/levyan-roster/key}"
 #     directory: loft
 
+# The merchant of record (#12): Paddle, with its key and its webhook secret
+# from a Secret an overlay brings (README.md). Without the block there is
+# none, and nothing is received or pulled. Webhooks come to the second
+# listener, which an overlay opens (`server.http.addr`) and lets Paddle
+# reach; a deployment Paddle cannot reach names no webhook secret, and reads
+# Paddle's events alone.
+#
+# mor:
+#   kind: paddle
+#   environment: sandbox
+#   api_key: "${file:/run/secrets/levyan-paddle/api-key}"
+#   webhook_secret: "${file:/run/secrets/levyan-paddle/webhook-secret}"
+#   client_token: "test_…"
+#   plans: {KRW: "pri_…", USD: "pri_…"}
+
 # The trail digests every row it records with this key, so that a row written
 # past the servers is found (`levyan trail rows`). Keep it with the backups,
 # apart from the database's.

@@ -23,23 +23,25 @@ const (
 )
 
 type BillingAccountAddRequest struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id            []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Name          string                 `protobuf:"bytes,5,opt,name=name"`
-	xxx_hidden_Owner         []byte                 `protobuf:"bytes,8,opt,name=owner"`
-	xxx_hidden_Country       string                 `protobuf:"bytes,9,opt,name=country"`
-	xxx_hidden_Channel       string                 `protobuf:"bytes,10,opt,name=channel"`
-	xxx_hidden_Currency      string                 `protobuf:"bytes,11,opt,name=currency"`
-	xxx_hidden_Recipient     string                 `protobuf:"bytes,12,opt,name=recipient"`
-	xxx_hidden_Email         string                 `protobuf:"bytes,16,opt,name=email"`
-	xxx_hidden_Address       string                 `protobuf:"bytes,17,opt,name=address"`
-	xxx_hidden_Business      *BillingBusiness       `protobuf:"bytes,18,opt,name=business"`
-	xxx_hidden_DateForgotten *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_forgotten,json=dateForgotten"`
-	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id             []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Name           string                 `protobuf:"bytes,5,opt,name=name"`
+	xxx_hidden_Owner          []byte                 `protobuf:"bytes,8,opt,name=owner"`
+	xxx_hidden_Country        string                 `protobuf:"bytes,9,opt,name=country"`
+	xxx_hidden_Channel        string                 `protobuf:"bytes,10,opt,name=channel"`
+	xxx_hidden_Currency       string                 `protobuf:"bytes,11,opt,name=currency"`
+	xxx_hidden_Recipient      string                 `protobuf:"bytes,12,opt,name=recipient"`
+	xxx_hidden_Email          string                 `protobuf:"bytes,16,opt,name=email"`
+	xxx_hidden_Address        string                 `protobuf:"bytes,17,opt,name=address"`
+	xxx_hidden_Business       *BillingBusiness       `protobuf:"bytes,18,opt,name=business"`
+	xxx_hidden_DateForgotten  *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_forgotten,json=dateForgotten"`
+	xxx_hidden_Collection     CollectionState        `protobuf:"varint,20,opt,name=collection,enum=levyan.CollectionState"`
+	xxx_hidden_DateCollection *timestamppb.Timestamp `protobuf:"bytes,21,opt,name=date_collection,json=dateCollection"`
+	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *BillingAccountAddRequest) Reset() {
@@ -144,6 +146,22 @@ func (x *BillingAccountAddRequest) GetDateForgotten() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *BillingAccountAddRequest) GetCollection() CollectionState {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 11) {
+			return x.xxx_hidden_Collection
+		}
+	}
+	return CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
+func (x *BillingAccountAddRequest) GetDateCollection() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateCollection
+	}
+	return nil
+}
+
 func (x *BillingAccountAddRequest) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateCreated
@@ -156,7 +174,7 @@ func (x *BillingAccountAddRequest) SetId(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
 }
 
 func (x *BillingAccountAddRequest) SetName(v string) {
@@ -202,6 +220,15 @@ func (x *BillingAccountAddRequest) SetDateForgotten(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateForgotten = v
 }
 
+func (x *BillingAccountAddRequest) SetCollection(v CollectionState) {
+	x.xxx_hidden_Collection = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
+}
+
+func (x *BillingAccountAddRequest) SetDateCollection(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCollection = v
+}
+
 func (x *BillingAccountAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
 }
@@ -227,6 +254,20 @@ func (x *BillingAccountAddRequest) HasDateForgotten() bool {
 	return x.xxx_hidden_DateForgotten != nil
 }
 
+func (x *BillingAccountAddRequest) HasCollection() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *BillingAccountAddRequest) HasDateCollection() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateCollection != nil
+}
+
 func (x *BillingAccountAddRequest) HasDateCreated() bool {
 	if x == nil {
 		return false
@@ -247,6 +288,15 @@ func (x *BillingAccountAddRequest) ClearDateForgotten() {
 	x.xxx_hidden_DateForgotten = nil
 }
 
+func (x *BillingAccountAddRequest) ClearCollection() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_Collection = CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
+func (x *BillingAccountAddRequest) ClearDateCollection() {
+	x.xxx_hidden_DateCollection = nil
+}
+
 func (x *BillingAccountAddRequest) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
@@ -254,18 +304,20 @@ func (x *BillingAccountAddRequest) ClearDateCreated() {
 type BillingAccountAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id            []byte
-	Name          string
-	Owner         []byte
-	Country       string
-	Channel       string
-	Currency      string
-	Recipient     string
-	Email         string
-	Address       string
-	Business      *BillingBusiness
-	DateForgotten *timestamppb.Timestamp
-	DateCreated   *timestamppb.Timestamp
+	Id             []byte
+	Name           string
+	Owner          []byte
+	Country        string
+	Channel        string
+	Currency       string
+	Recipient      string
+	Email          string
+	Address        string
+	Business       *BillingBusiness
+	DateForgotten  *timestamppb.Timestamp
+	Collection     *CollectionState
+	DateCollection *timestamppb.Timestamp
+	DateCreated    *timestamppb.Timestamp
 }
 
 func (b0 BillingAccountAddRequest_builder) Build() *BillingAccountAddRequest {
@@ -273,7 +325,7 @@ func (b0 BillingAccountAddRequest_builder) Build() *BillingAccountAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Name = b.Name
@@ -286,6 +338,11 @@ func (b0 BillingAccountAddRequest_builder) Build() *BillingAccountAddRequest {
 	x.xxx_hidden_Address = b.Address
 	x.xxx_hidden_Business = b.Business
 	x.xxx_hidden_DateForgotten = b.DateForgotten
+	if b.Collection != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
+		x.xxx_hidden_Collection = *b.Collection
+	}
+	x.xxx_hidden_DateCollection = b.DateCollection
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
@@ -510,25 +567,27 @@ type billingAccountRef_Id struct {
 func (*billingAccountRef_Id) isBillingAccountRef_Key() {}
 
 type BillingAccountSelect struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_All           bool                   `protobuf:"varint,1,opt,name=all"`
-	xxx_hidden_Name          bool                   `protobuf:"varint,5,opt,name=name"`
-	xxx_hidden_Owner         bool                   `protobuf:"varint,8,opt,name=owner"`
-	xxx_hidden_Country       bool                   `protobuf:"varint,9,opt,name=country"`
-	xxx_hidden_Channel       bool                   `protobuf:"varint,10,opt,name=channel"`
-	xxx_hidden_Currency      bool                   `protobuf:"varint,11,opt,name=currency"`
-	xxx_hidden_Recipient     bool                   `protobuf:"varint,12,opt,name=recipient"`
-	xxx_hidden_Email         bool                   `protobuf:"varint,16,opt,name=email"`
-	xxx_hidden_Address       bool                   `protobuf:"varint,17,opt,name=address"`
-	xxx_hidden_Business      bool                   `protobuf:"varint,18,opt,name=business"`
-	xxx_hidden_DateForgotten bool                   `protobuf:"varint,19,opt,name=date_forgotten,json=dateForgotten"`
-	xxx_hidden_DateUpdated   bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateErased    bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated   bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_All            bool                   `protobuf:"varint,1,opt,name=all"`
+	xxx_hidden_Name           bool                   `protobuf:"varint,5,opt,name=name"`
+	xxx_hidden_Owner          bool                   `protobuf:"varint,8,opt,name=owner"`
+	xxx_hidden_Country        bool                   `protobuf:"varint,9,opt,name=country"`
+	xxx_hidden_Channel        bool                   `protobuf:"varint,10,opt,name=channel"`
+	xxx_hidden_Currency       bool                   `protobuf:"varint,11,opt,name=currency"`
+	xxx_hidden_Recipient      bool                   `protobuf:"varint,12,opt,name=recipient"`
+	xxx_hidden_Email          bool                   `protobuf:"varint,16,opt,name=email"`
+	xxx_hidden_Address        bool                   `protobuf:"varint,17,opt,name=address"`
+	xxx_hidden_Business       bool                   `protobuf:"varint,18,opt,name=business"`
+	xxx_hidden_DateForgotten  bool                   `protobuf:"varint,19,opt,name=date_forgotten,json=dateForgotten"`
+	xxx_hidden_Collection     bool                   `protobuf:"varint,20,opt,name=collection"`
+	xxx_hidden_DateCollection bool                   `protobuf:"varint,21,opt,name=date_collection,json=dateCollection"`
+	xxx_hidden_DateUpdated    bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateErased     bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated    bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *BillingAccountSelect) Reset() {
@@ -633,6 +692,20 @@ func (x *BillingAccountSelect) GetDateForgotten() bool {
 	return false
 }
 
+func (x *BillingAccountSelect) GetCollection() bool {
+	if x != nil {
+		return x.xxx_hidden_Collection
+	}
+	return false
+}
+
+func (x *BillingAccountSelect) GetDateCollection() bool {
+	if x != nil {
+		return x.xxx_hidden_DateCollection
+	}
+	return false
+}
+
 func (x *BillingAccountSelect) GetDateUpdated() bool {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -656,72 +729,82 @@ func (x *BillingAccountSelect) GetDateCreated() bool {
 
 func (x *BillingAccountSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 16)
 }
 
 func (x *BillingAccountSelect) SetName(v bool) {
 	x.xxx_hidden_Name = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 16)
 }
 
 func (x *BillingAccountSelect) SetOwner(v bool) {
 	x.xxx_hidden_Owner = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 16)
 }
 
 func (x *BillingAccountSelect) SetCountry(v bool) {
 	x.xxx_hidden_Country = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 16)
 }
 
 func (x *BillingAccountSelect) SetChannel(v bool) {
 	x.xxx_hidden_Channel = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 16)
 }
 
 func (x *BillingAccountSelect) SetCurrency(v bool) {
 	x.xxx_hidden_Currency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 16)
 }
 
 func (x *BillingAccountSelect) SetRecipient(v bool) {
 	x.xxx_hidden_Recipient = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 16)
 }
 
 func (x *BillingAccountSelect) SetEmail(v bool) {
 	x.xxx_hidden_Email = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 16)
 }
 
 func (x *BillingAccountSelect) SetAddress(v bool) {
 	x.xxx_hidden_Address = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 16)
 }
 
 func (x *BillingAccountSelect) SetBusiness(v bool) {
 	x.xxx_hidden_Business = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 16)
 }
 
 func (x *BillingAccountSelect) SetDateForgotten(v bool) {
 	x.xxx_hidden_DateForgotten = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 16)
+}
+
+func (x *BillingAccountSelect) SetCollection(v bool) {
+	x.xxx_hidden_Collection = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 16)
+}
+
+func (x *BillingAccountSelect) SetDateCollection(v bool) {
+	x.xxx_hidden_DateCollection = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 16)
 }
 
 func (x *BillingAccountSelect) SetDateUpdated(v bool) {
 	x.xxx_hidden_DateUpdated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 16)
 }
 
 func (x *BillingAccountSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 16)
 }
 
 func (x *BillingAccountSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 16)
 }
 
 func (x *BillingAccountSelect) HasAll() bool {
@@ -801,25 +884,39 @@ func (x *BillingAccountSelect) HasDateForgotten() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
 }
 
-func (x *BillingAccountSelect) HasDateUpdated() bool {
+func (x *BillingAccountSelect) HasCollection() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
 }
 
-func (x *BillingAccountSelect) HasDateErased() bool {
+func (x *BillingAccountSelect) HasDateCollection() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
 }
 
-func (x *BillingAccountSelect) HasDateCreated() bool {
+func (x *BillingAccountSelect) HasDateUpdated() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
+func (x *BillingAccountSelect) HasDateErased() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
+func (x *BillingAccountSelect) HasDateCreated() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
 }
 
 func (x *BillingAccountSelect) ClearAll() {
@@ -877,38 +974,50 @@ func (x *BillingAccountSelect) ClearDateForgotten() {
 	x.xxx_hidden_DateForgotten = false
 }
 
-func (x *BillingAccountSelect) ClearDateUpdated() {
+func (x *BillingAccountSelect) ClearCollection() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_Collection = false
+}
+
+func (x *BillingAccountSelect) ClearDateCollection() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_DateCollection = false
+}
+
+func (x *BillingAccountSelect) ClearDateUpdated() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
 	x.xxx_hidden_DateUpdated = false
 }
 
 func (x *BillingAccountSelect) ClearDateErased() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
 	x.xxx_hidden_DateErased = false
 }
 
 func (x *BillingAccountSelect) ClearDateCreated() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
 	x.xxx_hidden_DateCreated = false
 }
 
 type BillingAccountSelect_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	All           *bool
-	Name          *bool
-	Owner         *bool
-	Country       *bool
-	Channel       *bool
-	Currency      *bool
-	Recipient     *bool
-	Email         *bool
-	Address       *bool
-	Business      *bool
-	DateForgotten *bool
-	DateUpdated   *bool
-	DateErased    *bool
-	DateCreated   *bool
+	All            *bool
+	Name           *bool
+	Owner          *bool
+	Country        *bool
+	Channel        *bool
+	Currency       *bool
+	Recipient      *bool
+	Email          *bool
+	Address        *bool
+	Business       *bool
+	DateForgotten  *bool
+	Collection     *bool
+	DateCollection *bool
+	DateUpdated    *bool
+	DateErased     *bool
+	DateCreated    *bool
 }
 
 func (b0 BillingAccountSelect_builder) Build() *BillingAccountSelect {
@@ -916,81 +1025,92 @@ func (b0 BillingAccountSelect_builder) Build() *BillingAccountSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 16)
 		x.xxx_hidden_All = *b.All
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 16)
 		x.xxx_hidden_Name = *b.Name
 	}
 	if b.Owner != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 16)
 		x.xxx_hidden_Owner = *b.Owner
 	}
 	if b.Country != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 16)
 		x.xxx_hidden_Country = *b.Country
 	}
 	if b.Channel != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 16)
 		x.xxx_hidden_Channel = *b.Channel
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 16)
 		x.xxx_hidden_Currency = *b.Currency
 	}
 	if b.Recipient != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 16)
 		x.xxx_hidden_Recipient = *b.Recipient
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 16)
 		x.xxx_hidden_Email = *b.Email
 	}
 	if b.Address != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 16)
 		x.xxx_hidden_Address = *b.Address
 	}
 	if b.Business != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 16)
 		x.xxx_hidden_Business = *b.Business
 	}
 	if b.DateForgotten != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 16)
 		x.xxx_hidden_DateForgotten = *b.DateForgotten
 	}
+	if b.Collection != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 16)
+		x.xxx_hidden_Collection = *b.Collection
+	}
+	if b.DateCollection != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 16)
+		x.xxx_hidden_DateCollection = *b.DateCollection
+	}
 	if b.DateUpdated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 16)
 		x.xxx_hidden_DateUpdated = *b.DateUpdated
 	}
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 16)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 16)
 		x.xxx_hidden_DateCreated = *b.DateCreated
 	}
 	return m0
 }
 
 type BillingAccountPatchRequest struct {
-	state                        protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ref               *BillingAccountRef     `protobuf:"bytes,1,opt,name=ref"`
-	xxx_hidden_Name              *string                `protobuf:"bytes,10,opt,name=name"`
-	xxx_hidden_Recipient         *string                `protobuf:"bytes,24,opt,name=recipient"`
-	xxx_hidden_Email             *string                `protobuf:"bytes,32,opt,name=email"`
-	xxx_hidden_Address           *string                `protobuf:"bytes,34,opt,name=address"`
-	xxx_hidden_Business          *BillingBusiness       `protobuf:"bytes,36,opt,name=business"`
-	xxx_hidden_BusinessNull      bool                   `protobuf:"varint,37,opt,name=business_null,json=businessNull"`
-	xxx_hidden_DateForgotten     *timestamppb.Timestamp `protobuf:"bytes,38,opt,name=date_forgotten,json=dateForgotten"`
-	xxx_hidden_DateForgottenNull bool                   `protobuf:"varint,39,opt,name=date_forgotten_null,json=dateForgottenNull"`
-	xxx_hidden_DateUpdated       *timestamppb.Timestamp `protobuf:"bytes,26,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateUpdatedForce  bool                   `protobuf:"varint,27,opt,name=date_updated_force,json=dateUpdatedForce"`
-	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
-	XXX_presence                 [1]uint32
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ref                *BillingAccountRef     `protobuf:"bytes,1,opt,name=ref"`
+	xxx_hidden_Name               *string                `protobuf:"bytes,10,opt,name=name"`
+	xxx_hidden_Recipient          *string                `protobuf:"bytes,24,opt,name=recipient"`
+	xxx_hidden_Email              *string                `protobuf:"bytes,32,opt,name=email"`
+	xxx_hidden_Address            *string                `protobuf:"bytes,34,opt,name=address"`
+	xxx_hidden_Business           *BillingBusiness       `protobuf:"bytes,36,opt,name=business"`
+	xxx_hidden_BusinessNull       bool                   `protobuf:"varint,37,opt,name=business_null,json=businessNull"`
+	xxx_hidden_DateForgotten      *timestamppb.Timestamp `protobuf:"bytes,38,opt,name=date_forgotten,json=dateForgotten"`
+	xxx_hidden_DateForgottenNull  bool                   `protobuf:"varint,39,opt,name=date_forgotten_null,json=dateForgottenNull"`
+	xxx_hidden_Collection         CollectionState        `protobuf:"varint,40,opt,name=collection,enum=levyan.CollectionState"`
+	xxx_hidden_DateCollection     *timestamppb.Timestamp `protobuf:"bytes,42,opt,name=date_collection,json=dateCollection"`
+	xxx_hidden_DateCollectionNull bool                   `protobuf:"varint,43,opt,name=date_collection_null,json=dateCollectionNull"`
+	xxx_hidden_DateUpdated        *timestamppb.Timestamp `protobuf:"bytes,26,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateUpdatedForce   bool                   `protobuf:"varint,27,opt,name=date_updated_force,json=dateUpdatedForce"`
+	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
+	XXX_presence                  [1]uint32
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *BillingAccountPatchRequest) Reset() {
@@ -1093,6 +1213,29 @@ func (x *BillingAccountPatchRequest) GetDateForgottenNull() bool {
 	return false
 }
 
+func (x *BillingAccountPatchRequest) GetCollection() CollectionState {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 9) {
+			return x.xxx_hidden_Collection
+		}
+	}
+	return CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
+func (x *BillingAccountPatchRequest) GetDateCollection() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateCollection
+	}
+	return nil
+}
+
+func (x *BillingAccountPatchRequest) GetDateCollectionNull() bool {
+	if x != nil {
+		return x.xxx_hidden_DateCollectionNull
+	}
+	return false
+}
+
 func (x *BillingAccountPatchRequest) GetDateUpdated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -1113,22 +1256,22 @@ func (x *BillingAccountPatchRequest) SetRef(v *BillingAccountRef) {
 
 func (x *BillingAccountPatchRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 14)
 }
 
 func (x *BillingAccountPatchRequest) SetRecipient(v string) {
 	x.xxx_hidden_Recipient = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 14)
 }
 
 func (x *BillingAccountPatchRequest) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 14)
 }
 
 func (x *BillingAccountPatchRequest) SetAddress(v string) {
 	x.xxx_hidden_Address = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
 }
 
 func (x *BillingAccountPatchRequest) SetBusiness(v *BillingBusiness) {
@@ -1137,7 +1280,7 @@ func (x *BillingAccountPatchRequest) SetBusiness(v *BillingBusiness) {
 
 func (x *BillingAccountPatchRequest) SetBusinessNull(v bool) {
 	x.xxx_hidden_BusinessNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
 }
 
 func (x *BillingAccountPatchRequest) SetDateForgotten(v *timestamppb.Timestamp) {
@@ -1146,7 +1289,21 @@ func (x *BillingAccountPatchRequest) SetDateForgotten(v *timestamppb.Timestamp) 
 
 func (x *BillingAccountPatchRequest) SetDateForgottenNull(v bool) {
 	x.xxx_hidden_DateForgottenNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 14)
+}
+
+func (x *BillingAccountPatchRequest) SetCollection(v CollectionState) {
+	x.xxx_hidden_Collection = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 14)
+}
+
+func (x *BillingAccountPatchRequest) SetDateCollection(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCollection = v
+}
+
+func (x *BillingAccountPatchRequest) SetDateCollectionNull(v bool) {
+	x.xxx_hidden_DateCollectionNull = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
 }
 
 func (x *BillingAccountPatchRequest) SetDateUpdated(v *timestamppb.Timestamp) {
@@ -1155,7 +1312,7 @@ func (x *BillingAccountPatchRequest) SetDateUpdated(v *timestamppb.Timestamp) {
 
 func (x *BillingAccountPatchRequest) SetDateUpdatedForce(v bool) {
 	x.xxx_hidden_DateUpdatedForce = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 14)
 }
 
 func (x *BillingAccountPatchRequest) HasRef() bool {
@@ -1221,6 +1378,27 @@ func (x *BillingAccountPatchRequest) HasDateForgottenNull() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
+func (x *BillingAccountPatchRequest) HasCollection() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *BillingAccountPatchRequest) HasDateCollection() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateCollection != nil
+}
+
+func (x *BillingAccountPatchRequest) HasDateCollectionNull() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
 func (x *BillingAccountPatchRequest) HasDateUpdated() bool {
 	if x == nil {
 		return false
@@ -1232,7 +1410,7 @@ func (x *BillingAccountPatchRequest) HasDateUpdatedForce() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
 }
 
 func (x *BillingAccountPatchRequest) ClearRef() {
@@ -1277,12 +1455,26 @@ func (x *BillingAccountPatchRequest) ClearDateForgottenNull() {
 	x.xxx_hidden_DateForgottenNull = false
 }
 
+func (x *BillingAccountPatchRequest) ClearCollection() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_Collection = CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
+func (x *BillingAccountPatchRequest) ClearDateCollection() {
+	x.xxx_hidden_DateCollection = nil
+}
+
+func (x *BillingAccountPatchRequest) ClearDateCollectionNull() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_DateCollectionNull = false
+}
+
 func (x *BillingAccountPatchRequest) ClearDateUpdated() {
 	x.xxx_hidden_DateUpdated = nil
 }
 
 func (x *BillingAccountPatchRequest) ClearDateUpdatedForce() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
 	x.xxx_hidden_DateUpdatedForce = false
 }
 
@@ -1306,6 +1498,13 @@ type BillingAccountPatchRequest_builder struct {
 	// "leave it alone", so no value could have meant NULL. It wins
 	// outright: setting both this and date_forgotten clears.
 	DateForgottenNull *bool
+	Collection        *CollectionState
+	DateCollection    *timestamppb.Timestamp
+	// Clear date_collection instead of writing it.
+	// It takes a field of its own because an unset value already means
+	// "leave it alone", so no value could have meant NULL. It wins
+	// outright: setting both this and date_collection clears.
+	DateCollectionNull *bool
 	// The version this update requires the stored date_updated to be.
 	// It is a precondition, not a write: the update applies only if the row
 	// still holds this value, and the server stamps the new version itself.
@@ -1328,34 +1527,43 @@ func (b0 BillingAccountPatchRequest_builder) Build() *BillingAccountPatchRequest
 	_, _ = b, x
 	x.xxx_hidden_Ref = b.Ref
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 14)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Recipient != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 14)
 		x.xxx_hidden_Recipient = b.Recipient
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 14)
 		x.xxx_hidden_Email = b.Email
 	}
 	if b.Address != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
 		x.xxx_hidden_Address = b.Address
 	}
 	x.xxx_hidden_Business = b.Business
 	if b.BusinessNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
 		x.xxx_hidden_BusinessNull = *b.BusinessNull
 	}
 	x.xxx_hidden_DateForgotten = b.DateForgotten
 	if b.DateForgottenNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 14)
 		x.xxx_hidden_DateForgottenNull = *b.DateForgottenNull
+	}
+	if b.Collection != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 14)
+		x.xxx_hidden_Collection = *b.Collection
+	}
+	x.xxx_hidden_DateCollection = b.DateCollection
+	if b.DateCollectionNull != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
+		x.xxx_hidden_DateCollectionNull = *b.DateCollectionNull
 	}
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	if b.DateUpdatedForce != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 14)
 		x.xxx_hidden_DateUpdatedForce = *b.DateUpdatedForce
 	}
 	return m0
@@ -1755,7 +1963,7 @@ var File_levyan_billing_account_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_billing_account_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\"levyan/billing_account_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1clevyan/billing_account.proto\x1a\x11patch/patch.proto\"\xe1\x03\n" +
+	"\"levyan/billing_account_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1clevyan/billing_account.proto\x1a\x11patch/patch.proto\"\xdf\x04\n" +
 	"\x18BillingAccountAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x19\n" +
 	"\x04name\x18\x05 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04name\x12\x1b\n" +
@@ -1768,14 +1976,18 @@ const file_levyan_billing_account_svc_g_proto_rawDesc = "" +
 	"\x05email\x18\x10 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05email\x12\x1f\n" +
 	"\aaddress\x18\x11 \x01(\tB\x05\xaa\x01\x02\b\x02R\aaddress\x123\n" +
 	"\bbusiness\x18\x12 \x01(\v2\x17.levyan.BillingBusinessR\bbusiness\x12A\n" +
-	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\rdateForgotten\x12=\n" +
+	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\rdateForgotten\x127\n" +
+	"\n" +
+	"collection\x18\x14 \x01(\x0e2\x17.levyan.CollectionStateR\n" +
+	"collection\x12C\n" +
+	"\x0fdate_collection\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampR\x0edateCollection\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"}\n" +
 	"\x18BillingAccountGetRequest\x12+\n" +
 	"\x03ref\x18\x01 \x01(\v2\x19.levyan.BillingAccountRefR\x03ref\x124\n" +
 	"\x06select\x18\x02 \x01(\v2\x1c.levyan.BillingAccountSelectR\x06select\",\n" +
 	"\x11BillingAccountRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02idB\x05\n" +
-	"\x03key\"\x9a\x03\n" +
+	"\x03key\"\xe3\x03\n" +
 	"\x14BillingAccountSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12\x12\n" +
 	"\x04name\x18\x05 \x01(\bR\x04name\x12\x14\n" +
@@ -1788,11 +2000,15 @@ const file_levyan_billing_account_svc_g_proto_rawDesc = "" +
 	"\x05email\x18\x10 \x01(\bR\x05email\x12\x18\n" +
 	"\aaddress\x18\x11 \x01(\bR\aaddress\x12\x1a\n" +
 	"\bbusiness\x18\x12 \x01(\bR\bbusiness\x12%\n" +
-	"\x0edate_forgotten\x18\x13 \x01(\bR\rdateForgotten\x12!\n" +
+	"\x0edate_forgotten\x18\x13 \x01(\bR\rdateForgotten\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x14 \x01(\bR\n" +
+	"collection\x12'\n" +
+	"\x0fdate_collection\x18\x15 \x01(\bR\x0edateCollection\x12!\n" +
 	"\fdate_updated\x18\r \x01(\bR\vdateUpdated\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
 	"dateErased\x12!\n" +
-	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\xe5\x03\n" +
+	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\x95\x05\n" +
 	"\x1aBillingAccountPatchRequest\x12+\n" +
 	"\x03ref\x18\x01 \x01(\v2\x19.levyan.BillingAccountRefR\x03ref\x12\x12\n" +
 	"\x04name\x18\n" +
@@ -1803,7 +2019,12 @@ const file_levyan_billing_account_svc_g_proto_rawDesc = "" +
 	"\bbusiness\x18$ \x01(\v2\x17.levyan.BillingBusinessR\bbusiness\x12#\n" +
 	"\rbusiness_null\x18% \x01(\bR\fbusinessNull\x12A\n" +
 	"\x0edate_forgotten\x18& \x01(\v2\x1a.google.protobuf.TimestampR\rdateForgotten\x12.\n" +
-	"\x13date_forgotten_null\x18' \x01(\bR\x11dateForgottenNull\x12=\n" +
+	"\x13date_forgotten_null\x18' \x01(\bR\x11dateForgottenNull\x127\n" +
+	"\n" +
+	"collection\x18( \x01(\x0e2\x17.levyan.CollectionStateR\n" +
+	"collection\x12C\n" +
+	"\x0fdate_collection\x18* \x01(\v2\x1a.google.protobuf.TimestampR\x0edateCollection\x120\n" +
+	"\x14date_collection_null\x18+ \x01(\bR\x12dateCollectionNull\x12=\n" +
 	"\fdate_updated\x18\x1a \x01(\v2\x1a.google.protobuf.TimestampR\vdateUpdated\x12,\n" +
 	"\x12date_updated_force\x18\x1b \x01(\bR\x10dateUpdatedForce\"m\n" +
 	"\x1aBillingAccountApplyRequest\x12+\n" +
@@ -1840,39 +2061,44 @@ var file_levyan_billing_account_svc_g_proto_goTypes = []any{
 	(*BillingAccountFilter)(nil),       // 8: levyan.BillingAccountFilter
 	(*BillingBusiness)(nil),            // 9: levyan.BillingBusiness
 	(*timestamppb.Timestamp)(nil),      // 10: google.protobuf.Timestamp
-	(*patchpb.Patch)(nil),              // 11: patch.Patch
-	(*BillingAccount)(nil),             // 12: levyan.BillingAccount
+	(CollectionState)(0),               // 11: levyan.CollectionState
+	(*patchpb.Patch)(nil),              // 12: patch.Patch
+	(*BillingAccount)(nil),             // 13: levyan.BillingAccount
 }
 var file_levyan_billing_account_svc_g_proto_depIdxs = []int32{
 	9,  // 0: levyan.BillingAccountAddRequest.business:type_name -> levyan.BillingBusiness
 	10, // 1: levyan.BillingAccountAddRequest.date_forgotten:type_name -> google.protobuf.Timestamp
-	10, // 2: levyan.BillingAccountAddRequest.date_created:type_name -> google.protobuf.Timestamp
-	2,  // 3: levyan.BillingAccountGetRequest.ref:type_name -> levyan.BillingAccountRef
-	3,  // 4: levyan.BillingAccountGetRequest.select:type_name -> levyan.BillingAccountSelect
-	2,  // 5: levyan.BillingAccountPatchRequest.ref:type_name -> levyan.BillingAccountRef
-	9,  // 6: levyan.BillingAccountPatchRequest.business:type_name -> levyan.BillingBusiness
-	10, // 7: levyan.BillingAccountPatchRequest.date_forgotten:type_name -> google.protobuf.Timestamp
-	10, // 8: levyan.BillingAccountPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
-	2,  // 9: levyan.BillingAccountApplyRequest.ref:type_name -> levyan.BillingAccountRef
-	11, // 10: levyan.BillingAccountApplyRequest.patch:type_name -> patch.Patch
-	8,  // 11: levyan.BillingAccountListRequest.filters:type_name -> levyan.BillingAccountFilter
-	12, // 12: levyan.BillingAccountListResponse.items:type_name -> levyan.BillingAccount
-	2,  // 13: levyan.BillingAccountFilter.ref:type_name -> levyan.BillingAccountRef
-	0,  // 14: levyan.BillingAccountService.Add:input_type -> levyan.BillingAccountAddRequest
-	1,  // 15: levyan.BillingAccountService.Get:input_type -> levyan.BillingAccountGetRequest
-	4,  // 16: levyan.BillingAccountService.Patch:input_type -> levyan.BillingAccountPatchRequest
-	5,  // 17: levyan.BillingAccountService.Apply:input_type -> levyan.BillingAccountApplyRequest
-	6,  // 18: levyan.BillingAccountService.List:input_type -> levyan.BillingAccountListRequest
-	12, // 19: levyan.BillingAccountService.Add:output_type -> levyan.BillingAccount
-	12, // 20: levyan.BillingAccountService.Get:output_type -> levyan.BillingAccount
-	12, // 21: levyan.BillingAccountService.Patch:output_type -> levyan.BillingAccount
-	12, // 22: levyan.BillingAccountService.Apply:output_type -> levyan.BillingAccount
-	7,  // 23: levyan.BillingAccountService.List:output_type -> levyan.BillingAccountListResponse
-	19, // [19:24] is the sub-list for method output_type
-	14, // [14:19] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	11, // 2: levyan.BillingAccountAddRequest.collection:type_name -> levyan.CollectionState
+	10, // 3: levyan.BillingAccountAddRequest.date_collection:type_name -> google.protobuf.Timestamp
+	10, // 4: levyan.BillingAccountAddRequest.date_created:type_name -> google.protobuf.Timestamp
+	2,  // 5: levyan.BillingAccountGetRequest.ref:type_name -> levyan.BillingAccountRef
+	3,  // 6: levyan.BillingAccountGetRequest.select:type_name -> levyan.BillingAccountSelect
+	2,  // 7: levyan.BillingAccountPatchRequest.ref:type_name -> levyan.BillingAccountRef
+	9,  // 8: levyan.BillingAccountPatchRequest.business:type_name -> levyan.BillingBusiness
+	10, // 9: levyan.BillingAccountPatchRequest.date_forgotten:type_name -> google.protobuf.Timestamp
+	11, // 10: levyan.BillingAccountPatchRequest.collection:type_name -> levyan.CollectionState
+	10, // 11: levyan.BillingAccountPatchRequest.date_collection:type_name -> google.protobuf.Timestamp
+	10, // 12: levyan.BillingAccountPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
+	2,  // 13: levyan.BillingAccountApplyRequest.ref:type_name -> levyan.BillingAccountRef
+	12, // 14: levyan.BillingAccountApplyRequest.patch:type_name -> patch.Patch
+	8,  // 15: levyan.BillingAccountListRequest.filters:type_name -> levyan.BillingAccountFilter
+	13, // 16: levyan.BillingAccountListResponse.items:type_name -> levyan.BillingAccount
+	2,  // 17: levyan.BillingAccountFilter.ref:type_name -> levyan.BillingAccountRef
+	0,  // 18: levyan.BillingAccountService.Add:input_type -> levyan.BillingAccountAddRequest
+	1,  // 19: levyan.BillingAccountService.Get:input_type -> levyan.BillingAccountGetRequest
+	4,  // 20: levyan.BillingAccountService.Patch:input_type -> levyan.BillingAccountPatchRequest
+	5,  // 21: levyan.BillingAccountService.Apply:input_type -> levyan.BillingAccountApplyRequest
+	6,  // 22: levyan.BillingAccountService.List:input_type -> levyan.BillingAccountListRequest
+	13, // 23: levyan.BillingAccountService.Add:output_type -> levyan.BillingAccount
+	13, // 24: levyan.BillingAccountService.Get:output_type -> levyan.BillingAccount
+	13, // 25: levyan.BillingAccountService.Patch:output_type -> levyan.BillingAccount
+	13, // 26: levyan.BillingAccountService.Apply:output_type -> levyan.BillingAccount
+	7,  // 27: levyan.BillingAccountService.List:output_type -> levyan.BillingAccountListResponse
+	23, // [23:28] is the sub-list for method output_type
+	18, // [18:23] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_levyan_billing_account_svc_g_proto_init() }

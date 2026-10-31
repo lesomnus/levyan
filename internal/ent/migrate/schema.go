@@ -165,6 +165,8 @@ var (
 		{Name: "address", Type: field.TypeString},
 		{Name: "business", Type: field.TypeJson, Nullable: true},
 		{Name: "date_forgotten", Type: field.TypeTime, Nullable: true},
+		{Name: "collection", Type: field.TypeInt32, Nullable: true, Default: 0},
+		{Name: "date_collection", Type: field.TypeTime, Nullable: true},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
@@ -178,12 +180,61 @@ var (
 			{
 				Name:    "billingaccount_page",
 				Unique:  false,
-				Columns: []*schema.Column{BillingaccountColumns[13], BillingaccountColumns[0]},
+				Columns: []*schema.Column{BillingaccountColumns[15], BillingaccountColumns[0]},
 			},
 			{
 				Name:    "billingaccount_owner",
 				Unique:  false,
-				Columns: []*schema.Column{BillingaccountColumns[2], BillingaccountColumns[13], BillingaccountColumns[0]},
+				Columns: []*schema.Column{BillingaccountColumns[2], BillingaccountColumns[15], BillingaccountColumns[0]},
+			},
+		},
+	}
+	// CheckoutColumns holds the columns for the "checkout" table.
+	CheckoutColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "account", Type: field.TypeUuid},
+		{Name: "mor", Type: field.TypeString},
+		{Name: "mor_transaction", Type: field.TypeString},
+		{Name: "state", Type: field.TypeInt32},
+		{Name: "date_done", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "billing_account_id", Type: field.TypeUuid},
+		{Name: "subscription_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// CheckoutTable holds the schema information for the "checkout" table.
+	CheckoutTable = &schema.Table{
+		Name:       "checkout",
+		Columns:    CheckoutColumns,
+		PrimaryKey: []*schema.Column{CheckoutColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "checkout_billingaccount_billing_account",
+				Columns:    []*schema.Column{CheckoutColumns[9]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "checkout_subscription_subscription",
+				Columns:    []*schema.Column{CheckoutColumns[10]},
+				RefColumns: []*schema.Column{SubscriptionColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "checkout_billing_account",
+				Unique:  false,
+				Columns: []*schema.Column{CheckoutColumns[9], CheckoutColumns[8], CheckoutColumns[0]},
+			},
+			{
+				Name:    "checkout_mor_transaction",
+				Unique:  true,
+				Columns: []*schema.Column{CheckoutColumns[2], CheckoutColumns[3]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
 			},
 		},
 	}
@@ -712,6 +763,93 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
+			},
+		},
+	}
+	// NoticeColumns holds the columns for the "notice" table.
+	NoticeColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "mor", Type: field.TypeString},
+		{Name: "mor_event", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeInt32},
+		{Name: "via", Type: field.TypeInt32},
+		{Name: "mor_transaction", Type: field.TypeString},
+		{Name: "mor_subscription", Type: field.TypeString},
+		{Name: "mor_adjustment", Type: field.TypeString},
+		{Name: "date_occurred", Type: field.TypeTime, Nullable: true},
+		{Name: "transaction", Type: field.TypeJson, Nullable: true},
+		{Name: "outcome", Type: field.TypeInt32},
+		{Name: "tries", Type: field.TypeInt32},
+		{Name: "error", Type: field.TypeString},
+		{Name: "date_retry", Type: field.TypeTime, Nullable: true},
+		{Name: "date_done", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "billing_account_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "subscription_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "checkout_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// NoticeTable holds the schema information for the "notice" table.
+	NoticeTable = &schema.Table{
+		Name:       "notice",
+		Columns:    NoticeColumns,
+		PrimaryKey: []*schema.Column{NoticeColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notice_billingaccount_billing_account",
+				Columns:    []*schema.Column{NoticeColumns[17]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notice_subscription_subscription",
+				Columns:    []*schema.Column{NoticeColumns[18]},
+				RefColumns: []*schema.Column{SubscriptionColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "notice_checkout_checkout",
+				Columns:    []*schema.Column{NoticeColumns[19]},
+				RefColumns: []*schema.Column{CheckoutColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notice_mor_event",
+				Unique:  true,
+				Columns: []*schema.Column{NoticeColumns[1], NoticeColumns[2]},
+			},
+			{
+				Name:    "notice_waiting",
+				Unique:  false,
+				Columns: []*schema.Column{NoticeColumns[15], NoticeColumns[16]},
+			},
+			{
+				Name:    "notice_mor_transaction",
+				Unique:  false,
+				Columns: []*schema.Column{NoticeColumns[1], NoticeColumns[6]},
+			},
+		},
+	}
+	// NoticecursorColumns holds the columns for the "noticecursor" table.
+	NoticecursorColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "mor", Type: field.TypeString},
+		{Name: "mor_event", Type: field.TypeString},
+		{Name: "date_read", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+	}
+	// NoticecursorTable holds the schema information for the "noticecursor" table.
+	NoticecursorTable = &schema.Table{
+		Name:       "noticecursor",
+		Columns:    NoticecursorColumns,
+		PrimaryKey: []*schema.Column{NoticecursorColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "noticecursor_mor",
+				Unique:  true,
+				Columns: []*schema.Column{NoticecursorColumns[1]},
 			},
 		},
 	}
@@ -1315,6 +1453,67 @@ var (
 			},
 		},
 	}
+	// SubscriptionColumns holds the columns for the "subscription" table.
+	SubscriptionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "mor", Type: field.TypeString},
+		{Name: "mor_subscription", Type: field.TypeString},
+		{Name: "mor_customer", Type: field.TypeString},
+		{Name: "status", Type: field.TypeInt32},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "date_period_start", Type: field.TypeTime, Nullable: true},
+		{Name: "date_period_end", Type: field.TypeTime, Nullable: true},
+		{Name: "date_next", Type: field.TypeTime, Nullable: true},
+		{Name: "change", Type: field.TypeInt32},
+		{Name: "date_change", Type: field.TypeTime, Nullable: true},
+		{Name: "date_canceled", Type: field.TypeTime, Nullable: true},
+		{Name: "method_type", Type: field.TypeString},
+		{Name: "method_brand", Type: field.TypeString},
+		{Name: "method_last4", Type: field.TypeString},
+		{Name: "last_transaction", Type: field.TypeString},
+		{Name: "last_progress", Type: field.TypeInt32},
+		{Name: "awaiting_payer", Type: field.TypeBool},
+		{Name: "date_mor_updated", Type: field.TypeTime, Nullable: true},
+		{Name: "date_checked", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "billing_account_id", Type: field.TypeUuid},
+	}
+	// SubscriptionTable holds the schema information for the "subscription" table.
+	SubscriptionTable = &schema.Table{
+		Name:       "subscription",
+		Columns:    SubscriptionColumns,
+		PrimaryKey: []*schema.Column{SubscriptionColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_billingaccount_billing_account",
+				Columns:    []*schema.Column{SubscriptionColumns[23]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscription_page",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionColumns[22], SubscriptionColumns[0]},
+			},
+			{
+				Name:    "subscription_billing_account",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionColumns[23], SubscriptionColumns[22], SubscriptionColumns[0]},
+			},
+			{
+				Name:    "subscription_mor_subscription",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionColumns[1], SubscriptionColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
 	// TenantColumns holds the columns for the "tenant" table.
 	TenantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -1385,6 +1584,7 @@ var (
 		ArchivedTable,
 		AuditTable,
 		BillingaccountTable,
+		CheckoutTable,
 		CreditTable,
 		CreditnoteTable,
 		DepartureTable,
@@ -1394,6 +1594,8 @@ var (
 		InvoicelineTable,
 		LinkTable,
 		MeterTable,
+		NoticeTable,
+		NoticecursorTable,
 		OfferTable,
 		OperatorTable,
 		OutboxTable,
@@ -1407,6 +1609,7 @@ var (
 		SeriesTable,
 		ServicekeyTable,
 		StatementTable,
+		SubscriptionTable,
 		TenantTable,
 		WorkspaceTable,
 	}
@@ -1424,6 +1627,11 @@ func init() {
 	}
 	BillingaccountTable.Annotation = &entsql.Annotation{
 		Table: "billingaccount",
+	}
+	CheckoutTable.ForeignKeys[0].RefTable = BillingaccountTable
+	CheckoutTable.ForeignKeys[1].RefTable = SubscriptionTable
+	CheckoutTable.Annotation = &entsql.Annotation{
+		Table: "checkout",
 	}
 	CreditTable.ForeignKeys[0].RefTable = TenantTable
 	CreditTable.ForeignKeys[1].RefTable = BillingaccountTable
@@ -1473,6 +1681,15 @@ func init() {
 	MeterTable.ForeignKeys[0].RefTable = TenantTable
 	MeterTable.Annotation = &entsql.Annotation{
 		Table: "meter",
+	}
+	NoticeTable.ForeignKeys[0].RefTable = BillingaccountTable
+	NoticeTable.ForeignKeys[1].RefTable = SubscriptionTable
+	NoticeTable.ForeignKeys[2].RefTable = CheckoutTable
+	NoticeTable.Annotation = &entsql.Annotation{
+		Table: "notice",
+	}
+	NoticecursorTable.Annotation = &entsql.Annotation{
+		Table: "noticecursor",
 	}
 	OfferTable.ForeignKeys[0].RefTable = TenantTable
 	OfferTable.ForeignKeys[1].RefTable = WorkspaceTable
@@ -1534,6 +1751,10 @@ func init() {
 	StatementTable.ForeignKeys[3].RefTable = BillingaccountTable
 	StatementTable.Annotation = &entsql.Annotation{
 		Table: "statement",
+	}
+	SubscriptionTable.ForeignKeys[0].RefTable = BillingaccountTable
+	SubscriptionTable.Annotation = &entsql.Annotation{
+		Table: "subscription",
 	}
 	TenantTable.Annotation = &entsql.Annotation{
 		Table: "tenant",

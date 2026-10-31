@@ -121,11 +121,40 @@ payers := levyanv1.NewPayerServiceClient(conn)
 bas, err := payers.ListBillingAccounts(ctx, &levyanv1.ListBillingAccountsRequest{})
 ```
 
-- 부를 수 있는 것: 결제 계정 목록·만들기·고치기, 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`). 그 밖의 메서드는 거부된다.
+- 부를 수 있는 것: 결제 계정 목록·만들기·고치기·읽기(`GetBillingAccount`), 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`), 결제창(`StartCheckout`, `CompleteCheckout`, 아래). 그 밖의 메서드는 거부된다.
 - 받아들이기, `Use`, `Stop`은 지금 기간의 끝에서 바뀐다.
 - **결제 계정의 채널과 통화는 levyan이 정한다.** 앱은 나라만 보낸다. 그 나라를 어느 채널과 통화로 파는지는 levyan 배포의 설정이고(`payers.channels`, 국내는 기본이 MoR과 원이다), 만든 뒤에는 바뀌지 않는다. 화면에는 `CreateBillingAccount`와 `ListBillingAccounts`가 답한 `channel`과 `currency`를 그대로 보여 준다. 나라에서 통화를 짐작하지 않는다.
 - **믿음.** 앱이 계정을 보증한다. levyan은 그 계정의 지금 상태를 roster에 묻고, 정지되거나 지워진 계정은 거부한다(PermissionDenied). roster에 물을 수 없으면 Unavailable이니 다시 보낸다. levyan에 roster가 설정되지 않았으면 FailedPrecondition이다.
 - 제안과 연결은 그 호출을 보낸 제품의 것만 보인다. 결제 계정은 제품과 상관없이 그 계정의 것이다.
+
+### 결제수단: MoR(Paddle)의 구독
+
+MoR 채널의 결제 계정(`channel`이 `CHANNEL_MOR`)은 지불자가 Paddle의 결제창에서 시작한 구독으로 수금한다. 카드는 Paddle에게 가고, 앱에도 levyan에도 오지 않는다.
+
+1. **`StartCheckout(billing_account, success_url)`** (지불자로서). `success_url`은 결제가 끝나면 Paddle이 지불자를 보낼 앱의 주소다. 답의 `checkout.window`로 페이지가 결제창을 연다.
+
+   ```js
+   // window.script를 불러온 뒤
+   if (w.environment === "sandbox") Paddle.Environment.set("sandbox");
+   Paddle.Initialize({ token: w.client_token });
+   Paddle.Checkout.open({
+     transactionId: w.transaction,
+     settings: { successUrl },
+     // 지불자의 이메일이 있으면 나라와 함께 미리 채운다. Paddle은 국내 카드,
+     // 카카오페이, 네이버페이를 원화이고 한국 주소일 때만 보여 준다.
+     customer: { email, address: { countryCode: w.country } },
+   });
+   ```
+
+   페이지를 그리지 않고 `window.url`(Paddle의 결제 페이지)로 보내도 된다. 다시 불러도 같은 결제창이 온다(열려 있는 동안). 이미 구독이 있는 결제 계정, MoR 채널이 아닌 결제 계정, MoR이 설정되지 않은 levyan은 FailedPrecondition이다.
+2. **`CompleteCheckout(checkout)`**: 지불자가 `success_url`로 돌아오면 부른다. `checkout`은 levyan의 결제창 id(`checkout.id`)다. 아직 `OPEN`이면 잠시 뒤 다시 부른다(Paddle이 구독을 만드는 중이다). levyan은 Paddle의 알림으로도 끝내므로 지불자가 돌아오지 않아도 구독은 잡힌다. `CANCELED`면 새로 `StartCheckout`한다.
+3. **결제 화면**: `GetBillingAccount(id)`의 `collection`(수금할 수 있는지와 이유)과 `subscription`(상태, 다음 청구, 예정된 해지, 결제수단의 종류·브랜드·끝 네 자리)을 그린다. `collection.state`가
+   - `COLLECTABLE`: 정상. `ends`가 있으면 그때 해지되거나 일시정지된다(지불자가 Paddle에서 예약했다).
+   - `NO_SUBSCRIPTION`: 결제수단을 등록하게 한다(`StartCheckout`).
+   - `PAST_DUE`: 결제가 실패해 Paddle이 다시 시도하는 중이다.
+   - `NEEDS_ACTION`: 결제가 지불자를 기다린다(국내 카드의 앱 승인, 은행의 확인). Paddle이 보낸 안내를 따르게 한다.
+   - `PAUSED`, `CANCELED`: 구독이 멈췄거나 끝났다. 끝났으면 새로 `StartCheckout`할 수 있다.
+4. **워크스페이스의 배너**: 제품 키로 부르는 `GetPayer(workspace)`의 `payer.collection`이 지금 내는 결제 계정의 상태다. 결제수단은 보이지 않는다. `COLLECTABLE`이 아니면 소유자에게 알린다. 그 뒤에 무엇을 막을지는 levyan이 Grant로 정한다(#11, 3장).
 
 ### 지불자가 없으면
 

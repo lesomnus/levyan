@@ -23,6 +23,7 @@ import (
 	entdeparture "github.com/lesomnus/levyan/internal/ent/departure"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entoffer "github.com/lesomnus/levyan/internal/ent/offer"
+	entsubscription "github.com/lesomnus/levyan/internal/ent/subscription"
 )
 
 // Standing is what roster says of an account, asked as a call comes: whether
@@ -299,6 +300,24 @@ func (p Payers) Forget(ctx context.Context, account pdid.Id) error {
 		}
 		if _, err := p.S.BillingAccount().Patch(ctx, req); err != nil {
 			return fmt.Errorf("billing account %s: %w", pdid.Id(b.Id), err)
+		}
+
+		// And of its subscriptions, the last four digits of the card each was
+		// last paid with (#12); the kind and the brand say nobody.
+		ms, err := p.db().Subscription.Query().
+			Where(entsubscription.BillingAccountId(b.Id), entsubscription.MethodLast4NEQ("")).
+			All(ctx)
+		if err != nil {
+			return err
+		}
+		for _, m := range ms {
+			if _, err := p.S.Subscription().Patch(ctx, levyan.SubscriptionPatchRequest_builder{
+				Ref:              levyan.SubscriptionRef_builder{Id: m.Id[:]}.Build(),
+				MethodLast4:      proto.String(""),
+				DateUpdatedForce: proto.Bool(true),
+			}.Build()); err != nil {
+				return fmt.Errorf("subscription %s: %w", pdid.Id(m.Id), err)
+			}
 		}
 	}
 

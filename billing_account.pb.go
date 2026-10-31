@@ -23,6 +23,79 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CollectionState is whether what a billing account is billed can be
+// collected now, and why not.
+//
+// What a state that is not collectable leads to -- a grace, a restriction --
+// is dunning's (#11), and not said here.
+type CollectionState int32
+
+const (
+	// Nothing is said: a channel other than the merchant of record's, whose
+	// collection is no subscription's.
+	CollectionState_COLLECTION_STATE_UNSPECIFIED CollectionState = 0
+	// Its subscription is billed and paid up, and takes a charge.
+	CollectionState_COLLECTION_STATE_COLLECTABLE CollectionState = 1
+	// It has no subscription: the payer has not finished a checkout.
+	CollectionState_COLLECTION_STATE_NO_SUBSCRIPTION CollectionState = 2
+	// A payment the MoR has not collected, which it is retrying: nothing more
+	// is charged until it is paid.
+	CollectionState_COLLECTION_STATE_PAST_DUE CollectionState = 3
+	// Its subscription is paused, and billed nothing.
+	CollectionState_COLLECTION_STATE_PAUSED CollectionState = 4
+	// Its subscription is over -- canceled at the MoR, by levyan or by the
+	// payer -- and charges nothing again: another checkout begins another.
+	CollectionState_COLLECTION_STATE_CANCELED CollectionState = 5
+	// A payment waits for the payer to act -- approve it in their card
+	// company's app, or pass their bank's check -- before the MoR can collect
+	// it.
+	CollectionState_COLLECTION_STATE_NEEDS_ACTION CollectionState = 6
+)
+
+// Enum value maps for CollectionState.
+var (
+	CollectionState_name = map[int32]string{
+		0: "COLLECTION_STATE_UNSPECIFIED",
+		1: "COLLECTION_STATE_COLLECTABLE",
+		2: "COLLECTION_STATE_NO_SUBSCRIPTION",
+		3: "COLLECTION_STATE_PAST_DUE",
+		4: "COLLECTION_STATE_PAUSED",
+		5: "COLLECTION_STATE_CANCELED",
+		6: "COLLECTION_STATE_NEEDS_ACTION",
+	}
+	CollectionState_value = map[string]int32{
+		"COLLECTION_STATE_UNSPECIFIED":     0,
+		"COLLECTION_STATE_COLLECTABLE":     1,
+		"COLLECTION_STATE_NO_SUBSCRIPTION": 2,
+		"COLLECTION_STATE_PAST_DUE":        3,
+		"COLLECTION_STATE_PAUSED":          4,
+		"COLLECTION_STATE_CANCELED":        5,
+		"COLLECTION_STATE_NEEDS_ACTION":    6,
+	}
+)
+
+func (x CollectionState) Enum() *CollectionState {
+	p := new(CollectionState)
+	*p = x
+	return p
+}
+
+func (x CollectionState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CollectionState) Descriptor() protoreflect.EnumDescriptor {
+	return file_levyan_billing_account_proto_enumTypes[0].Descriptor()
+}
+
+func (CollectionState) Type() protoreflect.EnumType {
+	return &file_levyan_billing_account_proto_enumTypes[0]
+}
+
+func (x CollectionState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 // BillingAccount is what an account of roster's pays with: one card and one
 // invoice -- who receives it, and the business it is billed to -- in one
 // country, on the channel and in the currency the deployment sold that
@@ -45,23 +118,25 @@ const (
 // the account any more, those fields are replaced (`date_forgotten`) and the
 // row stays, with the business it billed, which is the record tax law keeps.
 type BillingAccount struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id            []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Name          string                 `protobuf:"bytes,5,opt,name=name"`
-	xxx_hidden_Owner         []byte                 `protobuf:"bytes,8,opt,name=owner"`
-	xxx_hidden_Country       string                 `protobuf:"bytes,9,opt,name=country"`
-	xxx_hidden_Channel       string                 `protobuf:"bytes,10,opt,name=channel"`
-	xxx_hidden_Currency      string                 `protobuf:"bytes,11,opt,name=currency"`
-	xxx_hidden_Recipient     string                 `protobuf:"bytes,12,opt,name=recipient"`
-	xxx_hidden_Email         string                 `protobuf:"bytes,16,opt,name=email"`
-	xxx_hidden_Address       string                 `protobuf:"bytes,17,opt,name=address"`
-	xxx_hidden_Business      *BillingBusiness       `protobuf:"bytes,18,opt,name=business"`
-	xxx_hidden_DateForgotten *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_forgotten,json=dateForgotten"`
-	xxx_hidden_DateUpdated   *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateErased    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id             []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Name           string                 `protobuf:"bytes,5,opt,name=name"`
+	xxx_hidden_Owner          []byte                 `protobuf:"bytes,8,opt,name=owner"`
+	xxx_hidden_Country        string                 `protobuf:"bytes,9,opt,name=country"`
+	xxx_hidden_Channel        string                 `protobuf:"bytes,10,opt,name=channel"`
+	xxx_hidden_Currency       string                 `protobuf:"bytes,11,opt,name=currency"`
+	xxx_hidden_Recipient      string                 `protobuf:"bytes,12,opt,name=recipient"`
+	xxx_hidden_Email          string                 `protobuf:"bytes,16,opt,name=email"`
+	xxx_hidden_Address        string                 `protobuf:"bytes,17,opt,name=address"`
+	xxx_hidden_Business       *BillingBusiness       `protobuf:"bytes,18,opt,name=business"`
+	xxx_hidden_DateForgotten  *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_forgotten,json=dateForgotten"`
+	xxx_hidden_Collection     CollectionState        `protobuf:"varint,20,opt,name=collection,enum=levyan.CollectionState"`
+	xxx_hidden_DateCollection *timestamppb.Timestamp `protobuf:"bytes,21,opt,name=date_collection,json=dateCollection"`
+	xxx_hidden_DateUpdated    *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateErased     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *BillingAccount) Reset() {
@@ -166,6 +241,20 @@ func (x *BillingAccount) GetDateForgotten() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *BillingAccount) GetCollection() CollectionState {
+	if x != nil {
+		return x.xxx_hidden_Collection
+	}
+	return CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
+func (x *BillingAccount) GetDateCollection() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateCollection
+	}
+	return nil
+}
+
 func (x *BillingAccount) GetDateUpdated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -237,6 +326,14 @@ func (x *BillingAccount) SetDateForgotten(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateForgotten = v
 }
 
+func (x *BillingAccount) SetCollection(v CollectionState) {
+	x.xxx_hidden_Collection = v
+}
+
+func (x *BillingAccount) SetDateCollection(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCollection = v
+}
+
 func (x *BillingAccount) SetDateUpdated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateUpdated = v
 }
@@ -261,6 +358,13 @@ func (x *BillingAccount) HasDateForgotten() bool {
 		return false
 	}
 	return x.xxx_hidden_DateForgotten != nil
+}
+
+func (x *BillingAccount) HasDateCollection() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateCollection != nil
 }
 
 func (x *BillingAccount) HasDateUpdated() bool {
@@ -290,6 +394,10 @@ func (x *BillingAccount) ClearBusiness() {
 
 func (x *BillingAccount) ClearDateForgotten() {
 	x.xxx_hidden_DateForgotten = nil
+}
+
+func (x *BillingAccount) ClearDateCollection() {
+	x.xxx_hidden_DateCollection = nil
 }
 
 func (x *BillingAccount) ClearDateUpdated() {
@@ -332,7 +440,21 @@ type BillingAccount_builder struct {
 	// When what says who its owner is was replaced, roster having nobody by
 	// them any more; unset while it has.
 	DateForgotten *timestamppb.Timestamp
-	DateUpdated   *timestamppb.Timestamp
+	// Whether what it is billed can be collected now, and why not, and since
+	// when it has been so: what the subscription it is collected through says,
+	// on the merchant of record's channel (`Subscription`, #12). Written beside
+	// the mirror whenever it moves, and by nothing else, so that each change of
+	// it is on the trail. Unspecified on every other channel -- a Korean PG,
+	// bank transfers -- whose collection is no subscription's, and on the
+	// MoR's until a subscription is first mirrored, which is read as no
+	// subscription since it was made.
+	//
+	// A column added to a table that has rows: defaulted, so that a billing
+	// account made before it is unspecified, as one on the MoR's channel with
+	// no subscription mirrored is.
+	Collection     CollectionState
+	DateCollection *timestamppb.Timestamp
+	DateUpdated    *timestamppb.Timestamp
 	// Never stamped: there is no Erase. A billing account somebody was billed
 	// with is kept, for as long as what it was billed is.
 	DateErased  *timestamppb.Timestamp
@@ -354,6 +476,8 @@ func (b0 BillingAccount_builder) Build() *BillingAccount {
 	x.xxx_hidden_Address = b.Address
 	x.xxx_hidden_Business = b.Business
 	x.xxx_hidden_DateForgotten = b.DateForgotten
+	x.xxx_hidden_Collection = b.Collection
+	x.xxx_hidden_DateCollection = b.DateCollection
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -512,7 +636,7 @@ var File_levyan_billing_account_proto protoreflect.FileDescriptor
 
 const file_levyan_billing_account_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/billing_account.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xce\x06\n" +
+	"\x1clevyan/billing_account.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xdd\a\n" +
 	"\x0eBillingAccount\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12\x1a\n" +
 	"\x04name\x18\x05 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\x04name\x12$\n" +
@@ -525,7 +649,11 @@ const file_levyan_billing_account_proto_rawDesc = "" +
 	"\x05email\x18\x10 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\x05email\x12 \n" +
 	"\aaddress\x18\x11 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\aaddress\x12A\n" +
 	"\bbusiness\x18\x12 \x01(\v2\x17.levyan.BillingBusinessB\f\xea\x82\x16\x028\x01\xaa\xc1\x16\x02\x18\x01R\bbusiness\x12I\n" +
-	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\rdateForgotten\x12F\n" +
+	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\rdateForgotten\x12@\n" +
+	"\n" +
+	"collection\x18\x14 \x01(\x0e2\x17.levyan.CollectionStateB\a\xea\x82\x16\x03\x82\x01\x00R\n" +
+	"collection\x12K\n" +
+	"\x0fdate_collection\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\x0edateCollection\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
@@ -550,25 +678,37 @@ const file_levyan_billing_account_proto_rawDesc = "" +
 	"\aaddress\x18\x04 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04kind\x18\x05 \x01(\tR\x04kind\x12\x12\n" +
 	"\x04item\x18\x06 \x01(\tR\x04item\x12\x14\n" +
-	"\x05email\x18\a \x01(\tR\x05emailB!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
+	"\x05email\x18\a \x01(\tR\x05email*\xf9\x01\n" +
+	"\x0fCollectionState\x12 \n" +
+	"\x1cCOLLECTION_STATE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cCOLLECTION_STATE_COLLECTABLE\x10\x01\x12$\n" +
+	" COLLECTION_STATE_NO_SUBSCRIPTION\x10\x02\x12\x1d\n" +
+	"\x19COLLECTION_STATE_PAST_DUE\x10\x03\x12\x1b\n" +
+	"\x17COLLECTION_STATE_PAUSED\x10\x04\x12\x1d\n" +
+	"\x19COLLECTION_STATE_CANCELED\x10\x05\x12!\n" +
+	"\x1dCOLLECTION_STATE_NEEDS_ACTION\x10\x06B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
+var file_levyan_billing_account_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_levyan_billing_account_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_levyan_billing_account_proto_goTypes = []any{
-	(*BillingAccount)(nil),        // 0: levyan.BillingAccount
-	(*BillingBusiness)(nil),       // 1: levyan.BillingBusiness
-	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
+	(CollectionState)(0),          // 0: levyan.CollectionState
+	(*BillingAccount)(nil),        // 1: levyan.BillingAccount
+	(*BillingBusiness)(nil),       // 2: levyan.BillingBusiness
+	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
 }
 var file_levyan_billing_account_proto_depIdxs = []int32{
-	1, // 0: levyan.BillingAccount.business:type_name -> levyan.BillingBusiness
-	2, // 1: levyan.BillingAccount.date_forgotten:type_name -> google.protobuf.Timestamp
-	2, // 2: levyan.BillingAccount.date_updated:type_name -> google.protobuf.Timestamp
-	2, // 3: levyan.BillingAccount.date_erased:type_name -> google.protobuf.Timestamp
-	2, // 4: levyan.BillingAccount.date_created:type_name -> google.protobuf.Timestamp
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	2, // 0: levyan.BillingAccount.business:type_name -> levyan.BillingBusiness
+	3, // 1: levyan.BillingAccount.date_forgotten:type_name -> google.protobuf.Timestamp
+	0, // 2: levyan.BillingAccount.collection:type_name -> levyan.CollectionState
+	3, // 3: levyan.BillingAccount.date_collection:type_name -> google.protobuf.Timestamp
+	3, // 4: levyan.BillingAccount.date_updated:type_name -> google.protobuf.Timestamp
+	3, // 5: levyan.BillingAccount.date_erased:type_name -> google.protobuf.Timestamp
+	3, // 6: levyan.BillingAccount.date_created:type_name -> google.protobuf.Timestamp
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_levyan_billing_account_proto_init() }
@@ -581,13 +721,14 @@ func file_levyan_billing_account_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_billing_account_proto_rawDesc), len(file_levyan_billing_account_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_levyan_billing_account_proto_goTypes,
 		DependencyIndexes: file_levyan_billing_account_proto_depIdxs,
+		EnumInfos:         file_levyan_billing_account_proto_enumTypes,
 		MessageInfos:      file_levyan_billing_account_proto_msgTypes,
 	}.Build()
 	File_levyan_billing_account_proto = out.File

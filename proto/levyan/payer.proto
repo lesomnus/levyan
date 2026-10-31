@@ -105,4 +105,22 @@ service PayerService {
   rpc ListCreditNotes(google.protobuf.Empty) returns (google.protobuf.Empty) {
     option (payday.method) = {account: {}};
   }
+
+  // One of the account's billing accounts, with whether what it is billed
+  // can be collected now and the subscription it is collected through (#12).
+  rpc GetBillingAccount(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
+
+  // A checkout begun with the merchant of record, for a billing account of
+  // the account's on its channel: what a page opens the MoR's window with.
+  rpc StartCheckout(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
+
+  // A checkout of the account's asked about as the payer comes back from it:
+  // the subscription it started, once it has.
+  rpc CompleteCheckout(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
 }

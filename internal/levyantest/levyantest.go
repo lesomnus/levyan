@@ -25,6 +25,7 @@ import (
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/cli"
 	"github.com/lesomnus/levyan/cmd"
+	"github.com/lesomnus/levyan/internal/mor/paddle/paddletest"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/pd"
 	"github.com/lesomnus/levyan/server/relay"
@@ -242,3 +243,26 @@ func (w *World) Drain() {
 // Tenant is a workspace as a product names one, new: the identifier of a
 // payday tenant of its own.
 func Tenant() pdid.Id { return pdid.New(pd.TenantDomain) }
+
+// Merchant is a levyan's configuration naming the fake Paddle `srv` as its
+// merchant of record (`mor`): its keys -- made up for the fake as it starts,
+// never written in a file -- its plans, its API and its clock. Without
+// `webhooks`, no webhook secret is named, and the merchant's events are
+// pulled alone.
+func Merchant(srv *paddletest.Server, webhooks bool) func(*cmd.Config) {
+	return func(c *cmd.Config) {
+		m := &cmd.MorConfig{
+			Kind:        "paddle",
+			Environment: "sandbox",
+			APIKey:      paddletest.Secret(srv.APIKey),
+			ClientToken: srv.ClientToken,
+			Plans:       srv.Plans,
+			URL:         srv.URL,
+			Clock:       srv.Now,
+		}
+		if webhooks {
+			m.WebhookSecret = paddletest.Secret(srv.WebhookSecret)
+		}
+		c.Mor = m
+	}
+}

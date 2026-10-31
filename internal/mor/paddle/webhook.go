@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -42,34 +43,46 @@ func (c *Channel) Webhook(h http.Header, body []byte) (mor.Notice, error) {
 		return mor.Notice{}, err
 	}
 
-	var v struct {
-		EventID    string          `json:"event_id"`
-		EventType  string          `json:"event_type"`
-		OccurredAt string          `json:"occurred_at"`
-		Data       json.RawMessage `json:"data"`
-	}
+	var v event
 	if err := json.Unmarshal(body, &v); err != nil {
 		return mor.Notice{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: errors.New("it is no JSON object")}
 	}
-	if !idOK("evt", v.EventID) {
+	return v.notice(op)
+}
+
+// event is one of Paddle's events, as a webhook delivers it and as the event
+// stream lists it (https://developer.paddle.com/webhooks/about/how-webhooks-work,
+// https://developer.paddle.com/api-reference/events/list-events): of its
+// data, only what it names is read.
+type event struct {
+	EventID    string          `json:"event_id"`
+	EventType  string          `json:"event_type"`
+	OccurredAt string          `json:"occurred_at"`
+	Data       json.RawMessage `json:"data"`
+}
+
+// notice is what e names, as levyan keeps a notice: its id, what it is
+// about, and the ids of that.
+func (e event) notice(op string) (mor.Notice, error) {
+	if !idOK("evt", e.EventID) {
 		return mor.Notice{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: errors.New("it names no event")}
 	}
-	n := mor.Notice{ID: v.EventID, Event: v.EventType}
+	n := mor.Notice{ID: e.EventID, Event: e.EventType}
 	// A time that cannot be read is no time: it is believed of nothing
 	// either way.
-	n.At, _ = when(v.OccurredAt)
+	n.At, _ = when(e.OccurredAt)
 
 	var d struct {
 		ID             string  `json:"id"`
 		TransactionID  string  `json:"transaction_id"`
 		SubscriptionID *string `json:"subscription_id"`
 	}
-	_ = json.Unmarshal(v.Data, &d)
+	_ = json.Unmarshal(e.Data, &d)
 	sub := ""
 	if d.SubscriptionID != nil && idOK("sub", *d.SubscriptionID) {
 		sub = *d.SubscriptionID
 	}
-	entity, _, _ := strings.Cut(v.EventType, ".")
+	entity, _, _ := strings.Cut(e.EventType, ".")
 	switch entity {
 	case "transaction":
 		if !idOK("txn", d.ID) {
@@ -94,6 +107,48 @@ func (c *Channel) Webhook(h http.Header, body []byte) (mor.Notice, error) {
 		n.Type = mor.NoticeOther
 	}
 	return n, nil
+}
+
+// eventsPage is the most of the event stream one read asks for: Paddle's
+// most (https://developer.paddle.com/api-reference/events/list-events).
+const eventsPage = 200
+
+// Notices is GET /events, oldest first: after the event r.After names, or
+// from r.Since for a first read. An event that names nothing it should --
+// a transaction's with no transaction -- is no notice, and is passed over:
+// it would be refused as a webhook.
+func (c *Channel) Notices(ctx context.Context, r mor.Read) (mor.Notices, error) {
+	const op = "notices"
+	q := url.Values{
+		"order_by": {"id[ASC]"},
+		"per_page": {strconv.Itoa(eventsPage)},
+	}
+	switch {
+	case r.After != "":
+		if !idOK("evt", r.After) {
+			return mor.Notices{}, invalid(op, "a read begins after an event of Paddle's")
+		}
+		q.Set("after", r.After)
+	case !r.Since.IsZero():
+		q.Set("from", r.Since.UTC().Format(time.RFC3339))
+	}
+	var es []event
+	m, err := c.call(ctx, op, http.MethodGet, "/events", q, nil, &es)
+	if err != nil {
+		return mor.Notices{}, err
+	}
+	out := mor.Notices{More: m.Pagination != nil && m.Pagination.HasMore && len(es) > 0}
+	for _, e := range es {
+		if idOK("evt", e.EventID) {
+			out.Last = e.EventID
+		}
+		n, err := e.notice(op)
+		if err != nil {
+			continue
+		}
+		out.Notices = append(out.Notices, n)
+	}
+	return out, nil
 }
 
 // signed is nil for a webhook whose signature holds and is fresh, and the

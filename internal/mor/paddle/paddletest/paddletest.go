@@ -22,11 +22,30 @@
 //     is canceled only immediately.
 //   - An id is "<prefix>_" and 26 lowercase letters and digits, in the order
 //     the fake made them.
+//   - It sells one plan in each currency, [Server.Plans]: a checkout of
+//     another currency's plan is refused.
+//   - It records an event of every change it makes -- transaction.created
+//     as a checkout is begun; transaction.paid, transaction.completed and
+//     subscription.created as one is paid; subscription.updated,
+//     .past_due, .canceled and .paused, transaction.completed, .past_due
+//     and .canceled, adjustment.created and .updated as their entities
+//     change -- each of its entity as it was then, at once in its event
+//     stream (GET /events) unless [Server.Behind] keeps it out for a while.
+//     A webhook ([Server.Webhook], [Server.Deliver]) is a delivery of one of
+//     those events, by its id. It keeps them all, not 90 days of them.
+//   - A payment says the method it was made with ([Server.PayWith]); a
+//     renewal is made with the method the checkout was paid with. A renewal
+//     made to wait for the payer ([Server.AwaitAction]) is past_due, its
+//     payment action_required, until [Server.Act].
+//   - A checkout's transaction is canceled only when a test says so
+//     ([Server.Abandon]).
 //
 // Time is the fake's own clock: now, moved by [Server.Advance]. A
 // subscription renews when [Server.Renew] says so, not when its time comes.
 // A failure is asked for before the request it is for ([Server.Fail],
-// [Server.Decline]); a payer finishing a checkout is [Server.Pay].
+// [Server.Decline]); a payer finishing a checkout is [Server.Pay], and a
+// payer canceling in Paddle's own pages [Server.ScheduleCancel] and
+// [Server.CancelNow].
 package paddletest
 
 import (
@@ -64,6 +83,7 @@ const (
 	Charge   Op = "charge"   // POST /subscriptions/{id}/charge
 	Cancel   Op = "cancel"   // POST /subscriptions/{id}/cancel
 	Refund   Op = "refund"   // POST /adjustments
+	Events   Op = "events"   // GET /events
 )
 
 // Fault is what the next request of an [Op] meets instead of its answer.
@@ -103,10 +123,11 @@ type Server struct {
 	ClientToken   string
 	WebhookSecret string
 
-	// Plan is the catalog price its checkouts subscribe a payer to: a
-	// month's, of PlanAmount in the checkout's currency (USD when it says
-	// none).
-	Plan       string
+	// Plans is the catalog price its checkouts subscribe a payer to, by the
+	// currency of the checkout -- USD and KRW -- each a month's, of
+	// PlanAmount in that currency. A checkout of another currency's plan,
+	// or of none, is refused as Paddle refuses a price it has not.
+	Plans      map[string]string
 	PlanAmount int64
 
 	// TaxRate is the tax it adds, in basis points: 1,000 is 10%.
@@ -119,6 +140,10 @@ type Server struct {
 	// transactions, and less to make a test page.
 	PageSize int
 
+	// EventsPageSize is the most the event stream answers at once: Paddle's
+	// 200, and less to make a test page.
+	EventsPageSize int
+
 	srv  *httptest.Server
 	done chan struct{}
 
@@ -130,15 +155,43 @@ type Server struct {
 	adjs     map[string]*adj
 	faults   map[Op][]Fault
 	declines []string
+	awaits   int
 	requests map[Op]int
 	charged  int
 	made     []string // what the request being handled made, by id
+	events   []*event
+	behind   time.Duration
+}
+
+// Method is what the fake's payer pays with: Paddle's method_details, of the
+// fields package paddle reads.
+type Method struct {
+	// Type is Paddle's: card, south_korea_local_card, kakao_pay, ….
+	Type string
+
+	// Brand is a card's brand, or a Korean card's company, and Last4 its last
+	// four digits; both empty for a method that is no card.
+	Brand string
+	Last4 string
+}
+
+// Card is the card the fake's payer pays with unless told otherwise.
+var Card = Method{Type: "card", Brand: "visa", Last4: "4242"}
+
+// event is one of the fake's events: what changed, as it was then.
+type event struct {
+	id       string
+	typ      string
+	occurred time.Time
+	data     map[string]any
+	seen     time.Time // listed from then on
 }
 
 type sub struct {
 	id         string
 	customer   string
 	address    string
+	method     Method
 	status     string
 	currency   string
 	custom     map[string]any
@@ -199,6 +252,7 @@ type payment struct {
 	amount   int64
 	status   string
 	code     string
+	method   Method
 	created  time.Time
 	captured time.Time
 }
@@ -232,20 +286,21 @@ type adjItem struct {
 func New(t testing.TB) *Server {
 	t.Helper()
 	s := &Server{
-		APIKey:        "pdl_sdbx_apikey_" + id26() + "_" + alnum(22) + "_" + alnum(3),
-		ClientToken:   "test_" + strings.ToLower(alnum(27)),
-		WebhookSecret: "pdl_ntfset_" + id26() + "_" + alnum(32),
-		TaxRate:       1_000,
-		TaxCategories: []string{"standard"},
-		PageSize:      30,
-		done:          make(chan struct{}),
-		subs:          map[string]*sub{},
-		txns:          map[string]*txn{},
-		adjs:          map[string]*adj{},
-		faults:        map[Op][]Fault{},
-		requests:      map[Op]int{},
+		APIKey:         "pdl_sdbx_apikey_" + id26() + "_" + alnum(22) + "_" + alnum(3),
+		ClientToken:    "test_" + strings.ToLower(alnum(27)),
+		WebhookSecret:  "pdl_ntfset_" + id26() + "_" + alnum(32),
+		TaxRate:        1_000,
+		TaxCategories:  []string{"standard"},
+		PageSize:       30,
+		EventsPageSize: 200,
+		done:           make(chan struct{}),
+		subs:           map[string]*sub{},
+		txns:           map[string]*txn{},
+		adjs:           map[string]*adj{},
+		faults:         map[Op][]Fault{},
+		requests:       map[Op]int{},
 	}
-	s.Plan = s.id("pri")
+	s.Plans = map[string]string{"USD": s.id("pri"), "KRW": s.id("pri")}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /transactions", s.handle(Checkout, s.checkout))
@@ -255,6 +310,7 @@ func New(t testing.TB) *Server {
 	mux.HandleFunc("POST /subscriptions/{id}/charge", s.handle(Charge, s.charge))
 	mux.HandleFunc("POST /subscriptions/{id}/cancel", s.handle(Cancel, s.cancel))
 	mux.HandleFunc("POST /adjustments", s.handle(Refund, s.refund))
+	mux.HandleFunc("GET /events", s.handle(Events, s.listEvents))
 
 	s.srv = httptest.NewServer(mux)
 	s.URL = s.srv.URL
@@ -282,7 +338,7 @@ func (s *Server) Config() paddle.Config {
 		ClientToken:   s.ClientToken,
 		WebhookSecret: Secret(s.WebhookSecret),
 		Sandbox:       true,
-		Plan:          s.Plan,
+		Plans:         s.Plans,
 		URL:           s.URL,
 		Clock:         s.Now,
 	}
@@ -337,10 +393,14 @@ func (s *Server) Requests(op Op) int {
 }
 
 // Pay is the payer in Paddle's checkout, finishing the checkout c with a card
-// that pays: the transaction completed, and a subscription made of it, which
-// has the transaction's custom_data. A checkout opened with another token, or
-// in another environment, is an error, as Paddle.js refuses it.
-func (s *Server) Pay(c mor.Checkout) error {
+// that pays ([Card]): the transaction completed, and a subscription made of
+// it, which has the transaction's custom_data. A checkout opened with another
+// token, or in another environment, is an error, as Paddle.js refuses it.
+func (s *Server) Pay(c mor.Checkout) error { return s.PayWith(c, Card) }
+
+// PayWith is [Server.Pay] with the method m: what the checkout's payment, and
+// the subscription's renewals after it, say they were made with.
+func (s *Server) PayWith(c mor.Checkout, m Method) error {
 	if c.Window.Values["token"] != s.ClientToken || c.Window.Values["environment"] != "sandbox" {
 		return errors.New("paddletest: the checkout was opened with another token, or in another environment")
 	}
@@ -362,7 +422,7 @@ func (s *Server) Pay(c mor.Checkout) error {
 		t.currency = "USD"
 	}
 	_, _, total := s.sum(t.items)
-	t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", created: now, captured: now}}
+	t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", method: m, created: now, captured: now}}
 	if total > 0 {
 		s.charged++
 	}
@@ -372,6 +432,7 @@ func (s *Server) Pay(c mor.Checkout) error {
 		id:       s.id("sub"),
 		customer: t.customer,
 		address:  t.address,
+		method:   m,
 		status:   "active",
 		currency: t.currency,
 		custom:   t.custom,
@@ -384,14 +445,17 @@ func (s *Server) Pay(c mor.Checkout) error {
 	su.next = su.end
 	s.subs[su.id] = su
 	t.sub = su.id
+	s.emit("transaction.paid", t.object(s, false))
+	s.emit("transaction.completed", t.object(s, false))
+	s.emit("subscription.created", su.object(s, false))
 	return nil
 }
 
 // Renew is Paddle billing a subscription at the end of its period: a
 // scheduled cancellation or pause taking effect -- and every charge for the
 // next period forgiven -- or a renewal, billing the plan and those charges,
-// collected or past due. It answers the renewal's transaction, or "" for
-// none.
+// collected, past due, or waiting for the payer ([Server.AwaitAction]). It
+// answers the renewal's transaction, or "" for none.
 func (s *Server) Renew(id string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -405,8 +469,10 @@ func (s *Server) Renew(id string) string {
 		switch su.change.action {
 		case "cancel":
 			s.end(su, now)
+			s.emit("subscription.canceled", su.object(s, false))
 		case "pause":
 			su.status, su.start, su.end, su.next, su.pending = "paused", time.Time{}, time.Time{}, time.Time{}, nil
+			s.emit("subscription.paused", su.object(s, false))
 		}
 		su.change = nil
 		return ""
@@ -440,15 +506,75 @@ func (s *Server) Renew(id string) string {
 	_, _, total := s.sum(t.items)
 	if code, ok := s.decline(); ok {
 		t.status = "past_due"
-		t.payments = []payment{{id: s.id("pay"), amount: total, status: "error", code: code, created: now}}
+		t.payments = []payment{{id: s.id("pay"), amount: total, status: "error", code: code, method: su.method, created: now}}
+		su.status = "past_due"
+	} else if s.awaits > 0 {
+		s.awaits--
+		t.status = "past_due"
+		t.payments = []payment{{id: s.id("pay"), amount: total, status: "action_required", method: su.method, created: now}}
 		su.status = "past_due"
 	} else {
 		t.status = "completed"
-		t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", created: now, captured: now}}
+		t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", method: su.method, created: now, captured: now}}
 		s.charged++
 	}
 	s.txns[t.id] = t
+	if t.status == "completed" {
+		s.emit("transaction.completed", t.object(s, false))
+		s.emit("subscription.updated", su.object(s, false))
+	} else {
+		s.emit("transaction.past_due", t.object(s, false))
+		s.emit("subscription.past_due", su.object(s, false))
+	}
 	return t.id
+}
+
+// Abandon is Paddle canceling the transaction of a checkout the payer never
+// finished. Its documentation does not say when it does, or whether it does
+// at all; a checkout so canceled is begun anew.
+func (s *Server) Abandon(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.txns[id]
+	if !ok || (t.status != "draft" && t.status != "ready") {
+		panic(fmt.Sprintf("paddletest: no open checkout %q", id))
+	}
+	t.status, t.updated = "canceled", s.now()
+	s.emit("transaction.canceled", t.object(s, false))
+}
+
+// AwaitAction makes the next renewal the fake bills wait for the payer to
+// act on its payment -- approve it in their card company's app, or pass
+// their bank's check -- which [Server.Act] is: the payment action_required,
+// the transaction and the subscription past_due until then. Paddle's
+// documentation does not say what a renewal with a Korean card that is not
+// saved does (TestLive asks); this is the fake's guess, for what levyan does
+// with it.
+func (s *Server) AwaitAction() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.awaits++
+}
+
+// Act is the payer acting on the payment transaction id waits for: it is
+// collected, and its subscription is active again.
+func (s *Server) Act(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.txns[id]
+	if !ok || len(t.payments) == 0 || t.payments[len(t.payments)-1].status != "action_required" {
+		panic(fmt.Sprintf("paddletest: no payment of %q waits for the payer", id))
+	}
+	now := s.now()
+	p := &t.payments[len(t.payments)-1]
+	p.status, p.captured = "captured", now
+	t.status, t.updated = "completed", now
+	s.charged++
+	s.emit("transaction.completed", t.object(s, false))
+	if su, ok := s.subs[t.sub]; ok && su.status == "past_due" {
+		su.status, su.updated = "active", now
+		s.emit("subscription.updated", su.object(s, false))
+	}
 }
 
 // ScheduleCancel is the payer canceling a subscription in Paddle's own pages,
@@ -459,6 +585,21 @@ func (s *Server) ScheduleCancel(id string) {
 	su := s.subs[id]
 	su.change = &change{action: "cancel", at: su.next}
 	su.next, su.updated = time.Time{}, s.now()
+	s.emit("subscription.updated", su.object(s, false))
+}
+
+// CancelNow is the payer canceling a subscription in Paddle's own pages at
+// once -- as the link in Paddle's email does to a subscription of nothing
+// (https://developer.paddle.com/changelog/2023/zero-dollar-subscription-emails)
+// -- without asking levyan.
+func (s *Server) CancelNow(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	su := s.subs[id]
+	now := s.now()
+	s.end(su, now)
+	su.updated = now
+	s.emit("subscription.canceled", su.object(s, false))
 }
 
 // Duplicate is a charge made twice -- by a caller that sent its key again
@@ -475,6 +616,7 @@ func (s *Server) Duplicate(id string) string {
 	t.created, t.updated = s.now(), s.now()
 	s.txns[t.id] = &t
 	s.charged++
+	s.emit("transaction.completed", t.object(s, false))
 	return t.id
 }
 
@@ -492,11 +634,36 @@ func (s *Server) decide(id, status string) {
 		panic(fmt.Sprintf("paddletest: no refund %q waiting for approval", id))
 	}
 	a.status, a.updated = status, s.now()
+	s.emit("adjustment.updated", a.object(s))
+}
+
+// Behind keeps every event the fake records from now on out of its event
+// stream until the fake's clock has moved d past it: Paddle still writing
+// its stream when it is read, which its documentation does not say it does
+// or does not. Zero puts the stream back in step.
+func (s *Server) Behind(d time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.behind = d
+}
+
+// Events is the id and the type of every event the fake has recorded, oldest
+// first.
+func (s *Server) Events() [][2]string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([][2]string, len(s.events))
+	for i, e := range s.events {
+		out[i] = [2]string{e.id, e.typ}
+	}
+	return out
 }
 
 // Webhook is what Paddle sends when the entity of id changes -- a
 // transaction, a subscription or an adjustment, as it is now -- as the event
-// named, signed with WebhookSecret at the fake's now.
+// named, signed with WebhookSecret at the fake's now. The event is recorded
+// in the fake's event stream too, as Paddle's events are both delivered and
+// listed.
 func (s *Server) Webhook(event, id string) (http.Header, []byte) {
 	s.mu.Lock()
 	var data map[string]any
@@ -511,12 +678,31 @@ func (s *Server) Webhook(event, id string) (http.Header, []byte) {
 		s.mu.Unlock()
 		panic(fmt.Sprintf("paddletest: no entity %q", id))
 	}
+	e := s.emit(event, data)
+	s.mu.Unlock()
+	return s.Deliver(e.id)
+}
+
+// Deliver is a delivery of the event recorded as id, as Paddle sends it --
+// and sends it again -- signed at the fake's now.
+func (s *Server) Deliver(id string) (http.Header, []byte) {
+	s.mu.Lock()
+	var found *event
+	for _, e := range s.events {
+		if e.id == id {
+			found = e
+		}
+	}
+	if found == nil {
+		s.mu.Unlock()
+		panic(fmt.Sprintf("paddletest: no event %q", id))
+	}
 	body, err := json.Marshal(map[string]any{
-		"event_id":        s.id("evt"),
-		"event_type":      event,
-		"occurred_at":     stamp(s.now()),
+		"event_id":        found.id,
+		"event_type":      found.typ,
+		"occurred_at":     stamp(found.occurred),
 		"notification_id": s.id("ntf"),
-		"data":            data,
+		"data":            found.data,
 	})
 	now := s.now()
 	s.mu.Unlock()
@@ -673,6 +859,81 @@ func (s *Server) id(prefix string) string {
 // seen is whether something hidden until until is in sight now.
 func (s *Server) seen(until time.Time) bool { return until.IsZero() || !s.now().Before(until) }
 
+// emit records an event of typ, of data as it is now, in the fake's event
+// stream: listed at once, or once the fake's clock has moved [Server.Behind]
+// past it.
+func (s *Server) emit(typ string, data map[string]any) *event {
+	now := s.now()
+	e := &event{id: s.id("evt"), typ: typ, occurred: now, data: data}
+	if s.behind > 0 {
+		e.seen = now.Add(s.behind)
+	}
+	s.events = append(s.events, e)
+	return e
+}
+
+// listEvents is GET /events: the event stream, by id, after a cursor or from
+// a time (https://developer.paddle.com/api-reference/events/list-events).
+// The fake keeps every event, and none of them for 90 days only.
+func (s *Server) listEvents(r *http.Request, _ []byte) (int, any) {
+	q := r.URL.Query()
+	asc := q.Get("order_by") == "id[ASC]"
+	if o := q.Get("order_by"); o != "" && o != "id[ASC]" && o != "id[DESC]" {
+		return http.StatusBadRequest, no("invalid_field", "order_by: the fake orders by id")
+	}
+	per := 50
+	if n, err := strconv.Atoi(q.Get("per_page")); err == nil && n > 0 {
+		per = min(n, 200)
+	}
+	per = min(per, s.EventsPageSize)
+	var from time.Time
+	if v := q.Get("from"); v != "" {
+		t, err := time.Parse(time.RFC3339Nano, v)
+		if err != nil {
+			return http.StatusBadRequest, no("invalid_field", "from: an RFC 3339 time")
+		}
+		from = t
+	}
+	var es []*event
+	for _, e := range s.events {
+		if s.seen(e.seen) && !e.occurred.Before(from) {
+			es = append(es, e)
+		}
+	}
+	slices.SortFunc(es, func(a, b *event) int {
+		if asc {
+			return strings.Compare(a.id, b.id)
+		}
+		return strings.Compare(b.id, a.id)
+	})
+	if after := q.Get("after"); after != "" {
+		// After an id, whether or not it is listed: ids sort as their
+		// entities were made.
+		i := slices.IndexFunc(es, func(e *event) bool {
+			if asc {
+				return e.id > after
+			}
+			return e.id < after
+		})
+		if i < 0 {
+			i = len(es)
+		}
+		es = es[i:]
+	}
+	more := len(es) > per
+	if more {
+		es = es[:per]
+	}
+	data := make([]map[string]any, len(es))
+	for i, e := range es {
+		data[i] = map[string]any{"event_id": e.id, "event_type": e.typ, "occurred_at": stamp(e.occurred), "data": e.data}
+	}
+	if len(es) > 0 {
+		q.Set("after", es[len(es)-1].id)
+	}
+	return http.StatusOK, page{data: data, perPage: per, next: s.URL + "/events?" + q.Encode(), more: more}
+}
+
 func (s *Server) decline() (string, bool) {
 	if len(s.declines) == 0 {
 		return "", false
@@ -727,8 +988,17 @@ func (s *Server) checkout(_ *http.Request, body []byte) (int, any) {
 	if json.Unmarshal(body, &in) != nil || len(in.Items) != 1 || in.Items[0].Quantity < 1 {
 		return http.StatusBadRequest, no("invalid_field", "items: the fake sells one plan")
 	}
-	if in.Items[0].PriceID != s.Plan {
+	plan := ""
+	for cur, p := range s.Plans {
+		if p == in.Items[0].PriceID {
+			plan = cur
+		}
+	}
+	if plan == "" {
 		return http.StatusNotFound, no("not_found", "Entity "+in.Items[0].PriceID+" not found")
+	}
+	if in.CurrencyCode != "" && in.CurrencyCode != plan {
+		return http.StatusBadRequest, no("invalid_field", "currency_code: the plan is priced in "+plan)
 	}
 	if in.CollectionMode != "" && in.CollectionMode != "automatic" {
 		return http.StatusBadRequest, no("invalid_field", "collection_mode: the fake collects automatically")
@@ -750,7 +1020,7 @@ func (s *Server) checkout(_ *http.Request, body []byte) (int, any) {
 	}
 	t.items = []item{{
 		line:        s.id("txnitm"),
-		price:       s.Plan,
+		price:       in.Items[0].PriceID,
 		product:     s.id("pro"),
 		name:        "levyan",
 		description: "monthly",
@@ -763,6 +1033,7 @@ func (s *Server) checkout(_ *http.Request, body []byte) (int, any) {
 	t.checkout = s.URL + "/pay?_ptxn=" + t.id
 	s.txns[t.id] = t
 	s.made = append(s.made, t.id)
+	s.emit("transaction.created", t.object(s, false))
 	return http.StatusCreated, t.object(s, false)
 }
 
@@ -937,6 +1208,7 @@ func (s *Server) charge(r *http.Request, body []byte) (int, any) {
 		}
 		su.pending = append(su.pending, items...)
 		su.updated = now
+		s.emit("subscription.updated", su.object(s, false))
 		return http.StatusCreated, su.object(s, false)
 	}
 
@@ -964,11 +1236,13 @@ func (s *Server) charge(r *http.Request, body []byte) (int, any) {
 	for i := range t.items {
 		t.items[i].line = s.id("txnitm")
 	}
-	t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", created: now, captured: now}}
+	t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", method: su.method, created: now, captured: now}}
 	s.txns[t.id] = t
 	s.made = append(s.made, t.id)
 	s.charged++
 	su.updated = now
+	s.emit("transaction.completed", t.object(s, false))
+	s.emit("subscription.updated", su.object(s, false))
 	return http.StatusCreated, su.object(s, false)
 }
 
@@ -1004,6 +1278,11 @@ func (s *Server) cancel(r *http.Request, body []byte) (int, any) {
 		su.next = time.Time{}
 	}
 	su.updated = now
+	if su.status == "canceled" {
+		s.emit("subscription.canceled", su.object(s, false))
+	} else {
+		s.emit("subscription.updated", su.object(s, false))
+	}
 	return http.StatusOK, su.object(s, false)
 }
 
@@ -1121,6 +1400,7 @@ func (s *Server) refund(_ *http.Request, body []byte) (int, any) {
 	}
 	s.adjs[a.id] = a
 	s.made = append(s.made, a.id)
+	s.emit("adjustment.created", a.object(s))
 	return http.StatusCreated, a.object(s)
 }
 
@@ -1245,12 +1525,29 @@ func (t *txn) paymentObjects() []map[string]any {
 			"amount":                   str(p.amount),
 			"status":                   p.status,
 			"error_code":               orNil(p.code),
-			"method_details":           map[string]any{"type": "card", "card": map[string]any{"type": "visa", "last4": "4242", "expiry_month": 12, "expiry_year": 2030}},
+			"method_details":           p.method.object(),
 			"created_at":               stamp(p.created),
 			"captured_at":              stampOrNil(p.captured),
 		})
 	}
 	return ps
+}
+
+// object is m as Paddle's method_details: of a card, its brand, its last
+// four digits and its expiry -- which package paddle does not keep -- and of
+// a Korean card its company and its last four digits.
+func (m Method) object() map[string]any {
+	if m.Type == "" {
+		m = Card
+	}
+	o := map[string]any{"type": m.Type, "card": nil, "south_korea_local_card": nil, "paypal": nil, "underlying_details": nil}
+	switch m.Type {
+	case "card":
+		o["card"] = map[string]any{"type": m.Brand, "last4": m.Last4, "expiry_month": 12, "expiry_year": 2030, "cardholder_name": "Hong Gildong"}
+	case "south_korea_local_card":
+		o["south_korea_local_card"] = map[string]any{"type": m.Brand, "last4": m.Last4}
+	}
+	return o
 }
 
 func (it item) priceObject(cur string) map[string]any {

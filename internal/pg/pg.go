@@ -53,9 +53,11 @@
 // A decline is one of four kinds ([Decline]), so that what follows one --
 // trying again later, asking the payer for another card, holding the service
 // back at once -- can be set by kind (#11). That declines are told apart by
-// kind is the owner's decision, and the four kinds are Claude's, the lead's
-// (levyan#10, 26). Which of a PG's codes is which is its channel's to say, and
-// in package toss it is the implementation's.
+// kind is the owner's decision; the four kinds are Claude's, the lead's
+// (levyan#10, 26) -- temporary, a method to replace, suspected fraud or a
+// block of the card company's, and the rest. Where the edges between them
+// fall, as below, is the implementation's, and so is which of Toss's codes is
+// which: a channel says that of its PG's (package toss).
 //
 //   - [DeclineTemporary]: it may go through later on the same method -- too
 //     little left, a limit reached.

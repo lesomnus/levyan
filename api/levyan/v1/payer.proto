@@ -336,7 +336,8 @@ message Collection {
 // CollectionState is whether what a billing account is billed can be
 // collected now, and why not, value for value levyan's own.
 enum CollectionState {
-  // Nothing is said: a channel levyan collects nothing on yet.
+  // Nothing is said: a channel other than the merchant of record's, whose
+  // collection is no subscription's -- a Korean PG, bank transfers.
   COLLECTION_STATE_UNSPECIFIED = 0;
 
   // Its subscription is billed and paid up.

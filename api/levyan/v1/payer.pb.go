@@ -80,7 +80,8 @@ func (x CheckoutState) Number() protoreflect.EnumNumber {
 type CollectionState int32
 
 const (
-	// Nothing is said: a channel levyan collects nothing on yet.
+	// Nothing is said: a channel other than the merchant of record's, whose
+	// collection is no subscription's -- a Korean PG, bank transfers.
 	CollectionState_COLLECTION_STATE_UNSPECIFIED CollectionState = 0
 	// Its subscription is billed and paid up.
 	CollectionState_COLLECTION_STATE_COLLECTABLE CollectionState = 1

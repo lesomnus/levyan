@@ -31,7 +31,8 @@ const (
 type CollectionState int32
 
 const (
-	// Nothing is said: a channel levyan collects nothing on yet.
+	// Nothing is said: a channel other than the merchant of record's, whose
+	// collection is no subscription's.
 	CollectionState_COLLECTION_STATE_UNSPECIFIED CollectionState = 0
 	// Its subscription is billed and paid up, and takes a charge.
 	CollectionState_COLLECTION_STATE_COLLECTABLE CollectionState = 1
@@ -443,9 +444,10 @@ type BillingAccount_builder struct {
 	// when it has been so: what the subscription it is collected through says,
 	// on the merchant of record's channel (`Subscription`, #12). Written beside
 	// the mirror whenever it moves, and by nothing else, so that each change of
-	// it is on the trail. Unspecified on a channel nothing is collected on yet
-	// (PG_KR), and on the MoR's until a subscription is first mirrored -- read
-	// as no subscription since it was made.
+	// it is on the trail. Unspecified on every other channel -- a Korean PG,
+	// bank transfers -- whose collection is no subscription's, and on the
+	// MoR's until a subscription is first mirrored, which is read as no
+	// subscription since it was made.
 	Collection     CollectionState
 	DateCollection *timestamppb.Timestamp
 	DateUpdated    *timestamppb.Timestamp

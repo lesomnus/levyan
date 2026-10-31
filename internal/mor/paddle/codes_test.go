@@ -317,10 +317,27 @@ func TestTheLeastPaddleChargesIsSaidOfEveryCurrency(t *testing.T) {
 }
 
 func TestAnAdjustmentLevyanCannotPlaceIsNoAdjustmentToActOn(t *testing.T) {
-	_, err := adjustment{Status: "a_status_paddle_adds_tomorrow"}.read()
+	_, err := adjustment{Status: "a_status_paddle_adds_tomorrow"}.read("external")
 	require.Error(t, err)
-	a, err := adjustment{Action: "credit", Status: "approved", CurrencyCode: "USD", Totals: totals{Total: "100"}}.read()
+	a, err := adjustment{Action: "credit", Status: "approved", CurrencyCode: "USD", Totals: totals{Total: "100"}}.read("external")
 	require.NoError(t, err)
 	require.Equal(t, mor.OtherAdjustment, a.Kind)
 	require.True(t, errors.Is(sentinels["subscription_update_when_canceled"], mor.ErrEnded))
+}
+
+// What a refund gives back is read in the terms its amount was asked in, as a
+// line's charge is: before tax under the external tax mode, with it under the
+// internal one -- what reconciliation holds a refund the ledger says
+// succeeded to.
+func TestARefundIsReadInTheTermsItWasAskedIn(t *testing.T) {
+	adj := adjustment{Action: "refund", Status: "approved", CurrencyCode: "KRW", Reason: "환불 [lv:lv-0001]",
+		Totals: totals{Subtotal: "5000", Tax: "500", Total: "5500"}}
+	a, err := adj.read("external")
+	require.NoError(t, err)
+	require.Equal(t, money.Amount{Minor: 5500, Currency: "KRW"}, a.Amount, "what the payer got back, tax and all")
+	require.Equal(t, money.Amount{Minor: 5000, Currency: "KRW"}, a.Asked, "what was asked for, before tax")
+	require.Equal(t, "lv-0001", a.Key)
+	a, err = adj.read("internal")
+	require.NoError(t, err)
+	require.Equal(t, money.Amount{Minor: 5500, Currency: "KRW"}, a.Asked, "the tax is in what is asked for")
 }

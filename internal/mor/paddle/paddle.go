@@ -860,6 +860,52 @@ func (c *Channel) Transaction(ctx context.Context, id string) (mor.Transaction, 
 	return c.transaction(ctx, op, id)
 }
 
+// Transactions is GET /transactions, with their adjustments, oldest first --
+// Paddle's ids sort as their entities were made -- 30 at a time: of one
+// subscription when l names one, and updated at or after l.Since when it says
+// one (`updated_at[GTE]`).
+func (c *Channel) Transactions(ctx context.Context, l mor.List) (mor.Transactions, error) {
+	const op = "transactions"
+	switch {
+	case l.Subscription != "" && !idOK("sub", l.Subscription):
+		return mor.Transactions{}, invalid(op, "no subscription of Paddle's")
+	case l.After != "" && !idOK("txn", l.After):
+		return mor.Transactions{}, invalid(op, "no transaction of Paddle's to read after")
+	}
+	q := url.Values{
+		"include":  {"adjustments"},
+		"order_by": {"id[ASC]"},
+		"per_page": {"30"},
+	}
+	if l.Subscription != "" {
+		q.Set("subscription_id", l.Subscription)
+	}
+	if !l.Since.IsZero() {
+		q.Set("updated_at[GTE]", l.Since.UTC().Format(time.RFC3339))
+	}
+	if l.After != "" {
+		q.Set("after", l.After)
+	}
+
+	var ts []transaction
+	m, err := c.call(ctx, op, http.MethodGet, "/transactions", q, nil, &ts)
+	if err != nil {
+		return mor.Transactions{}, err
+	}
+	out := mor.Transactions{More: m.Pagination != nil && m.Pagination.HasMore && len(ts) > 0}
+	for _, t := range ts {
+		v, err := t.read(c.c.TaxMode)
+		if err != nil {
+			return mor.Transactions{}, unread(op, err)
+		}
+		out.Transactions = append(out.Transactions, v)
+	}
+	if len(ts) > 0 {
+		out.Last = ts[len(ts)-1].ID
+	}
+	return out, nil
+}
+
 func (c *Channel) transaction(ctx context.Context, op, id string) (mor.Transaction, error) {
 	var t transaction
 	if _, err := c.call(ctx, op, http.MethodGet, "/transactions/"+id, url.Values{"include": {"adjustments"}}, nil, &t); err != nil {
@@ -927,7 +973,7 @@ func (c *Channel) Refund(ctx context.Context, r mor.Refund) (mor.Adjustment, err
 	if _, err := c.call(ctx, op, http.MethodPost, "/adjustments", nil, in, &a); err != nil {
 		return mor.Adjustment{}, err
 	}
-	v, err := a.read()
+	v, err := a.read(c.c.TaxMode)
 	if err != nil {
 		return mor.Adjustment{}, unread(op, err)
 	}

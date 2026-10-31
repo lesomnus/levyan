@@ -462,7 +462,7 @@ func (t transaction) read(taxMode string) (mor.Transaction, error) {
 	}
 
 	for _, a := range t.Adjustments {
-		av, err := a.read()
+		av, err := a.read(taxMode)
 		if err != nil {
 			return mor.Transaction{}, err
 		}
@@ -563,7 +563,10 @@ var adjustmentStatuses = map[string]mor.AdjustmentStatus{
 	"reversed":         mor.Reversed,
 }
 
-func (a adjustment) read() (mor.Adjustment, error) {
+// read is a as levyan has an adjustment: Asked is what it gives back in the
+// terms of a refund's amount under taxMode -- before tax under the external
+// tax mode, with it under the internal one, as a line's Amount is.
+func (a adjustment) read(taxMode string) (mor.Adjustment, error) {
 	st, ok := adjustmentStatuses[a.Status]
 	if !ok {
 		return mor.Adjustment{}, fmt.Errorf("an adjustment of status %q", a.Status)
@@ -571,6 +574,12 @@ func (a adjustment) read() (mor.Adjustment, error) {
 	n, err := amount(a.Totals.Total, a.CurrencyCode)
 	if err != nil {
 		return mor.Adjustment{}, fmt.Errorf("adjustment total: %w", err)
+	}
+	asked := n
+	if taxMode != "internal" {
+		if asked, err = amount(a.Totals.Subtotal, a.CurrencyCode); err != nil {
+			return mor.Adjustment{}, fmt.Errorf("adjustment subtotal: %w", err)
+		}
 	}
 	at, err := when(a.CreatedAt)
 	if err != nil {
@@ -582,6 +591,7 @@ func (a adjustment) read() (mor.Adjustment, error) {
 		Kind:        adjustmentKinds[a.Action],
 		Status:      st,
 		Amount:      n,
+		Asked:       asked,
 		At:          at,
 	}
 	v.Reason, v.Key = unmark(a.Reason)

@@ -93,6 +93,10 @@ const (
 	Refusal_REFUSAL_UNIT Refusal = 4
 	// The same workspace, meter and moment were kept with another value.
 	Refusal_REFUSAL_CONFLICT Refusal = 5
+	// The workspace was destroyed at or before the moment it was measured
+	// (`WorkspaceService/Destroy`): nothing of it after that is billed, or
+	// kept. Sent again, it is refused again.
+	Refusal_REFUSAL_DESTROYED Refusal = 6
 )
 
 // Enum value maps for Refusal.
@@ -104,6 +108,7 @@ var (
 		3: "REFUSAL_FLOW",
 		4: "REFUSAL_UNIT",
 		5: "REFUSAL_CONFLICT",
+		6: "REFUSAL_DESTROYED",
 	}
 	Refusal_value = map[string]int32{
 		"REFUSAL_UNSPECIFIED": 0,
@@ -112,6 +117,7 @@ var (
 		"REFUSAL_FLOW":        3,
 		"REFUSAL_UNIT":        4,
 		"REFUSAL_CONFLICT":    5,
+		"REFUSAL_DESTROYED":   6,
 	}
 )
 
@@ -519,14 +525,15 @@ const file_levyan_v1_metering_proto_rawDesc = "" +
 	"\x13OUTCOME_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fOUTCOME_KEPT\x10\x01\x12\x13\n" +
 	"\x0fOUTCOME_ALREADY\x10\x02\x12\x13\n" +
-	"\x0fOUTCOME_REFUSED\x10\x03*\x87\x01\n" +
+	"\x0fOUTCOME_REFUSED\x10\x03*\x9e\x01\n" +
 	"\aRefusal\x12\x17\n" +
 	"\x13REFUSAL_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fREFUSAL_INVALID\x10\x01\x12\x14\n" +
 	"\x10REFUSAL_NO_METER\x10\x02\x12\x10\n" +
 	"\fREFUSAL_FLOW\x10\x03\x12\x10\n" +
 	"\fREFUSAL_UNIT\x10\x04\x12\x14\n" +
-	"\x10REFUSAL_CONFLICT\x10\x052P\n" +
+	"\x10REFUSAL_CONFLICT\x10\x05\x12\x15\n" +
+	"\x11REFUSAL_DESTROYED\x10\x062P\n" +
 	"\x0fMeteringService\x12=\n" +
 	"\x06Record\x12\x18.levyan.v1.RecordRequest\x1a\x19.levyan.v1.RecordResponseB8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 

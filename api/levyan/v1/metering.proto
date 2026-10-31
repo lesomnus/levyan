@@ -108,4 +108,9 @@ enum Refusal {
 
   // The same workspace, meter and moment were kept with another value.
   REFUSAL_CONFLICT = 5;
+
+  // The workspace was destroyed at or before the moment it was measured
+  // (`WorkspaceService/Destroy`): nothing of it after that is billed, or
+  // kept. Sent again, it is refused again.
+  REFUSAL_DESTROYED = 6;
 }

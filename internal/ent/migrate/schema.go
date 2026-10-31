@@ -1579,6 +1579,52 @@ var (
 			},
 		},
 	}
+	// WorkspaceeventColumns holds the columns for the "workspaceevent" table.
+	WorkspaceeventColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "kind", Type: field.TypeInt32},
+		{Name: "happened_at", Type: field.TypeTime, Nullable: true},
+		{Name: "late_through", Type: field.TypeTime, Nullable: true},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+	}
+	// WorkspaceeventTable holds the schema information for the "workspaceevent" table.
+	WorkspaceeventTable = &schema.Table{
+		Name:       "workspaceevent",
+		Columns:    WorkspaceeventColumns,
+		PrimaryKey: []*schema.Column{WorkspaceeventColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "workspaceevent_tenant_tenant",
+				Columns:    []*schema.Column{WorkspaceeventColumns[6]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "workspaceevent_workspace_workspace",
+				Columns:    []*schema.Column{WorkspaceeventColumns[7]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workspaceevent_page",
+				Unique:  false,
+				Columns: []*schema.Column{WorkspaceeventColumns[6], WorkspaceeventColumns[5], WorkspaceeventColumns[0]},
+			},
+			{
+				Name:    "workspaceevent_happened",
+				Unique:  true,
+				Columns: []*schema.Column{WorkspaceeventColumns[6], WorkspaceeventColumns[7], WorkspaceeventColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AccessTable,
@@ -1613,6 +1659,7 @@ var (
 		SubscriptionTable,
 		TenantTable,
 		WorkspaceTable,
+		WorkspaceeventTable,
 	}
 )
 
@@ -1763,5 +1810,10 @@ func init() {
 	WorkspaceTable.ForeignKeys[0].RefTable = TenantTable
 	WorkspaceTable.Annotation = &entsql.Annotation{
 		Table: "workspace",
+	}
+	WorkspaceeventTable.ForeignKeys[0].RefTable = TenantTable
+	WorkspaceeventTable.ForeignKeys[1].RefTable = WorkspaceTable
+	WorkspaceeventTable.Annotation = &entsql.Annotation{
+		Table: "workspaceevent",
 	}
 }

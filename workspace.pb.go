@@ -34,10 +34,12 @@ const (
 //
 // Written the first time anything is heard of it, through the servers, and
 // never changed but for its label, nor erased: what it was billed outlives
-// the workspace at the product, as a seller's records outlive its customers. Every write of the
-// ledger for a workspace holds its row until the write is done
-// (`server/ledger`), which is what makes "measured in a period that was closed
-// already" a question with one answer.
+// the workspace at the product, as a seller's records outlive its customers.
+// What became of it there -- closed, restored, destroyed -- is its events
+// (`WorkspaceEvent`), which say when it is billed and when not. Every write
+// of the ledger for a workspace holds its row until the write is done
+// (`server/ledger`), and so does every event of it, which is what makes
+// "measured in a period that was closed already" a question with one answer.
 type Workspace struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`

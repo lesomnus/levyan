@@ -41,6 +41,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/subscription"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
 	"github.com/lesomnus/levyan/internal/ent/workspace"
+	"github.com/lesomnus/levyan/internal/ent/workspaceevent"
 	"github.com/protobuf-orm/ent"
 	"github.com/protobuf-orm/ent/dialect/sql"
 	"github.com/protobuf-orm/ent/dialect/sql/sqlgraph"
@@ -136,6 +137,7 @@ func checkColumn(t, c string) error {
 			subscription.Table:   subscription.ValidColumn,
 			tenant.Table:         tenant.ValidColumn,
 			workspace.Table:      workspace.ValidColumn,
+			workspaceevent.Table: workspaceevent.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

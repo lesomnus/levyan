@@ -1,7 +1,8 @@
 edition = "2023";
 
-// What a product says of its workspaces' payers: a workspace made, an
-// account gone from one, and an account asked to pay for one.
+// What a product says of its workspaces: a workspace made, an account gone
+// from one, an account asked to pay for one -- and a workspace closed,
+// restored and destroyed, which is when it is billed and when not.
 package levyan.v1;
 
 import "google/protobuf/timestamp.proto";
@@ -32,6 +33,39 @@ service WorkspaceService {
   // GetPayer is who pays for a workspace now and next, what is offered, and
   // since when it has had no payer.
   rpc GetPayer(GetPayerRequest) returns (GetPayerResponse);
+
+  // Close says a workspace was closed at `at`: from then until it is
+  // restored it is no customer, and what it holds is billed for none of
+  // that stretch. Its readings are still sent, and kept. Its payer stays its
+  // payer.
+  //
+  // Close, Restore and Destroy are each said once of a moment: said again,
+  // they change nothing. They are put in the order of their moments, never of
+  // their coming, so one sent late takes its place and an older one never
+  // undoes what a newer one says; and one that comes after a period it
+  // reaches into was closed is corrected on a later statement, as a late
+  // reading is. `at` is never ahead of now, nor before the workspace arrived
+  // (InvalidArgument); a workspace levyan has heard nothing of -- no Arrive,
+  // no reading -- has nothing to close (NotFound); and another thing said of
+  // a moment one was said of already is refused (FailedPrecondition).
+  rpc Close(CloseRequest) returns (CloseResponse);
+
+  // Restore says a closed workspace was opened again at `at`: it is billed
+  // again from then, as it was before it was closed.
+  rpc Restore(RestoreRequest) returns (RestoreResponse);
+
+  // Destroy says a workspace was destroyed at `at`, for good: it is billed
+  // for nothing after it, its last reading holds to that moment and no
+  // further, its payer pays for it no longer (`LINK_ENDED_DESTROYED`), and
+  // what was offered of it is withdrawn. A reading measured at `at` or after
+  // is refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of
+  // its moment or after it (FailedPrecondition). Its final reading, measured
+  // before it went, is sent first.
+  rpc Destroy(DestroyRequest) returns (DestroyResponse);
+
+  // GetLifecycle is what levyan has been told became of a workspace: what a
+  // product reads to see that what it said was heard.
+  rpc GetLifecycle(GetLifecycleRequest) returns (GetLifecycleResponse);
 }
 
 message ArriveRequest {
@@ -81,6 +115,72 @@ message GetPayerResponse {
   Payer payer = 1;
 }
 
+message CloseRequest {
+  string workspace = 1;
+
+  // When it was closed, as the product's own record of it says: required.
+  google.protobuf.Timestamp at = 2;
+}
+
+message CloseResponse {
+  Lifecycle lifecycle = 1;
+
+  // Whether what was said came late: it reaches into a period whose close
+  // had begun, so that what the period was billed is corrected on a later
+  // statement. False for what was said before, and changed nothing.
+  bool late = 2;
+}
+
+message RestoreRequest {
+  string workspace = 1;
+
+  // When it was opened again: required.
+  google.protobuf.Timestamp at = 2;
+}
+
+message RestoreResponse {
+  Lifecycle lifecycle = 1;
+
+  // As `CloseResponse.late`.
+  bool late = 2;
+}
+
+message DestroyRequest {
+  string workspace = 1;
+
+  // When it was destroyed -- after its final reading was measured: required.
+  google.protobuf.Timestamp at = 2;
+}
+
+message DestroyResponse {
+  Lifecycle lifecycle = 1;
+
+  // As `CloseResponse.late`.
+  bool late = 2;
+}
+
+message GetLifecycleRequest {
+  string workspace = 1;
+}
+
+message GetLifecycleResponse {
+  Lifecycle lifecycle = 1;
+}
+
+// Lifecycle is what levyan has been told became of a workspace, all of it
+// read in the order of its moments. A workspace nothing was said of is open.
+message Lifecycle {
+  string workspace = 1;
+
+  // Since when it has been closed, and is billed for nothing; unset while it
+  // is open. A workspace destroyed while closed says the closure it was
+  // destroyed in.
+  google.protobuf.Timestamp closed_since = 2;
+
+  // When it was destroyed, for good; unset for one that was not.
+  google.protobuf.Timestamp destroyed = 3;
+}
+
 // Payer is who pays for a workspace.
 message Payer {
   string workspace = 1;
@@ -95,7 +195,8 @@ message Payer {
 
   // Since when it has had nobody paying for it, and from when it is
   // restricted for that: `payers.grace` after. Unset while it has a payer,
-  // and for a workspace that never had one.
+  // for a workspace that never had one, and for one destroyed, which nobody
+  // pays for and nothing restricts.
   google.protobuf.Timestamp payerless_since = 5;
   google.protobuf.Timestamp restricted_from = 6;
 

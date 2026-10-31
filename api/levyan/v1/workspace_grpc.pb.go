@@ -4,8 +4,9 @@
 // - protoc             (unknown)
 // source: levyan/v1/workspace.proto
 
-// What a product says of its workspaces' payers: a workspace made, an
-// account gone from one, and an account asked to pay for one.
+// What a product says of its workspaces: a workspace made, an account gone
+// from one, an account asked to pay for one -- and a workspace closed,
+// restored and destroyed, which is when it is billed and when not.
 
 package levyanv1
 
@@ -22,10 +23,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkspaceService_Arrive_FullMethodName   = "/levyan.v1.WorkspaceService/Arrive"
-	WorkspaceService_Leave_FullMethodName    = "/levyan.v1.WorkspaceService/Leave"
-	WorkspaceService_Offer_FullMethodName    = "/levyan.v1.WorkspaceService/Offer"
-	WorkspaceService_GetPayer_FullMethodName = "/levyan.v1.WorkspaceService/GetPayer"
+	WorkspaceService_Arrive_FullMethodName       = "/levyan.v1.WorkspaceService/Arrive"
+	WorkspaceService_Leave_FullMethodName        = "/levyan.v1.WorkspaceService/Leave"
+	WorkspaceService_Offer_FullMethodName        = "/levyan.v1.WorkspaceService/Offer"
+	WorkspaceService_GetPayer_FullMethodName     = "/levyan.v1.WorkspaceService/GetPayer"
+	WorkspaceService_Close_FullMethodName        = "/levyan.v1.WorkspaceService/Close"
+	WorkspaceService_Restore_FullMethodName      = "/levyan.v1.WorkspaceService/Restore"
+	WorkspaceService_Destroy_FullMethodName      = "/levyan.v1.WorkspaceService/Destroy"
+	WorkspaceService_GetLifecycle_FullMethodName = "/levyan.v1.WorkspaceService/GetLifecycle"
 )
 
 // WorkspaceServiceClient is the client API for WorkspaceService service.
@@ -51,6 +56,35 @@ type WorkspaceServiceClient interface {
 	// GetPayer is who pays for a workspace now and next, what is offered, and
 	// since when it has had no payer.
 	GetPayer(ctx context.Context, in *GetPayerRequest, opts ...grpc.CallOption) (*GetPayerResponse, error)
+	// Close says a workspace was closed at `at`: from then until it is
+	// restored it is no customer, and what it holds is billed for none of
+	// that stretch. Its readings are still sent, and kept. Its payer stays its
+	// payer.
+	//
+	// Close, Restore and Destroy are each said once of a moment: said again,
+	// they change nothing. They are put in the order of their moments, never of
+	// their coming, so one sent late takes its place and an older one never
+	// undoes what a newer one says; and one that comes after a period it
+	// reaches into was closed is corrected on a later statement, as a late
+	// reading is. `at` is never ahead of now, nor before the workspace arrived
+	// (InvalidArgument); a workspace levyan has heard nothing of -- no Arrive,
+	// no reading -- has nothing to close (NotFound); and another thing said of
+	// a moment one was said of already is refused (FailedPrecondition).
+	Close(ctx context.Context, in *CloseRequest, opts ...grpc.CallOption) (*CloseResponse, error)
+	// Restore says a closed workspace was opened again at `at`: it is billed
+	// again from then, as it was before it was closed.
+	Restore(ctx context.Context, in *RestoreRequest, opts ...grpc.CallOption) (*RestoreResponse, error)
+	// Destroy says a workspace was destroyed at `at`, for good: it is billed
+	// for nothing after it, its last reading holds to that moment and no
+	// further, its payer pays for it no longer (`LINK_ENDED_DESTROYED`), and
+	// what was offered of it is withdrawn. A reading measured at `at` or after
+	// is refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of
+	// its moment or after it (FailedPrecondition). Its final reading, measured
+	// before it went, is sent first.
+	Destroy(ctx context.Context, in *DestroyRequest, opts ...grpc.CallOption) (*DestroyResponse, error)
+	// GetLifecycle is what levyan has been told became of a workspace: what a
+	// product reads to see that what it said was heard.
+	GetLifecycle(ctx context.Context, in *GetLifecycleRequest, opts ...grpc.CallOption) (*GetLifecycleResponse, error)
 }
 
 type workspaceServiceClient struct {
@@ -101,6 +135,46 @@ func (c *workspaceServiceClient) GetPayer(ctx context.Context, in *GetPayerReque
 	return out, nil
 }
 
+func (c *workspaceServiceClient) Close(ctx context.Context, in *CloseRequest, opts ...grpc.CallOption) (*CloseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloseResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_Close_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) Restore(ctx context.Context, in *RestoreRequest, opts ...grpc.CallOption) (*RestoreResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestoreResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_Restore_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) Destroy(ctx context.Context, in *DestroyRequest, opts ...grpc.CallOption) (*DestroyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DestroyResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_Destroy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workspaceServiceClient) GetLifecycle(ctx context.Context, in *GetLifecycleRequest, opts ...grpc.CallOption) (*GetLifecycleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLifecycleResponse)
+	err := c.cc.Invoke(ctx, WorkspaceService_GetLifecycle_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkspaceServiceServer is the server API for WorkspaceService service.
 // All implementations must embed UnimplementedWorkspaceServiceServer
 // for forward compatibility.
@@ -124,6 +198,35 @@ type WorkspaceServiceServer interface {
 	// GetPayer is who pays for a workspace now and next, what is offered, and
 	// since when it has had no payer.
 	GetPayer(context.Context, *GetPayerRequest) (*GetPayerResponse, error)
+	// Close says a workspace was closed at `at`: from then until it is
+	// restored it is no customer, and what it holds is billed for none of
+	// that stretch. Its readings are still sent, and kept. Its payer stays its
+	// payer.
+	//
+	// Close, Restore and Destroy are each said once of a moment: said again,
+	// they change nothing. They are put in the order of their moments, never of
+	// their coming, so one sent late takes its place and an older one never
+	// undoes what a newer one says; and one that comes after a period it
+	// reaches into was closed is corrected on a later statement, as a late
+	// reading is. `at` is never ahead of now, nor before the workspace arrived
+	// (InvalidArgument); a workspace levyan has heard nothing of -- no Arrive,
+	// no reading -- has nothing to close (NotFound); and another thing said of
+	// a moment one was said of already is refused (FailedPrecondition).
+	Close(context.Context, *CloseRequest) (*CloseResponse, error)
+	// Restore says a closed workspace was opened again at `at`: it is billed
+	// again from then, as it was before it was closed.
+	Restore(context.Context, *RestoreRequest) (*RestoreResponse, error)
+	// Destroy says a workspace was destroyed at `at`, for good: it is billed
+	// for nothing after it, its last reading holds to that moment and no
+	// further, its payer pays for it no longer (`LINK_ENDED_DESTROYED`), and
+	// what was offered of it is withdrawn. A reading measured at `at` or after
+	// is refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of
+	// its moment or after it (FailedPrecondition). Its final reading, measured
+	// before it went, is sent first.
+	Destroy(context.Context, *DestroyRequest) (*DestroyResponse, error)
+	// GetLifecycle is what levyan has been told became of a workspace: what a
+	// product reads to see that what it said was heard.
+	GetLifecycle(context.Context, *GetLifecycleRequest) (*GetLifecycleResponse, error)
 	mustEmbedUnimplementedWorkspaceServiceServer()
 }
 
@@ -145,6 +248,18 @@ func (UnimplementedWorkspaceServiceServer) Offer(context.Context, *OfferRequest)
 }
 func (UnimplementedWorkspaceServiceServer) GetPayer(context.Context, *GetPayerRequest) (*GetPayerResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPayer not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) Close(context.Context, *CloseRequest) (*CloseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Close not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) Restore(context.Context, *RestoreRequest) (*RestoreResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Restore not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) Destroy(context.Context, *DestroyRequest) (*DestroyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Destroy not implemented")
+}
+func (UnimplementedWorkspaceServiceServer) GetLifecycle(context.Context, *GetLifecycleRequest) (*GetLifecycleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLifecycle not implemented")
 }
 func (UnimplementedWorkspaceServiceServer) mustEmbedUnimplementedWorkspaceServiceServer() {}
 func (UnimplementedWorkspaceServiceServer) testEmbeddedByValue()                          {}
@@ -239,6 +354,78 @@ func _WorkspaceService_GetPayer_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkspaceService_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).Close(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_Close_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).Close(ctx, req.(*CloseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_Restore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).Restore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_Restore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).Restore(ctx, req.(*RestoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_Destroy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DestroyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).Destroy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_Destroy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).Destroy(ctx, req.(*DestroyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkspaceService_GetLifecycle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLifecycleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkspaceServiceServer).GetLifecycle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkspaceService_GetLifecycle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkspaceServiceServer).GetLifecycle(ctx, req.(*GetLifecycleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkspaceService_ServiceDesc is the grpc.ServiceDesc for WorkspaceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -261,6 +448,22 @@ var WorkspaceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPayer",
 			Handler:    _WorkspaceService_GetPayer_Handler,
+		},
+		{
+			MethodName: "Close",
+			Handler:    _WorkspaceService_Close_Handler,
+		},
+		{
+			MethodName: "Restore",
+			Handler:    _WorkspaceService_Restore_Handler,
+		},
+		{
+			MethodName: "Destroy",
+			Handler:    _WorkspaceService_Destroy_Handler,
+		},
+		{
+			MethodName: "GetLifecycle",
+			Handler:    _WorkspaceService_GetLifecycle_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

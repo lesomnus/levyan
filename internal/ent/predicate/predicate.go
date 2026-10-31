@@ -167,3 +167,6 @@ type Tenant func(*sql.Selector)
 
 // Workspace is the predicate function for workspace builders.
 type Workspace func(*sql.Selector)
+
+// WorkspaceEvent is the predicate function for workspaceevent builders.
+type WorkspaceEvent func(*sql.Selector)

@@ -1,0 +1,90 @@
+# 앱이 levyan을 쓰는 법
+
+levyan이 과금하는 앱(제품)이 할 일이다. 첫 제품은 loft다. 왜 이렇게 생겼는지는 [design.md](design.md)에 있다.
+
+## 1. 키와 연결
+
+- 운영자가 제품을 세우고 서비스 키를 발급한다(`levyan-admin key issue`). 키는 발급할 때 한 번만 나온다. 앱은 비밀로 보관한다.
+- 모든 호출에 `authorization: Bearer lvk_…`를 붙인다. 앱이 부르는 것은 둘이다.
+  - `levyan.v1`: 손으로 쓴 API다. Go 앱은 `github.com/lesomnus/levyan/api` 모듈을 쓴다. 이 모듈은 gRPC와 protobuf만 요구한다.
+  - payday의 `payday.GrantService`: 권한(3장). payday 앱이면 이미 `pdpb`에 있다.
+- 한 연결로 둘 다 부른다. 스트림(`GrantService.Watch`)이 있으므로 keepalive를 켜서 연결한다. 그래야 프록시의 idle timeout이 조용한 스트림을 끊지 않는다. levyan의 `server.keepalive.min_time`은 앱의 keepalive 주기보다 짧아야 한다.
+
+```go
+conn, err := grpc.NewClient(addr,
+	grpc.WithTransportCredentials(creds),
+	grpc.WithPerRPCCredentials(bearer(key)), // authorization: Bearer lvk_…
+	grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 5 * time.Minute, Timeout: 20 * time.Second}),
+)
+```
+
+## 2. 계량
+
+보유량은 `levyan.v1.MeteringService/Record`로, 흐름은 같은 주소에 OTLP/gRPC로 보낸다. 자세한 것은 README의 "계량: 보유량과 흐름"에 있다.
+
+## 3. 권한: 사본을 두고, 트랜잭션 안에서 검사한다
+
+levyan은 워크스페이스마다 Grant를 준다. Grant는 키, 값(켜짐, 한도, 무제한), 유효 기간을 갖는다. 앱은 payday의 `entitle`로 자기 DB에 사본을 두고, 쓰기의 트랜잭션 안에서 검사한다(payday의 `docs/guide/entitlements.md`).
+
+### 사본 켜기
+
+스키마에 선언하면 `pd gen`이 사본 엔티티를 앱에 쓴다. domain은 앱이 비워 둔 번호다.
+
+```proto
+option (payday.app) = {entitlements: {domain: 43}};
+```
+
+`entitle.Follower`를 levyan에 붙인다. lease 아래에서 한 프로세스가 돈다.
+
+```go
+s.Follower = &entitle.Follower{
+	Source: pdpb.NewGrantServiceClient(conn), // levyan, 제품 키로
+	Copy:   pd.EntitlementCopy(drv, content),
+}
+s.Spin = append(s.Spin, s.Follower)
+```
+
+- follower는 `Watch`를 열고, `ready`를 받은 뒤 전체 목록(`List`)과 맞춘다. 그 뒤로는 변경마다 사본에 쓰고, 한 시간마다 다시 맞춘다.
+- 스트림이 끊기면 다시 열고 다시 맞춘다. levyan은 따라오지 못하는 소비자의 스트림을 끊는다(ResourceExhausted). follower는 그것도 다른 끊김처럼 다룬다.
+- 새 워크스페이스를 만들었으면 다음 비교를 기다리지 말고 `s.Follower.Sync(ctx, tenant)`를 부른다.
+- 앱이 모르는 tenant의 Grant는 아무것에도 쓰이지 않는다.
+
+### 검사
+
+```go
+// 한도: 트랜잭션 안에서, 잠그고, 센 뒤에
+limit, err := entitle.Limit(ctx, pd.Entitlements(drv), "loft.seats")
+if !limit.Allows(held + 1) { /* FailedPrecondition */ }
+
+// 기능
+on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
+```
+
+### 핵심 쓰기를 Grant가 있는지에 묶지 않는다
+
+사본에 없는 키는 권한이 없는 것이다. 그러니 **levyan에 빈틈이 생기면 Grant가 주던 것만 사라진다.** Grant가 갱신되지 못하고 끝나거나, 스트림이 돌아오지 않는 경우다. 이 성질은 유료 기능에는 맞지만, 앱의 핵심 쓰기를 Grant에 묶으면 levyan의 빈틈 하나가 모든 워크스페이스를 잠근다.
+
+- **제한은 있으면 막는 Grant로 검사한다.** levyan은 제한을 `loft.restricted` ON 같은 Grant로 준다(지불자 없이 유예가 지난 워크스페이스는 #4, 연체는 #11). 앱은 그 Grant가 **있을 때** 막는다.
+
+  ```go
+  restricted, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.restricted")
+  if err != nil {
+  	return err
+  }
+  if restricted {
+  	return status.Error(codes.FailedPrecondition, "this workspace is restricted until its billing is settled")
+  }
+  ```
+
+- **하지 않는 것**: `entitle.Has(ctx, r, "loft.writes")`가 거짓이면 쓰기를 막는 것. levyan이 멈추면 모든 워크스페이스가 막힌다.
+- **긍정 Grant는 유료 기능과 한도에만 쓴다.** 내보내기, 좌석 수, 로봇 수처럼 돈을 내야 얻는 것이다. 무료 범위는 Grant 없이 앱이 정한다.
+
+### levyan이 멈췄을 때
+
+- 사본은 마지막으로 들은 대로 답한다. 소식을 못 들었다고 지우지 않는다.
+- Grant는 저마다 끝(`valid_until`)이 있다. 갱신되는 Grant의 끝은 마지막 갱신에서 7일(`grants.horizon`)이고, 반이 남으면 갱신된다. 그래서 levyan이 멈춰도 사본은 적어도 3.5일 동안 Grant를 지킨다.
+- 끝이 지난 Grant를 어떻게 할지는 앱의 정책이다. 하루 더 봐주려면 `entitle.All`과 `entitle.Decide`로 읽는다(payday 가이드 5장).
+
+### 키
+
+키는 앱의 이름으로 시작하는 점으로 이은 소문자 단어다(`entitle.CheckKey`): `loft.export`, `loft.seats`, `loft.restricted`. 어떤 키에 무엇을 주는지는 levyan이 정하고, 앱은 검사할 키만 안다. 지금 levyan이 주는 것은 운영자의 Grant(파일럿, 계약, 체험)와, #4·#11이 더하는 제한 규칙의 `loft.restricted`다.

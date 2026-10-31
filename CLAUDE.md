@@ -159,8 +159,10 @@ that test.
 is refused. A new RPC is closed until it is added there. The kinds:
 
 - **product** — a `ServiceKey` frame, which sees its own tenant and nothing else:
-  `levyan.v1`, and the receiver of its flows
-  (`opentelemetry.proto.collector.metrics.v1.MetricsService/Export`);
+  `levyan.v1`, the receiver of its flows
+  (`opentelemetry.proto.collector.metrics.v1.MetricsService/Export`), and
+  payday's `payday.GrantService` (`Watch`, `List`), what its workspaces are
+  granted;
 - **payer** — not yet: an account, in no tenant, once payday says how an account
   calls (payday#184);
 - operators never call here.
@@ -296,6 +298,45 @@ names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
   inbox, `Recheck` asks the PG, and only that answer is believed. Two answers
   are ordered by `Payment.Progress`, never by time.
 
+## Grants
+
+What a product's workspaces are granted (`server/grants`, docs/design.md §11,
+#7): a key, a value and a window, which the product keeps a copy of with
+payday's `entitle.Follower` and checks in the transaction of the write each
+decides (payday#185). levyan is the source; the contract is payday's
+`payday.GrantService`, served in `server/api/grants.go`.
+
+- **State, never a delta.** Every change of a grant is all of it again at a
+  greater `version`, which the layer (`grants.Layer`, on both stacks) says --
+  1 on Add, the row's plus one on Patch -- and no request does. What changes
+  is its end and whether it renews, nothing else: another value is another
+  grant. A grant is taken away by ending it (`valid_until` now), never by
+  deleting it; one over for `grants.Listed` is soft-erased out of every list.
+- **Every write of a grant holds its row first** (`FOR UPDATE` on PostgreSQL),
+  and a grant given holds its workspace's (`ledger.Lock`): the layer reads the
+  row it patches, and two changes read at once would be one version. Write a
+  grant through `grants.Grants` (Give, End, Renew, Retire, Follow), never a
+  Patch of your own.
+- **Every grant ends.** One with no end of its own renews: `grants.horizon`
+  (a week) from its last renewal, renewed once less than half is left. One
+  given with `--until` ends then.
+- **Positive grants only.** The copy reads a missing grant as not entitled, so
+  a restriction is a grant that restricts when present (`loft.restricted`
+  ON), and an app's core writes are never held to a grant's presence.
+- **Its changes are always in the outbox**, whatever `watch.outbox` says of
+  the rest (`cmd.Build`'s second resource recorder), and the drain
+  (`payday.outbox`) publishes them; `Watch` subscribes before `ready`, reads
+  each changed grant through the walled stack, and is cut off
+  (ResourceExhausted) when the broker cuts its subscription for falling
+  behind. So `watch.broker: none` is refused, and two processes need the
+  `postgres` broker.
+- **Sources.** An operator's (`levyan-admin grant add|end|ls`: operator,
+  contract or trial, one giver -- a second grant of a key is refused unless
+  `--replace`) and a rule's (`grants.Rule`, the hook billing state plugs
+  into: `cmd.Server.Grants.Rules`). A rule's grants are its own by its name:
+  kept while wanted, given again when the value changes, ended when no longer
+  wanted, and never an operator's to end.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -308,6 +349,9 @@ process's access writer.
 
 levyan's own:
 
+- `levyan.grants.renew` (`grants.Renewals`) gives what the rules want and ends
+  what they no longer want, renews the grants that are due, and erases those
+  over for `grants.Listed`, through `Ungated` as the deployment.
 - `levyan.periods.close` (`billing.ClosePeriods`) closes every period that has
   ended and waited out `periods.grace`, through `Ungated` as the deployment;
   an operator's `period close` is the same through their frame.
@@ -315,7 +359,8 @@ levyan's own:
   stopped sending a stock meter's readings, in the log and in the gauge
   `levyan.readings.gaps`.
 
-A pass of either that fails is logged and the next tries again.
+A pass of any of them that fails is logged and the next tries again. And
+payday's `payday.outbox` always runs: it is what streams a grant's change.
 
 ## Configuration and secrets
 

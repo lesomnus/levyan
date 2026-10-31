@@ -2,7 +2,7 @@
 
 levyan(levy + an)은 payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. Lago 같은 청구 엔진을 payday로 직접 만들고, roster처럼 자기 DB를 가진 별도의 payday 앱으로 둔다. 처음 과금할 제품은 loft다.
 
-이 문서는 levyan#1(목표, 정한 것, 설계)을 줄여 옮기고, #2·#3·#5·#6과 #10의 일부(PG 어댑터 라이브러리)를 만들면서 정한 것을 더한 것이다. 누가 정했는지를 나눠 적는다. **정한 것**은 대표의 결정이고, **구현에서 정한 것**은 구현하면서 고른 것이라 대표가 뒤집을 수 있다.
+이 문서는 levyan#1(목표, 정한 것, 설계)을 줄여 옮기고, #2·#3·#5·#6·#7과 #10의 일부(PG 어댑터 라이브러리)를 만들면서 정한 것을 더한 것이다. 누가 정했는지를 나눠 적는다. **정한 것**은 대표의 결정이고, **구현에서 정한 것**은 구현하면서 고른 것이라 대표가 뒤집을 수 있다.
 
 ## 1. 목표
 
@@ -90,7 +90,7 @@ payday의 Event·Fact처럼 payday 안에 넣지 않고 별도 서비스로 둔 
 - 제품은 levyan의 tenant(payday `Tenant`)다. 운영자가 세운다.
 - 제품은 **서비스 키**로 부른다: `authorization: Bearer lvk_…`. 키는 제품 tenant의 행(`ServiceKey`)이고, 저장하는 것은 키의 SHA-256뿐이다. 키는 발급할 때 한 번만 보여 준다.
 - 호출의 actor는 **키 자신**이고 tenant는 그 제품이다. 그래서 trail에는 어느 키가 무엇을 썼는지가 남고, 키를 폐기하는 것은 그 행을 지우는 것이다(soft erase). roster의 deployment 키와 같은 모양이다.
-- 무엇을 부를 수 있는지는 키가 아니라 policy 표(`server/policy`)가 제품이라는 호출자 종류에 대해 정한다. 표에 없는 메서드는 거부된다. 스키마가 생성한 메서드는 누구의 몫도 아니다. 제품이 부르는 것은 `levyan.v1`이다(7장).
+- 무엇을 부를 수 있는지는 키가 아니라 policy 표(`server/policy`)가 제품이라는 호출자 종류에 대해 정한다. 표에 없는 메서드는 거부된다. 스키마가 생성한 메서드는 누구의 몫도 아니다. 제품이 부르는 것은 `levyan.v1`(7장)과 payday의 `GrantService`(11장)다.
 - policy는 제품에게 자기 tenant만 보여 준다(`Where`). 다른 제품의 행은 없는 것과 같다(NotFound).
 
 ### 운영자 (구현됨, #2)
@@ -360,7 +360,67 @@ levyan이 판매자인 채널(국내 PG, 나중에는 지역 PG)에게 levyan이
 - **가짜 PG**(`internal/pg/toss/tosstest`)는 어댑터가 쓰는 토스 API를 httptest로 흉내 낸다. 시험은 이것으로 오프라인에서 돈다. 성공, 거절, 시간 초과와 5xx 뒤의 조회, 같은 멱등 키, 부분 취소, 웹훅 재조회, 서명, 빌링키가 오류와 로그에 새지 않는지를 본다. 문서가 말하지 않는 곳에서 가짜가 어떻게 하는지는 패키지 문서에 적었다. 예를 들어 거절된 결제는 ABORTED 결제로 남는다.
 - **라이브 시험**(`TestLive`)은 `TOSS_TEST_SECRET_KEY`(`test_` 키만)와 `TOSS_TEST_CUSTOMER_KEY`, `TOSS_TEST_BILLING_KEY`(또는 `TOSS_TEST_AUTH_KEY`)가 있을 때만 돈다. CI에서는 돌지 않고, 키는 저장소에 넣지 않는다. 시험용 빌링키는 토스의 API 테스트 페이지에서 시험 카드로 발급한다. levyan의 코드에는 카드 정보가 오지 않는다.
 
-## 11. 앞으로의 설계 (levyan#1, 제안)
+## 11. 권한 부여와 앱으로 보내는 스트림 (구현됨, #7)
+
+앱은 요금제 이름을 모른다. 앱이 검사하는 것은 기능과 한도이고, 그것을 levyan이 Grant로 준다. 앱은 자기 DB에 사본을 두고 쓰기의 트랜잭션 안에서 검사한다(payday#185의 `entitle`). levyan은 payday가 정한 계약 `payday.GrantService`의 원천이다.
+
+### 정한 것 (대표, 2026-10-31, #7을 맡기며)
+
+- **Grant 엔티티.** 제품 tenant, 워크스페이스(앱의 tenant id), 키, 값, `valid_from`, `valid_until`, 버전, 출처를 갖는다. 출처는 운영자, 규칙, 계약, 체험 중 하나다.
+  - 쓰기는 payday의 서버를 거친다. 그래서 trail에 남는다.
+  - 바뀔 때마다 버전이 오르고, id는 다시 쓰지 않는다.
+- **제한은 긍정 플래그로 표현한다. 그래서 Grant가 없으면 열린다(fail open).** 권한 사본에서 Grant가 없다는 것은 권한이 없다는 뜻이다. 그러니 앱의 핵심 쓰기를 Grant가 있는지에 묶지 않는다. 그렇게 하면 levyan의 빈틈 하나가 모든 워크스페이스를 잠근다.
+  - 제한은 있으면 제한하는 Grant로 표현한다. 예: `loft.restricted` ON.
+  - 긍정 Grant는 유료 기능과 한도에만 쓴다.
+- **이번에 넣는 출처.**
+  - 운영자 Grant: `levyan-admin grant add|end|ls`. trail에 그 운영자가 actor로 남는다.
+  - 끼울 수 있는 규칙 훅. 결제 상태에서 나오는 규칙(지불자 없이 유예가 지난 워크스페이스, 연체)은 #4와 #11이 더한다.
+- **기한과 갱신.** `valid_until`은 지금에 `grants.horizon`(기본 7일)을 더한 것이다. 이름 있는 루프 `levyan.grants.renew`가 `grants.renew`(기본 1시간)마다 살아 있는 Grant를 갱신한다. 운영자 Grant는 끝을 직접 정할 수 있다.
+- **`payday.GrantService`를 공개 gRPC 서버에서, 제품에게만, policy 표의 행으로 연다.** 제품은 자기 tenant의 Grant만 본다.
+  - `Watch`는 outbox(payday의 것)나 Grant와 같은 트랜잭션에 쓰는 변경 기록이 움직인다.
+  - 따라가지 못하는 소비자는 스트림을 끊는다.
+  - `List`는 페이지로 준다. 제품의 모든 워크스페이스 것이나 워크스페이스 하나의 것이다.
+- **시험.** SQLite와 PostgreSQL에서 버전, 끝내기, 갱신, 제품 사이의 격리, `Watch`가 `ready` 다음 변경을 주는 것, 다시 연결해서 `List`하면 사본이 맞는 것, 느린 소비자를 끊는 것, payday의 `entitle.Follower`를 상대로 한 끝에서 끝까지의 시험.
+
+### 만든 것
+
+- **`Grant`**(domain 18): 제품(tenant), 워크스페이스(field 3, 원장과 같은 `Workspace`), 키, 값(`GrantValue`: ON, LIMIT과 그 양, UNLIMITED), `valid_from`, `valid_until`, `version`, 출처(`GrantSource`: OPERATOR, RULE, CONTRACT, TRIAL), 규칙의 이름(`rule`), 설명, `renews`. 키는 payday의 `entitle.CheckKey`를 따른다. 워크스페이스는 같은 제품의 것이어야 한다(`agrees: ["workspace.tenant"]`).
+- **규칙 층**(`server/grants.Layer`, 두 스택 모두): 
+  - Add는 무언가를 준다. 키, 값 하나, 시작보다 늦고 지금보다 늦은 끝, 지금보다 이르지 않은 시작, 출처, 그리고 규칙의 Grant일 때만 규칙의 이름이 있어야 한다. 버전은 요청이 무엇을 말하든 1이다.
+  - Patch는 끝을 옮기거나 갱신을 멈출 뿐이다. 나머지는 바뀌지 않는다(immutable). 버전은 그 행의 다음 값이다. 끝은 지금보다 앞으로 옮길 수 없고, 이미 끝난 Grant의 끝을 뒤로 미룰 수 없다.
+  - Apply는 거부한다. Erase는 끝난 지 `grants.Listed`(48시간)가 지난 Grant만 한다.
+- **주고 끝내고 갱신하기**(`server/grants.Grants`): wall 없는 스택(`Ungated`)을 거쳐, 그 호출의 frame으로 쓴다. 운영자는 자기 행으로, 루프는 deployment로 쓴다.
+  - 한 Grant를 바꾸는 쓰기는 그 행을 잡는다(PostgreSQL은 `FOR UPDATE`). 그래서 동시에 바꿔도 버전이 겹치지 않는다. 한 워크스페이스에 Grant를 주는 쓰기는 그 워크스페이스 행을 잡는다(`ledger.Lock`).
+  - 끝이 없는 Grant는 갱신된다(`renews`). 끝은 지금(또는 시작)에서 기한만큼이다. 끝을 받은 Grant는 그때 끝나고 갱신되지 않는다.
+- **규칙 훅**(`grants.Rule`): 규칙은 이름과, 제품마다 원하는 Grant의 목록(`Want`)을 준다. 루프는 원하는데 없는 것은 주고, 값이 다르면 끝내고 다시 주고, 더 원하지 않는 것은 끝낸다. #7에는 규칙이 없고 자리만 있다. #4와 #11이 `cmd.Server.Grants.Rules`에 더한다.
+- **루프 `levyan.grants.renew`**: `grants.renew`마다 규칙, 갱신, 지운다(끝난 지 48시간이 지난 Grant의 soft erase). Grant 하나가 실패해도 나머지는 쓴다.
+- **스트림**(`server/api.Grants`, `payday.GrantService`)
+  - Grant의 변경은 `watch.outbox` 설정과 상관없이 늘 outbox에 같은 트랜잭션으로 쓴다(`cmd.Build`의 두 번째 resource recorder). drain 루프(`payday.outbox`)가 커밋된 것을 broker에 낸다. 그래서 운영자가 다른 프로세스(`levyan-admin`)에서 준 Grant도, 루프가 준 Grant도 똑같이 스트림에 닿고, 커밋과 발행 사이에 잃지 않는다.
+  - `Watch`는 broker를 구독한 뒤 `ready`를 보낸다. 그 다음부터는 바뀐 Grant마다 지금 상태를 wall이 있는 스택으로 읽어서 보낸다. 다른 제품의 Grant는 NotFound라서 건너뛴다.
+  - broker가 그 구독자를 위해 쌓아 두는 것(`watch.Backlog`, 64)보다 뒤처지면 구독이 닫히고 스트림은 ResourceExhausted로 끝난다. 그 소비자를 위해 더 쌓아 두지 않고, 어떤 쓰기도 기다리지 않는다.
+  - `List`는 wall이 있는 스택의 페이지 목록이다(최대 500, 기본 100). `tenant_id`가 있으면 그 워크스페이스의 것만 준다. 끝나지 않은 Grant와, 끝난 지 48시간이 안 된 Grant가 들어간다.
+  - `watch.broker: none`이면 levyan은 시작하지 않는다. 스트림을 줄 수 없기 때문이다.
+- **운영자**: `levyan-admin grant add --workspace W --key K (--on | --limit N | --unlimited) [--from] [--until] [--source operator|contract|trial] [--desc] [--replace] --yes PRODUCT`, `grant end --yes ID`, `grant ls [--workspace] [--all] PRODUCT`.
+
+### 구현에서 정한 것
+
+- **값은 바뀌지 않는다.** Grant 하나는 끝날 때까지 한 값을 준다. 다른 값은 다른 Grant다. 바뀌는 것은 끝(`valid_until`)과 갱신 여부뿐이라서, "언제 무엇을 받았는가"가 행 그대로 남는다. 그래서 OFF도 없다. 빼앗는 것은 끝내는 것이다.
+- **반이 남았을 때 갱신한다.** 루프는 매시간 돌지만, Grant는 기한의 반보다 적게 남았을 때만 갱신한다(DHCP가 임대를 반에서 갱신하듯). 매시간 모든 Grant를 갱신하면 Grant 하나가 일주일에 168번 바뀌고, 그때마다 levyan과 앱 양쪽에 행, trail, outbox가 쓰인다. 반에서 갱신하면 일주일에 두 번이고, 사본은 levyan이 멈춰도 적어도 기한의 반(3.5일)은 Grant를 갖는다. levyan이 오래 멈춰서 지나 버린 갱신 Grant는 돌아왔을 때 갱신한다.
+- **끝난 Grant는 48시간 목록에 남고, 그 뒤 soft erase한다.** payday는 적어도 하루를 요구한다. 하루를 더한 것은 시계가 늦은 앱 때문이다. 행은 남아서 trail과 "언제 무엇을 받았는가"에 답한다.
+- **주는 이 하나가 한 워크스페이스의 한 키에 주는 Grant는 한 번에 하나다.** 운영자, 계약, 체험은 모두 운영자의 손이라 한 주는 이로 친다. 같은 워크스페이스의 같은 키에 운영자 Grant가 살아 있으면 새 Grant는 거부한다. `--replace`이면 옛것을 새것의 시작에서 끝낸다. 겹침도 빈틈도 없다. 규칙의 Grant는 규칙마다 따로다. 다른 쪽끼리 겹치면 payday의 사본처럼 나중에 시작한 것이 정한다(`entitle.Decide`).
+- **규칙의 Grant는 규칙의 것이다.** 운영자는 규칙의 Grant를 끝낼 수 없다(`grant end`가 거부한다). 끝내 봐야 규칙이 다음 루프에서 다시 준다. 규칙의 Grant를 없애려면 규칙이 보는 결제 상태를 바꾼다.
+- **규칙이 원하는 것을 말하지 못하면 아무것도 끝내지 않는다.** 모른다는 것은 아무것도 원하지 않는다는 뜻이 아니다.
+- **Grant는 과거로 가지 않는다.** 시작은 지금보다 이를 수 없고, 끝내는 것은 지금이다. 다만 "지금"은 서버 시계에서 1분(`grants.Lag`)까지 늦을 수 있다. 행을 잡느라 기다린 쓰기가 기다리기 전에 읽은 시각을 쓰기 때문이다.
+- **운영자가 levyan이 모르는 워크스페이스에 Grant를 주면 그 워크스페이스 행을 쓴다.** 파일럿 고객은 측정값보다 Grant가 먼저 올 수 있다.
+- **Grant의 변경만 늘 outbox에 쓴다.** 나머지 쓰기(측정값 등)는 지금처럼 `watch.outbox`를 따른다. 측정값마다 outbox 행과 삭제를 하지 않으려는 것이다.
+
+### 앱이 지킬 것
+
+- 앱은 payday의 `entitle.Follower`로 사본을 둔다(`docs/apps.md`). 사본에 없는 키는 권한이 없는 것이다.
+- **핵심 쓰기를 Grant가 있는지에 묶지 않는다.** 제한은 `loft.restricted` 같은 플래그가 **있을 때** 막는다. 기능과 한도처럼 돈을 내야 얻는 것만 Grant가 있을 때 연다.
+- 사본이 levyan에서 소식을 듣지 못하면 Grant는 `valid_until`까지만 남는다. 그 뒤에 무엇을 할지는 앱의 정책이다(payday 가이드 5장).
+
+## 12. 앞으로의 설계 (levyan#1, 제안)
 
 ### 채널
 
@@ -381,11 +441,6 @@ levyan이 판매자인 채널(국내 PG, 나중에는 지역 PG)에게 levyan이
 - 내역 다음은 청구서와 결제다. 확정한 청구서는 고치지 않고, 틀린 것은 정정 청구로 바로잡는다.
 - 이력의 보존 기간은 앱이 지금 적용 중인 기간으로 잰다. 줄인 기간은 `app.retention.grace`가 지난 적용일부터다(payday 가이드의 `acme.history.keep`). levyan은 받은 값을 매길 뿐이다.
 
-### 권한 (#7)
-
-- 앱은 `has(feature)`와 `limit(resource)`로, 앱 DB의 권한 사본으로 검사한다(payday#185).
-- levyan은 Grant를 주고, 변경을 스트림으로 보내고, 대조용 스냅샷도 준다.
-
 ### 정합성 원칙
 
 - 결제 요청마다 멱등 키를 둔다. 응답이 실패했다고 결제가 실패한 것은 아니다. "알 수 없음" 상태를 두고, 조회한 뒤에만 다시 시도한다.
@@ -393,7 +448,7 @@ levyan이 판매자인 채널(국내 PG, 나중에는 지역 PG)에게 levyan이
 - 상태 변경과 그에 따른 작업 예약은 같은 트랜잭션에 쓴다(payday outbox).
 - 주기적으로 대조한다. 의심스러우면 덜 청구한다.
 
-## 12. 열린 질문
+## 13. 열린 질문
 
 levyan#1에서:
 
@@ -438,12 +493,21 @@ levyan#1에서:
 27. 빌링키를 암호화하는 키: 설정의 비밀로 둘지 KMS에 둘지, 교체 주기(#4)
 28. 주문 ID와 멱등 키: #10의 "주문 ID를 멱등 키로 쓴다"를, 결제를 한 번으로 만드는 것은 주문 ID로 하고 토스의 `Idempotency-Key` 헤더는 보낼 때마다의 키로 나눠 받았다(10장). 이렇게 나눈 것이 맞는지
 
-## 13. 구현 계획
+#7을 만들며 생긴 것:
 
-1단계, 결제 없이 loft 파일럿의 그림자 청구까지: #2 뼈대(이 PR), #3 가격표(이 PR), #4 결제 계정과 지불자, #5 계량, #6 금액 계산과 기간 닫기, #7 권한 부여와 스트림, #14 loft 연동, #8 그림자 청구.
+29. 규칙의 제한을 운영자가 풀 길: 지금은 없다. OFF 값이 없고, 운영자는 규칙의 Grant를 끝낼 수 없다. 잘못 제한된 워크스페이스는 결제 상태를 고쳐서 푼다. 운영자의 면제(exemption)를 둘지
+30. 갱신 주기: 기한의 반에서 갱신한다(구현에서 정한 것). 대표가 말한 "매시간 갱신"을 글자 그대로 따를지
+31. 끝난 Grant를 목록에 남기는 기간: 48시간. 시계가 많이 늦은 앱이 있다면 늘릴지
+32. 두 규칙이 한 키에 다른 값을 줄 때: 지금은 나중에 시작한 것이 정한다. 규칙끼리 합칠 방법(예: 제한은 하나라도 원하면 ON)을 정할지
+33. 스트림의 지연은 outbox drain의 주기(`watch.drain_every`, 기본 1초)다. 더 빨라야 하는지
+34. 여러 프로세스: `watch.broker: memory`이면 drain을 도는 프로세스의 스트림만 변경을 듣는다. 두 프로세스 이상이면 `postgres` broker가 꼭 필요하다
+
+## 14. 구현 계획
+
+1단계, 결제 없이 loft 파일럿의 그림자 청구까지: #2 뼈대, #3 가격표, #4 결제 계정과 지불자, #5 계량, #6 금액 계산과 기간 닫기, #7 권한 부여와 스트림(11장), #14 loft 연동, #8 그림자 청구.
 
 2단계, 국내 판매: #9 청구서·정정·결제 원장, #10 국내 PG 어댑터(경계와 후보 어댑터는 10장, 연결과 PG 시험 환경의 완료 기준은 남았다), #11 연체·유예·제한, #13 대조와 경보.
 
 3단계, 해외 판매: #12 MoR 어댑터.
 
-다른 저장소: payday#184(계정 호출), payday#185(권한 사본), payday#186(미터: 선언과 `meter.Reader`는 payday#187로 payday 027b311에 들어갔다), roster#210(계정 상태 확인과 동기 스트림).
+다른 저장소: payday#184(계정 호출, payday#190으로 들어갔다), payday#185(권한 사본, payday#188로 들어갔다), payday#186(미터: 선언과 `meter.Reader`는 payday#187로 payday 027b311에 들어갔다), roster#210(계정 상태 확인과 동기 스트림). levyan은 payday 0d342d8을 쓴다.

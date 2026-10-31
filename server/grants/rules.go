@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 	"uuid"
 
@@ -57,10 +58,31 @@ type Want struct {
 	Desc string
 }
 
-// Follow is what every rule wants of every product, given, and what each
-// gave and no longer wants, ended.
-func (g Grants) Follow(ctx context.Context) error {
-	if len(g.Rules) == 0 {
+// Restricted is the key a product's workspace is restricted by, whichever
+// rule restricts it -- a workspace nobody pays for (`payers.grace`), an
+// invoice unpaid past its grace (`dunning`) -- so that the product checks one
+// flag: its alias, as a key's first word is written, and `.restricted`,
+// `loft.restricted`. Each rule's grant of it is its own, and the workspace is
+// restricted while any is in force.
+func Restricted(alias string) (string, error) {
+	key := strings.ReplaceAll(alias, "-", "_") + ".restricted"
+	if err := entitle.CheckKey(key); err != nil {
+		return "", fmt.Errorf("grants: a product called %q has no key to restrict its workspaces by: %w", alias, err)
+	}
+
+	return key, nil
+}
+
+// Follow is what `rules` want of every product, given, and what each gave
+// and no longer wants, ended: of every rule of [Grants.Rules] when it names
+// none. A rule followed outside the loop -- by a loop of its own, sooner than
+// the grants' -- is the same rule, by its name, as the one in the loop's
+// list, and following it twice is following it once.
+func (g Grants) Follow(ctx context.Context, rules ...Rule) error {
+	if len(rules) == 0 {
+		rules = g.Rules
+	}
+	if len(rules) == 0 {
 		return nil
 	}
 
@@ -71,7 +93,7 @@ func (g Grants) Follow(ctx context.Context) error {
 
 	var errs []error
 	for _, p := range ps {
-		for _, r := range g.Rules {
+		for _, r := range rules {
 			if err := g.follow(ctx, p, r); err != nil {
 				errs = append(errs, fmt.Errorf("%s of product %s: %w", r.Name(), pdid.Id(p), err))
 			}

@@ -80,8 +80,9 @@ service PayerService {
   rpc ListCreditNotes(ListCreditNotesRequest) returns (ListCreditNotesResponse);
 
   // GetBillingAccount is one of the account's billing accounts, with whether
-  // what it is billed can be collected now, and the subscription it is
-  // collected through on the merchant of record's channel.
+  // what it is billed can be collected now, the subscription it is collected
+  // through on the merchant of record's channel, and what is done of the
+  // product's invoices of it whose charge failed.
   rpc GetBillingAccount(GetBillingAccountRequest) returns (GetBillingAccountResponse);
 
   // StartCheckout begins the subscription a billing account on the merchant
@@ -216,6 +217,11 @@ message GetBillingAccountResponse {
   // The subscription it is collected through: its live one, or the last it
   // had; unset for none, and on a channel with no subscriptions.
   Subscription subscription = 3;
+
+  // Its invoices of the relaying product's whose charge failed and that are
+  // still owed, each with what is done of it: the one that restricts soonest
+  // first, and none while every charge of it went through.
+  repeated Dunning dunning = 4;
 }
 
 message StartCheckoutRequest {

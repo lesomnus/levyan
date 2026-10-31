@@ -3,13 +3,13 @@ package payers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 	"uuid"
 
 	"github.com/lesomnus/payday/entitle"
 
 	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entworkspaceevent "github.com/lesomnus/levyan/internal/ent/workspaceevent"
@@ -17,50 +17,40 @@ import (
 )
 
 // Payerless is the rule that restricts a workspace nobody has paid for since
-// `payers.grace` ago (#4): it wants `<product>.restricted` ON of it, through
-// the grants' rules hook ([grants.Rule]), until somebody pays for it again or
-// will from the end of the period. A workspace that never had a payer is not
-// one it restricts: levyan has heard nothing of who should. Nor is one
-// destroyed (#14), which nobody pays for because there is nothing of it left.
+// it last had a payer, as the policy table's row of it says
+// (`dunning.kinds.payerless`, #11; it was `payers.grace`, #4): once its grace
+// is over -- thirty days, by default -- or at once. It wants
+// `<product>.restricted` ON of it, through the grants' rules hook
+// ([grants.Rule]), until somebody pays for it again or will from the end of
+// the period. A workspace that never had a payer is not one it restricts:
+// levyan has heard nothing of who should. Nor is one destroyed (#14), which
+// nobody pays for because there is nothing of it left.
 //
 // The restriction is a grant that restricts when it is there, as every
 // restriction is (docs/design.md §13), so a gap in levyan lifts it rather than
-// stopping every workspace.
+// stopping every workspace. Its key is the one an unpaid invoice restricts by
+// too ([grants.Restricted]), each rule with a grant of its own.
 type Payerless struct {
-	// Grace is how long a workspace may go with no payer: [DefaultGrace] when
-	// zero.
-	Grace time.Duration
+	// Row is the table's row of a workspace nobody pays for: its grace, from
+	// when it last had a payer, and whether it is restricted at once.
+	Row dunning.Row
 }
 
 var _ grants.Rule = Payerless{}
 
-// RuleName is what its grants say they come from.
+// RuleName is what its grants say they come from: the name it had before its
+// row was the table's, which it keeps, since a grant of another name is
+// another rule's.
 const RuleName = "payers.grace"
 
 func (Payerless) Name() string { return RuleName }
 
-// Restricted is the key a product's workspace is restricted by: its alias,
-// as a key's first word is written, and `.restricted` -- `loft.restricted`.
-func Restricted(alias string) (string, error) {
-	key := strings.ReplaceAll(alias, "-", "_") + ".restricted"
-	if err := entitle.CheckKey(key); err != nil {
-		return "", fmt.Errorf("payers: a product called %q has no key to restrict its workspaces by: %w", alias, err)
-	}
-
-	return key, nil
-}
-
 func (r Payerless) Want(ctx context.Context, db *ent.Client, product uuid.UUID, now time.Time) ([]grants.Want, error) {
-	grace := r.Grace
-	if grace <= 0 {
-		grace = DefaultGrace
-	}
-
 	t, err := db.Tenant.Get(ctx, product)
 	if err != nil {
 		return nil, err
 	}
-	key, err := Restricted(t.Alias)
+	key, err := grants.Restricted(t.Alias)
 	if err != nil {
 		return nil, err
 	}
@@ -94,14 +84,18 @@ func (r Payerless) Want(ctx context.Context, db *ent.Client, product uuid.UUID, 
 
 	var out []grants.Want
 	for ws, at := range since {
-		if paid[ws] || destroyed[ws] || now.Before(at.Add(grace)) {
+		if paid[ws] || destroyed[ws] || now.Before(r.Row.Restricts(at)) {
 			continue
+		}
+		desc := fmt.Sprintf("%s부터 지불자가 없다", at.UTC().Format(time.RFC3339))
+		if !r.Row.AtOnce {
+			desc = fmt.Sprintf("%s부터 지불자가 없고, %s이 지났다", at.UTC().Format(time.RFC3339), dunning.Korean(r.Row.Grace))
 		}
 		out = append(out, grants.Want{
 			Workspace: ws,
 			Key:       key,
 			Value:     entitle.On,
-			Desc:      fmt.Sprintf("%s부터 지불자가 없고, %d일이 지났다", at.UTC().Format(time.RFC3339), int(grace.Hours()/24)),
+			Desc:      desc,
 		})
 	}
 

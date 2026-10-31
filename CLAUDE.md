@@ -413,7 +413,7 @@ the payer starts in the MoR's checkout (docs/design.md §12, "연결"):
   `CollectionState`) is written beside its mirror, in the same transaction
   holding the billing account's row, and only when it changes -- so each
   change is on the trail. What a state that is not collectable leads to is
-  #11's; read it with `subscriptions.CollectionOf`.
+  dunning's (below); read it with `subscriptions.CollectionOf`.
 - **The inbox** (`Notice`) and its cursor (`NoticeCursor`) are written with
   ent alone and are `trail: off`: a notice is a hint, and what it leads to is
   asked of the MoR and written through the servers. The webhook endpoint
@@ -508,8 +508,10 @@ the account's own); a `Link` says who pays for a workspace from when to when.
   replaced only once roster, asked again, has nobody by the account
   (`levyan.payers.settle`, roster's rule that a mark is acted on only after
   asking again); `levyan.payers.reconcile` finds what the stream missed.
-- **A workspace with no payer** is restricted after `payers.grace` by the
-  grants' rule `payers.grace` (`payers.Payerless`): `<product>.restricted` ON.
+- **A workspace with no payer** is restricted as the dunning table's row
+  of it says (`dunning.kinds.payerless`: thirty days, by default, as
+  `payers.grace` was) by the grants' rule `payers.grace`
+  (`payers.Payerless`): `<product>.restricted` ON.
 - **What a billing account is billed through** -- channel and currency -- is
   the deployment's map from its country (`payers.channels`, `payers.Channels`,
   each key over the defaults: the merchant of record, KRW in KR and USD
@@ -591,7 +593,7 @@ What billing accounts are asked to pay, and the money it moves
   sending it blind; `NotFound` from an ask is REQUESTED again, a send of its
   own (`SendKey`). SUCCEEDED and FAILED are final. The loop makes an
   invoice's first attempt only: after a decline, the invoice stays open and
-  past due for dunning (#11).
+  past due, and what follows is dunning's (below).
 - **A channel is a `Collector`** in `cmd.Server.Invoices.Collectors`: its
   minimum, whether it pushes, its due date, its seller's documents, a send and
   an ask. A channel with none has its drafts gathered and never finalized --
@@ -650,6 +652,46 @@ What billing accounts are asked to pay, and the money it moves
   that configures the channel does not come up yet. `taxinvoicetest` (kind
   `test`) is the fake, and no binary links it (cmd/levyan's test).
 
+## Dunning
+
+What follows a failed charge (`server/invoices/dunning.go`,
+`internal/dunning`, docs/design.md §15, "연체", #11). That a decline's kind
+says what follows is the owner's (#26); the table is Claude's design and its
+**values are provisional -- the owner's open question 3** -- so never write
+them down as decided.
+
+- **One table** (`dunning.kinds`): a row for each kind of decline
+  (`pg.Decline`: temporary, replace, fraud, other) and one for a workspace
+  with no payer (`payerless`, what `payers.grace` was). A row is its
+  retries, each a span from the invoice's **first** failure, its grace from
+  the same, and whether it restricts after the grace or at once. The row is
+  the one of the **latest** failure's kind; a failure that is no decline is
+  `other`. A row of the configuration is a type with leaves that validate
+  themselves, so a wrong table is refused where it is written.
+- **Worked out, never stored.** What the table says of an invoice
+  (`invoices.Dunning`, `dunning.Policy.Dun`) comes of its charge attempts,
+  its billing account's collection and now, every time it is asked -- by the
+  loop, the rule, the API and the operator alike. Do not add a column that
+  holds any of it: it would be a second account of what the attempts say.
+- **A retry is a new attempt with a key of its own**, through the same
+  collector. A retry's time is covered by any charge made at or after it, so
+  the loop makes it once, and of times missed while levyan was away only
+  the latest. A charge is also due as soon as the billing account is
+  `COLLECTABLE` since after its last charge was sent. Nothing is made while
+  a charge is out, and every decision is taken again on the transaction
+  that holds the billing account's row (`Invoices.held`).
+- **Restriction** is the grants' rule `dunning` (`invoices.Restriction`):
+  every workspace of the invoice's lines, `<product>.restricted` ON -- the
+  key `payers.grace` restricts by (`grants.Restricted`), each rule with a
+  grant of its own, so a workspace is restricted until both let it go. A
+  destroyed workspace is skipped.
+- **Spent** -- no retry left, nothing out or due, the grace over -- is
+  `UNCOLLECTIBLE`, still owed and still restricted; a charge that succeeds
+  later pays it (`paid` treats it as open).
+- **levyan sends no mail.** The API says it (`Dunning` on
+  `GetBillingAccount`, `GetInvoice`, `Payer`), and the product tells people
+  (docs/apps.md §6). `server/api` is handed the table, never `Ungated`.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -678,6 +720,11 @@ levyan's own:
   minutes, which is `mor.Settle`) invoices what the close wrote, decides
   drafts, issues a seller's documents and sends and asks about attempts,
   through `Ungated` as the deployment.
+- `levyan.invoices.dunning` (`invoices.Duns`, every `dunning.every`, a
+  minute) makes and sends the charges the dunning table says are due, marks
+  what is spent `UNCOLLECTIBLE`, and follows the rule `dunning`, so that a
+  payment lets a workspace go within a minute rather than the grants'
+  hour; through `Ungated` as the deployment.
 - `levyan.mor.inbox` (`subscriptions.Takes`, `cmd.Server.Taker`) takes the
   MoR's notices -- the mirror, and what each transaction says of the
   attempts whose keys it carries -- every five seconds, and at once when

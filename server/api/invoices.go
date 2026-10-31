@@ -12,6 +12,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/internal/ent"
 	entbillingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
 	entcreditnote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	entinvoice "github.com/lesomnus/levyan/internal/ent/invoice"
@@ -20,6 +21,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/predicate"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/lesomnus/levyan/server/billing"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/pd"
 )
 
@@ -185,8 +187,23 @@ func (h Payers) GetInvoice(ctx context.Context, req *levyanv1.GetInvoiceRequest)
 	if err != nil {
 		return nil, err
 	}
+	res := levyanv1.GetInvoiceResponse_builder{Invoice: out, CreditNotes: cns}.Build()
 
-	return levyanv1.GetInvoiceResponse_builder{Invoice: out, CreditNotes: cns}.Build(), nil
+	// What is done of it since its charge failed, of the invoice the wall
+	// answered.
+	inv, err := h.Db.Invoice.Get(ctx, id.Uuid())
+	if err != nil {
+		return nil, err
+	}
+	ds, err := invoices.Dunning(ctx, h.Db, h.Dunning, []*ent.Invoice{inv}, clock(h.Now))
+	if err != nil {
+		return nil, err
+	}
+	if len(ds) > 0 {
+		res.SetDunning(dunningOf(ds[0]))
+	}
+
+	return res, nil
 }
 
 func (h Payers) ListCreditNotes(ctx context.Context, req *levyanv1.ListCreditNotesRequest) (*levyanv1.ListCreditNotesResponse, error) {

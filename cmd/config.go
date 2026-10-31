@@ -26,6 +26,7 @@ import (
 	"github.com/lesomnus/payday/config"
 
 	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/keyring"
 	"github.com/lesomnus/levyan/internal/mor/paddle"
 	"github.com/lesomnus/levyan/internal/taxinvoice"
@@ -90,6 +91,11 @@ type Config struct {
 
 	// Invoices is what billing accounts are asked to pay (#9).
 	Invoices InvoicesConfig `yaml:"invoices"`
+
+	// Dunning is what is done after a payment fails, and of a workspace
+	// nobody pays for (#11): the policy table, a row for each kind of
+	// decline and one for a workspace with no payer.
+	Dunning DunningConfig `yaml:"dunning"`
 
 	// Mor is the merchant of record a billing account on its channel is
 	// collected through (#12): Paddle. With no block, none is configured --
@@ -467,9 +473,9 @@ type PayersConfig struct {
 	// the first unit. Zero is written `0` and is none.
 	Free *int `yaml:"free"`
 
-	// Grace is how long a workspace may go with nobody paying for it before
-	// it is restricted: 30 days when unset.
-	Grace time.Duration `yaml:"grace"`
+	// How long a workspace may go with nobody paying for it before it is
+	// restricted was `payers.grace`, and is the policy table's row of it now,
+	// `dunning.kinds.payerless` (#11): one table.
 
 	// Settle is how often what roster said of an erased account is asked
 	// again, and acted on once roster has nobody by them: an hour when unset.
@@ -560,14 +566,6 @@ func (c PayersConfig) FreeOf() int {
 	return max(*c.Free, 0)
 }
 
-// GraceOf is [PayersConfig.Grace], or its default.
-func (c PayersConfig) GraceOf() time.Duration {
-	if c.Grace <= 0 {
-		return 30 * 24 * time.Hour
-	}
-	return c.Grace
-}
-
 // SettleEvery is [PayersConfig.Settle], or its default.
 func (c PayersConfig) SettleEvery() time.Duration {
 	if c.Settle <= 0 {
@@ -582,6 +580,200 @@ func (c PayersConfig) ReconcileEvery() time.Duration {
 		return 24 * time.Hour
 	}
 	return c.Reconcile
+}
+
+// DunningConfig is what is done after a payment fails (#11): how often the
+// loop `levyan.invoices.dunning` looks, and the policy table it follows.
+type DunningConfig struct {
+	// Every is how often the loop makes the retries that are due -- and the
+	// charge due once a billing account is collectable again -- gives up on
+	// what has spent its grace and its retries, and restricts, and lets go,
+	// what the table says: a minute when unset.
+	Every time.Duration `yaml:"every"`
+
+	// Kinds is the table: a row for each kind of decline, and one for a
+	// workspace nobody pays for. What a row leaves out is its default
+	// (`internal/dunning.Defaults`, Claude's, provisional: the values are
+	// the owner's open question 3).
+	Kinds DunningKinds `yaml:"kinds"`
+}
+
+// DunningKinds is the policy table, by kind.
+type DunningKinds struct {
+	// Temporary is a decline that may go through later on the same method:
+	// tried again 1, 3 and 5 days after the first failure, with 7 days of
+	// grace, restricted after it.
+	Temporary DunningKind `yaml:"temporary"`
+
+	// Replace is a method that will not be charged as it is, or none: never
+	// tried again -- its payer is told at once, by the product -- with 7 days
+	// of grace, restricted after it.
+	Replace DunningKind `yaml:"replace"`
+
+	// Fraud is a charge refused as suspected fraud: never tried again, no
+	// grace, restricted at once.
+	Fraud DunningKind `yaml:"fraud"`
+
+	// Other is a refusal that says no more, and a failure that is no
+	// decline: what it leaves out is what `temporary` says.
+	Other DunningKind `yaml:"other"`
+
+	// Payerless is a workspace nobody pays for: 30 days of grace from when it
+	// last had a payer, restricted after it -- what `payers.grace` said, and
+	// still the default. Nothing is charged of it, so it has no retries.
+	Payerless PayerlessKind `yaml:"payerless"`
+}
+
+// DunningKind is a row of the table: its retries, its grace and when it
+// restricts.
+type DunningKind struct {
+	// Retries are when an invoice is charged again, each a span from its
+	// first failed charge and each later than the one before: `[24h, 72h]`.
+	// Unset is the row's default; `[]` is none.
+	Retries *Retries `yaml:"retries"`
+
+	// Grace is how long after its first failure an invoice may go unpaid
+	// before it is restricted -- unless `restrict` says at once -- and given
+	// up on once no retry is left: `168h`. Unset is the row's default.
+	Grace *Span `yaml:"grace"`
+
+	// Restrict is when what an unpaid invoice bills is restricted:
+	// `after_grace` or `at_once`. Unset is the row's default.
+	Restrict Restrict `yaml:"restrict"`
+}
+
+// PayerlessKind is the table's row of a workspace nobody pays for.
+type PayerlessKind struct {
+	// Grace is how long after it last had a payer a workspace may go with
+	// none before it is restricted: 720h, thirty days, when unset.
+	Grace *Span `yaml:"grace"`
+
+	// Restrict is `after_grace`, as when unset, or `at_once`.
+	Restrict Restrict `yaml:"restrict"`
+}
+
+// Span is a stretch of time as a duration writes it, `72h`, and no less than
+// nothing.
+type Span time.Duration
+
+// UnmarshalText reads a duration.
+func (s *Span) UnmarshalText(b []byte) error {
+	v, err := time.ParseDuration(strings.TrimSpace(string(b)))
+	if err != nil {
+		return err
+	}
+	*s = Span(v)
+	return nil
+}
+
+// MarshalText writes it as a duration.
+func (s Span) MarshalText() ([]byte, error) { return []byte(time.Duration(s).String()), nil }
+
+// Validate refuses less than nothing, where it is written.
+func (s Span) Validate() error {
+	if s < 0 {
+		return fmt.Errorf("%s is less than nothing", time.Duration(s))
+	}
+	return nil
+}
+
+// Retries are a row's retries, each a span from the first failure.
+type Retries []Span
+
+// Validate refuses retries that are no schedule -- one not after the
+// failure, or not after the one before it -- where they are written.
+func (r Retries) Validate() error { return dunning.Retries(r.durations()) }
+
+// durations is them as the table holds them: nil for none.
+func (r Retries) durations() []time.Duration {
+	var out []time.Duration
+	for _, v := range r {
+		out = append(out, time.Duration(v))
+	}
+	return out
+}
+
+// Restrict is when a row restricts: `after_grace`, or `at_once`.
+type Restrict string
+
+// Validate refuses a word that is neither, where it is written.
+func (r Restrict) Validate() error {
+	_, _, err := r.atOnce()
+	return err
+}
+
+// atOnce is whether it says at once, and whether it says anything.
+func (r Restrict) atOnce() (atOnce, said bool, err error) {
+	switch strings.ToLower(strings.TrimSpace(string(r))) {
+	case "":
+		return false, false, nil
+	case "after_grace":
+		return false, true, nil
+	case "at_once":
+		return true, true, nil
+	}
+	return false, false, fmt.Errorf("%q is neither after_grace nor at_once", string(r))
+}
+
+// over is `row` with what `k` says in its place.
+func (k DunningKind) over(row dunning.Row) (dunning.Row, error) {
+	if k.Retries != nil {
+		row.Retries = k.Retries.durations()
+	} else {
+		row.Retries = slices.Clone(row.Retries)
+	}
+	if k.Grace != nil {
+		row.Grace = time.Duration(*k.Grace)
+	}
+	atOnce, said, err := k.Restrict.atOnce()
+	if err != nil {
+		return row, fmt.Errorf("restrict: %w", err)
+	}
+	if said {
+		row.AtOnce = atOnce
+	}
+
+	return row, nil
+}
+
+// Policy is the table this configuration says: each row's defaults with what
+// it says in their place -- `other` over what `temporary` came to, being as
+// it is -- and refused when it says no schedule.
+func (c DunningConfig) Policy() (dunning.Policy, error) {
+	out := dunning.Defaults()
+	var err error
+	for _, r := range []struct {
+		name string
+		k    DunningKind
+		row  *dunning.Row
+	}{
+		{"temporary", c.Kinds.Temporary, &out.Temporary},
+		{"replace", c.Kinds.Replace, &out.Replace},
+		{"fraud", c.Kinds.Fraud, &out.Fraud},
+	} {
+		if *r.row, err = r.k.over(*r.row); err != nil {
+			return out, fmt.Errorf("kinds.%s: %w", r.name, err)
+		}
+	}
+	if out.Other, err = c.Kinds.Other.over(out.Temporary); err != nil {
+		return out, fmt.Errorf("kinds.other: %w", err)
+	}
+	if out.Payerless, err = (DunningKind{Grace: c.Kinds.Payerless.Grace, Restrict: c.Kinds.Payerless.Restrict}).over(out.Payerless); err != nil {
+		return out, fmt.Errorf("kinds.payerless: %w", err)
+	}
+	if err := out.Check(); err != nil {
+		return out, fmt.Errorf("kinds.%w", err)
+	}
+
+	return out, nil
+}
+
+// DunEvery is [DunningConfig.Every], or its default.
+func (c DunningConfig) DunEvery() time.Duration {
+	if c.Every <= 0 {
+		return invoices.DefaultDunEvery
+	}
+	return c.Every
 }
 
 // GrantsConfig is how what levyan gives products' workspaces is kept

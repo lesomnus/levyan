@@ -13,8 +13,10 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/internal/rating"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
 )
@@ -32,8 +34,14 @@ type Workspaces struct {
 	P payers.Payers
 
 	// Db is what the collection of the billing account a workspace is paid
-	// for with is read with.
+	// for with is read with, and the charges of the invoices that bill it.
 	Db *ent.Client
+
+	// Dunning is the policy table of what is done after a charge fails, and
+	// Now the deployment's clock: what an invoice whose charge failed is
+	// told as (`server/invoices.Dunning`).
+	Dunning dunning.Policy
+	Now     func() time.Time
 }
 
 func (h Workspaces) product(ctx context.Context) (pdid.Id, error) {
@@ -79,7 +87,7 @@ func (h Workspaces) Arrive(ctx context.Context, req *levyanv1.ArriveRequest) (*l
 	if err := h.P.On(h.S).Label(ctx, product, ws, req.GetLabel()); err != nil {
 		return nil, err
 	}
-	p, err := h.payer(ctx, st)
+	p, err := h.payer(ctx, product, st)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +113,7 @@ func (h Workspaces) Leave(ctx context.Context, req *levyanv1.LeaveRequest) (*lev
 	if err != nil {
 		return nil, err
 	}
-	p, err := h.payer(ctx, st)
+	p, err := h.payer(ctx, product, st)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +162,7 @@ func (h Workspaces) GetPayer(ctx context.Context, req *levyanv1.GetPayerRequest)
 	if err != nil {
 		return nil, err
 	}
-	p, err := h.payer(ctx, st)
+	p, err := h.payer(ctx, product, st)
 	if err != nil {
 		return nil, err
 	}
@@ -242,21 +250,35 @@ func lifecycleOf(ws pdid.Id, l rating.Life) *levyanv1.Lifecycle {
 	return out
 }
 
-// payer is who pays for a workspace, as the API says it, with the collection
-// of the billing account it is paid for with now: of whether what it is
-// billed can be collected, and why not, and nothing of how the payer pays.
-func (h Workspaces) payer(ctx context.Context, st payers.State) (*levyanv1.Payer, error) {
+// payer is who pays for a workspace of `product`'s, as the API says it, with
+// the collection of the billing account it is paid for with now -- of
+// whether what it is billed can be collected, and why not, and nothing of how
+// the payer pays -- and what is done of every invoice still owed that bills
+// the workspace and whose charge failed, whoever's billing account it is of.
+func (h Workspaces) payer(ctx context.Context, product pdid.Id, st payers.State) (*levyanv1.Payer, error) {
 	out := payerOf(st)
-	if st.Current == nil || h.Db == nil {
+	if h.Db == nil {
 		return out, nil
 	}
-	c, err := collectionOfLink(ctx, h.Db, st.Current.BillingAccountId)
+	if st.Current != nil {
+		c, err := collectionOfLink(ctx, h.Db, st.Current.BillingAccountId)
+		if err != nil {
+			return nil, err
+		}
+		if c != nil {
+			out.SetCollection(c)
+		}
+	}
+
+	ws, ok, err := payers.Workspace(ctx, h.Db, product.Uuid(), st.Workspace)
+	if err != nil || !ok {
+		return out, err
+	}
+	ds, err := invoices.WorkspaceDunning(ctx, h.Db, h.Dunning, product.Uuid(), ws, clock(h.Now))
 	if err != nil {
 		return nil, err
 	}
-	if c != nil {
-		out.SetCollection(c)
-	}
+	out.SetDunning(dunningsOf(ds))
 
 	return out, nil
 }

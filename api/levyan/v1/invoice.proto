@@ -41,6 +41,10 @@ message GetInvoiceResponse {
 
   // Its credit notes, the earliest first.
   repeated CreditNote credit_notes = 2;
+
+  // What is done of it since its charge failed: unset while it is in no
+  // dunning -- none of its charges failed, or it is paid or void.
+  Dunning dunning = 3;
 }
 
 message ListCreditNotesRequest {
@@ -126,6 +130,69 @@ enum InvoiceState {
   // Shadow billing's, before collection on its channel began: never
   // collected, and never shown to a payer.
   INVOICE_STATE_SHADOW = 7;
+}
+
+// Dunning is what is done of an invoice its channel failed to collect
+// (#11), by the deployment's policy table: a row for each kind of decline --
+// its retries, its grace, and when what the invoice bills is restricted. Each
+// retry is a charge of its own through the same channel, and a charge is made
+// as soon as the billing account is collectable again -- a payer who began a
+// subscription anew, a payment that waited for them made -- whatever the row
+// schedules. Once no retry is left and the grace is over the invoice is
+// `INVOICE_STATE_UNCOLLECTIBLE`, still owed, and paid by the first charge of
+// it that succeeds.
+//
+// Every time here is worked out from the invoice's charges as it is asked,
+// and moves only as they do. It is what a product shows: the payer, what to
+// do and by when; the members of the workspaces it bills, that they are to
+// be restricted, and from when. levyan tells nobody itself (docs/apps.md).
+message Dunning {
+  // The invoice, by its identifier, and the billing account it bills.
+  string invoice = 1;
+  string billing_account = 2;
+
+  // The kind of its latest decline, whose row of the table it is held to:
+  // what the payer has to do. Unspecified is a refusal that says no more than
+  // that it is one, or a failure that is no decline.
+  DeclineKind kind = 3;
+
+  // When its first charge failed: what every time below is measured from.
+  google.protobuf.Timestamp failed = 4;
+
+  // When it is charged next: a retry its row schedules, or the moment its
+  // billing account became collectable again. One already past is due, and
+  // is made at the deployment's next look (`dunning.every`, a minute). Unset
+  // when no retry is to come: then it is charged as soon as its billing
+  // account is collectable again, and never else -- a method to replace is
+  // never tried again as it is.
+  google.protobuf.Timestamp next_retry = 5;
+
+  // When its grace ends, and from when what it bills -- every workspace of
+  // its lines -- is restricted (`<product>.restricted`): as its grace ends,
+  // or at once, from its first failure. It is restricted from then until it
+  // is paid.
+  google.protobuf.Timestamp grace_ends = 6;
+  google.protobuf.Timestamp restricted_from = 7;
+}
+
+// DeclineKind is which kind of decline a payer's method refused a charge as,
+// value for value levyan's own: what the policy table's row of it says
+// follows.
+enum DeclineKind {
+  // A refusal that says no more than that it is one, or a failure that is no
+  // decline.
+  DECLINE_KIND_UNSPECIFIED = 0;
+
+  // It may go through later on the same method.
+  DECLINE_KIND_TEMPORARY = 1;
+
+  // The method will not be charged as it is: another is needed -- none was
+  // given, its subscription was canceled, or a payment waits for the payer
+  // to act on it.
+  DECLINE_KIND_REPLACE = 2;
+
+  // Refused as suspected fraud, or blocked by a check of risk.
+  DECLINE_KIND_FRAUD = 3;
 }
 
 // InvoiceLine is one statement on an invoice: what one workspace came to over

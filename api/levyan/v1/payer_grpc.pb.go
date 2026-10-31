@@ -100,8 +100,9 @@ type PayerServiceClient interface {
 	// ListCreditNotes is the credit notes of them.
 	ListCreditNotes(ctx context.Context, in *ListCreditNotesRequest, opts ...grpc.CallOption) (*ListCreditNotesResponse, error)
 	// GetBillingAccount is one of the account's billing accounts, with whether
-	// what it is billed can be collected now, and the subscription it is
-	// collected through on the merchant of record's channel.
+	// what it is billed can be collected now, the subscription it is collected
+	// through on the merchant of record's channel, and what is done of the
+	// product's invoices of it whose charge failed.
 	GetBillingAccount(ctx context.Context, in *GetBillingAccountRequest, opts ...grpc.CallOption) (*GetBillingAccountResponse, error)
 	// StartCheckout begins the subscription a billing account on the merchant
 	// of record's channel is collected through: what a page opens the
@@ -342,8 +343,9 @@ type PayerServiceServer interface {
 	// ListCreditNotes is the credit notes of them.
 	ListCreditNotes(context.Context, *ListCreditNotesRequest) (*ListCreditNotesResponse, error)
 	// GetBillingAccount is one of the account's billing accounts, with whether
-	// what it is billed can be collected now, and the subscription it is
-	// collected through on the merchant of record's channel.
+	// what it is billed can be collected now, the subscription it is collected
+	// through on the merchant of record's channel, and what is done of the
+	// product's invoices of it whose charge failed.
 	GetBillingAccount(context.Context, *GetBillingAccountRequest) (*GetBillingAccountResponse, error)
 	// StartCheckout begins the subscription a billing account on the merchant
 	// of record's channel is collected through: what a page opens the

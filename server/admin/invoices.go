@@ -49,12 +49,27 @@ type Invoice struct {
 	ChannelNumber  string     `json:"channel_number,omitempty"`
 	Reason         string     `json:"reason,omitempty"`
 
-	// With `invoice show`: its lines, credit notes and attempts, and what its
-	// billing account is owed in the product now.
+	// With `invoice show`: its lines, credit notes and attempts, what its
+	// billing account is owed in the product now, and what is done of it
+	// since its charge failed.
 	Lines       []InvoiceLine `json:"lines,omitempty"`
 	CreditNotes []CreditNote  `json:"credit_notes,omitempty"`
 	Attempts    []Attempt     `json:"attempts,omitempty"`
 	Balance     *int64        `json:"balance,omitempty"`
+	Dunning     *Dunning      `json:"dunning,omitempty"`
+}
+
+// Dunning is what the policy table says now of an invoice still owed whose
+// charge failed (#11): the kind of its latest decline, whose row it is held
+// to; when its first charge failed, which every other time is measured from;
+// when it is charged next, if it is; and when its grace ends and what it
+// bills is restricted.
+type Dunning struct {
+	Kind           string     `json:"kind"`
+	Failed         time.Time  `json:"failed"`
+	NextRetry      *time.Time `json:"next_retry,omitempty"`
+	GraceEnds      time.Time  `json:"grace_ends"`
+	RestrictedFrom time.Time  `json:"restricted_from"`
 }
 
 // InvoiceLine is one statement on an invoice.
@@ -281,6 +296,20 @@ func (a *Routes) showInvoice(w http.ResponseWriter, r *http.Request, id pdid.Id,
 		return
 	}
 	out.Balance = &bal
+
+	ds, err := invoices.Dunning(ctx, a.S.Ent, a.S.Invoices.Dunning, []*ent.Invoice{v}, a.S.Clock())
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	if len(ds) > 0 {
+		d := ds[0]
+		out.Dunning = &Dunning{Kind: d.Kind.String(), Failed: d.Failed.UTC(), GraceEnds: d.GraceEnds.UTC(), RestrictedFrom: d.Restricted.UTC()}
+		if !d.Retry.IsZero() {
+			at := d.Retry.UTC()
+			out.Dunning.NextRetry = &at
+		}
+	}
 
 	answer(w, code, out)
 }

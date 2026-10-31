@@ -35,8 +35,8 @@ var live = []int32{
 // Collect moves what open invoices have due through the channels that push:
 // an attempt of each that has none yet, and every attempt whose outcome is
 // not settled taken one step on -- one not out is sent, and one out is asked
-// about. An invoice whose attempt failed waits for dunning (#11), which
-// decides whether to try again; nothing here does.
+// about. An invoice whose attempt failed is dunning's (#11, [Invoices.Dun]),
+// which decides when to try again; nothing here does.
 func (v Invoices) Collect(ctx context.Context) error {
 	var errs []error
 

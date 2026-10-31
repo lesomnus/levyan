@@ -76,8 +76,9 @@ spin:
 
 # What levyan keeps, held to what its channels answer and to itself (#13):
 # the loop `levyan.reconcile`, `every` so often, reads what the merchant of
-# record billed that changed within `window` and holds the payment ledger to
-# it -- and invoices to their attempts, credit to its rows, statements to
+# record billed that changed within `window`, and what it gave or took back
+# within it, a refund or a chargeback, and holds the payment ledger to that
+# -- and invoices to their attempts, credit to its rows, statements to
 # their invoices, grants to their rules -- and finds what is left where it
 # should have moved on for longer than `stale` says. Each finding is written
 # once, said in the log and in the gauge `levyan.reconcile.findings`, and

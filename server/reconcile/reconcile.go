@@ -159,8 +159,9 @@ type Reconciler struct {
 	Merchant      *merchant.Collector
 
 	// Window is how far back the merchant's transactions are read, by when
-	// they last changed: what was billed in it is held to the ledger, and
-	// every finding open is held to it again wherever it is.
+	// they last changed, and its adjustments, by when they were made, each
+	// with its transaction: what was billed or adjusted in it is held to the
+	// ledger, and every finding open is held to it again wherever it is.
 	Window time.Duration
 
 	// Recent is how long ago a workspace's reading may be for it to be

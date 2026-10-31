@@ -187,6 +187,17 @@ type Channel interface {
 	// levyan's keys -- beside what it asks of a key and of an id.
 	Transactions(ctx context.Context, l List) (Transactions, error)
 
+	// Adjustments is a page of what the MoR has given back or taken back of
+	// what it billed -- refunds and chargebacks, of levyan's charges and of
+	// any other -- as it has them now: the newest first, made since a time
+	// or ever ([Adjusted]). An adjustment is no change of its transaction's:
+	// asking Paddle for a refund leaves the transaction's last change where
+	// it was (docs/design.md §17, 115), so what was adjusted of a
+	// transaction billed long ago is not among the transactions changed
+	// since. Reconciliation (#13) reads it here: an adjustment by when it
+	// was made, and its transaction asked of again.
+	Adjustments(ctx context.Context, l Adjusted) (Adjustments, error)
+
 	// Refund asks the MoR to give back some or all of a paid transaction,
 	// and answers the [Adjustment] it is: [Requested] until the MoR approves
 	// it, which may be days, or [Approved]. A refund whose key the MoR has is
@@ -243,6 +254,32 @@ type Transactions struct {
 
 	// Last is the ID of the last transaction of the page, which the next
 	// page begins after.
+	Last string
+
+	More bool
+}
+
+// Adjusted is which of an MoR's adjustments [Channel.Adjustments] reads.
+type Adjusted struct {
+	// Since is the earliest they were made ([Adjustment.At]), by the MoR's
+	// clock: zero for every one, however long ago it was made. It is when an
+	// adjustment was made and not when it last changed -- an MoR may list its
+	// adjustments by when they were made alone, as Paddle does -- so one
+	// made before it is not among them, whatever has become of it since.
+	Since time.Time
+
+	// After is the last of the page before ([Adjustments.Last]): empty for
+	// the first page.
+	After string
+}
+
+// Adjustments is a page of an MoR's adjustments, the newest first, and
+// whether there are more after it.
+type Adjustments struct {
+	Adjustments []Adjustment
+
+	// Last is the ID of the last adjustment of the page, which the next page
+	// begins after.
 	Last string
 
 	More bool

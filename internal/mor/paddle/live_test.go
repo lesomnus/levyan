@@ -35,7 +35,8 @@ import (
 //	PADDLE_SANDBOX_SUBSCRIPTION  sub_…, one such a checkout started: the test
 //	                             charges it now and for the next period, asks
 //	                             both, refunds part of the first, and reads it
-//	                             among the subscription's transactions.
+//	                             among the subscription's transactions, and
+//	                             the refund among the adjustments made since.
 //	PADDLE_SANDBOX_CANCEL=1      and then cancels it -- at the end of its period,
 //	                             to see what Paddle does with charges for a
 //	                             period that will not come, and then now. A
@@ -51,10 +52,10 @@ import (
 //
 // Where Paddle's documentation does not say what Paddle does -- what a
 // declined charge leaves behind, whether a refund asked for changes its
-// transaction's updated_at, whether a charge made now is taken of a
-// subscription scheduled to cancel, whether one for the next period is
-// forgiven then or only once it cancels -- the test says what Paddle answered
-// in its log.
+// transaction's updated_at (it did not, on 2026-11-01: docs/design.md §17,
+// 115), whether a charge made now is taken of a subscription scheduled to
+// cancel, whether one for the next period is forgiven then or only once it
+// cancels -- the test says what Paddle answered in its log.
 func TestLive(t *testing.T) {
 	key := os.Getenv("PADDLE_SANDBOX_API_KEY")
 	if key == "" {
@@ -144,6 +145,29 @@ func TestLive(t *testing.T) {
 		}
 	})
 
+	t.Run("the adjustments made in the last week are read, the newest first", func(t *testing.T) {
+		since := time.Now().Add(-7 * 24 * time.Hour)
+		l := mor.Adjusted{Since: since}
+		got, err := ch.Adjustments(ctx, l)
+		require.NoError(t, err)
+		t.Logf("%d adjustments made in the last week on the first page, more: %v, last %s", len(got.Adjustments), got.More, got.Last)
+		for i, a := range got.Adjustments {
+			require.False(t, a.At.Before(since), "made since")
+			if i > 0 {
+				require.Greater(t, got.Adjustments[i-1].ID, a.ID, "the newest first")
+			}
+			t.Logf("  %s of %s: %s %s, %s, made %s", a.ID, a.Transaction, a.Kind, a.Status, a.Asked, a.At)
+		}
+		if got.More {
+			l.After = got.Last
+			next, err := ch.Adjustments(ctx, l)
+			require.NoError(t, err)
+			if len(next.Adjustments) > 0 {
+				require.Greater(t, got.Last, next.Adjustments[0].ID, "the next page begins after the last")
+			}
+		}
+	})
+
 	id := os.Getenv("PADDLE_SANDBOX_SUBSCRIPTION")
 	if id == "" {
 		t.Log("PADDLE_SANDBOX_SUBSCRIPTION is not set: nothing is charged")
@@ -223,6 +247,30 @@ func TestLive(t *testing.T) {
 		_, ok = listed.Line(c.Key)
 		require.True(t, ok, "with the charge's line, by its key")
 		t.Logf("a refund asked for changes its transaction's updated_at: %v; listed with %d adjustments", moved, len(listed.Adjustments))
+
+		// And the refund among the adjustments made since, read by its own
+		// time -- which is how reconciliation reads what was adjusted of a
+		// transaction whatever its updated_at says (115) -- the newest first,
+		// so on the first page or soon after.
+		var adjusted *mor.Adjustment
+		for page, q := 0, (mor.Adjusted{Since: since}); adjusted == nil && page < 10; page++ {
+			as, err := ch.Adjustments(ctx, q)
+			require.NoError(t, err)
+			for _, v := range as.Adjustments {
+				if v.ID == a.ID {
+					adjusted = &v
+				}
+			}
+			if !as.More {
+				break
+			}
+			q.After = as.Last
+		}
+		require.NotNil(t, adjusted, "among the adjustments made since")
+		require.Equal(t, got.ID, adjusted.Transaction)
+		require.Equal(t, r.Key, adjusted.Key, "under its key")
+		require.Equal(t, mor.RefundAdjustment, adjusted.Kind)
+		t.Logf("the refund among the adjustments made since: %s, %s asked, made %s", adjusted.Status, adjusted.Asked, adjusted.At)
 	})
 
 	scheduled := mor.Charge{Subscription: id, Key: key2(), When: mor.NextPeriod, Amount: amount, Description: "levyan live test"}

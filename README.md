@@ -326,7 +326,7 @@ dunning:
 ```yaml
 reconcile:
   every: 24h          # 한 번 도는 주기
-  window: 168h        # Paddle의 거래를 이만큼 거슬러 읽는다(마지막으로 바뀐 때로)
+  window: 168h        # Paddle의 거래(마지막으로 바뀐 때로)와 조정(만든 때로, 그 거래와 함께)을 이만큼 거슬러 읽는다
   stale:
     unknown: 1h       # 요청됨·알 수 없음으로 머문 시도(마지막으로 보낸 때부터)
     pending: 72h      # 채널이 갖고 있는 시도(승인을 기다리는 환불 등)

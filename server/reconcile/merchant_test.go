@@ -9,6 +9,7 @@ import (
 	"github.com/lesomnus/payday/pdid"
 
 	levyan "github.com/lesomnus/levyan"
+	entattempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	"github.com/lesomnus/levyan/internal/levyantest"
 	"github.com/lesomnus/levyan/internal/mor"
 	"github.com/lesomnus/levyan/internal/mor/paddle/paddletest"
@@ -514,6 +515,164 @@ func TestARefundMadeAtTheMerchantIsFound(t *testing.T) {
 	x.NoError(err)
 	rep := w.reconcile()
 	x.Zero(rep.Open)
+}
+
+// A refund made in the merchant's own pages of a transaction paid a month
+// ago -- longer ago than the window the merchant is read in -- changes
+// nothing of the transaction's, as Paddle's sandbox showed of a refund asked
+// for (docs/design.md §17, 115). It is read by its own time all the same,
+// among the adjustments made in the window, which end at the first made
+// before it -- levyan's own, as the invoice was paid -- and its transaction
+// asked of again: found, held to again as the merchant approves it, and once
+// it was made before the window too.
+func TestARefundMadeAtTheMerchantOfAnOldTransactionIsFound(t *testing.T) {
+	w := setup(t, waits)
+	x := w.X
+	w.srv.AdjustmentsPageSize = 1
+
+	inv, a, _ := w.charged()
+	_, err := w.S.Invoices.Credit(w.ctx, pdid.Id(inv.Id), invoices.Credit{Reason: levyan.CreditNoteReason_CREDIT_NOTE_REASON_REFUND, Amount: 2000})
+	x.NoError(err)
+	w.run()
+	r := w.refunds(inv)[0]
+	w.srv.Approve(r.ChannelRef)
+	w.to(w.srv.Now().Add(mor.Settle + time.Minute))
+	w.run()
+	x.Equal(succeeded, w.attempt(r).State)
+
+	w.to(w.srv.Now().Add(30 * 24 * time.Hour))
+	w.reconcile()
+	w.nothing()
+
+	adj := w.srv.RefundByHand(a.ChannelRef, "고객의 요청으로 대시보드에서")
+	ts, err := w.S.Subscriptions.Channel.Transactions(w.ctx, mor.List{Since: w.srv.Now().Add(-reconcile.DefaultWindow)})
+	x.NoError(err)
+	x.Empty(ts.Transactions, "the refund changed nothing of its transaction's, which last changed a month ago")
+
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_ADJUSTMENT_UNKNOWN)
+	x.Len(fs, 1)
+	f := fs[0]
+	x.Equal("paddle.adjustment/"+adj, f.Subject)
+	x.Contains(f.Summary, "a refund made in the merchant's own pages")
+	x.Contains(f.Summary, "of charge "+a.AttemptKey+" in transaction "+a.ChannelRef)
+	x.Equal("status=requested amount=3000", f.Facts, "what was left of it once the credit note's refund was given back")
+	x.Equal(int64(3000), f.Amount)
+	x.Equal(w.product.Uuid(), f.ProductId)
+	x.Len(w.findings(), 1, "and nothing else: the credit note's refund is the ledger's")
+
+	w.srv.Approve(adj)
+	rep := w.reconcile()
+	x.Equal(1, rep.Changed, "approved since")
+	x.Equal("status=approved amount=3000", w.finding(f).Facts)
+
+	_, err = w.S.Reconciler.Accept(w.op, pdid.Id(f.Id), "the seller gave it back at the payer's request")
+	x.NoError(err)
+	w.to(w.srv.Now().Add(reconcile.DefaultWindow + 24*time.Hour))
+	rep = w.reconcile()
+	x.Zero(rep.Open)
+	x.Equal(1, rep.Found)
+	x.Equal(accepted, w.finding(f).State, "held to again, made before the window as it now is, and still what was accepted")
+}
+
+// A refund of levyan's of a transaction paid a month ago -- a credit note
+// given back through the merchant -- is read by its own time too, and is the
+// ledger's refund of its key: nothing is found of it, waiting for the
+// merchant's approval or approved. Of a ledger with no refund of its key --
+// the attempt's key written past the servers, as a ledger that went wrong
+// would -- the same refund is found: it is read, and held to the ledger.
+func TestARefundLevyanAskedOfAnOldTransactionMatchesItsAttempt(t *testing.T) {
+	w := setup(t, waits)
+	x := w.X
+
+	inv, a, _ := w.charged()
+	w.to(w.srv.Now().Add(30 * 24 * time.Hour))
+	_, err := w.S.Invoices.Credit(w.ctx, pdid.Id(inv.Id), invoices.Credit{Reason: levyan.CreditNoteReason_CREDIT_NOTE_REASON_REFUND, Amount: 2000})
+	x.NoError(err)
+	w.run()
+	r := w.refunds(inv)[0]
+	x.Equal(pending, r.State, "waiting for the merchant's approval")
+	got, err := w.S.Subscriptions.Channel.Transaction(w.ctx, a.ChannelRef)
+	x.NoError(err)
+	_, ok := got.Adjustment(r.AttemptKey)
+	x.True(ok, "of the transaction the invoice was paid by, a month ago")
+
+	w.reconcile()
+	w.nothing()
+
+	rekey := func(from, to string) {
+		t.Helper()
+		_, err := w.S.Db.ExecContext(w.ctx, "UPDATE "+entattempt.Table+" SET "+entattempt.FieldAttemptKey+" = $1 WHERE "+entattempt.FieldAttemptKey+" = $2", to, from)
+		x.NoError(err)
+	}
+	rekey(r.AttemptKey, r.AttemptKey+"-gone")
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_ADJUSTMENT_UNKNOWN)
+	x.Len(fs, 1)
+	x.Contains(fs[0].Summary, "a refund of key "+r.AttemptKey+", which no refund of this deployment's has")
+	rekey(r.AttemptKey+"-gone", r.AttemptKey)
+	rep := w.reconcile()
+	x.Equal(1, rep.Resolved)
+	w.nothing()
+
+	w.srv.Approve(r.ChannelRef)
+	w.to(w.srv.Now().Add(mor.Settle + time.Minute))
+	w.run()
+	x.Equal(succeeded, w.attempt(r).State)
+	w.reconcile()
+	w.nothing()
+}
+
+// A transaction an adjustment made in the window is of is a transaction of
+// the window, as it would be if the adjustment changed it: a payment of a key
+// no attempt has, which no pass read while it was in the window -- made a
+// month before this deployment reconciled -- is found once something of it
+// is given back.
+func TestAnOldPaymentOfAKeyNoAttemptHasIsFoundOnceItIsAdjusted(t *testing.T) {
+	w := setup(t, waits)
+	x := w.X
+
+	ws := levyantest.Tenant()
+	account, ba := w.payer(ws)
+	w.to(on(2, 9))
+	sub := w.subscribe(account, ba)
+	ch := w.S.Subscriptions.Channel
+	foreign := "lv-00000000000000000000000000000002"
+	txn, err := ch.Charge(w.ctx, mor.Charge{Subscription: sub.MorSubscription, Key: foreign, When: mor.Now, Amount: krw(1500), Description: "다른 배포의 청구"})
+	x.NoError(err)
+
+	w.to(w.srv.Now().Add(30 * 24 * time.Hour))
+	w.reconcile()
+	w.nothing()
+
+	l, _ := txn.Line(foreign)
+	_, err = ch.Refund(w.ctx, mor.Refund{Transaction: txn.ID, Line: l.ID, Amount: krw(500), Reason: "다른 배포의 것의 일부", Key: "byhand-2"})
+	x.NoError(err)
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_KEY_UNKNOWN)
+	x.Len(fs, 1)
+	x.Equal("paddle.transaction/"+txn.ID, fs[0].Subject)
+	x.Equal(int64(1500), fs[0].Amount, "nothing of it given back while the refund waits for approval")
+	x.Len(w.findings(), 1, "and the refund is of no charge of levyan's")
+}
+
+// A chargeback -- the payer's bank taking back what was paid, two months
+// on, as a dispute comes -- changes nothing of its transaction's either, and
+// is found by its own time.
+func TestAChargebackOfAnOldTransactionIsFound(t *testing.T) {
+	w := setup(t, waits)
+	x := w.X
+
+	_, a, _ := w.charged()
+	w.to(w.srv.Now().Add(60 * 24 * time.Hour))
+	adj := w.srv.Chargeback(a.ChannelRef)
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_ADJUSTMENT_UNKNOWN)
+	x.Len(fs, 1)
+	x.Equal("paddle.adjustment/"+adj, fs[0].Subject)
+	x.Contains(fs[0].Summary, "a chargeback ("+adj+", approved) of charge "+a.AttemptKey)
+	x.Equal(int64(5000), fs[0].Amount)
+	x.Len(w.findings(), 1, "and nothing else")
 }
 
 // A notice of the merchant's that could not be taken for longer than it

@@ -188,6 +188,54 @@ func (h *held) transaction(ctx context.Context, id string) (mor.Transaction, boo
 	return mor.Transaction{}, false, fmt.Errorf("transaction %s: %w", id, err)
 }
 
+// adjusted is the transactions of every adjustment the merchant made since
+// `since` -- a refund, a chargeback -- that this pass has not read, asked of
+// again: an adjustment is no change of its transaction's at the merchant
+// (docs/design.md §17, 115), so one of a transaction billed and last changed
+// long ago is read here, by its own time.
+func (h *held) adjusted(ctx context.Context, since time.Time) ([]mor.Transaction, error) {
+	ids := []string{}
+	named := map[string]bool{}
+	l := mor.Adjusted{Since: since}
+	for page := 0; ; page++ {
+		if page == maxPages {
+			return nil, errors.New("the merchant has more adjustments than a pass reads")
+		}
+		if err := h.r.pace(ctx, h.p); err != nil {
+			return nil, err
+		}
+		got, err := h.r.channel().Adjustments(ctx, l)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range got.Adjustments {
+			if _, read := h.txns[a.Transaction]; read || a.Transaction == "" || named[a.Transaction] {
+				continue
+			}
+			named[a.Transaction] = true
+			ids = append(ids, a.Transaction)
+		}
+		if !got.More || got.Last == "" {
+			break
+		}
+		l.After = got.Last
+	}
+
+	slices.Sort(ids)
+	out := []mor.Transaction{}
+	for _, id := range ids {
+		t, ok, err := h.transaction(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			out = append(out, t)
+		}
+	}
+
+	return out, nil
+}
+
 // list is every transaction of the merchant's `l` reads, page by page.
 func (h *held) list(ctx context.Context, l mor.List) ([]mor.Transaction, error) {
 	out := []mor.Transaction{}
@@ -238,7 +286,9 @@ func (h *held) attempt(ctx context.Context, key string) (*ent.PaymentAttempt, er
 // refund it says succeeded to an approved refund of its key and amount, and
 // what the merchant gave or took back of levyan's charges to a refund of the
 // ledger's. What is read of the merchant is what changed in the window
-// ([Reconciler.Window]), and what each finding open names, wherever it is.
+// ([Reconciler.Window]) -- the transactions that changed in it, and those
+// of the adjustments made in it, which change no transaction (§17, 115) --
+// and what each finding open names, wherever it is.
 func (r *Reconciler) merchant(ctx context.Context, p *pass) ([]Found, error) {
 	h := &held{r: r, p: p, txns: map[string]mor.Transaction{}, missing: map[string]bool{}, attempts: map[string]*ent.PaymentAttempt{}, extras: map[string]bool{}}
 	since := p.now.Add(-r.window())
@@ -247,6 +297,11 @@ func (r *Reconciler) merchant(ctx context.Context, p *pass) ([]Found, error) {
 	if err != nil {
 		return nil, fmt.Errorf("the merchant's transactions since %s: %w", stamp(since), err)
 	}
+	adjusted, err := h.adjusted(ctx, since)
+	if err != nil {
+		return nil, fmt.Errorf("the merchant's adjustments since %s: %w", stamp(since), err)
+	}
+	listed = append(listed, adjusted...)
 
 	out := []Found{}
 	for _, step := range []func(*Reconciler, context.Context, *held, time.Time, []mor.Transaction) ([]Found, error){
@@ -689,7 +744,9 @@ func (r *Reconciler) refunds(ctx context.Context, h *held, since time.Time, _ []
 // ledger's has, one made in the merchant's own pages, a chargeback. What is
 // given back of a payment the ledger does not account for -- a key charged
 // twice -- is what is owed, and nothing found. What is read is every
-// transaction this pass read, and every one a finding open names.
+// transaction this pass read -- of the window, the adjustments made in it
+// with theirs, and what the ledger's attempts name -- and every one a finding
+// open names.
 func (r *Reconciler) adjustments(ctx context.Context, h *held, _ time.Time, _ []mor.Transaction) ([]Found, error) {
 	k := levyan.FindingKind_FINDING_KIND_ADJUSTMENT_UNKNOWN
 	for _, s := range h.p.subjects(k) {

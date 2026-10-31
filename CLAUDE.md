@@ -349,10 +349,11 @@ names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
 
 What levyan asks of a merchant of record it sells through (docs/design.md
 §12): the interface, `mor.Channel`, and its adapter, `internal/mor/paddle`.
-**The MoR is Paddle** -- the owner's decision, 2026-10-31 (#12) -- and the
-owner has made no Paddle account yet, so there are no keys: the fake
-(`internal/mor/paddle/paddletest`) is what tests use, and `TestLive` waits.
-Nothing but the wiring (`cmd`) names `paddle`.
+**The MoR is Paddle** -- the owner's decision, 2026-10-31 (#12). Tests use the
+fake (`internal/mor/paddle/paddletest`); `TestLive` runs by hand against the
+owner's sandbox account (made 2026-11-01), whose key is the staging Secret and
+never a file here -- what it found is on #12 and in docs/design.md §12. There is
+no live account yet. Nothing but the wiring (`cmd`) names `paddle`.
 
 - **levyan computes the amount.** A closed period's amount goes to the MoR as
   a one-time charge of the payer's subscription (`Charge`): an amount, never a

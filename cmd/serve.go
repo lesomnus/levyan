@@ -44,6 +44,7 @@ import (
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
 	"github.com/lesomnus/levyan/server/pd"
+	"github.com/lesomnus/levyan/server/reconcile"
 	"github.com/lesomnus/levyan/server/subscriptions"
 )
 
@@ -181,6 +182,13 @@ type Server struct {
 	// mirror, and what each transaction brings the attempts whose keys it
 	// carries to (`merchant.Collector.Heard`). Empty with no merchant.
 	Taker subscriptions.Taker
+
+	// Reconciler holds what levyan keeps to what its channels answer and to
+	// itself (#13), through the server with no wall: by the loop
+	// `levyan.reconcile`, as the deployment, and by an operator's hand,
+	// through the operator's entry point -- which is also where what a
+	// finding asks for is done.
+	Reconciler *reconcile.Reconciler
 
 	closeRoster func() error
 
@@ -332,7 +340,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// already let the caller name; `pd.Gate` is outermost, so nothing behind
 	// it asks again. A key's verifier is cleared on the way out of both
 	// (`pd.Secret`), so that nothing answers with it.
-	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), pd.GateBuild())
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), reconcile.Build(), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -343,7 +351,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// book and of grants on it, since an operator's price is held to them as
 	// a product's would be. It still keeps the trail: going around the wall
 	// is not going around the record of having done so.
-	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build())
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), reconcile.Build())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -468,6 +476,25 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	} else {
 		log.From(ctx).WarnContext(ctx, "roster: auth.roster names none, so no account's standing can be asked, and no call an account makes is served")
 	}
+
+	// The loop that holds what levyan keeps to what its channels answer and
+	// to itself (`levyan.reconcile`): what it finds drifted is written down
+	// once of each thing, said in the log and in the gauge
+	// `levyan.reconcile.findings`, and left to an operator -- it asks a
+	// channel again where that is what is wanted, through the paths that ask
+	// it anyway, and moves no money.
+	s.Reconciler = &reconcile.Reconciler{
+		S: ungated, Drv: drv, Dialect: dialect, Now: clock,
+		Invoices: &s.Invoices, Grants: &s.Grants, Renew: c.Grants.RenewEvery(), Closer: s.Closer,
+		Subscriptions: s.Subscriptions, Merchant: merchantOf,
+		Window: c.Reconcile.Window, Recent: c.Readings.RecentWithin(), Pace: reconcile.DefaultPace,
+		Stale: reconcile.Stale{
+			Unknown: c.Reconcile.Stale.Unknown, Pending: c.Reconcile.Stale.Pending,
+			Period: c.Reconcile.Stale.Period, Draft: c.Reconcile.Stale.Draft, Statement: c.Reconcile.Stale.Statement,
+			Notice: c.Reconcile.Stale.Notice, Mirror: c.Reconcile.Stale.Mirror,
+		},
+	}
+	s.Spin = append(s.Spin, reconcile.Reconciles(s.Reconciler, c.Reconcile.Every))
 
 	// The loop that looks for readings that should have come and have not
 	// (`levyan.readings.gaps`): a workspace that has been sending a stock

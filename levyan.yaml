@@ -74,6 +74,27 @@ spin:
 #   horizon: 168h
 #   renew: 1h
 
+# What levyan keeps, held to what its channels answer and to itself (#13):
+# the loop `levyan.reconcile`, `every` so often, reads what the merchant of
+# record billed that changed within `window` and holds the payment ledger to
+# it -- and invoices to their attempts, credit to its rows, statements to
+# their invoices, grants to their rules -- and finds what is left where it
+# should have moved on for longer than `stale` says. Each finding is written
+# once, said in the log and in the gauge `levyan.reconcile.findings`, and
+# left to an operator (`levyan-admin reconcile`): a pass changes no money.
+#
+# reconcile:
+#   every: 24h
+#   window: 168h
+#   stale:
+#     unknown: 1h
+#     pending: 72h
+#     period: 24h
+#     draft: 24h
+#     statement: 24h
+#     notice: 1h
+#     mirror: 168h
+
 # The keys a billing key is sealed under before it is written
 # (`internal/keyring`): a PG's key to a payer's card, which with levyan's own
 # key charges it, kept so that a copy of the database charges nobody. Nothing

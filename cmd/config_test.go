@@ -284,3 +284,50 @@ func TestADunningTableThatSaysNoScheduleIsRefused(t *testing.T) {
 	_, err = cmd.Build(t.Context(), cmd.Config{Dunning: cmd.DunningConfig{Kinds: cmd.DunningKinds{Temporary: cmd.DunningKind{Retries: &back}}}})
 	x.ErrorContains(err, "dunning.kinds.temporary: retries: 24h0m0s is no later than the retry before it, 48h0m0s")
 }
+
+// How the loop `levyan.reconcile` holds levyan to its channels is said in
+// `reconcile`, of the file or the environment, each with its default; a
+// duration of less than nothing is refused where it is written. The
+// reconciler a deployment builds is held to what is said.
+func TestReconciliationIsConfiguredOrItsDefaults(t *testing.T) {
+	x := require.New(t)
+
+	c, err := load(t, "{}\n")
+	x.NoError(err)
+	x.Equal(cmd.ReconcileConfig{}, c.Reconcile)
+
+	c, err = load(t, `
+reconcile:
+  every: 12h
+  window: 336h
+  stale:
+    unknown: 2h
+    mirror: 72h
+`, "LEVYAN_RECONCILE_STALE_PENDING=96h")
+	x.NoError(err)
+	x.Equal(12*time.Hour, c.Reconcile.Every)
+	x.Equal(336*time.Hour, c.Reconcile.Window)
+	x.Equal(cmd.StaleConfig{Unknown: 2 * time.Hour, Pending: 96 * time.Hour, Mirror: 72 * time.Hour}, c.Reconcile.Stale)
+
+	_, err = load(t, "reconcile: {stale: {notice: -1h}}\n")
+	x.ErrorContains(err, "stale.notice: less than nothing")
+
+	c.Db.Driver, c.Db.Dsn = "sqlite3", "file:"+filepath.Join(t.TempDir(), "levyan.db")+"?_pragma=foreign_keys(1)"
+	c.Watch.Broker = "memory"
+	s, err := cmd.Build(t.Context(), c)
+	x.NoError(err)
+	defer s.Close()
+	x.Equal(336*time.Hour, s.Reconciler.Window)
+	x.Equal(2*time.Hour, s.Reconciler.Stale.Unknown)
+	x.Equal(96*time.Hour, s.Reconciler.Stale.Pending)
+	x.Equal(72*time.Hour, s.Reconciler.Stale.Mirror)
+	x.Nil(s.Reconciler.Subscriptions.Channel, "no merchant of record is named")
+
+	names := []string{}
+	for _, v := range s.Spin {
+		if n, ok := v.(interface{ SpinName() string }); ok {
+			names = append(names, n.SpinName())
+		}
+	}
+	x.Contains(names, "levyan.reconcile")
+}

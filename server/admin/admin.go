@@ -3,9 +3,11 @@
 // revokes its keys, writes its meters, publishes its prices, asks which was in
 // force when and which are missing -- what it asks of the ledger -- which
 // workspaces have stopped sending readings -- what it grants a workspace by
-// hand, and what it does to invoices -- voids one, writes a credit note
-// against one, records a transfer for one -- over HTTP, on a listener of its
-// own.
+// hand, what it does to invoices -- voids one, writes a credit note against
+// one, records a transfer for one -- and what it does of what reconciliation
+// found (#13) -- makes a pass now, accepts a finding, gives back what a key
+// was charged twice, settles an attempt from what its channel answers,
+// follows a product's rules again -- over HTTP, on a listener of its own.
 //
 // It is served by `levyan-admin serve`, and `levyan serve` links none of it:
 // the public binary has no path that writes as the deployment. Every request
@@ -189,6 +191,13 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("POST /admin/invoices/{id}/paid", a.paidInvoice)
 	api.HandleFunc("GET /admin/products/{product}/unpriced", a.unpriced)
 	api.HandleFunc("POST /admin/billing-accounts", a.openBillingAccount)
+	api.HandleFunc("POST /admin/reconcile", a.reconcile)
+	api.HandleFunc("GET /admin/findings", a.findings)
+	api.HandleFunc("GET /admin/findings/{id}", a.finding)
+	api.HandleFunc("POST /admin/findings/{id}/accept", a.accept)
+	api.HandleFunc("POST /admin/attempts/{attempt}/refund", a.refundExtra)
+	api.HandleFunc("POST /admin/attempts/{attempt}/settle", a.settle)
+	api.HandleFunc("POST /admin/products/{product}/rules", a.rule)
 
 	mux := http.NewServeMux()
 	mux.Handle("/admin/", a.authorized(api))

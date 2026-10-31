@@ -416,7 +416,8 @@ func TestAWebhookWhoseSignatureDoesNotHoldIsRefused(t *testing.T) {
 	_, err = ch.Webhook(late, body)
 	require.Equal(t, pg.Invalid, pg.KindOf(err), "the time is signed with the body")
 
-	// While a key is reissued, a webhook carries a signature under each.
+	// A webhook may carry more than one signature, and one that holds is
+	// enough.
 	both := h.Clone()
 	both.Set(toss.SignatureHeader, "v1:"+base64.StdEncoding.EncodeToString(make([]byte, 32))+","+h.Get(toss.SignatureHeader))
 	n, err := ch.Webhook(both, body)

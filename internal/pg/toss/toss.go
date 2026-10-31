@@ -74,7 +74,7 @@
 //     (https://docs.tosspayments.com/reference/using-api/webhook-events).
 //   - A webhook may carry tosspayments-webhook-signature: "v1:" and the
 //     base64 of an HMAC-SHA256 of "{body}:{tosspayments-webhook-transmission-time}"
-//     under the 보안 키, more than one when a key is being reissued. The
+//     under the 보안 키, and maybe more than one, separated by commas. The
 //     documentation does not say which webhooks carry one, nor whether the
 //     key's 64 hex digits are the HMAC's key as they are or decoded; so a
 //     signature holds under either, and one that is not there is refused only
@@ -142,7 +142,8 @@ type Config struct {
 	Client *http.Client `yaml:"-"`
 }
 
-// Channel is Toss Payments as a [pg.Channel].
+// Channel is Toss Payments as a [pg.Channel]. It holds nothing that changes,
+// and is used by many goroutines at once.
 type Channel struct {
 	c      Config
 	url    string

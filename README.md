@@ -58,7 +58,7 @@ admin key issue --alias loft-dev --yes loft      # 키는 이때 한 번만 나�
 admin meter add --unit '{asset}' --kind stock --aggregation time_weighted_average \
   --name '활성 자산' --yes loft loft.assets.active
 admin meter add --unit d --kind stock --aggregation last --unbounded-zero \
-  --name '이력 보존 기간' --yes loft loft.history.keep
+  --name '이력 보존 기간' --yes loft loft.history.retention_days
 
 # 무료 100개, 그 뒤로 개당 50원. 2027-01-01부터. 국내 결제 계정의 기본인 MoR과 원으로.
 admin price add --channel mor --currency KRW --included 100 --unit-price 50 \
@@ -70,7 +70,7 @@ admin price add --channel mor --currency KRW --included 100 --unit-price 70 \
 
 # 보존 기간: 1년까지 0원, 3년까지 10,000원, 그 위(영원히 포함) 30,000원.
 admin price add --channel mor --currency KRW \
-  --band 365:0 --band 1095:10000 --band :30000 --effective 2027-01-01 --yes loft loft.history.keep
+  --band 365:0 --band 1095:10000 --band :30000 --effective 2027-01-01 --yes loft loft.history.retention_days
 
 admin product show loft
 admin price ls loft

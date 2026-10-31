@@ -26,6 +26,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/rowseal"
 	"github.com/lesomnus/levyan/internal/ent/series"
 	"github.com/lesomnus/levyan/internal/ent/servicekey"
+	"github.com/lesomnus/levyan/internal/ent/statement"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
 	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent"
@@ -67,6 +68,8 @@ type Client struct {
 	Series *SeriesClient
 	// ServiceKey is the client for interacting with the ServiceKey builders.
 	ServiceKey *ServiceKeyClient
+	// Statement is the client for interacting with the Statement builders.
+	Statement *StatementClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
 	// Workspace is the client for interacting with the Workspace builders.
@@ -96,6 +99,7 @@ func (c *Client) init() {
 	c.RowSeal = NewRowSealClient(c.config)
 	c.Series = NewSeriesClient(c.config)
 	c.ServiceKey = NewServiceKeyClient(c.config)
+	c.Statement = NewStatementClient(c.config)
 	c.Tenant = NewTenantClient(c.config)
 	c.Workspace = NewWorkspaceClient(c.config)
 }
@@ -205,6 +209,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		RowSeal:    NewRowSealClient(cfg),
 		Series:     NewSeriesClient(cfg),
 		ServiceKey: NewServiceKeyClient(cfg),
+		Statement:  NewStatementClient(cfg),
 		Tenant:     NewTenantClient(cfg),
 		Workspace:  NewWorkspaceClient(cfg),
 	}, nil
@@ -241,6 +246,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		RowSeal:    NewRowSealClient(cfg),
 		Series:     NewSeriesClient(cfg),
 		ServiceKey: NewServiceKeyClient(cfg),
+		Statement:  NewStatementClient(cfg),
 		Tenant:     NewTenantClient(cfg),
 		Workspace:  NewWorkspaceClient(cfg),
 	}, nil
@@ -320,7 +326,7 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Access, c.Archived, c.Audit, c.Holder, c.Meter, c.Operator, c.Outbox, c.Owed,
 		c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series, c.ServiceKey,
-		c.Tenant, c.Workspace,
+		c.Statement, c.Tenant, c.Workspace,
 	} {
 		n.Use(hooks...)
 	}
@@ -332,7 +338,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Access, c.Archived, c.Audit, c.Holder, c.Meter, c.Operator, c.Outbox, c.Owed,
 		c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series, c.ServiceKey,
-		c.Tenant, c.Workspace,
+		c.Statement, c.Tenant, c.Workspace,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -371,6 +377,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Series.mutate(ctx, m)
 	case *ServiceKeyMutation:
 		return c.ServiceKey.mutate(ctx, m)
+	case *StatementMutation:
+		return c.Statement.mutate(ctx, m)
 	case *TenantMutation:
 		return c.Tenant.mutate(ctx, m)
 	case *WorkspaceMutation:
@@ -2615,6 +2623,187 @@ func (c *ServiceKeyClient) mutate(ctx context.Context, m *ServiceKeyMutation) (V
 	}
 }
 
+// StatementClient is a client for the Statement schema.
+type StatementClient struct {
+	config
+}
+
+// NewStatementClient returns a client for the Statement from the given config.
+func NewStatementClient(c config) *StatementClient {
+	return &StatementClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `statement.Hooks(f(g(h())))`.
+func (c *StatementClient) Use(hooks ...Hook) {
+	c.hooks.Statement = append(c.hooks.Statement, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `statement.Intercept(f(g(h())))`.
+func (c *StatementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Statement = append(c.inters.Statement, interceptors...)
+}
+
+// Create returns a builder for creating a Statement entity.
+func (c *StatementClient) Create() *StatementCreate {
+	mutation := newStatementMutation(c.config, OpCreate)
+	return &StatementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Statement entities.
+func (c *StatementClient) CreateBulk(builders ...*StatementCreate) *StatementCreateBulk {
+	return &StatementCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StatementClient) MapCreateBulk(slice any, setFunc func(*StatementCreate, int)) *StatementCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StatementCreateBulk{err: fmt.Errorf("calling to StatementClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StatementCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StatementCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Statement.
+func (c *StatementClient) Update() *StatementUpdate {
+	mutation := newStatementMutation(c.config, OpUpdate)
+	return &StatementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StatementClient) UpdateOne(_m *Statement) *StatementUpdateOne {
+	mutation := newStatementMutation(c.config, OpUpdateOne, withStatement(_m))
+	return &StatementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *StatementClient) UpdateOneId(id uuid.UUID) *StatementUpdateOne {
+	mutation := newStatementMutation(c.config, OpUpdateOne, withStatementId(id))
+	return &StatementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Statement.
+func (c *StatementClient) Delete() *StatementDelete {
+	mutation := newStatementMutation(c.config, OpDelete)
+	return &StatementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StatementClient) DeleteOne(_m *Statement) *StatementDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *StatementClient) DeleteOneId(id uuid.UUID) *StatementDeleteOne {
+	builder := c.Delete().Where(statement.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &StatementDeleteOne{builder}
+}
+
+// Query returns a query builder for Statement.
+func (c *StatementClient) Query() *StatementQuery {
+	return &StatementQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStatement},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Statement entity by its id.
+func (c *StatementClient) Get(ctx context.Context, id uuid.UUID) (*Statement, error) {
+	return c.Query().Where(statement.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StatementClient) GetX(ctx context.Context, id uuid.UUID) *Statement {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTenant queries the tenant edge of a Statement.
+func (c *StatementClient) QueryTenant(_m *Statement) *TenantQuery {
+	query := (&TenantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldId, id),
+			sqlgraph.To(tenant.Table, tenant.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, statement.TenantTable, statement.TenantColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkspace queries the workspace edge of a Statement.
+func (c *StatementClient) QueryWorkspace(_m *Statement) *WorkspaceQuery {
+	query := (&WorkspaceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldId, id),
+			sqlgraph.To(workspace.Table, workspace.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, statement.WorkspaceTable, statement.WorkspaceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPeriod queries the period edge of a Statement.
+func (c *StatementClient) QueryPeriod(_m *Statement) *PeriodQuery {
+	query := (&PeriodClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldId, id),
+			sqlgraph.To(period.Table, period.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, statement.PeriodTable, statement.PeriodColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *StatementClient) Hooks() []Hook {
+	return c.hooks.Statement
+}
+
+// Interceptors returns the client interceptors.
+func (c *StatementClient) Interceptors() []Interceptor {
+	return c.inters.Statement
+}
+
+func (c *StatementClient) mutate(ctx context.Context, m *StatementMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StatementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StatementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StatementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StatementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Statement mutation op: %q", m.Op())
+	}
+}
+
 // TenantClient is a client for the Tenant schema.
 type TenantClient struct {
 	config
@@ -2901,11 +3090,12 @@ func (c *WorkspaceClient) mutate(ctx context.Context, m *WorkspaceMutation) (Val
 type (
 	hooks struct {
 		Access, Archived, Audit, Holder, Meter, Operator, Outbox, Owed, Period, Point,
-		Price, Reading, RowSeal, Series, ServiceKey, Tenant, Workspace []ent.Hook
+		Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
+		Workspace []ent.Hook
 	}
 	inters struct {
 		Access, Archived, Audit, Holder, Meter, Operator, Outbox, Owed, Period, Point,
-		Price, Reading, RowSeal, Series, ServiceKey, Tenant,
+		Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
 		Workspace []ent.Interceptor
 	}
 )

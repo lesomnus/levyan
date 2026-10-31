@@ -23,6 +23,12 @@ const (
 	FieldDateUpdated = "date_updated"
 	// FieldDateCreated holds the string denoting the date_created field in the database.
 	FieldDateCreated = "date_created"
+	// FieldZone holds the string denoting the zone field in the database.
+	FieldZone = "zone"
+	// FieldChannel holds the string denoting the channel field in the database.
+	FieldChannel = "channel"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
 	// Table holds the table name of the tenant in the database.
 	Table = "tenant"
 )
@@ -36,6 +42,9 @@ var Columns = []string{
 	FieldLabels,
 	FieldDateUpdated,
 	FieldDateCreated,
+	FieldZone,
+	FieldChannel,
+	FieldCurrency,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -47,6 +56,15 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultZone holds the default value on creation for the "zone" field.
+	DefaultZone string
+	// DefaultChannel holds the default value on creation for the "channel" field.
+	DefaultChannel string
+	// DefaultCurrency holds the default value on creation for the "currency" field.
+	DefaultCurrency string
+)
 
 // OrderOption defines the ordering options for the Tenant queries.
 type OrderOption func(*sql.Selector)
@@ -79,4 +97,19 @@ func ByDateUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByDateCreated orders the results by the date_created field.
 func ByDateCreated(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDateCreated, opts...).ToFunc()
+}
+
+// ByZone orders the results by the zone field.
+func ByZone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldZone, opts...).ToFunc()
+}
+
+// ByChannel orders the results by the channel field.
+func ByChannel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChannel, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }

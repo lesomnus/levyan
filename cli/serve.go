@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"slices"
+	"time"
 
 	"github.com/lesomnus/otx/log"
 	"github.com/lesomnus/xli"
@@ -37,9 +38,10 @@ import (
 func Front(s *cmd.Server) {
 	s.Auth = auth.Bearer(keys.Store(s.Ungated, s.Clock))
 	s.Policy = policy.Policy{}
-	l := ledger.Ledger{S: s.Walled, Drv: s.Drv, Dialect: s.Dialect, Now: s.Clock}
+	now := func() time.Time { return s.Clock() }
+	l := ledger.Ledger{S: s.Walled, Drv: s.Drv, Dialect: s.Dialect, Now: now}
 	s.Register = append(s.Register,
-		func(g grpc.ServiceRegistrar) { api.Register(g, s.Walled, l) },
+		func(g grpc.ServiceRegistrar) { api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now}) },
 		func(g grpc.ServiceRegistrar) { otlp.Register(g, l) },
 	)
 }

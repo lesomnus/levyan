@@ -171,6 +171,11 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("POST /admin/products/{product}/prices", a.publish)
 	api.HandleFunc("GET /admin/products/{product}/timeline", a.timeline)
 	api.HandleFunc("GET /admin/gaps", a.gaps)
+	api.HandleFunc("POST /admin/products/{product}/terms", a.terms)
+	api.HandleFunc("GET /admin/products/{product}/periods", a.periods)
+	api.HandleFunc("POST /admin/products/{product}/periods/close", a.closePeriods)
+	api.HandleFunc("GET /admin/products/{product}/statements", a.statements)
+	api.HandleFunc("GET /admin/statements/{id}", a.statement)
 
 	mux := http.NewServeMux()
 	mux.Handle("/admin/", a.authorized(api))
@@ -234,6 +239,12 @@ type Product struct {
 	Name    string    `json:"name"`
 	Desc    string    `json:"desc,omitempty"`
 	Created time.Time `json:"created"`
+
+	// Its terms: the zone its periods are months in, and the channel and
+	// currency its statements are priced on and in.
+	Zone     string `json:"zone,omitempty"`
+	Channel  string `json:"channel,omitempty"`
+	Currency string `json:"currency,omitempty"`
 }
 
 // Detail is one product, with its keys and its meters.
@@ -303,7 +314,10 @@ type Segment struct {
 }
 
 func productOf(t *ent.Tenant) Product {
-	return Product{Id: pdid.Id(t.Id).String(), Alias: t.Alias, Name: t.Name, Desc: t.Desc, Created: t.DateCreated}
+	return Product{
+		Id: pdid.Id(t.Id).String(), Alias: t.Alias, Name: t.Name, Desc: t.Desc, Created: t.DateCreated,
+		Zone: t.Zone, Channel: named(t.Channel, "CHANNEL_"), Currency: t.Currency,
+	}
 }
 
 func keyOf(v *ent.ServiceKey) Key {

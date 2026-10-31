@@ -44,6 +44,9 @@ type Tenant struct {
 	xxx_hidden_Labels      map[string]string      `protobuf:"bytes,7,rep,name=labels" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_DateUpdated *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Zone        string                 `protobuf:"bytes,8,opt,name=zone"`
+	xxx_hidden_Channel     string                 `protobuf:"bytes,9,opt,name=channel"`
+	xxx_hidden_Currency    string                 `protobuf:"bytes,10,opt,name=currency"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -122,6 +125,27 @@ func (x *Tenant) GetDateCreated() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Tenant) GetZone() string {
+	if x != nil {
+		return x.xxx_hidden_Zone
+	}
+	return ""
+}
+
+func (x *Tenant) GetChannel() string {
+	if x != nil {
+		return x.xxx_hidden_Channel
+	}
+	return ""
+}
+
+func (x *Tenant) GetCurrency() string {
+	if x != nil {
+		return x.xxx_hidden_Currency
+	}
+	return ""
+}
+
 func (x *Tenant) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -151,6 +175,18 @@ func (x *Tenant) SetDateUpdated(v *timestamppb.Timestamp) {
 
 func (x *Tenant) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
+}
+
+func (x *Tenant) SetZone(v string) {
+	x.xxx_hidden_Zone = v
+}
+
+func (x *Tenant) SetChannel(v string) {
+	x.xxx_hidden_Channel = v
+}
+
+func (x *Tenant) SetCurrency(v string) {
+	x.xxx_hidden_Currency = v
 }
 
 func (x *Tenant) HasDateUpdated() bool {
@@ -209,6 +245,21 @@ type Tenant_builder struct {
 	// that is built because adding it later is every app's migration.
 	DateUpdated *timestamppb.Timestamp
 	DateCreated *timestamppb.Timestamp
+	// The zone its billing periods are months in: an IANA name, Asia/Seoul.
+	// Empty is UTC. A change applies from the next period on, which begins
+	// where the last one closed ended.
+	Zone string
+	// What its statements are priced on until billing accounts say (#4): a
+	// value of `Channel` by its name, `CHANNEL_PG_KR`, as the price book's
+	// rules hold it to (`server/book`). Empty is a product nothing is priced
+	// for yet, whose periods are not closed.
+	//
+	// A name and not the enum, because the enum is the price's, in a file
+	// that imports this one, and the service contracts protobuf-orm generates
+	// do not import an enum declared in another file than their entity's.
+	Channel string
+	// What its statements are priced in on that channel, ISO 4217: KRW.
+	Currency string
 }
 
 func (b0 Tenant_builder) Build() *Tenant {
@@ -222,6 +273,9 @@ func (b0 Tenant_builder) Build() *Tenant {
 	x.xxx_hidden_Labels = b.Labels
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateCreated = b.DateCreated
+	x.xxx_hidden_Zone = b.Zone
+	x.xxx_hidden_Channel = b.Channel
+	x.xxx_hidden_Currency = b.Currency
 	return m0
 }
 
@@ -229,7 +283,7 @@ var File_levyan_payday_tenant_proto protoreflect.FileDescriptor
 
 const file_levyan_payday_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\x1alevyan/payday/tenant.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xeb\x03\n" +
+	"\x1alevyan/payday/tenant.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xe2\x04\n" +
 	"\x06Tenant\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12\"\n" +
 	"\x05alias\x18\x04 \x01(\tB\f\xea\x82\x16\x020\x01\xaa\xc1\x16\x02\x18\x00R\x05alias\x12\x1a\n" +
@@ -237,7 +291,11 @@ const file_levyan_payday_tenant_proto_rawDesc = "" +
 	"\x04desc\x18\x06 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x00R\x04desc\x12:\n" +
 	"\x06labels\x18\a \x03(\v2\x1a.levyan.Tenant.LabelsEntryB\x06\xaa\xc1\x16\x02\x18\x00R\x06labels\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12H\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated\x1a9\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated\x12!\n" +
+	"\x04zone\x18\b \x01(\tB\r\xea\x82\x16\x03\x82\x01\x00\xaa\xc1\x16\x02\x18\x00R\x04zone\x12'\n" +
+	"\achannel\x18\t \x01(\tB\r\xea\x82\x16\x03\x82\x01\x00\xaa\xc1\x16\x02\x18\x00R\achannel\x12)\n" +
+	"\bcurrency\x18\n" +
+	" \x01(\tB\r\xea\x82\x16\x03\x82\x01\x00\xaa\xc1\x16\x02\x18\x00R\bcurrency\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:_\xca\xfc\x15&\x12\x02\x10\x01\x1a \x12\x04page\x1a\x10\n" +

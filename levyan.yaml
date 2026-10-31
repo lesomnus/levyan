@@ -48,6 +48,17 @@ spin:
 #   recent: 168h
 #   every: 1h
 
+# When a product's periods are closed. A period -- a calendar month in the
+# product's zone (`levyan-admin product configure`) -- is closed by the loop
+# `levyan.periods.close`, looking `every` so often, once it has ended and
+# waited out `grace` for what comes late; what comes later still is kept and
+# corrected on a later statement. An operator closes one by hand without the
+# grace (`levyan-admin period close`).
+#
+# periods:
+#   grace: 48h
+#   every: 1h
+
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an
 # address the public reaches.

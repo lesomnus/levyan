@@ -33,6 +33,7 @@ import (
 	entRowSeal "github.com/lesomnus/levyan/internal/ent/rowseal"
 	entSeries "github.com/lesomnus/levyan/internal/ent/series"
 	entServiceKey "github.com/lesomnus/levyan/internal/ent/servicekey"
+	entStatement "github.com/lesomnus/levyan/internal/ent/statement"
 	entTenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	entWorkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	bare "github.com/lesomnus/levyan/server/bare"
@@ -117,6 +118,7 @@ const (
 	RowSealDomain    pdid.Domain = 255 // "row-seal"
 	SeriesDomain     pdid.Domain = 14  // "series"
 	ServiceKeyDomain pdid.Domain = 9   // "service-key"
+	StatementDomain  pdid.Domain = 17  // "statement"
 	TenantDomain     pdid.Domain = 1   // "tenant"
 	WorkspaceDomain  pdid.Domain = 12  // "workspace"
 )
@@ -137,6 +139,7 @@ func init() {
 	pdid.Register("levyan.RowSeal", RowSealDomain, "row-seal")
 	pdid.Register("levyan.Series", SeriesDomain, "series")
 	pdid.Register("levyan.ServiceKey", ServiceKeyDomain, "service-key")
+	pdid.Register("levyan.Statement", StatementDomain, "statement")
 	pdid.Register("levyan.Tenant", TenantDomain, "tenant")
 	pdid.Register("levyan.Workspace", WorkspaceDomain, "workspace")
 
@@ -161,6 +164,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.RowSeal":    RowSealDomain,
 	"levyan.Series":     SeriesDomain,
 	"levyan.ServiceKey": ServiceKeyDomain,
+	"levyan.Statement":  StatementDomain,
 	"levyan.Tenant":     TenantDomain,
 	"levyan.Workspace":  WorkspaceDomain,
 }
@@ -207,6 +211,9 @@ var IndexRenames = []rename.Index{
 	{Table: "series", From: "series_workspace_id_meter_id", To: "series_counted"},
 	{Table: "servicekey", From: "servicekey_tenant_id_date_created_id", To: "servicekey_page"},
 	{Table: "servicekey", From: "servicekey_alias_tenant_id", To: "servicekey_slug"},
+	{Table: "statement", From: "statement_tenant_id_date_start_id", To: "statement_page"},
+	{Table: "statement", From: "statement_tenant_id_workspace_id_period_id", To: "statement_closed"},
+	{Table: "statement", From: "statement_workspace_id_date_start_id", To: "statement_workspace"},
 	{Table: "tenant", From: "tenant_date_created_id", To: "tenant_page"},
 	{Table: "workspace", From: "workspace_tenant_id_date_created_id", To: "workspace_page"},
 	{Table: "workspace", From: "workspace_key_tenant_id", To: "workspace_keyed"},
@@ -384,6 +391,16 @@ func (wall) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
 	return entServiceKey.TenantIdIn(vs...), nil
 }
 
+// StatementScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) StatementScope(ctx context.Context) (predicate.Statement, error) {
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entStatement.TenantIdIn(vs...), nil
+}
+
 // TenantScope: a tenant is inside itself, which is what a tenant being a wall comes down to.
 func (wall) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 	vs, all, err := frame.Narrow(ctx)
@@ -528,6 +545,16 @@ func (x grouped) SeriesScope(ctx context.Context) (predicate.Series, error) {
 // ServiceKeyScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
 	return nil, nil
+}
+
+// StatementScope: in the Workspace its "workspace" names.
+func (x grouped) StatementScope(ctx context.Context) (predicate.Statement, error) {
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entStatement.WorkspaceIdIn(vs...), nil
 }
 
 // TenantScope: in no set -- it declared no field 3, so this narrows nothing.
@@ -3615,6 +3642,349 @@ func filterServiceKey(f *levyan.ServiceKeyFilter) (predicate.ServiceKey, error) 
 	return entServiceKey.And(ps...), nil
 }
 
+type sinkStatement struct {
+	levyan.StatementServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Statement() levyan.StatementServiceServer {
+	v := sinkStatement{s.Server.Statement(), s.Server.Store, s.w, s.namer, s.joined}
+	v.StatementServiceServer = bare.StatementWithAddRule(v.StatementServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Statement writes:
+// it refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Statement].
+func (s sinkStatement) admit(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.StatementAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkStatement) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkStatement) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtPeriodTenant is the tenant "period.tenant" arrives at.
+func (s sinkStatement) tenantAtPeriodTenant(ctx context.Context, ref *levyan.PeriodRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("period", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Period", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.PeriodPick(ref)
+		if err != nil {
+			return nil, pderr.At("period", err)
+		}
+
+		k, err := s.store.Db.Period.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("period", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkStatement) tenancy(ctx context.Context, req *levyan.StatementAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	if req.HasPeriod() {
+		got, err := s.tenantAtPeriodTenant(ctx, req.GetPeriod())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("period",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderStatement is how Statements come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderStatement = []sqlpage.Order{
+	{Column: entStatement.FieldDateStart, Desc: false},
+	{Column: entStatement.FieldId, Desc: false},
+}
+
+func afterStatement(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextStatement(last *ent.Statement, tag string) (string, error) {
+	return pdNext(tag, last.DateStart, last.Id)
+}
+
+// orderByStatement is an order as ent orders a query by it.
+func orderByStatement(by []sqlpage.Order) []entStatement.OrderOption {
+	out := make([]entStatement.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// StatementPageSize is what a request that did not say gets, and
+	// StatementPageLimit is the most it gets however loudly it asks.
+	StatementPageSize  = 20
+	StatementPageLimit = 100
+
+	// StatementFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	StatementFilterLimit = 32
+)
+
+// List answers with the Statements that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
+	q := s.store.Db.Statement.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.StatementNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > StatementFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), StatementFilterLimit)
+		}
+
+		ps := make([]predicate.Statement, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterStatement(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entStatement.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderStatement, afterStatement, nextStatement, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), StatementPageSize, StatementPageLimit)
+	us, err := q.Order(orderByStatement(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Statement, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.StatementListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterStatement turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterStatement(f *levyan.StatementFilter) (predicate.Statement, error) {
+	ps := make([]predicate.Statement, 0, 1)
+	if f.HasRef() {
+		p, err := bare.StatementPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasWorkspace() {
+		w := f.GetWorkspace()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "workspace: %s", err)
+			}
+
+			ps = append(ps, entStatement.WorkspaceIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.WorkspacePick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entStatement.HasWorkspaceWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entStatement.And(ps...), nil
+}
+
 type sinkTenant struct {
 	levyan.TenantServiceServer
 	store  bare.Store
@@ -4665,6 +5035,80 @@ func (s gateServiceKey) admit(ctx context.Context, req *levyan.ServiceKeyAddRequ
 	return req, nil
 }
 
+type gateStatement struct {
+	Gate
+	levyan.StatementServiceServer
+}
+
+func (s Gate) Statement() levyan.StatementServiceServer {
+	v := gateStatement{s, s.Next().Statement()}
+	v.StatementServiceServer = bare.StatementWithAddRule(v.StatementServiceServer, v.admit)
+	return v
+}
+
+// admit refuses a Statement put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Statement].
+func (s gateStatement) admit(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.StatementAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetPeriod(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Period", ref, func() error {
+			_, err := s.Gate.Next().Period().Get(ctx, levyan.PeriodGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Period")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 type gateWorkspace struct {
 	Gate
 	levyan.WorkspaceServiceServer
@@ -5001,6 +5445,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedSeries.md, describedSeries.secret, describedSeries.personal
 	case ServiceKeyDomain:
 		return describedServiceKey.md, describedServiceKey.secret, describedServiceKey.personal
+	case StatementDomain:
+		return describedStatement.md, describedStatement.secret, describedStatement.personal
 	case TenantDomain:
 		return describedTenant.md, describedTenant.secret, describedTenant.personal
 	case WorkspaceDomain:
@@ -5075,6 +5521,9 @@ var (
 	describedServiceKey = describe((*levyan.ServiceKey)(nil),
 		[]protoreflect.FieldNumber{8},
 		[]protoreflect.FieldNumber{})
+	describedStatement = describe((*levyan.Statement)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 	describedTenant = describe((*levyan.Tenant)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -5113,6 +5562,7 @@ func added(by string) bool {
 		levyan.ReadingService_AddMany_FullMethodName,
 		levyan.SeriesService_Add_FullMethodName,
 		levyan.ServiceKeyService_Add_FullMethodName,
+		levyan.StatementService_Add_FullMethodName,
 		levyan.TenantService_Add_FullMethodName,
 		levyan.WorkspaceService_Add_FullMethodName:
 		return true
@@ -5405,6 +5855,33 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 
 		return k, b, nil
 
+	case StatementDomain:
+		row, ok := image.(*levyan.Statement)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
 	case TenantDomain:
 		row, ok := image.(*levyan.Tenant)
 		if !ok {
@@ -5493,6 +5970,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsSeries(ctx, s.Db, entSeries.IdEQ(uuid.UUID(key)))
 	case ServiceKeyDomain:
 		vs, err = rowsServiceKey(ctx, s.Db, entServiceKey.IdEQ(uuid.UUID(key)))
+	case StatementDomain:
+		vs, err = rowsStatement(ctx, s.Db, entStatement.IdEQ(uuid.UUID(key)))
 	case TenantDomain:
 		vs, err = rowsTenant(ctx, s.Db, entTenant.IdEQ(uuid.UUID(key)))
 	case WorkspaceDomain:
@@ -5885,6 +6364,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 	if err := audit.CheckKind(ctx, d, checkedServiceKey(db), archived, &out); err != nil {
 		return out, fmt.Errorf("service-key: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedStatement(db), archived, &out); err != nil {
+		return out, fmt.Errorf("statement: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedTenant(db), archived, &out); err != nil {
 		return out, fmt.Errorf("tenant: %w", err)
@@ -6322,6 +6804,52 @@ func checkedServiceKey(db *ent.Client) audit.Kind {
 	}
 }
 
+// checkedStatement is what a check of the rows reads of the statement kind.
+func checkedStatement(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Statement) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsStatement(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: StatementDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entStatement.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entStatement.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, StatementDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsStatement(ctx, db, entStatement.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
 // checkedTenant is what a check of the rows reads of the tenant kind.
 func checkedTenant(db *ent.Client) audit.Kind {
 	read := func(ctx context.Context, ps ...predicate.Tenant) (audit.Page, error) {
@@ -6582,6 +7110,26 @@ func rowsServiceKey(ctx context.Context, db *ent.Client, ps ...predicate.Service
 	bare.ServiceKeySelectInit(q, nil)
 
 	vs, err := q.Order(entServiceKey.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsStatement is the rows `ps` says of the statement kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsStatement(ctx context.Context, db *ent.Client, ps ...predicate.Statement) ([]audit.Live, error) {
+	q := db.Statement.Query().Where(ps...)
+	bare.StatementSelectInit(q, nil)
+
+	vs, err := q.Order(entStatement.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -6875,6 +7423,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 				rows, err = rowsSeries(ctx, db, entSeries.IdIn(uuids(page)...))
 			case ServiceKeyDomain:
 				rows, err = rowsServiceKey(ctx, db, entServiceKey.IdIn(uuids(page)...))
+			case StatementDomain:
+				rows, err = rowsStatement(ctx, db, entStatement.IdIn(uuids(page)...))
 			case TenantDomain:
 				rows, err = rowsTenant(ctx, db, entTenant.IdIn(uuids(page)...))
 			case WorkspaceDomain:
@@ -7011,6 +7561,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 			rows, err = rowsSeries(ctx, s.db, entSeries.IdIn(uuids(ids)...))
 		case ServiceKeyDomain:
 			rows, err = rowsServiceKey(ctx, s.db, entServiceKey.IdIn(uuids(ids)...))
+		case StatementDomain:
+			rows, err = rowsStatement(ctx, s.db, entStatement.IdIn(uuids(ids)...))
 		case TenantDomain:
 			rows, err = rowsTenant(ctx, s.db, entTenant.IdIn(uuids(ids)...))
 		case WorkspaceDomain:
@@ -7722,6 +8274,30 @@ func (s interceptServiceKey) Erase(ctx context.Context, req *levyan.ServiceKeyRe
 func (s interceptServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
 		levyan.ServiceKeyService_List_FullMethodName, req, s.ServiceKeyServiceServer.List)
+}
+
+func (s Intercept) Statement() levyan.StatementServiceServer {
+	return interceptStatement{s, s.Next().Statement()}
+}
+
+type interceptStatement struct {
+	Intercept
+	levyan.StatementServiceServer
+}
+
+func (s interceptStatement) Add(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.Statement, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_Add_FullMethodName, req, s.StatementServiceServer.Add)
+}
+
+func (s interceptStatement) Get(ctx context.Context, req *levyan.StatementGetRequest) (*levyan.Statement, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_Get_FullMethodName, req, s.StatementServiceServer.Get)
+}
+
+func (s interceptStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.StatementServiceServer,
+		levyan.StatementService_List_FullMethodName, req, s.StatementServiceServer.List)
 }
 
 // WatchRecorder answers with the recorder that remembers a write for `w`.
@@ -9531,6 +10107,12 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.ServiceKeyRef{}
 	case levyan.ServiceKeyService_List_FullMethodName:
 		v = &levyan.ServiceKeyListRequest{}
+	case levyan.StatementService_Add_FullMethodName:
+		v = &levyan.StatementAddRequest{}
+	case levyan.StatementService_Get_FullMethodName:
+		v = &levyan.StatementGetRequest{}
+	case levyan.StatementService_List_FullMethodName:
+		v = &levyan.StatementListRequest{}
 	default:
 		// Including every Rpc written by hand: those live on a service of
 		// their own, which `Server` has no accessor for.
@@ -9667,6 +10249,12 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.ServiceKey().Erase(ctx, v.(*levyan.ServiceKeyRef))
 	case levyan.ServiceKeyService_List_FullMethodName:
 		res, err = s.ServiceKey().List(ctx, v.(*levyan.ServiceKeyListRequest))
+	case levyan.StatementService_Add_FullMethodName:
+		res, err = s.Statement().Add(ctx, v.(*levyan.StatementAddRequest))
+	case levyan.StatementService_Get_FullMethodName:
+		res, err = s.Statement().Get(ctx, v.(*levyan.StatementGetRequest))
+	case levyan.StatementService_List_FullMethodName:
+		res, err = s.Statement().List(ctx, v.(*levyan.StatementListRequest))
 	default:
 		return nil, batch.ErrNoMethod(m)
 	}
@@ -9705,6 +10293,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.RowSeal{},
 		&levyan.Series{},
 		&levyan.ServiceKey{},
+		&levyan.Statement{},
 		&levyan.Tenant{},
 		&levyan.Workspace{},
 	)
@@ -10132,6 +10721,46 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.Statement:
+			ctx, err := read.Allow(ctx, levyan.StatementService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.StatementNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entStatement.Table, []resourcesql.Column{
+				{Number: 1, Name: entStatement.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entStatement.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entStatement.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entStatement.PeriodColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entStatement.FieldDateStart, Type: 65, Nullable: false, Key: 0},
+				{Number: 10, Name: entStatement.FieldDateEnd, Type: 65, Nullable: false, Key: 0},
+				{Number: 11, Name: entStatement.FieldChannel, Type: 9, Nullable: false, Key: 0},
+				{Number: 12, Name: entStatement.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 14, Name: entStatement.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entStatement.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+				{Number: 17, Name: entStatement.FieldTotal, Type: 3, Nullable: false, Key: 0},
+				{Number: 18, Name: entStatement.FieldExact, Type: 9, Nullable: false, Key: 0},
+				{Number: 19, Name: entStatement.FieldRating, Type: 13, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Statement.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Tenant:
 			ctx, err := read.Allow(ctx, levyan.TenantService_Get_FullMethodName, 1)
 			if err != nil {
@@ -10152,6 +10781,9 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				{Number: 6, Name: entTenant.FieldDesc, Type: 9, Nullable: false, Key: 0},
 				{Number: 13, Name: entTenant.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
 				{Number: 15, Name: entTenant.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+				{Number: 8, Name: entTenant.FieldZone, Type: 9, Nullable: false, Key: 0},
+				{Number: 9, Name: entTenant.FieldChannel, Type: 9, Nullable: false, Key: 0},
+				{Number: 10, Name: entTenant.FieldCurrency, Type: 9, Nullable: false, Key: 0},
 			}, v)
 			if err != nil {
 				return nil, err
@@ -10292,6 +10924,8 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.ServiceKeyService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.StatementService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.TenantService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.TenantService_Patch_FullMethodName:
@@ -10324,7 +10958,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.Holder", "levyan.Meter", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Tenant", "levyan.Workspace":
+	case "levyan.Access", "levyan.Audit", "levyan.Holder", "levyan.Meter", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
 	default:
 		return nil
 	}

@@ -1,0 +1,210 @@
+edition = "2023";
+
+// What a product's workspaces come to: the period now open, and the
+// statements of the periods closed.
+package levyan.v1;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/v1/price_book.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
+
+// BillingService is what a product reads of what its workspaces come to:
+// what a workspace has used in the period now open and what that would come
+// to, and the statements of the periods closed.
+//
+// What a customer is told and what they are billed are worked out of the same
+// ledger the same way: an estimate is what the period's statement would say
+// were the period to close now, with each workspace's latest readings held to
+// its end.
+//
+// Every call is the calling product's own, as `PriceBookService`'s are.
+//
+// Every number but a total and a meter's own is a decimal, written exactly
+// when it ends within six digits after the point and cut there when it does
+// not: `36.666666`, `100`.
+service BillingService {
+  // GetUsage is what a workspace has used in the period now open, and an
+  // estimate of what it comes to: corrections of earlier periods included,
+  // as the period's statement would have them.
+  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse);
+
+  // GetStatement is one statement, by its identifier.
+  rpc GetStatement(GetStatementRequest) returns (GetStatementResponse);
+
+  // ListStatements is a workspace's statements, the latest period first.
+  rpc ListStatements(ListStatementsRequest) returns (ListStatementsResponse);
+}
+
+message GetUsageRequest {
+  // The workspace: the canonical text of the identifier of the product's own
+  // payday tenant.
+  string workspace = 1;
+}
+
+message GetUsageResponse {
+  Usage usage = 1;
+}
+
+// Usage is what a workspace has used in a period not yet closed, and what
+// that comes to were the period to close now.
+message Usage {
+  // The workspace, as it was asked for.
+  string workspace = 1;
+
+  Period period = 2;
+
+  // The moment the ledger was read as of.
+  google.protobuf.Timestamp as_of = 3;
+
+  // What it is priced on and in; unset for a product nothing is priced for
+  // yet, whose lines have their usage and no amounts.
+  Channel channel = 4;
+  string currency = 5;
+
+  repeated Line lines = 6;
+
+  // What it comes to, in the currency's minor unit: every line's amount
+  // added, exactly, and rounded once, down.
+  int64 total = 7;
+}
+
+// Period is one period of a product's billing: a calendar month in its zone.
+message Period {
+  // Its first moment, and the first after it.
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+
+  // The zone it is a month in, as an IANA name.
+  string zone = 3;
+}
+
+message GetStatementRequest {
+  // The statement, by its identifier as text.
+  string id = 1;
+}
+
+message GetStatementResponse {
+  Statement statement = 1;
+}
+
+message ListStatementsRequest {
+  // The workspace, as `GetUsage` takes it.
+  string workspace = 1;
+
+  // How many to answer with: 20 when unset, and at most 100.
+  int32 page_size = 2;
+
+  // Where to carry on from: the `next_page_token` of the answer before.
+  string page_token = 3;
+}
+
+message ListStatementsResponse {
+  repeated Statement statements = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  string next_page_token = 2;
+}
+
+// Statement is what one workspace came to over one closed period, as it was
+// written when the period was closed: never changed after. What it should
+// have said and did not is a correction on a later one.
+message Statement {
+  // Its identifier, as text.
+  string id = 1;
+
+  // The workspace it is for.
+  string workspace = 2;
+
+  Period period = 3;
+
+  // What it is priced on and in.
+  Channel channel = 4;
+  string currency = 5;
+
+  repeated Line lines = 6;
+
+  // What it comes to, in the currency's minor unit: every line's amount
+  // added, exactly, and rounded once, down.
+  int64 total = 7;
+
+  // When it was written, which is when the period was closed for it.
+  google.protobuf.Timestamp closed = 8;
+}
+
+// Line is what one meter came to over a period, or how much what an earlier
+// period was billed for a meter moves.
+message Line {
+  // The meter, by its key, and its unit.
+  string meter = 1;
+  string unit = 2;
+
+  LineKind kind = 3;
+
+  // For a correction: the period it corrects.
+  Period corrects = 4;
+
+  // What was used, as the meter's aggregation says, in its unit: for a
+  // correction, what it comes to now.
+  string usage = 5;
+
+  // What was included for nothing, and what is billable past it, each part
+  // weighed by its share of the period.
+  string included = 6;
+  string billable = 7;
+
+  // What it comes to, in the currency's minor unit; for a correction, what
+  // the period it corrects moves by.
+  string amount = 8;
+
+  // Each stretch of the period one version of the price was in force.
+  repeated LinePart parts = 9;
+
+  // For a correction: what was billed for the meter over that period before.
+  string billed = 10;
+}
+
+// LineKind is what a line is.
+enum LineKind {
+  LINE_KIND_UNSPECIFIED = 0;
+
+  // What a meter came to over the statement's own period.
+  LINE_KIND_USAGE = 1;
+
+  // How much what an earlier period was billed for a meter moves.
+  LINE_KIND_CORRECTION = 2;
+}
+
+// LinePart is one stretch of a line's period, priced by one version.
+message LinePart {
+  // The version, by its identifier as `PriceBookService.ListPrices` says it.
+  string price = 1;
+
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+
+  // The share of the period it is charged by.
+  string share = 4;
+
+  // By the unit: what the version includes, and what is billable past it.
+  int64 included = 5;
+  string billable = 6;
+
+  string amount = 7;
+
+  // By bands: the time spent in each.
+  repeated BandShare bands = 8;
+}
+
+// BandShare is the time a stretch's value spent in one band.
+message BandShare {
+  // The band's bound; unset on the last.
+  int64 up_to = 1 [features.field_presence = EXPLICIT];
+
+  // What a whole period in the band costs.
+  int64 fee = 2;
+
+  string share = 3;
+  string amount = 4;
+}

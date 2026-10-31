@@ -24,6 +24,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/rowseal"
 	"github.com/lesomnus/levyan/internal/ent/series"
 	"github.com/lesomnus/levyan/internal/ent/servicekey"
+	"github.com/lesomnus/levyan/internal/ent/statement"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
 	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent"
@@ -104,6 +105,7 @@ func checkColumn(t, c string) error {
 			rowseal.Table:    rowseal.ValidColumn,
 			series.Table:     series.ValidColumn,
 			servicekey.Table: servicekey.ValidColumn,
+			statement.Table:  statement.ValidColumn,
 			tenant.Table:     tenant.ValidColumn,
 			workspace.Table:  workspace.ValidColumn,
 		})

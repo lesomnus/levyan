@@ -1,0 +1,111 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/period_svc.g.proto";
+import "levyan/statement.proto";
+import "levyan/workspace_svc.g.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service StatementService {
+  // Add creates a new Statement
+  rpc Add(StatementAddRequest) returns (Statement);
+  // Get retrieves a Statement
+  rpc Get(StatementGetRequest) returns (Statement);
+  // List reads Statements a page at a time.
+  rpc List(StatementListRequest) returns (StatementListResponse);
+}
+
+message StatementAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  WorkspaceRef workspace = 3;
+  PeriodRef period = 8;
+  google.protobuf.Timestamp date_start = 9;
+  google.protobuf.Timestamp date_end = 10;
+  string channel = 11 [features.field_presence = IMPLICIT];
+  string currency = 12 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_created = 15;
+  StatementLines lines = 16;
+  int64 total = 17 [features.field_presence = IMPLICIT];
+  string exact = 18 [features.field_presence = IMPLICIT];
+  uint32 rating = 19 [features.field_presence = IMPLICIT];
+}
+
+message StatementGetRequest {
+  StatementRef ref = 1;
+  StatementSelect select = 2;
+}
+
+message StatementRef {
+  oneof key {
+    bytes id = 1;
+    StatementRefByClosed closed = 2;
+  }
+}
+
+message StatementRefByClosed {
+  TenantRef tenant = 2;
+  WorkspaceRef workspace = 3;
+  PeriodRef period = 8;
+}
+
+message StatementSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  WorkspaceSelect workspace = 3;
+  PeriodSelect period = 8;
+  bool date_start = 9;
+  bool date_end = 10;
+  bool channel = 11;
+  bool currency = 12;
+  bool date_erased = 14;
+  bool date_created = 15;
+  bool lines = 16;
+  bool total = 17;
+  bool exact = 18;
+  bool rating = 19;
+}
+
+message StatementListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated StatementFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message StatementListResponse {
+  repeated Statement items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message StatementFilter {
+  StatementRef ref = 1;
+  WorkspaceRef workspace = 2;
+}

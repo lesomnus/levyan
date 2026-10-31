@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	levyan "github.com/lesomnus/levyan"
@@ -110,6 +111,34 @@ func (w *World) Price(p *levyan.Tenant, m *levyan.Meter, channel levyan.Channel,
 		Included:      included,
 		UnitPrice:     unitPrice,
 		DateEffective: timestamppb.New(at),
+	}.Build())
+	w.X.NoError(err)
+	return v
+}
+
+// At is the deployment at `t`: every stamp the servers write from now on,
+// what a reading may not be ahead of, what a price may not reach back before,
+// and when a period has waited out its grace. Set it before serving anything,
+// or between calls.
+func (w *World) At(t time.Time) {
+	w.S.Clock = func() time.Time { return t }
+}
+
+// Terms are a product's terms set, as an operator sets them: the zone its
+// periods are months in, and the channel and currency they are priced on.
+func (w *World) Terms(p *levyan.Tenant, zone string, channel levyan.Channel, currency string) *levyan.Tenant {
+	w.t.Helper()
+
+	name := ""
+	if channel != levyan.Channel_CHANNEL_UNSPECIFIED {
+		name = channel.String()
+	}
+	v, err := w.S.Ungated.Tenant().Patch(w.t.Context(), levyan.TenantPatchRequest_builder{
+		Ref:              Ref(p),
+		Zone:             proto.String(zone),
+		Channel:          proto.String(name),
+		Currency:         proto.String(currency),
+		DateUpdatedForce: proto.Bool(true),
 	}.Build())
 	w.X.NoError(err)
 	return v

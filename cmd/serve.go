@@ -28,6 +28,7 @@ import (
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/bare"
+	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/book"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/ledger"
@@ -49,10 +50,15 @@ type Server struct {
 	// else can.
 	Dialect string
 
-	// Clock is the deployment's time: every stamp the servers write, and what
-	// the price book holds a version's dates to (`server/book`). One clock, so
-	// that a version published "now" is effective at the moment it says it was
-	// published.
+	// Clock is the deployment's time: every stamp the servers write, what the
+	// price book holds a version's dates to (`server/book`), what a reading is
+	// too far ahead of, and when a period has waited out its grace. One clock,
+	// so that a version published "now" is effective at the moment it says it
+	// was published.
+	//
+	// Everything [Build] makes reads the time through this field, so a test
+	// may set it -- before it serves anything -- and have the whole
+	// deployment be at another moment.
 	Clock func() time.Time
 
 	// Watch is what a change is published to once the call that made it has
@@ -91,6 +97,11 @@ type Server struct {
 	// Downloads are the methods that hand personal data out to be kept
 	// somewhere else, which say what for or are refused. levyan has none yet.
 	Downloads []string
+
+	// Closer closes products' periods, as the deployment: by the loop
+	// `levyan.periods.close`, and by an operator's hand through the
+	// operator's entry point.
+	Closer billing.Closer
 
 	// Spin is whatever this deployment has to run besides answering requests,
 	// each a loop with a name of its own (`spin.Called`), run under
@@ -142,7 +153,8 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		pd.AccessRecorder(),
 	}
 
-	clock := time.Now
+	s := &Server{Clock: time.Now}
+	clock := func() time.Time { return s.Clock() }
 	opts := []bare.Option{bare.WithMinter(pd.Minter()), bare.WithRecorder(rec), bare.WithClock(clock)}
 
 	sink, err := pd.NewSink(client, opts...)
@@ -179,7 +191,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		return nil, err
 	}
 
-	s := &Server{Db: db, Ent: client, Drv: drv, Dialect: dialect, Clock: clock, Watch: w, Walled: stacked, Ungated: ungated}
+	s.Db, s.Ent, s.Drv, s.Dialect, s.Watch, s.Walled, s.Ungated = db, client, drv, dialect, w, stacked, ungated
 
 	// The access record's reads are written a second at a time, by a loop of
 	// each process's own (`payday.access`) that writes what it holds once
@@ -191,6 +203,13 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		// The loop that makes an event durable.
 		s.Spin = append(s.Spin, pd.Drain(client, b, c.Watch.Every()))
 	}
+
+	// The loop that closes a product's period once it has waited out its
+	// grace for what comes late (`levyan.periods.close`): a statement of each
+	// workspace, written through the server with no wall, since a period is
+	// closed for every workspace of a product and by no caller of it.
+	s.Closer = billing.Closer{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Periods.GraceAfter()}
+	s.Spin = append(s.Spin, billing.ClosePeriods(s.Closer, c.Periods.CloseEvery()))
 
 	// The loop that looks for readings that should have come and have not
 	// (`levyan.readings.gaps`): a workspace that has been sending a stock

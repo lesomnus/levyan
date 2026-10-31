@@ -42,6 +42,8 @@ type Tx struct {
 	Series *SeriesClient
 	// ServiceKey is the client for interacting with the ServiceKey builders.
 	ServiceKey *ServiceKeyClient
+	// Statement is the client for interacting with the Statement builders.
+	Statement *StatementClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
 	// Workspace is the client for interacting with the Workspace builders.
@@ -192,6 +194,7 @@ func (tx *Tx) init() {
 	tx.RowSeal = NewRowSealClient(tx.config)
 	tx.Series = NewSeriesClient(tx.config)
 	tx.ServiceKey = NewServiceKeyClient(tx.config)
+	tx.Statement = NewStatementClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.Workspace = NewWorkspaceClient(tx.config)
 }

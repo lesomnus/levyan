@@ -2,6 +2,7 @@ package usage_test
 
 import (
 	"math"
+	"math/big"
 	"testing"
 	"time"
 
@@ -66,4 +67,54 @@ func TestEveryIncreaseIsCountedOnce(t *testing.T) {
 func TestAnIncreaseNoCountHoldsIsRefused(t *testing.T) {
 	_, err := usage.Increase([]usage.Point{p(0, 1, math.MaxInt64), p(5, 6, 1)}, at(0), at(24))
 	require.ErrorIs(t, err, usage.ErrTooMuch)
+}
+
+func r(h int, v int64) usage.Reading { return usage.Reading{At: at(h), Value: v} }
+
+func held(from, to int, v int64) usage.Held { return usage.Held{From: at(from), To: at(to), Value: v} }
+
+// A reading speaks for its value until the next, for no longer than the hold,
+// from before the stretch into it, and for nothing before the first.
+func TestAReadingHoldsUntilTheNextAndNoLonger(t *testing.T) {
+	none := time.Time{}
+	for _, tc := range []struct {
+		name     string
+		rs       []usage.Reading
+		from, to int
+		until    time.Time
+		want     []usage.Held
+	}{
+		{"nothing read is nothing held", nil, 0, 48, none, []usage.Held{}},
+		{"until the next", []usage.Reading{r(0, 1), r(24, 2)}, 0, 48, none, []usage.Held{held(0, 24, 1), held(24, 48, 2)}},
+		{"in any order", []usage.Reading{r(24, 2), r(0, 1)}, 0, 48, none, []usage.Held{held(0, 24, 1), held(24, 48, 2)}},
+		{"and no longer than the hold", []usage.Reading{r(0, 1), r(100, 2)}, 0, 120, none, []usage.Held{held(0, 36, 1), held(100, 120, 2)}},
+		{"nothing before the first", []usage.Reading{r(10, 1)}, 0, 24, none, []usage.Held{held(10, 24, 1)}},
+		{"from before the stretch, into it", []usage.Reading{r(-12, 5), r(6, 7)}, 0, 24, none, []usage.Held{held(0, 6, 5), held(6, 24, 7)}},
+		{"one too long before speaks for none of it", []usage.Reading{r(-40, 5)}, 0, 24, none, []usage.Held{}},
+		{"one value read twice is one stretch", []usage.Reading{r(0, 3), r(12, 3), r(24, 3)}, 0, 48, none, []usage.Held{held(0, 48, 3)}},
+		{"an estimate holds the last to its end", []usage.Reading{r(0, 1), r(12, 4)}, 0, 240, at(240), []usage.Held{held(0, 12, 1), held(12, 240, 4)}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, usage.Profile(tc.rs, at(tc.from), at(tc.to), tc.until))
+		})
+	}
+}
+
+func TestWhatAStretchHeld(t *testing.T) {
+	hs := []usage.Held{held(0, 6, 10), held(12, 24, 40)}
+
+	require.Equal(t, big.NewRat(45, 2), usage.Average(hs, at(0), at(24)), "(10*6 + 40*12) / 24")
+	require.Equal(t, big.NewRat(0, 1), usage.Average(nil, at(0), at(24)))
+
+	rs := []usage.Reading{r(-1, 99), r(1, 3), r(5, 8), r(23, 2), r(24, 50)}
+	v, ok := usage.Most(rs, at(0), at(24))
+	require.True(t, ok)
+	require.Equal(t, int64(8), v, "of its own readings")
+	v, ok = usage.Last(rs, at(0), at(24))
+	require.True(t, ok)
+	require.Equal(t, int64(2), v)
+	_, ok = usage.Most(rs, at(30), at(40))
+	require.False(t, ok)
+
+	require.Equal(t, big.NewRat(1, 4), usage.Share(at(0), at(6), at(0), at(24)))
 }

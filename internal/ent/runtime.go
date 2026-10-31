@@ -8,6 +8,8 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/price"
 	"github.com/lesomnus/levyan/internal/ent/schema"
+	"github.com/lesomnus/levyan/internal/ent/statement"
+	"github.com/lesomnus/levyan/internal/ent/tenant"
 
 	"github.com/protobuf-orm/ent/schema/field"
 )
@@ -33,4 +35,23 @@ func init() {
 	// priceDescBands is the schema descriptor for bands field.
 	priceDescBands := priceFields[9].Descriptor()
 	price.ValueScanner.Bands = priceDescBands.ValueScanner.(field.TypeValueScanner[*levyan.PriceBands])
+	statementFields := schema.Statement{}.Fields()
+	_ = statementFields
+	// statementDescLines is the schema descriptor for lines field.
+	statementDescLines := statementFields[7].Descriptor()
+	statement.ValueScanner.Lines = statementDescLines.ValueScanner.(field.TypeValueScanner[*levyan.StatementLines])
+	tenantFields := schema.Tenant{}.Fields()
+	_ = tenantFields
+	// tenantDescZone is the schema descriptor for zone field.
+	tenantDescZone := tenantFields[7].Descriptor()
+	// tenant.DefaultZone holds the default value on creation for the zone field.
+	tenant.DefaultZone = tenantDescZone.Default.(string)
+	// tenantDescChannel is the schema descriptor for channel field.
+	tenantDescChannel := tenantFields[8].Descriptor()
+	// tenant.DefaultChannel holds the default value on creation for the channel field.
+	tenant.DefaultChannel = tenantDescChannel.Default.(string)
+	// tenantDescCurrency is the schema descriptor for currency field.
+	tenantDescCurrency := tenantFields[9].Descriptor()
+	// tenant.DefaultCurrency holds the default value on creation for the currency field.
+	tenant.DefaultCurrency = tenantDescCurrency.Default.(string)
 }

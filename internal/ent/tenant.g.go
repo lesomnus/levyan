@@ -17,5 +17,8 @@ func (e *Tenant) Proto() *levyan.Tenant {
 	x.SetLabels(e.Labels)
 	x.SetDateUpdated(timestamppb.New(e.DateUpdated))
 	x.SetDateCreated(timestamppb.New(e.DateCreated))
+	x.SetZone(e.Zone)
+	x.SetChannel(e.Channel)
+	x.SetCurrency(e.Currency)
 	return x
 }

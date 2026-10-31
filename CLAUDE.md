@@ -239,6 +239,44 @@ The receiver is gRPC on purpose: it is the same door, behind the same chain,
 as `levyan.v1`, and the operator's binary does not link it (`cmd/levyan`'s
 test).
 
+## Rating and closing periods
+
+What a workspace's period comes to (`server/billing`, docs/design.md §9). The
+arithmetic is pure and has tests of its own, by hand: `internal/usage` (what a
+stretch held or did) and `internal/rating` (what it comes to under the versions
+in force). Keep it there; `server/billing` only reads the ledger into it.
+
+- **A period is a calendar month in the product's zone** (`Tenant.zone`, the
+  overlay), and periods follow one another from where the last one ended. A
+  product with no `channel` or `currency` is priced nothing and closed never.
+  Both are names (`CHANNEL_PG_KR`), not the enum: protobuf-orm's service
+  contracts do not import an enum declared in another file than their
+  entity's, and the price's is in a file that imports the tenant's.
+- **The close writes the `Period` row first**, then each workspace's
+  statement in a transaction of its own that holds the workspace's row
+  (`ledger.Lock`), then stamps the period closed. Twice is once: a statement
+  is unique on (product, workspace, period), and a close that stopped goes on
+  where it stopped. Never read the ledger for a close before the row is
+  written -- it is what makes a row late.
+- **A statement is never changed**: every field immutable, no Patch, no
+  Erase. A correction is a line on a later statement: the corrected period
+  rated again from the ledger as it is, less what was billed for it (its own
+  line and every correction since), for each period a late row speaks for.
+  A correction already made comes to nothing by the same arithmetic, so
+  nothing records which late rows were handled.
+- **Exact until the total.** Amounts are `big.Rat` and are stored as
+  fractions (`110/3`); a statement's total is the exact sum rounded once,
+  down (`rating.Total`, which floors a negative one too). Never round a line.
+- **The estimate is the close.** `BillingService.GetUsage` is
+  `billing.Estimate`: what the period's statement would say now, each stock's
+  latest reading held to the period's end. Do not give the API a second way
+  to work out an amount.
+- A statement says the rating's version (`rating.Version`). A change to what
+  any usage comes to -- `usage.Hold` included -- is a new version.
+- Tests move the deployment's time with `levyantest.World.At`: every server
+  `cmd.Build` makes reads `cmd.Server.Clock`, so a price can be effective in
+  the past of the readings a test records.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -249,10 +287,16 @@ A lease is at most one at a time but for a moment around a failover, not exactly
 once: a loop is still safe run twice. `levyan-admin serve` runs only its own
 process's access writer.
 
-levyan's own: `levyan.readings.gaps` (`ledger.LookForGaps`), which warns of
-workspaces that have stopped sending a stock meter's readings, in the log and
-in the gauge `levyan.readings.gaps`. A pass that fails is logged and the next
-tries again.
+levyan's own:
+
+- `levyan.periods.close` (`billing.ClosePeriods`) closes every period that has
+  ended and waited out `periods.grace`, through `Ungated` as the deployment;
+  an operator's `period close` is the same through their frame.
+- `levyan.readings.gaps` (`ledger.LookForGaps`) warns of workspaces that have
+  stopped sending a stock meter's readings, in the log and in the gauge
+  `levyan.readings.gaps`.
+
+A pass of either that fails is logged and the next tries again.
 
 ## Configuration and secrets
 

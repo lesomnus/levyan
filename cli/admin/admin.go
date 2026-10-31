@@ -49,6 +49,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 	l := cfg.New(cmd.Name, c)
 	version := pdcmd.NewCmdVersion()
 	product, key, meter, price, gap := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice(), newCmdGap()
+	period, statement := newCmdPeriod(), newCmdStatement()
 
 	return &xli.Command{
 		Name:  "levyan-admin",
@@ -69,11 +70,13 @@ func Cmd(c *cmd.Config) *xli.Command {
 			meter,
 			price,
 			gap,
+			period,
+			statement,
 		},
 
 		// What asks the entry point reads none of a deployment's
 		// configuration: an operator runs it from their own machine.
-		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap), xli.RequireSubcommand()),
+		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement), xli.RequireSubcommand()),
 	}
 }
 
@@ -267,7 +270,15 @@ func when(t time.Time) string { return t.UTC().Format(time.RFC3339) }
 var productArg = &arg.String{Name: "PRODUCT", Brief: "by its alias: loft"}
 
 func printProduct(self *xli.Command, v admin.Product) {
-	self.Printf("%s\t%s\t%s\tsince %s\n", v.Alias, v.Name, v.Id, when(v.Created))
+	terms := "not priced yet"
+	if v.Channel != "" && v.Currency != "" {
+		zone := v.Zone
+		if zone == "" {
+			zone = "UTC"
+		}
+		terms = fmt.Sprintf("%s %s, months in %s", v.Channel, v.Currency, zone)
+	}
+	self.Printf("%s\t%s\t%s\tsince %s\t%s\n", v.Alias, v.Name, v.Id, when(v.Created), terms)
 }
 
 func printKey(self *xli.Command, v admin.Key) {
@@ -354,6 +365,38 @@ func newCmdProduct() *xli.Command {
 					var v admin.Detail
 					body := map[string]string{"alias": argOf(self, "ALIAS"), "name": str(self, "name"), "desc": str(self, "desc")}
 					if err := c.do(ctx, http.MethodPost, "/admin/products", body, &v); err != nil {
+						return err
+					}
+					printProduct(self, v.Product)
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "configure",
+				Brief: "say a product's terms: the zone its periods are months in, and the channel and currency its statements are priced on and in",
+				Flags: flg.Flags{
+					&flg.String{Name: "zone", Brief: "an IANA zone: Asia/Seoul; UTC by default"},
+					&flg.String{Name: "channel", Brief: "who it is sold through until billing accounts say: mor or pg_kr"},
+					&flg.String{Name: "currency", Brief: "ISO 4217: KRW"},
+					&flg.Switch{Name: "yes", Brief: "do it"},
+				},
+				Args: arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "product configure"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					body := map[string]string{}
+					for _, k := range []string{"zone", "channel", "currency"} {
+						if v, ok := flg.Find[string](self, k); ok {
+							body[k] = strings.TrimSpace(v)
+						}
+					}
+					var v admin.Detail
+					if err := c.do(ctx, http.MethodPost, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/terms", body, &v); err != nil {
 						return err
 					}
 					printProduct(self, v.Product)
@@ -689,6 +732,143 @@ func newCmdGap() *xli.Command {
 					for _, v := range vs {
 						self.Printf("%s\t%s\t%s\tlast %s\t%s ago\n", v.Product, v.Meter, v.Workspace, when(v.Last), now.Sub(v.Last).Truncate(time.Minute))
 					}
+					return next(ctx)
+				}),
+			},
+		},
+		Handler: xli.RequireSubcommand(),
+	}
+}
+
+func printPeriod(self *xli.Command, v admin.Period) {
+	state := "closing"
+	if v.Closed != nil {
+		state = "closed " + when(*v.Closed)
+	}
+	self.Printf("%s\t%s\t%s\t%s\t%s\n", v.Id, when(v.Start), when(v.End), v.Zone, state)
+}
+
+func newCmdPeriod() *xli.Command {
+	return &xli.Command{
+		Name:  "period",
+		Brief: "a product's billing periods: list them, close them",
+		Commands: xli.Commands{
+			{
+				Name:  "ls",
+				Brief: "every period of a product closed or being closed, the latest first",
+				Args:  arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					var vs []admin.Period
+					if err := c.do(ctx, http.MethodGet, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/periods", nil, &vs); err != nil {
+						return err
+					}
+					for _, v := range vs {
+						printPeriod(self, v)
+					}
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "close",
+				Brief: "close now every period of a product that has ended, without waiting out its grace",
+				Flags: flg.Flags{
+					&flg.String{Name: "through", Brief: "only those ended by then, as 2006-01-02 or RFC 3339; now by default"},
+					&flg.Switch{Name: "yes", Brief: "do it"},
+				},
+				Args: arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "period close"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					body := map[string]any{}
+					if v := str(self, "through"); v != "" {
+						t, err := instant(v)
+						if err != nil {
+							return fmt.Errorf("--through: %w", err)
+						}
+						body["through"] = t
+					}
+					var vs []admin.Period
+					if err := c.do(ctx, http.MethodPost, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/periods/close", body, &vs); err != nil {
+						return err
+					}
+					if len(vs) == 0 {
+						self.Printf("nothing has ended that is not closed\n")
+					}
+					for _, v := range vs {
+						printPeriod(self, v)
+					}
+					return next(ctx)
+				}),
+			},
+		},
+		Handler: xli.RequireSubcommand(),
+	}
+}
+
+func printStatement(self *xli.Command, v admin.Statement) {
+	self.Printf("%s\t%s\t%s\t%s\t%s %s\t%s\n", v.Id, v.Workspace, when(v.Start), when(v.End), v.Channel, v.Currency, money.String(v.Total, v.Currency))
+}
+
+func newCmdStatement() *xli.Command {
+	return &xli.Command{
+		Name:  "statement",
+		Brief: "what a product's workspaces came to over its closed periods",
+		Commands: xli.Commands{
+			{
+				Name:  "ls",
+				Brief: "a product's statements, the latest period first",
+				Flags: flg.Flags{&flg.String{Name: "workspace", Brief: "of one workspace, by the identifier of its payday tenant"}},
+				Args:  arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					q := url.Values{}
+					if v := str(self, "workspace"); v != "" {
+						q.Set("workspace", v)
+					}
+					var vs []admin.Statement
+					if err := c.do(ctx, http.MethodGet, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/statements?"+q.Encode(), nil, &vs); err != nil {
+						return err
+					}
+					for _, v := range vs {
+						printStatement(self, v)
+					}
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "show",
+				Brief: "one statement and its lines, its amounts exactly as it keeps them",
+				Args:  arg.Args{&arg.String{Name: "ID", Brief: "the statement, as `statement ls` lists it"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					var v admin.Statement
+					if err := c.do(ctx, http.MethodGet, "/admin/statements/"+url.PathEscape(argOf(self, "ID")), nil, &v); err != nil {
+						return err
+					}
+					printStatement(self, v)
+					for _, l := range v.Lines {
+						what := l.Kind
+						if l.Corrects != nil {
+							what = "corrects " + when(*l.Corrects) + ", billed " + l.Billed
+						}
+						self.Printf("  %s\t%s %s\tincluded %s, billable %s\t%s\t%s\n", l.Meter, l.Usage, l.Unit, l.Included, l.Billable, l.Amount, what)
+					}
+					self.Printf("  total\t%s exactly, %s\trated by version %d\n", v.Exact, money.String(v.Total, v.Currency), v.Rating)
 					return next(ctx)
 				}),
 			},

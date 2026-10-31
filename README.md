@@ -240,6 +240,8 @@ admin price check loft                   # 내역의 채널과 통화에 가격�
 
 가격이 없어서 0원이 된 내역 줄은 그 구간을 말하고(`unpriced`), 기간을 닫을 때 로그에 남는다. 어디에도 가격이 없는 미터는 팔지 않는 것이라 말하지 않는다.
 
+MoR 채널의 수금이 시작하기 전(`invoices.mor.live_from`)에 끝난 기간의 초안은 그림자(`shadow`)로 닫히고 청구되지 않는다. 운영자는 `admin invoice ls --state shadow loft`로 보고, 지불자에게는 보이지 않는다. `invoice show`의 결제 시도에 "the channel holds more of its key"가 보이면, 채널이 그 키로 원장이 아는 것보다 많이 받은 것이다(두 번 받았거나, 실패한 시도의 키로 받았다). 그 나머지는 대조(#13)가 돌려줄 것이다.
+
 **계좌이체.** 기관은 세금계산서를 받고 이체로 낸다(`bank_kr`). 결제 계정은 계약을 맺은 뒤 운영자가 연다. 청구서는 확정할 때 번호, 세금(10%), 기한(30일)을 받고, 세금계산서는 발행 대행으로 나간다. 어느 대행을 쓸지는 아직 정하지 않았고, 그래서 아직 이 채널을 설정할 수 없다(`invoices.bank_kr`, `docs/design.md` 15장).
 
 ```sh
@@ -266,13 +268,19 @@ mor:
     USD: pri_…
   # tolerance: 5s                                     # 웹훅 서명 시각의 허용 오차
   # pull: 1m                                          # Paddle의 이벤트 목록을 읽는 주기
+invoices:
+  mor:
+    live_from: "2026-12-01T00:00:00+09:00"            # MoR 채널의 수금이 시작하는 때. mor이 있으면 꼭 적는다
 ```
 
 - **키.** API 키에는 transactions, subscriptions, adjustments의 읽기·쓰기와 notifications의 읽기(이벤트 목록, `notification.read`) 권한이 있어야 한다. 키와 웹훅 비밀은 파일로 마운트하고 `${file:…}`로 가리킨다. `levyan config`는 참조만 출력한다.
 - **플랜.** `payers.channels`가 MoR로 파는 통화마다 플랜이 있어야 한다. 기본값이면 KRW와 USD다. 없으면 levyan은 뜨지 않는다.
 - **웹훅.** 두 번째 리스너(`server.http.addr`)의 `POST /webhooks/mor/paddle`이다. Paddle의 알림 대상(notification destination)을 이 주소로 만들고 `transaction.*`, `subscription.*`, `adjustment.*` 이벤트를 고른다. 그 대상의 비밀이 `webhook_secret`이다. 서명이 맞지 않으면 400, levyan이 담지 못하면 503이고 Paddle이 다시 보낸다.
 - **이벤트 끌어오기.** levyan은 Paddle의 이벤트 목록(`GET /events`)을 1분마다 읽어 같은 inbox에 담는다(같은 이벤트는 한 번). 그래서 웹훅이 닿지 않는 배포(인터넷에서 닿지 않는 스테이징)도 Paddle의 소식을 받는다. 웹훅 비밀을 적지 않으면 웹훅 없이 이것만 한다.
-- **루프**: `levyan.mor.inbox`(inbox를 처리한다)와 `levyan.mor.events`(이벤트를 읽는다). 한 프로세스에서만 돈다.
+- **수금.** `levyan.invoices.collect`가 MoR 채널의 청구서를 확정하고, 지불자의 구독에 일회성 청구로 보낸다. 정정 청구의 환불은 그 청구가 든 거래에서 돌려준다. 라이브의 환불은 대부분 Paddle의 승인을 기다린다. 결과는 다음 순회의 조회로 정산하고, inbox가 받은 웹훅과 이벤트로도 바로 정산한다. 같은 결제를 두 번 정산하는 일은 없다.
+- **수금 시작(`invoices.mor.live_from`).** 이때부터 끝나는 기간을 확정하고 청구한다. 그 전에 끝난 기간의 초안(그림자 청구)은 그림자로 닫고 청구하지 않는다. `mor`이 있는데 이것이 없으면 levyan은 뜨지 않는다. RFC 3339로 오프셋과 함께 적는다. 지금이나 그 뒤의 때로 둔다. 그 전으로 두면, 이미 모은 초안 가운데 그때 뒤의 몫도 그림자가 되어 청구되지 않는다(`docs/design.md` 17장 96번).
+- **수금할 수 없는 결제 계정.** 구독이 없거나 해지되었거나, 연체, 일시정지, 고객 행동 필요이면 청구를 보내지 않는다. 그 시도는 실패하고, 코드가 그 상태를 말한다(`no_subscription`, `canceled`, `past_due`, `paused`, `needs_action`). 다음 시도는 연체(#11)의 몫이다.
+- **루프**: `levyan.mor.inbox`(inbox를 처리하고, 거래가 말하는 결제를 정산한다)와 `levyan.mor.events`(이벤트를 읽는다). 한 프로세스에서만 돈다.
 
 ## 배포
 

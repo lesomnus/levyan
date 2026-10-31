@@ -48,6 +48,13 @@ spin:
 #   webhook_secret: "${file:/run/secrets/levyan-paddle/webhook-secret}"
 #   client_token: "test_…"
 #   plans: {KRW: "pri_…", USD: "pri_…"}
+#
+# And with it, when collection on the merchant's channel begins: what ended
+# before is the shadow billing's, and is never charged.
+#
+# invoices:
+#   mor:
+#     live_from: "2026-12-01T00:00:00+09:00"
 
 # The trail digests every row it records with this key, so that a row written
 # past the servers is found (`levyan trail rows`). Keep it with the backups,

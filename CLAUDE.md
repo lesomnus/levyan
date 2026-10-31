@@ -367,7 +367,13 @@ Nothing but the wiring (`cmd`) names `paddle`.
   and an absence is `ErrTooSoon`, not `NotFound`. `ErrTwice` is a key charged
   twice; the rest are to give back.
 - **A declined charge is a result, not an error**: a `Failed` transaction.
-  Only `Unknown` may have moved money.
+  Only `Unknown` may have moved money. Its `Failure.Decline` is `pg.Decline`'s
+  four kinds by the same names and values (`mor.Decline`), read off Paddle's
+  codes by their own words (`paddle/codes.go`); a charge made now that
+  `prevent_change` declines says no more of why, and is `DeclineOther`.
+- **What the MoR charges at least is its own** (`Channel.Minimum`: 980 KRW,
+  70 USD cents …): the collector's minimum, never a constant of levyan's. A
+  currency levyan prices in has one, or the adapter's test fails.
 - **No charge for a next period that will not come.** A subscription
   scheduled to cancel or to pause has none, and Paddle forgives what was to
   be billed in it: `NextPeriod` of one is `ErrNoNextPeriod`. Charge `Now`,
@@ -418,11 +424,13 @@ the payer starts in the MoR's checkout (docs/design.md §12, "연결"):
   served at all.
 - **The pull** reads past nothing newer than `subscriptions.Overlap`, so a
   notice the MoR lists late is not passed over; the inbox keeps each once.
-- **Collecting an invoice is not built here.** It is an `invoices.Collector`
-  for the MoR (`server/invoices`, the next PR): it charges the subscription
-  of the billing account's live mirror (`subscriptions.CollectionOf`), and
-  may plug into `Taker.Transaction` for what the MoR answers of each
-  transaction a notice names.
+- **Collecting an invoice is not done here** but by the MoR's
+  `invoices.Collector` (`server/invoices/merchant`): it charges the
+  subscription of the billing account's live mirror
+  (`subscriptions.CollectionOf`), asks of every subscription it has had
+  (`Collection.Mirrors`), and is the inbox's `Taker.Transaction`
+  (`cmd.Server.Taker`) for what the MoR answers of each transaction a
+  notice names.
 - **The API key and the webhook secret are `cfg.Secret`s**, sent in a header
   and never in a URL; no error of the adapter's carries either.
 
@@ -569,6 +577,32 @@ What billing accounts are asked to pay, and the money it moves
   each declaring what it reads with `pd.AccountReads`).
 - A workspace's `label` is what the product calls it (`Arrive`'s `label`); a
   line keeps the label it was written with.
+- **The merchant of record's channel** (`CHANNEL_MOR`,
+  `server/invoices/merchant`, docs/design.md §15, "MoR 수금기") charges an
+  invoice to the billing account's subscription now, under the attempt's
+  key, with the send before as `mor.Charge.Sent`, and refunds a credit note
+  from the charge's line. A billing account that is not collectable is sent
+  nothing: the attempt fails as a decline of the kind closest to what its
+  payer has to do, by a code naming its collection (`merchant.Failure`). An
+  ask looks in **every** subscription the billing account has had, since a
+  lost answer may have charged one canceled since; never only the live one.
+- **Shadow drafts are never charged** (`Invoices.LiveFrom`,
+  `invoices.mor.live_from`, Claude's answer to open question 63): a draft
+  begun for a period that ended before collection on its channel began is
+  closed as `INVOICE_STATE_SHADOW` -- nothing asked of the channel, no credit
+  taken -- and a draft of shadow periods alone gathers no later statement. A
+  line never moves, so a draft gathered across the date before it was set is
+  a shadow whole, and what it held after is said in the log. `mor` with no
+  `live_from` is refused at load and by `cmd.Build`.
+- **What a channel says outside a send or an ask** (`Invoices.Heard`, a
+  rechecked notice's transaction) is written as an ask's answer, and only
+  when further along than the attempt: twice is once, older is nothing, and
+  "never had it" is an ask's alone, after `mor.Settle`. A payment of a key the
+  ledger does not account for -- twice, or after its attempt failed -- marks
+  the attempt (`date_twice`) for reconciliation (#13): the one thing, with an
+  empty channel number, the layer lets be written of an attempt that ended.
+- **A payer reads an invoice's finalized states, by name** (`server/api`'s
+  `finalized`): a state is shown to nobody until it is named there.
 - **The bank-transfer channel** (`CHANNEL_BANK_KR`, `server/invoices/bank`)
   pushes nothing: an invoice is finalized with its due date and its tax
   invoice, and an operator records each transfer (`invoice paid`) and each
@@ -611,8 +645,10 @@ levyan's own:
   minutes, which is `mor.Settle`) invoices what the close wrote, decides
   drafts, issues a seller's documents and sends and asks about attempts,
   through `Ungated` as the deployment.
-- `levyan.mor.inbox` (`subscriptions.Takes`) takes the MoR's notices: every
-  five seconds, and at once when this process keeps a webhook; and
+- `levyan.mor.inbox` (`subscriptions.Takes`, `cmd.Server.Taker`) takes the
+  MoR's notices -- the mirror, and what each transaction says of the
+  attempts whose keys it carries -- every five seconds, and at once when
+  this process keeps a webhook; and
   `levyan.mor.events` (`subscriptions.Pulls`, `mor.pull`) reads the MoR's
   list of its events into the inbox. Neither runs when `mor` names no MoR.
 
@@ -632,8 +668,10 @@ A block is validated as it is loaded, and what is wrong of a part is said
 where it is written: give the part a type of its own with a `Validate`
 (`ChannelsConfig`, `MorKind`, `MorPlans`), since `cfg` places an error by its
 leaf. What is missing, or what the parts say of one another, the block's own
-`Validate` says. With no `mor` block there is no MoR, and nothing else
-changes.
+`Validate` says -- and what one block says against another, the root's
+(`Config.Validate`: `mor` with no `invoices.mor.live_from`), which `cmd.Build`
+asks again of a configuration made in code. With no `mor` block there is no
+MoR, and nothing else changes.
 
 ## Running
 

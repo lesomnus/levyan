@@ -194,6 +194,6 @@ go test ./...                                             # SQLite
 PDTEST_POSTGRES='postgres://…?sslmode=disable' go test ./... # PostgreSQL
 ```
 
-`pd gen`은 자기가 고정한 buf를 받아서 쓰고, `scripts/api.sh`도 그 buf를 쓴다. `pd gen`은 API의 생성 코드(`api/levyan/v1/*.pb.go`)를 지우므로 API는 늘 그 뒤에 생성한다. `scripts/gen.sh`가 둘을 차례로 한다. 이 저장소에는 페이지(TS)가 없으므로 node는 필요 없다.
+`pd gen`은 자기가 고정한 buf를 받아서 쓰고, `scripts/api.sh`도 그 buf를 쓴다. API(`api/`)는 따로 된 모듈이라 `pd gen`이 건드리지 않는다(payday#189). `scripts/gen.sh`가 둘을 차례로 한다. 이 저장소에는 페이지(TS)가 없으므로 node는 필요 없다.
 
 `CLAUDE.md`는 이 저장소에서 일하는 법을 영어로 적은 것이다.

@@ -22,13 +22,9 @@ A generated file that was not regenerated **compiles perfectly and is wrong**.
 If you edited anything under `proto/`, you are not done until `pd gen --check`
 exits 0. `pd gen` fetches the buf it pins; there is no page and no `--ts`.
 
-**`pd gen` deletes the API's generated Go** (`api/levyan/v1/*.pb.go`), and so
-does `pd gen --check`: payday sweeps away generated Go it did not write
-anywhere in the tree, and does not stop at the api module's go.mod. So the API
-is generated after it, always -- `scripts/gen.sh` does both, and CI runs
-`scripts/api.sh --check` after `pd gen --check`. A build after `pd gen` alone
-fails to compile `server/api`, which is how it is noticed; the fix belongs in
-payday's sweep.
+The API (`api/`) is a module of its own, which `pd gen` and `pd gen --check`
+leave alone (payday#189): `scripts/api.sh` is its generation, and runs the buf
+`pd gen` fetched.
 
 ## The API apps call (`api/`)
 
@@ -40,7 +36,7 @@ levyan is built with -- the way loft is held to roster's (docs/design.md §7).
 The root module uses it through `replace ./api`.
 
 ```sh
-scripts/api.sh            # after editing api/levyan/v1/*.proto, and after every pd gen
+scripts/api.sh            # after editing api/levyan/v1/*.proto
 scripts/api.sh --check    # what CI runs: generated Go current, nothing of payday's required
 scripts/api.sh --breaking origin/main
 ```

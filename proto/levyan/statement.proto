@@ -114,7 +114,14 @@ message Statement {
   // workspace's, which is none of its payer's first `payers.free`. Unset on a
   // workspace whose allowances its prices include -- every workspace with no
   // payer, and every statement written before payers were counted (#4).
-  bool first_unit = 22 [(orm.field) = {immutable: true}];
+  //
+  // A column added to a table with rows in it (#4): defaulted, so that a
+  // statement written before it is unset, as it was. With no default,
+  // PostgreSQL refuses to add it (scripts/upgrade.sh).
+  bool first_unit = 22 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
 
   option (orm.message) = {
     // Patch is generated though nothing here may change -- every field is

@@ -171,6 +171,16 @@ func LabelHasSuffix(v string) predicate.Workspace {
 	return predicate.Workspace(sql.FieldHasSuffix(FieldLabel, v))
 }
 
+// LabelIsNil applies the IsNil predicate on the "label" field.
+func LabelIsNil() predicate.Workspace {
+	return predicate.Workspace(sql.FieldIsNull(FieldLabel))
+}
+
+// LabelNotNil applies the NotNil predicate on the "label" field.
+func LabelNotNil() predicate.Workspace {
+	return predicate.Workspace(sql.FieldNotNull(FieldLabel))
+}
+
 // LabelEqualFold applies the EqualFold predicate on the "label" field.
 func LabelEqualFold(v string) predicate.Workspace {
 	return predicate.Workspace(sql.FieldEqualFold(FieldLabel, v))

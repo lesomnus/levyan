@@ -676,6 +676,16 @@ func FirstUnitNEQ(v bool) predicate.Statement {
 	return predicate.Statement(sql.FieldNEQ(FieldFirstUnit, v))
 }
 
+// FirstUnitIsNil applies the IsNil predicate on the "first_unit" field.
+func FirstUnitIsNil() predicate.Statement {
+	return predicate.Statement(sql.FieldIsNull(FieldFirstUnit))
+}
+
+// FirstUnitNotNil applies the NotNil predicate on the "first_unit" field.
+func FirstUnitNotNil() predicate.Statement {
+	return predicate.Statement(sql.FieldNotNull(FieldFirstUnit))
+}
+
 // TenantIdEQ applies the EQ predicate on the "tenant_id" field.
 func TenantIdEQ(v uuid.UUID) predicate.Statement {
 	return predicate.Statement(sql.FieldEQ(FieldTenantId, v))

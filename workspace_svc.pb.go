@@ -27,7 +27,7 @@ type WorkspaceAddRequest struct {
 	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_Tenant      *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Key         []byte                 `protobuf:"bytes,8,opt,name=key"`
-	xxx_hidden_Label       string                 `protobuf:"bytes,9,opt,name=label"`
+	xxx_hidden_Label       *string                `protobuf:"bytes,9,opt,name=label"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
@@ -83,7 +83,10 @@ func (x *WorkspaceAddRequest) GetKey() []byte {
 
 func (x *WorkspaceAddRequest) GetLabel() string {
 	if x != nil {
-		return x.xxx_hidden_Label
+		if x.xxx_hidden_Label != nil {
+			return *x.xxx_hidden_Label
+		}
+		return ""
 	}
 	return ""
 }
@@ -115,7 +118,8 @@ func (x *WorkspaceAddRequest) SetKey(v []byte) {
 }
 
 func (x *WorkspaceAddRequest) SetLabel(v string) {
-	x.xxx_hidden_Label = v
+	x.xxx_hidden_Label = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
 }
 
 func (x *WorkspaceAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
@@ -136,6 +140,13 @@ func (x *WorkspaceAddRequest) HasTenant() bool {
 	return x.xxx_hidden_Tenant != nil
 }
 
+func (x *WorkspaceAddRequest) HasLabel() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *WorkspaceAddRequest) HasDateCreated() bool {
 	if x == nil {
 		return false
@@ -152,6 +163,11 @@ func (x *WorkspaceAddRequest) ClearTenant() {
 	x.xxx_hidden_Tenant = nil
 }
 
+func (x *WorkspaceAddRequest) ClearLabel() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Label = nil
+}
+
 func (x *WorkspaceAddRequest) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
@@ -162,7 +178,7 @@ type WorkspaceAddRequest_builder struct {
 	Id          []byte
 	Tenant      *TenantRef
 	Key         []byte
-	Label       string
+	Label       *string
 	DateCreated *timestamppb.Timestamp
 }
 
@@ -176,7 +192,10 @@ func (b0 WorkspaceAddRequest_builder) Build() *WorkspaceAddRequest {
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Key = b.Key
-	x.xxx_hidden_Label = b.Label
+	if b.Label != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_Label = b.Label
+	}
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
@@ -1229,12 +1248,12 @@ var File_levyan_workspace_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_workspace_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/workspace_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x16levyan/workspace.proto\x1a\x11patch/patch.proto\"\xc5\x01\n" +
+	"\x1clevyan/workspace_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x16levyan/workspace.proto\x1a\x11patch/patch.proto\"\xbe\x01\n" +
 	"\x13WorkspaceAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x12\x17\n" +
-	"\x03key\x18\b \x01(\fB\x05\xaa\x01\x02\b\x02R\x03key\x12\x1b\n" +
-	"\x05label\x18\t \x01(\tB\x05\xaa\x01\x02\b\x02R\x05label\x12=\n" +
+	"\x03key\x18\b \x01(\fB\x05\xaa\x01\x02\b\x02R\x03key\x12\x14\n" +
+	"\x05label\x18\t \x01(\tR\x05label\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"n\n" +
 	"\x13WorkspaceGetRequest\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.WorkspaceRefR\x03ref\x12/\n" +

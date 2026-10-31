@@ -140,6 +140,14 @@ func (_c *StatementCreate) SetFirstUnit(v bool) *StatementCreate {
 	return _c
 }
 
+// SetNillableFirstUnit sets the "first_unit" field if the given value is not nil.
+func (_c *StatementCreate) SetNillableFirstUnit(v *bool) *StatementCreate {
+	if v != nil {
+		_c.SetFirstUnit(*v)
+	}
+	return _c
+}
+
 // SetTenantId sets the "tenant_id" field.
 func (_c *StatementCreate) SetTenantId(v uuid.UUID) *StatementCreate {
 	_c.mutation.SetTenantId(v)
@@ -205,6 +213,7 @@ func (_c *StatementCreate) Mutation() *StatementMutation {
 
 // Save creates the Statement in the database.
 func (_c *StatementCreate) Save(ctx context.Context) (*Statement, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -230,6 +239,14 @@ func (_c *StatementCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *StatementCreate) defaults() {
+	if _, ok := _c.mutation.FirstUnit(); !ok {
+		v := statement.DefaultFirstUnit
+		_c.mutation.SetFirstUnit(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *StatementCreate) check() error {
 	if fs := _c.mutation.ExprFields(); len(fs) > 0 {
@@ -249,9 +266,6 @@ func (_c *StatementCreate) check() error {
 	}
 	if _, ok := _c.mutation.Rating(); !ok {
 		return &ValidationError{Name: "rating", err: errors.New(`ent: missing required field "Statement.rating"`)}
-	}
-	if _, ok := _c.mutation.FirstUnit(); !ok {
-		return &ValidationError{Name: "first_unit", err: errors.New(`ent: missing required field "Statement.first_unit"`)}
 	}
 	if _, ok := _c.mutation.TenantId(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Statement.tenant_id"`)}
@@ -495,6 +509,7 @@ func (_c *StatementCreateBulk) Save(ctx context.Context) ([]*Statement, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*StatementMutation)
 				if !ok {

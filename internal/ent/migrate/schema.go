@@ -1395,7 +1395,7 @@ var (
 		{Name: "exact", Type: field.TypeString},
 		{Name: "rating", Type: field.TypeUint32},
 		{Name: "payer", Type: field.TypeUuid, Nullable: true},
-		{Name: "first_unit", Type: field.TypeBool},
+		{Name: "first_unit", Type: field.TypeBool, Nullable: true, Default: false},
 		{Name: "tenant_id", Type: field.TypeUuid},
 		{Name: "workspace_id", Type: field.TypeUuid},
 		{Name: "period_id", Type: field.TypeUuid},
@@ -1544,7 +1544,7 @@ var (
 	WorkspaceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
 		{Name: "key", Type: field.TypeBytes},
-		{Name: "label", Type: field.TypeString},
+		{Name: "label", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
 		{Name: "tenant_id", Type: field.TypeUuid},

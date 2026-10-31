@@ -40,7 +40,7 @@ message StatementAddRequest {
   uint32 rating = 19 [features.field_presence = IMPLICIT];
   bytes payer = 20;
   BillingAccountRef billing_account = 21;
-  bool first_unit = 22 [features.field_presence = IMPLICIT];
+  bool first_unit = 22;
 }
 
 message StatementGetRequest {

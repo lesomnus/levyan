@@ -14,6 +14,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/schema"
 	"github.com/lesomnus/levyan/internal/ent/statement"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
+	"github.com/lesomnus/levyan/internal/ent/workspace"
 
 	"github.com/protobuf-orm/ent/schema/field"
 )
@@ -68,6 +69,10 @@ func init() {
 	// statementDescLines is the schema descriptor for lines field.
 	statementDescLines := statementFields[7].Descriptor()
 	statement.ValueScanner.Lines = statementDescLines.ValueScanner.(field.TypeValueScanner[*levyan.StatementLines])
+	// statementDescFirstUnit is the schema descriptor for first_unit field.
+	statementDescFirstUnit := statementFields[12].Descriptor()
+	// statement.DefaultFirstUnit holds the default value on creation for the first_unit field.
+	statement.DefaultFirstUnit = statementDescFirstUnit.Default.(bool)
 	tenantFields := schema.Tenant{}.Fields()
 	_ = tenantFields
 	// tenantDescZone is the schema descriptor for zone field.
@@ -82,4 +87,10 @@ func init() {
 	tenantDescCurrency := tenantFields[9].Descriptor()
 	// tenant.DefaultCurrency holds the default value on creation for the currency field.
 	tenant.DefaultCurrency = tenantDescCurrency.Default.(string)
+	workspaceFields := schema.Workspace{}.Fields()
+	_ = workspaceFields
+	// workspaceDescLabel is the schema descriptor for label field.
+	workspaceDescLabel := workspaceFields[2].Descriptor()
+	// workspace.DefaultLabel holds the default value on creation for the label field.
+	workspace.DefaultLabel = workspaceDescLabel.Default.(string)
 }

@@ -53,7 +53,9 @@ func (Statement) Fields() []ent.Field {
 			Immutable().
 			Optional(),
 		field.Bool("first_unit").
-			Immutable(),
+			Immutable().
+			Optional().
+			Default(false),
 		field.Uuid("tenant_id").
 			Immutable(),
 		field.Uuid("workspace_id").

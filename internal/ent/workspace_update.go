@@ -43,6 +43,12 @@ func (_u *WorkspaceUpdate) SetNillableLabel(v *string) *WorkspaceUpdate {
 	return _u
 }
 
+// ClearLabel clears the value of the "label" field.
+func (_u *WorkspaceUpdate) ClearLabel() *WorkspaceUpdate {
+	_u.mutation.ClearLabel()
+	return _u
+}
+
 // SetDateErased sets the "date_erased" field.
 func (_u *WorkspaceUpdate) SetDateErased(v time.Time) *WorkspaceUpdate {
 	_u.mutation.SetDateErased(v)
@@ -127,6 +133,9 @@ func (_u *WorkspaceUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if e, ok := _u.mutation.FieldExpr(workspace.FieldLabel); ok {
 		_spec.SetField(workspace.FieldLabel, field.TypeString, e)
 	}
+	if _u.mutation.LabelCleared() {
+		_spec.ClearField(workspace.FieldLabel, field.TypeString)
+	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(workspace.FieldDateErased, field.TypeTime, value)
 	}
@@ -172,6 +181,12 @@ func (_u *WorkspaceUpdateOne) SetNillableLabel(v *string) *WorkspaceUpdateOne {
 	if v != nil {
 		_u.SetLabel(*v)
 	}
+	return _u
+}
+
+// ClearLabel clears the value of the "label" field.
+func (_u *WorkspaceUpdateOne) ClearLabel() *WorkspaceUpdateOne {
+	_u.mutation.ClearLabel()
 	return _u
 }
 
@@ -288,6 +303,9 @@ func (_u *WorkspaceUpdateOne) sqlSave(ctx context.Context) (_node *Workspace, er
 	}
 	if e, ok := _u.mutation.FieldExpr(workspace.FieldLabel); ok {
 		_spec.SetField(workspace.FieldLabel, field.TypeString, e)
+	}
+	if _u.mutation.LabelCleared() {
+		_spec.ClearField(workspace.FieldLabel, field.TypeString)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(workspace.FieldDateErased, field.TypeTime, value)

@@ -23,7 +23,9 @@ func (Workspace) Fields() []ent.Field {
 			Immutable(),
 		field.Bytes("key").
 			Immutable(),
-		field.String("label"),
+		field.String("label").
+			Optional().
+			Default(""),
 		field.Time("date_erased").
 			Nillable().
 			Optional(),

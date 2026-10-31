@@ -2,6 +2,8 @@ module github.com/lesomnus/levyan
 
 go 1.27.0
 
+toolchain go1.27.3
+
 // The generators, as tools of this module.
 //
 // They are pinned here rather than by payday because a plugin is a Go program

@@ -34,7 +34,8 @@ import (
 //	                             seen (docs/design.md §17, 61).
 //	PADDLE_SANDBOX_SUBSCRIPTION  sub_…, one such a checkout started: the test
 //	                             charges it now and for the next period, asks
-//	                             both, and refunds part of the first.
+//	                             both, refunds part of the first, and reads it
+//	                             among the subscription's transactions.
 //	PADDLE_SANDBOX_CANCEL=1      and then cancels it -- at the end of its period,
 //	                             to see what Paddle does with charges for a
 //	                             period that will not come, and then now. A
@@ -49,7 +50,8 @@ import (
 //		go test ./internal/mor/paddle -run TestLive -v
 //
 // Where Paddle's documentation does not say what Paddle does -- what a
-// declined charge leaves behind, whether a charge made now is taken of a
+// declined charge leaves behind, whether a refund asked for changes its
+// transaction's updated_at, whether a charge made now is taken of a
 // subscription scheduled to cancel, whether one for the next period is
 // forgiven then or only once it cancels -- the test says what Paddle answered
 // in its log.
@@ -125,6 +127,23 @@ func TestLive(t *testing.T) {
 		}
 	})
 
+	t.Run("the transactions changed in the last day are read, oldest first", func(t *testing.T) {
+		l := mor.List{Since: time.Now().Add(-24 * time.Hour)}
+		got, err := ch.Transactions(ctx, l)
+		require.NoError(t, err)
+		t.Logf("%d transactions changed in the last day, more: %v, last %s", len(got.Transactions), got.More, got.Last)
+		for i := 1; i < len(got.Transactions); i++ {
+			require.Less(t, got.Transactions[i-1].ID, got.Transactions[i].ID)
+		}
+		if got.More {
+			l.After = got.Last
+			next, err := ch.Transactions(ctx, l)
+			require.NoError(t, err)
+			require.NotEmpty(t, next.Transactions)
+			require.Less(t, got.Last, next.Transactions[0].ID, "the next page begins after the last")
+		}
+	})
+
 	id := os.Getenv("PADDLE_SANDBOX_SUBSCRIPTION")
 	if id == "" {
 		t.Log("PADDLE_SANDBOX_SUBSCRIPTION is not set: nothing is charged")
@@ -164,6 +183,11 @@ func TestLive(t *testing.T) {
 			t.Log("not paid yet: no refund")
 			return
 		}
+		// A moment after it was paid by either clock, from which only what
+		// comes after changes it.
+		time.Sleep(2 * time.Second)
+		since := time.Now().Truncate(time.Second).Add(time.Second)
+		time.Sleep(time.Until(since))
 		r := mor.Refund{Transaction: got.ID, Line: l.ID, Amount: money.Amount{Minor: least / 2, Currency: s.Currency}, Reason: "levyan live test", Key: key2()}
 		a, err := ch.Refund(ctx, r)
 		require.NoError(t, err)
@@ -171,6 +195,34 @@ func TestLive(t *testing.T) {
 		found, err := ch.Refunded(ctx, r)
 		require.NoError(t, err)
 		require.Equal(t, a.ID, found.ID)
+
+		// The transaction as reconciliation reads it, among the
+		// subscription's a page at a time, with the charge's line by its key;
+		// and whether the refund asked for changed it by the updated_at
+		// reconciliation reads its window by, which Paddle's documentation
+		// does not say (docs/design.md §17, 115). After a moment, for a list
+		// that may be behind.
+		time.Sleep(5 * time.Second)
+		listed, moved := mor.Transaction{}, false
+		for _, from := range []time.Time{since, {}} {
+			for page := (mor.List{Subscription: id, Since: from}); listed.ID == ""; {
+				ts, err := ch.Transactions(ctx, page)
+				require.NoError(t, err)
+				for _, v := range ts.Transactions {
+					if v.ID == got.ID {
+						listed, moved = v, !from.IsZero()
+					}
+				}
+				if !ts.More {
+					break
+				}
+				page.After = ts.Last
+			}
+		}
+		require.Equal(t, got.ID, listed.ID, "among the subscription's transactions")
+		_, ok = listed.Line(c.Key)
+		require.True(t, ok, "with the charge's line, by its key")
+		t.Logf("a refund asked for changes its transaction's updated_at: %v; listed with %d adjustments", moved, len(listed.Adjustments))
 	})
 
 	scheduled := mor.Charge{Subscription: id, Key: key2(), When: mor.NextPeriod, Amount: amount, Description: "levyan live test"}

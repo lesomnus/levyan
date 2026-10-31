@@ -209,15 +209,11 @@ func (p payment) read() (pg.Payment, error) {
 	slices.SortStableFunc(v.Cancels, func(a, b pg.Cancellation) int { return a.At.Compare(b.At) })
 
 	if s == pg.Failed {
-		// A failure is the error the payment met, read as that error was; one
-		// of a code levyan does not read -- COMMON_ERROR, a 5xx's -- is the
-		// PG's own, and says nothing of the card.
+		// A failure is the error the payment met, read as that error was
+		// ([failure]); one that says nothing is the PG's own.
 		v.Failure = &pg.Failure{Kind: pg.Unknown}
 		if p.Failure != nil {
-			v.Failure.Code, v.Failure.Message = p.Failure.Code, p.Failure.Message
-			if k, ok := codes[p.Failure.Code]; ok {
-				v.Failure.Kind = k
-			}
+			v.Failure = failure(p.Failure.Code, p.Failure.Message)
 		}
 	}
 	return v, nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
+	"github.com/lesomnus/levyan/internal/keyring"
 	"github.com/lesomnus/levyan/server/bare"
 	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/book"
@@ -111,6 +113,12 @@ type Server struct {
 	// hook billing state gives grants by (`grants.Rule`).
 	Grants grants.Grants
 
+	// BillingKeys is what a billing key is sealed under before it is
+	// written, and opened with for a charge (`pg.BillingKey.Seal`,
+	// `pg.OpenBillingKey`): the keyring `billing_keys` says. Nil when the
+	// deployment names none, which seals and opens nothing.
+	BillingKeys *keyring.Keyring
+
 	// Spin is whatever this deployment has to run besides answering requests,
 	// each a loop with a name of its own (`spin.Called`), run under
 	// `spin.lease` by the serve command: in one process of the deployment, but
@@ -125,6 +133,17 @@ type Server struct {
 // with the domain of its entity and refuses one of another, [pd.Wall] narrows
 // every read to the tenants the caller may see.
 func Build(ctx context.Context, c Config) (*Server, error) {
+	// The keys billing keys are sealed under, before anything else: a
+	// deployment that names keys this process cannot read, or a kind it does
+	// not have, is refused before it touches the database.
+	var bk *keyring.Keyring
+	if !c.BillingKeys.IsZero() {
+		var err error
+		if bk, err = c.BillingKeys.Open(); err != nil {
+			return nil, fmt.Errorf("billing_keys.%w", err)
+		}
+	}
+
 	db, dialect, err := c.Db.Open(ctx)
 	if err != nil {
 		return nil, err
@@ -176,7 +195,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		pd.AccessRecorder(),
 	}
 
-	s := &Server{Clock: time.Now}
+	s := &Server{Clock: time.Now, BillingKeys: bk}
 	clock := func() time.Time { return s.Clock() }
 	opts := []bare.Option{bare.WithMinter(pd.Minter()), bare.WithRecorder(rec), bare.WithClock(clock)}
 

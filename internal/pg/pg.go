@@ -16,11 +16,12 @@
 //     levyan gets a one-time authorization back from it, and exchanges that
 //     for a billing key ([Channel.CompleteRegistration]).
 //   - A billing key is a secret ([BillingKey]). It prints, logs and marshals
-//     as nothing, and [BillingKey.Reveal] is the one way to its value -- for
-//     the request that sends it and the store that encrypts it.
+//     as nothing, and [BillingKey.Reveal] is the one way to its value, for the
+//     request that sends it; the store keeps it sealed ([BillingKey.Seal]).
 //   - The request failing is not the payment failing. A charge the card
-//     declined is a [Payment] whose status is [Failed], and no error. An error
-//     is a request that failed, and its [Kind] says what is known: [Invalid],
+//     declined is a [Payment] whose status is [Failed], and no error; its
+//     [Failure] says which kind of decline it is ([Decline]). An error is a
+//     request that failed, and its [Kind] says what is known: [Invalid],
 //     [Auth] and [RateLimited] that nothing happened, [Unknown] that something
 //     may have.
 //   - An unknown outcome is asked about before anything is sent again.
@@ -47,16 +48,44 @@
 //     sent under a new key. A cancellation has no order to keep it once, so
 //     its key is all that does.
 //
+// # Why a card declined
+//
+// A decline is one of four kinds ([Decline]), so that what follows one --
+// trying again later, asking the payer for another card, holding the service
+// back at once -- can be set by kind (#11). That declines are told apart by
+// kind is the owner's decision; the four kinds are Claude's, the lead's
+// (levyan#10, 26) -- temporary, a method to replace, suspected fraud or a
+// block of the card company's, and the rest. Where the edges between them
+// fall, as below, is the implementation's, and so is which of Toss's codes is
+// which: a channel says that of its PG's (package toss).
+//
+//   - [DeclineTemporary]: it may go through later on the same method -- too
+//     little left, a limit reached.
+//   - [DeclineReplace]: the method will not be charged as it is -- expired,
+//     lost or stolen, closed, stopped or locked by its company, a card the PG
+//     will not take, a billing key the PG no longer has -- and the payer
+//     registers another, or takes it up with the card's company.
+//   - [DeclineFraud]: refused as suspected fraud, or blocked by a check of
+//     risk or of who is paying, the card company's or the PG's.
+//   - [DeclineOther]: a refusal that says no more than that it is one, or a
+//     code its channel does not place. It is the zero Decline, so a decline
+//     nothing placed is this one, and its code is kept beside it.
+//
+// A card company that cannot answer is temporary as well, and is no decline:
+// it is an unknown outcome, or a payment that failed for a reason of the PG's
+// or the company's own -- a [Failure] whose kind is not [Declined] -- which
+// says nothing of the card.
+//
 // # How a billing key is stored
 //
 // The store is #4's and #10's wiring; this is what it has to be.
 //
 //   - Encrypted at rest, by levyan, before it reaches the database: sealed
-//     with an AEAD under a key the deployment holds as a secret apart from the
-//     database (a cfg.Secret, `${file:/run/…}`), with the row it belongs to as
-//     the associated data, so that a copy of the database charges nobody and a
-//     sealed key moved to another row opens for nobody. The sealing key is
-//     named in what it sealed, so that it can be rotated.
+//     with an AEAD under a key the deployment holds apart from the database --
+//     its keyring (internal/keyring, `billing_keys`) -- for the row it is kept
+//     in ([BillingKey.Seal], [OpenBillingKey]), so that a copy of the database
+//     charges nobody and a sealed key moved to another row opens for nobody.
+//     The sealing key is named in what it sealed, so that it can be rotated.
 //   - Beside it, its [BillingKey.Digest], which finds the method a webhook
 //     names without opening every row.
 //   - Never in a log line, a span, an error, the access record, or the trail
@@ -71,6 +100,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/lesomnus/levyan/internal/money"
@@ -372,10 +402,56 @@ type Failure struct {
 	// at the PG for a reason of its own, which says nothing of the card.
 	Kind Kind
 
+	// Decline is which kind of decline a [Declined] failure is (package doc),
+	// and is not read of any other: [DeclineOther] where its channel cannot
+	// say.
+	Decline Decline
+
 	// Code and Message are the PG's. The message is the PG's words, which may
 	// be shown to the payer.
 	Code    string
 	Message string
+}
+
+// Decline is which kind of decline a card's refusal is (package doc), by what
+// its PG answered: what follows a decline is set by its kind (#11). A channel
+// says which of its PG's codes is which, and one it does not place is
+// [DeclineOther], the zero Decline, with its code kept beside it.
+type Decline int
+
+const (
+	// DeclineOther is a refusal that says no more than that it is one -- the
+	// card's company refused -- or a code its channel does not place.
+	DeclineOther Decline = iota
+
+	// DeclineTemporary may go through later, on the same method: too little
+	// left in the account, a limit reached.
+	DeclineTemporary
+
+	// DeclineReplace is a method that will not be charged as it is: expired,
+	// lost or stolen, closed, stopped or locked by its company, a card the PG
+	// will not take, or a billing key it no longer has. The payer registers
+	// another, or takes it up with the card's company.
+	DeclineReplace
+
+	// DeclineFraud is a charge refused as suspected fraud, or blocked by a
+	// check of risk or of who is paying: the card company's or the PG's.
+	DeclineFraud
+)
+
+func (d Decline) String() string {
+	switch d {
+	case DeclineOther:
+		return "other"
+	case DeclineTemporary:
+		return "temporary"
+	case DeclineReplace:
+		return "replace"
+	case DeclineFraud:
+		return "fraud"
+	default:
+		return "decline " + strconv.Itoa(int(d))
+	}
 }
 
 // Notice is a webhook as it came, before anything it says is believed, and

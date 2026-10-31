@@ -18,6 +18,8 @@ import (
 	"github.com/lesomnus/xli/cfg"
 
 	"github.com/lesomnus/payday/config"
+
+	"github.com/lesomnus/levyan/internal/keyring"
 )
 
 // Name is what this app is called, and it is the only place it is written.
@@ -60,6 +62,13 @@ type Config struct {
 
 	// Grants is how what levyan gives products' workspaces is kept.
 	Grants GrantsConfig `yaml:"grants"`
+
+	// BillingKeys is where the keys are that the billing keys a PG issues are
+	// sealed under before they are written (internal/keyring): its kind --
+	// `file`, the one built -- every key that opens, and the one that seals.
+	// Named nowhere, there is no keyring, and nothing stores a billing key yet
+	// (#4); named wrong, the process is refused where it comes up.
+	BillingKeys keyring.Config `yaml:"billing_keys"`
 }
 
 // GrantsConfig is how what levyan gives products' workspaces is kept

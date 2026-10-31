@@ -1,0 +1,267 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "levyan/period.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Statement is what one workspace of a product came to over one closed
+// period: a line for each meter -- what was used, what was included, what is
+// billable, the price versions in force and what they come to -- and lines
+// correcting earlier periods, each saying which, with the total rounded once,
+// down (#6).
+//
+// One of each workspace and period, written by the period's close and never
+// changed: every field is immutable and there is no Patch and no Erase. What
+// a closed period should have come to and did not -- a reading that came late,
+// a rating that was wrong -- is a correction line on a later statement, and
+// this one stays what it said.
+//
+// Amounts are exact until the total: each line's is a fraction of the
+// currency's minor unit, and only the total is rounded, toward less, to a
+// whole one (`internal/rating`).
+message Statement {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it is for: the set it is in.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The period it closes.
+  Period period = 8 [(orm.edge) = {immutable: true}];
+
+  // The period's first moment and the first after it, as the period says
+  // them: what statements are listed in the order of.
+  google.protobuf.Timestamp date_start = 9 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+  google.protobuf.Timestamp date_end = 10 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // What it is priced on and in: the product's, until billing accounts say
+  // whose a workspace is (#4). The channel is a value of `Channel` by its
+  // name, as the product's is (see `Tenant.channel` for why a name).
+  string channel = 11 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string currency = 12 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was written, which is when the period was closed for it.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  StatementLines lines = 16 [(orm.field) = {immutable: true}];
+
+  // What it comes to, in the currency's minor unit: every line's amount
+  // added, exactly, and rounded once, down.
+  int64 total = 17 [(orm.field) = {immutable: true}];
+
+  // The total before it was rounded, as a fraction: `2666/3`, `1500`.
+  string exact = 18 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // The version of the rating that wrote it (`rating.Version`): what an
+  // amount here was worked out by.
+  uint32 rating = 19 [(orm.field) = {immutable: true}];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_start"
+            number: 9
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // One of each workspace and period.
+        name: "closed"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "period"
+            number: 8
+          }
+        ]
+        unique: true
+      },
+      {
+        // A workspace's statements, in the order of their periods.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "date_start"
+            number: 9
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 17
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "workspace.tenant",
+        "period.tenant"
+      ]
+    }
+    list: {
+      order: [
+        {field: {name: "date_start"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "workspace"}
+      ]
+      size: 20
+      max: 100
+    }
+  };
+}
+
+// StatementLines is a statement's lines, kept whole with it.
+message StatementLines {
+  repeated StatementLine lines = 1;
+}
+
+// StatementLine is what one meter came to over a statement's period, or how
+// much what an earlier period was billed for it moves.
+//
+// Every number but the meter's own is a fraction written exactly, as
+// `num/den` or a whole number: `110/3`, `100`.
+message StatementLine {
+  // The meter, and its key and unit as they were.
+  bytes meter = 1;
+  string key = 2;
+  string unit = 3;
+
+  LineKind kind = 4;
+
+  // For a correction: the period it corrects, and that period's statement
+  // of this workspace when it had one.
+  google.protobuf.Timestamp corrects_start = 5;
+  google.protobuf.Timestamp corrects_end = 6;
+  bytes corrects = 7;
+
+  // What was used, as the meter's aggregation says, in its unit: for a
+  // correction, what it comes to now.
+  string usage = 8;
+
+  // What was included for nothing and what is billable past it, each part
+  // weighed by its share of the period.
+  string included = 9;
+  string billable = 10;
+
+  // What it comes to, in the currency's minor unit. For a correction, what
+  // it moves: what the corrected period comes to now, less what was billed
+  // for it before (`billed`).
+  string amount = 11;
+  string billed = 12;
+
+  // Each stretch of the period one version of the price was in force.
+  repeated StatementPart parts = 13;
+}
+
+// LineKind is what a statement's line is.
+enum LineKind {
+  LINE_KIND_UNSPECIFIED = 0;
+
+  // What a meter came to over the statement's own period.
+  LINE_KIND_USAGE = 1;
+
+  // How much what an earlier period was billed for a meter moves.
+  LINE_KIND_CORRECTION = 2;
+}
+
+// StatementPart is one stretch of a line's period, priced by one version.
+message StatementPart {
+  // The version of the price, and the stretch it was in force.
+  bytes price = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+
+  // The stretch's share of the period it is charged by.
+  string share = 4;
+
+  // By the unit: what the version includes, and what is billable past it.
+  int64 included = 5;
+  string billable = 6;
+
+  // What the stretch comes to.
+  string amount = 7;
+
+  // By bands: the time spent in each.
+  repeated StatementBand bands = 8;
+}
+
+// StatementBand is the time a stretch's value spent in one band.
+message StatementBand {
+  // The band's bound; unset on the last.
+  int64 up_to = 1 [features.field_presence = EXPLICIT];
+
+  // What a whole period in the band costs.
+  int64 fee = 2;
+
+  // The share of the period spent in it, and what that comes to.
+  string share = 3;
+  string amount = 4;
+}

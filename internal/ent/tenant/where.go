@@ -80,6 +80,21 @@ func DateCreated(v time.Time) predicate.Tenant {
 	return predicate.Tenant(sql.FieldEQ(FieldDateCreated, v))
 }
 
+// Zone applies equality check predicate on the "zone" field. It's identical to ZoneEQ.
+func Zone(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEQ(FieldZone, v))
+}
+
+// Channel applies equality check predicate on the "channel" field. It's identical to ChannelEQ.
+func Channel(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEQ(FieldChannel, v))
+}
+
+// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
+func Currency(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEQ(FieldCurrency, v))
+}
+
 // AliasEQ applies the EQ predicate on the "alias" field.
 func AliasEQ(v string) predicate.Tenant {
 	return predicate.Tenant(sql.FieldEQ(FieldAlias, v))
@@ -373,6 +388,231 @@ func DateCreatedIsNil() predicate.Tenant {
 // DateCreatedNotNil applies the NotNil predicate on the "date_created" field.
 func DateCreatedNotNil() predicate.Tenant {
 	return predicate.Tenant(sql.FieldNotNull(FieldDateCreated))
+}
+
+// ZoneEQ applies the EQ predicate on the "zone" field.
+func ZoneEQ(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEQ(FieldZone, v))
+}
+
+// ZoneNEQ applies the NEQ predicate on the "zone" field.
+func ZoneNEQ(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldNEQ(FieldZone, v))
+}
+
+// ZoneIn applies the In predicate on the "zone" field.
+func ZoneIn(vs ...string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldIn(FieldZone, vs...))
+}
+
+// ZoneNotIn applies the NotIn predicate on the "zone" field.
+func ZoneNotIn(vs ...string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotIn(FieldZone, vs...))
+}
+
+// ZoneGT applies the GT predicate on the "zone" field.
+func ZoneGT(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldGT(FieldZone, v))
+}
+
+// ZoneGTE applies the GTE predicate on the "zone" field.
+func ZoneGTE(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldGTE(FieldZone, v))
+}
+
+// ZoneLT applies the LT predicate on the "zone" field.
+func ZoneLT(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldLT(FieldZone, v))
+}
+
+// ZoneLTE applies the LTE predicate on the "zone" field.
+func ZoneLTE(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldLTE(FieldZone, v))
+}
+
+// ZoneContains applies the Contains predicate on the "zone" field.
+func ZoneContains(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldContains(FieldZone, v))
+}
+
+// ZoneHasPrefix applies the HasPrefix predicate on the "zone" field.
+func ZoneHasPrefix(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldHasPrefix(FieldZone, v))
+}
+
+// ZoneHasSuffix applies the HasSuffix predicate on the "zone" field.
+func ZoneHasSuffix(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldHasSuffix(FieldZone, v))
+}
+
+// ZoneIsNil applies the IsNil predicate on the "zone" field.
+func ZoneIsNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldIsNull(FieldZone))
+}
+
+// ZoneNotNil applies the NotNil predicate on the "zone" field.
+func ZoneNotNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotNull(FieldZone))
+}
+
+// ZoneEqualFold applies the EqualFold predicate on the "zone" field.
+func ZoneEqualFold(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEqualFold(FieldZone, v))
+}
+
+// ZoneContainsFold applies the ContainsFold predicate on the "zone" field.
+func ZoneContainsFold(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldContainsFold(FieldZone, v))
+}
+
+// ChannelEQ applies the EQ predicate on the "channel" field.
+func ChannelEQ(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEQ(FieldChannel, v))
+}
+
+// ChannelNEQ applies the NEQ predicate on the "channel" field.
+func ChannelNEQ(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldNEQ(FieldChannel, v))
+}
+
+// ChannelIn applies the In predicate on the "channel" field.
+func ChannelIn(vs ...string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldIn(FieldChannel, vs...))
+}
+
+// ChannelNotIn applies the NotIn predicate on the "channel" field.
+func ChannelNotIn(vs ...string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotIn(FieldChannel, vs...))
+}
+
+// ChannelGT applies the GT predicate on the "channel" field.
+func ChannelGT(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldGT(FieldChannel, v))
+}
+
+// ChannelGTE applies the GTE predicate on the "channel" field.
+func ChannelGTE(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldGTE(FieldChannel, v))
+}
+
+// ChannelLT applies the LT predicate on the "channel" field.
+func ChannelLT(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldLT(FieldChannel, v))
+}
+
+// ChannelLTE applies the LTE predicate on the "channel" field.
+func ChannelLTE(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldLTE(FieldChannel, v))
+}
+
+// ChannelContains applies the Contains predicate on the "channel" field.
+func ChannelContains(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldContains(FieldChannel, v))
+}
+
+// ChannelHasPrefix applies the HasPrefix predicate on the "channel" field.
+func ChannelHasPrefix(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldHasPrefix(FieldChannel, v))
+}
+
+// ChannelHasSuffix applies the HasSuffix predicate on the "channel" field.
+func ChannelHasSuffix(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldHasSuffix(FieldChannel, v))
+}
+
+// ChannelIsNil applies the IsNil predicate on the "channel" field.
+func ChannelIsNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldIsNull(FieldChannel))
+}
+
+// ChannelNotNil applies the NotNil predicate on the "channel" field.
+func ChannelNotNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotNull(FieldChannel))
+}
+
+// ChannelEqualFold applies the EqualFold predicate on the "channel" field.
+func ChannelEqualFold(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEqualFold(FieldChannel, v))
+}
+
+// ChannelContainsFold applies the ContainsFold predicate on the "channel" field.
+func ChannelContainsFold(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldContainsFold(FieldChannel, v))
+}
+
+// CurrencyEQ applies the EQ predicate on the "currency" field.
+func CurrencyEQ(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEQ(FieldCurrency, v))
+}
+
+// CurrencyNEQ applies the NEQ predicate on the "currency" field.
+func CurrencyNEQ(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldNEQ(FieldCurrency, v))
+}
+
+// CurrencyIn applies the In predicate on the "currency" field.
+func CurrencyIn(vs ...string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldIn(FieldCurrency, vs...))
+}
+
+// CurrencyNotIn applies the NotIn predicate on the "currency" field.
+func CurrencyNotIn(vs ...string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotIn(FieldCurrency, vs...))
+}
+
+// CurrencyGT applies the GT predicate on the "currency" field.
+func CurrencyGT(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldGT(FieldCurrency, v))
+}
+
+// CurrencyGTE applies the GTE predicate on the "currency" field.
+func CurrencyGTE(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldGTE(FieldCurrency, v))
+}
+
+// CurrencyLT applies the LT predicate on the "currency" field.
+func CurrencyLT(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldLT(FieldCurrency, v))
+}
+
+// CurrencyLTE applies the LTE predicate on the "currency" field.
+func CurrencyLTE(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldLTE(FieldCurrency, v))
+}
+
+// CurrencyContains applies the Contains predicate on the "currency" field.
+func CurrencyContains(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldContains(FieldCurrency, v))
+}
+
+// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
+func CurrencyHasPrefix(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldHasPrefix(FieldCurrency, v))
+}
+
+// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
+func CurrencyHasSuffix(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldHasSuffix(FieldCurrency, v))
+}
+
+// CurrencyIsNil applies the IsNil predicate on the "currency" field.
+func CurrencyIsNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldIsNull(FieldCurrency))
+}
+
+// CurrencyNotNil applies the NotNil predicate on the "currency" field.
+func CurrencyNotNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotNull(FieldCurrency))
+}
+
+// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
+func CurrencyEqualFold(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldEqualFold(FieldCurrency, v))
+}
+
+// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
+func CurrencyContainsFold(v string) predicate.Tenant {
+	return predicate.Tenant(sql.FieldContainsFold(FieldCurrency, v))
 }
 
 // And groups predicates with the AND operator between them.

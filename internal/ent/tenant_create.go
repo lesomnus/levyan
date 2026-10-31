@@ -67,6 +67,48 @@ func (_c *TenantCreate) SetNillableDateCreated(v *time.Time) *TenantCreate {
 	return _c
 }
 
+// SetZone sets the "zone" field.
+func (_c *TenantCreate) SetZone(v string) *TenantCreate {
+	_c.mutation.SetZone(v)
+	return _c
+}
+
+// SetNillableZone sets the "zone" field if the given value is not nil.
+func (_c *TenantCreate) SetNillableZone(v *string) *TenantCreate {
+	if v != nil {
+		_c.SetZone(*v)
+	}
+	return _c
+}
+
+// SetChannel sets the "channel" field.
+func (_c *TenantCreate) SetChannel(v string) *TenantCreate {
+	_c.mutation.SetChannel(v)
+	return _c
+}
+
+// SetNillableChannel sets the "channel" field if the given value is not nil.
+func (_c *TenantCreate) SetNillableChannel(v *string) *TenantCreate {
+	if v != nil {
+		_c.SetChannel(*v)
+	}
+	return _c
+}
+
+// SetCurrency sets the "currency" field.
+func (_c *TenantCreate) SetCurrency(v string) *TenantCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *TenantCreate) SetNillableCurrency(v *string) *TenantCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
 // SetId sets the "id" field.
 func (_c *TenantCreate) SetId(v uuid.UUID) *TenantCreate {
 	_c.mutation.SetId(v)
@@ -80,6 +122,7 @@ func (_c *TenantCreate) Mutation() *TenantMutation {
 
 // Save creates the Tenant in the database.
 func (_c *TenantCreate) Save(ctx context.Context) (*Tenant, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -102,6 +145,28 @@ func (_c *TenantCreate) Exec(ctx context.Context) error {
 func (_c *TenantCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_c *TenantCreate) defaults() {
+	if _, ok := _c.mutation.Zone(); !ok {
+		if _, ok := _c.mutation.FieldExpr(tenant.FieldZone); !ok {
+			v := tenant.DefaultZone
+			_c.mutation.SetZone(v)
+		}
+	}
+	if _, ok := _c.mutation.Channel(); !ok {
+		if _, ok := _c.mutation.FieldExpr(tenant.FieldChannel); !ok {
+			v := tenant.DefaultChannel
+			_c.mutation.SetChannel(v)
+		}
+	}
+	if _, ok := _c.mutation.Currency(); !ok {
+		if _, ok := _c.mutation.FieldExpr(tenant.FieldCurrency); !ok {
+			v := tenant.DefaultCurrency
+			_c.mutation.SetCurrency(v)
+		}
 	}
 }
 
@@ -197,6 +262,18 @@ func (_c *TenantCreate) createSpec() (*Tenant, *sqlgraph.CreateSpec) {
 		_spec.SetField(tenant.FieldDateCreated, field.TypeTime, value)
 		_node.DateCreated = value
 	}
+	if value, ok := _c.mutation.Zone(); ok {
+		_spec.SetField(tenant.FieldZone, field.TypeString, value)
+		_node.Zone = value
+	}
+	if value, ok := _c.mutation.Channel(); ok {
+		_spec.SetField(tenant.FieldChannel, field.TypeString, value)
+		_node.Channel = value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(tenant.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
 	return _node, _spec
 }
 
@@ -244,6 +321,7 @@ func (_c *TenantCreateBulk) Save(ctx context.Context) ([]*Tenant, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*TenantMutation)
 				if !ok {

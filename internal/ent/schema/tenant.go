@@ -30,6 +30,15 @@ func (Tenant) Fields() []ent.Field {
 		field.Time("date_created").
 			Immutable().
 			Optional(),
+		field.String("zone").
+			Optional().
+			Default(""),
+		field.String("channel").
+			Optional().
+			Default(""),
+		field.String("currency").
+			Optional().
+			Default(""),
 	}
 }
 

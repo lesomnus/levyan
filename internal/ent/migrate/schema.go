@@ -640,6 +640,69 @@ var (
 			},
 		},
 	}
+	// StatementColumns holds the columns for the "statement" table.
+	StatementColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "date_start", Type: field.TypeTime, Nullable: true},
+		{Name: "date_end", Type: field.TypeTime, Nullable: true},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "lines", Type: field.TypeJson, Nullable: true},
+		{Name: "total", Type: field.TypeInt64},
+		{Name: "exact", Type: field.TypeString},
+		{Name: "rating", Type: field.TypeUint32},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "period_id", Type: field.TypeUuid},
+	}
+	// StatementTable holds the schema information for the "statement" table.
+	StatementTable = &schema.Table{
+		Name:       "statement",
+		Columns:    StatementColumns,
+		PrimaryKey: []*schema.Column{StatementColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "statement_tenant_tenant",
+				Columns:    []*schema.Column{StatementColumns[11]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "statement_workspace_workspace",
+				Columns:    []*schema.Column{StatementColumns[12]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "statement_period_period",
+				Columns:    []*schema.Column{StatementColumns[13]},
+				RefColumns: []*schema.Column{PeriodColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "statement_page",
+				Unique:  false,
+				Columns: []*schema.Column{StatementColumns[11], StatementColumns[1], StatementColumns[0]},
+			},
+			{
+				Name:    "statement_closed",
+				Unique:  true,
+				Columns: []*schema.Column{StatementColumns[11], StatementColumns[12], StatementColumns[13]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "statement_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{StatementColumns[12], StatementColumns[1], StatementColumns[0]},
+			},
+		},
+	}
 	// TenantColumns holds the columns for the "tenant" table.
 	TenantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -649,6 +712,9 @@ var (
 		{Name: "labels", Type: field.TypeJson, Nullable: true},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "zone", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "channel", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Default: ""},
 	}
 	// TenantTable holds the schema information for the "tenant" table.
 	TenantTable = &schema.Table{
@@ -717,6 +783,7 @@ var (
 		RowsealTable,
 		SeriesTable,
 		ServicekeyTable,
+		StatementTable,
 		TenantTable,
 		WorkspaceTable,
 	}
@@ -782,6 +849,12 @@ func init() {
 	ServicekeyTable.ForeignKeys[0].RefTable = TenantTable
 	ServicekeyTable.Annotation = &entsql.Annotation{
 		Table: "servicekey",
+	}
+	StatementTable.ForeignKeys[0].RefTable = TenantTable
+	StatementTable.ForeignKeys[1].RefTable = WorkspaceTable
+	StatementTable.ForeignKeys[2].RefTable = PeriodTable
+	StatementTable.Annotation = &entsql.Annotation{
+		Table: "statement",
 	}
 	TenantTable.Annotation = &entsql.Annotation{
 		Table: "tenant",

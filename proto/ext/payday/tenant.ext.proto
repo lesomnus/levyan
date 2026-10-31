@@ -1,0 +1,41 @@
+edition = "2023";
+
+package payday;
+
+// What levyan adds to payday's Tenant, which is a product here: how its
+// billing is cut and priced (#6).
+//
+// A period of a product is a calendar month in its zone. Until billing
+// accounts say whose a workspace is and so which channel it is sold through
+// (#4), a statement is priced on the product's channel, in its currency:
+// each of a product's workspaces is billed alike. #4 puts the channel and the
+// currency on the billing account, and these become what a workspace with
+// none is priced by.
+message Tenant {
+  // The zone its billing periods are months in: an IANA name, Asia/Seoul.
+  // Empty is UTC. A change applies from the next period on, which begins
+  // where the last one closed ended.
+  string zone = 8 [
+    (orm.field) = {default: ""},
+    (payday.field) = {personal: false}
+  ];
+
+  // What its statements are priced on until billing accounts say (#4): a
+  // value of `Channel` by its name, `CHANNEL_PG_KR`, as the price book's
+  // rules hold it to (`server/book`). Empty is a product nothing is priced
+  // for yet, whose periods are not closed.
+  //
+  // A name and not the enum, because the enum is the price's, in a file
+  // that imports this one, and the service contracts protobuf-orm generates
+  // do not import an enum declared in another file than their entity's.
+  string channel = 9 [
+    (orm.field) = {default: ""},
+    (payday.field) = {personal: false}
+  ];
+
+  // What its statements are priced in on that channel, ISO 4217: KRW.
+  string currency = 10 [
+    (orm.field) = {default: ""},
+    (payday.field) = {personal: false}
+  ];
+}

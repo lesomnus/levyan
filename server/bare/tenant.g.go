@@ -127,6 +127,21 @@ func (st TenantServiceServer) create(ctx context.Context, req *levyan.TenantAddR
 	} else {
 		q.SetDateCreated(st.now())
 	}
+	if req.HasZone() {
+		q.SetZone(req.GetZone())
+	} else {
+		q.SetZone("")
+	}
+	if req.HasChannel() {
+		q.SetChannel(req.GetChannel())
+	} else {
+		q.SetChannel("")
+	}
+	if req.HasCurrency() {
+		q.SetCurrency(req.GetCurrency())
+	} else {
+		q.SetCurrency("")
+	}
 	return q, ds, nil
 }
 
@@ -272,6 +287,15 @@ func TenantSelectedFields(m *levyan.TenantSelect) []string {
 	if m.GetDateCreated() {
 		vs = append(vs, tenant.FieldDateCreated)
 	}
+	if m.GetZone() {
+		vs = append(vs, tenant.FieldZone)
+	}
+	if m.GetChannel() {
+		vs = append(vs, tenant.FieldChannel)
+	}
+	if m.GetCurrency() {
+		vs = append(vs, tenant.FieldCurrency)
+	}
 
 	return vs
 }
@@ -336,7 +360,7 @@ func TenantGetKey(ctx context.Context, db *ent.Client, ref *levyan.TenantRef) (u
 var tenantOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_payday_tenant_proto, "Tenant")
 
 var tenantPatchColumns = entpatch.Columns{
-	1: tenant.FieldId, 4: tenant.FieldAlias, 5: tenant.FieldName, 6: tenant.FieldDesc, 7: tenant.FieldLabels, 13: tenant.FieldDateUpdated, 15: tenant.FieldDateCreated}
+	1: tenant.FieldId, 4: tenant.FieldAlias, 5: tenant.FieldName, 6: tenant.FieldDesc, 7: tenant.FieldLabels, 13: tenant.FieldDateUpdated, 15: tenant.FieldDateCreated, 8: tenant.FieldZone, 9: tenant.FieldChannel, 10: tenant.FieldCurrency}
 
 func (s TenantServiceServer) Apply(ctx context.Context, req *levyan.TenantApplyRequest) (*levyan.Tenant, error) {
 	if !req.HasPatch() {

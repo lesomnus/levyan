@@ -30,7 +30,13 @@ type Tenant struct {
 	// DateUpdated holds the value of the "date_updated" field.
 	DateUpdated time.Time `json:"date_updated,omitempty"`
 	// DateCreated holds the value of the "date_created" field.
-	DateCreated  time.Time `json:"date_created,omitempty"`
+	DateCreated time.Time `json:"date_created,omitempty"`
+	// Zone holds the value of the "zone" field.
+	Zone string `json:"zone,omitempty"`
+	// Channel holds the value of the "channel" field.
+	Channel string `json:"channel,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency     string `json:"currency,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -41,7 +47,7 @@ func (*Tenant) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case tenant.FieldLabels:
 			values[i] = new([]byte)
-		case tenant.FieldAlias, tenant.FieldName, tenant.FieldDesc:
+		case tenant.FieldAlias, tenant.FieldName, tenant.FieldDesc, tenant.FieldZone, tenant.FieldChannel, tenant.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case tenant.FieldDateUpdated, tenant.FieldDateCreated:
 			values[i] = new(sql.NullTime)
@@ -106,6 +112,24 @@ func (_m *Tenant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DateCreated = value.Time
 			}
+		case tenant.FieldZone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field zone", values[i])
+			} else if value.Valid {
+				_m.Zone = value.String
+			}
+		case tenant.FieldChannel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field channel", values[i])
+			} else if value.Valid {
+				_m.Channel = value.String
+			}
+		case tenant.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				_m.Currency = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -159,6 +183,15 @@ func (_m *Tenant) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("date_created=")
 	builder.WriteString(_m.DateCreated.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("zone=")
+	builder.WriteString(_m.Zone)
+	builder.WriteString(", ")
+	builder.WriteString("channel=")
+	builder.WriteString(_m.Channel)
+	builder.WriteString(", ")
+	builder.WriteString("currency=")
+	builder.WriteString(_m.Currency)
 	builder.WriteByte(')')
 	return builder.String()
 }

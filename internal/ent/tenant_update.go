@@ -97,6 +97,66 @@ func (_u *TenantUpdate) SetNillableDateUpdated(v *time.Time) *TenantUpdate {
 	return _u
 }
 
+// SetZone sets the "zone" field.
+func (_u *TenantUpdate) SetZone(v string) *TenantUpdate {
+	_u.mutation.SetZone(v)
+	return _u
+}
+
+// SetNillableZone sets the "zone" field if the given value is not nil.
+func (_u *TenantUpdate) SetNillableZone(v *string) *TenantUpdate {
+	if v != nil {
+		_u.SetZone(*v)
+	}
+	return _u
+}
+
+// ClearZone clears the value of the "zone" field.
+func (_u *TenantUpdate) ClearZone() *TenantUpdate {
+	_u.mutation.ClearZone()
+	return _u
+}
+
+// SetChannel sets the "channel" field.
+func (_u *TenantUpdate) SetChannel(v string) *TenantUpdate {
+	_u.mutation.SetChannel(v)
+	return _u
+}
+
+// SetNillableChannel sets the "channel" field if the given value is not nil.
+func (_u *TenantUpdate) SetNillableChannel(v *string) *TenantUpdate {
+	if v != nil {
+		_u.SetChannel(*v)
+	}
+	return _u
+}
+
+// ClearChannel clears the value of the "channel" field.
+func (_u *TenantUpdate) ClearChannel() *TenantUpdate {
+	_u.mutation.ClearChannel()
+	return _u
+}
+
+// SetCurrency sets the "currency" field.
+func (_u *TenantUpdate) SetCurrency(v string) *TenantUpdate {
+	_u.mutation.SetCurrency(v)
+	return _u
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *TenantUpdate) SetNillableCurrency(v *string) *TenantUpdate {
+	if v != nil {
+		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (_u *TenantUpdate) ClearCurrency() *TenantUpdate {
+	_u.mutation.ClearCurrency()
+	return _u
+}
+
 // Mutation returns the TenantMutation object of the builder.
 func (_u *TenantUpdate) Mutation() *TenantMutation {
 	return _u.mutation
@@ -179,6 +239,33 @@ func (_u *TenantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DateCreatedCleared() {
 		_spec.ClearField(tenant.FieldDateCreated, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Zone(); ok {
+		_spec.SetField(tenant.FieldZone, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(tenant.FieldZone); ok {
+		_spec.SetField(tenant.FieldZone, field.TypeString, e)
+	}
+	if _u.mutation.ZoneCleared() {
+		_spec.ClearField(tenant.FieldZone, field.TypeString)
+	}
+	if value, ok := _u.mutation.Channel(); ok {
+		_spec.SetField(tenant.FieldChannel, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(tenant.FieldChannel); ok {
+		_spec.SetField(tenant.FieldChannel, field.TypeString, e)
+	}
+	if _u.mutation.ChannelCleared() {
+		_spec.ClearField(tenant.FieldChannel, field.TypeString)
+	}
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(tenant.FieldCurrency, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(tenant.FieldCurrency); ok {
+		_spec.SetField(tenant.FieldCurrency, field.TypeString, e)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(tenant.FieldCurrency, field.TypeString)
 	}
 	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
@@ -267,6 +354,66 @@ func (_u *TenantUpdateOne) SetNillableDateUpdated(v *time.Time) *TenantUpdateOne
 	if v != nil {
 		_u.SetDateUpdated(*v)
 	}
+	return _u
+}
+
+// SetZone sets the "zone" field.
+func (_u *TenantUpdateOne) SetZone(v string) *TenantUpdateOne {
+	_u.mutation.SetZone(v)
+	return _u
+}
+
+// SetNillableZone sets the "zone" field if the given value is not nil.
+func (_u *TenantUpdateOne) SetNillableZone(v *string) *TenantUpdateOne {
+	if v != nil {
+		_u.SetZone(*v)
+	}
+	return _u
+}
+
+// ClearZone clears the value of the "zone" field.
+func (_u *TenantUpdateOne) ClearZone() *TenantUpdateOne {
+	_u.mutation.ClearZone()
+	return _u
+}
+
+// SetChannel sets the "channel" field.
+func (_u *TenantUpdateOne) SetChannel(v string) *TenantUpdateOne {
+	_u.mutation.SetChannel(v)
+	return _u
+}
+
+// SetNillableChannel sets the "channel" field if the given value is not nil.
+func (_u *TenantUpdateOne) SetNillableChannel(v *string) *TenantUpdateOne {
+	if v != nil {
+		_u.SetChannel(*v)
+	}
+	return _u
+}
+
+// ClearChannel clears the value of the "channel" field.
+func (_u *TenantUpdateOne) ClearChannel() *TenantUpdateOne {
+	_u.mutation.ClearChannel()
+	return _u
+}
+
+// SetCurrency sets the "currency" field.
+func (_u *TenantUpdateOne) SetCurrency(v string) *TenantUpdateOne {
+	_u.mutation.SetCurrency(v)
+	return _u
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *TenantUpdateOne) SetNillableCurrency(v *string) *TenantUpdateOne {
+	if v != nil {
+		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (_u *TenantUpdateOne) ClearCurrency() *TenantUpdateOne {
+	_u.mutation.ClearCurrency()
 	return _u
 }
 
@@ -382,6 +529,33 @@ func (_u *TenantUpdateOne) sqlSave(ctx context.Context) (_node *Tenant, err erro
 	}
 	if _u.mutation.DateCreatedCleared() {
 		_spec.ClearField(tenant.FieldDateCreated, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Zone(); ok {
+		_spec.SetField(tenant.FieldZone, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(tenant.FieldZone); ok {
+		_spec.SetField(tenant.FieldZone, field.TypeString, e)
+	}
+	if _u.mutation.ZoneCleared() {
+		_spec.ClearField(tenant.FieldZone, field.TypeString)
+	}
+	if value, ok := _u.mutation.Channel(); ok {
+		_spec.SetField(tenant.FieldChannel, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(tenant.FieldChannel); ok {
+		_spec.SetField(tenant.FieldChannel, field.TypeString, e)
+	}
+	if _u.mutation.ChannelCleared() {
+		_spec.ClearField(tenant.FieldChannel, field.TypeString)
+	}
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(tenant.FieldCurrency, field.TypeString, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(tenant.FieldCurrency); ok {
+		_spec.SetField(tenant.FieldCurrency, field.TypeString, e)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(tenant.FieldCurrency, field.TypeString)
 	}
 	_spec.AddModifiers(_u.modifiers...)
 	_node = &Tenant{config: _u.config}

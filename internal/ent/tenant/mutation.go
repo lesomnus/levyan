@@ -22,6 +22,9 @@ type Mutation struct {
 	labels        *map[string]string
 	date_updated  *time.Time
 	date_created  *time.Time
+	zone          *string
+	channel       *string
+	currency      *string
 	clearedFields map[string]struct{}
 	exprs         map[string]sql.Querier
 	predicates    []predicate.Tenant
@@ -194,6 +197,114 @@ func (m *Mutation) ResetDateCreated() {
 	delete(m.clearedFields, FieldDateCreated)
 }
 
+// SetZone sets the "zone" field.
+func (m *Mutation) SetZone(s string) {
+	m.zone = &s
+	delete(m.clearedFields, FieldZone)
+	delete(m.exprs, FieldZone)
+}
+
+// Zone returns the value of the "zone" field in the mutation.
+func (m *Mutation) Zone() (r string, exists bool) {
+	v := m.zone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearZone clears the value of the "zone" field.
+func (m *Mutation) ClearZone() {
+	m.zone = nil
+	delete(m.exprs, FieldZone)
+	m.clearedFields[FieldZone] = struct{}{}
+}
+
+// ZoneCleared returns if the "zone" field was cleared in this mutation.
+func (m *Mutation) ZoneCleared() bool {
+	_, ok := m.clearedFields[FieldZone]
+	return ok
+}
+
+// ResetZone resets all changes to the "zone" field.
+func (m *Mutation) ResetZone() {
+	m.zone = nil
+	delete(m.clearedFields, FieldZone)
+	delete(m.exprs, FieldZone)
+}
+
+// SetChannel sets the "channel" field.
+func (m *Mutation) SetChannel(s string) {
+	m.channel = &s
+	delete(m.clearedFields, FieldChannel)
+	delete(m.exprs, FieldChannel)
+}
+
+// Channel returns the value of the "channel" field in the mutation.
+func (m *Mutation) Channel() (r string, exists bool) {
+	v := m.channel
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearChannel clears the value of the "channel" field.
+func (m *Mutation) ClearChannel() {
+	m.channel = nil
+	delete(m.exprs, FieldChannel)
+	m.clearedFields[FieldChannel] = struct{}{}
+}
+
+// ChannelCleared returns if the "channel" field was cleared in this mutation.
+func (m *Mutation) ChannelCleared() bool {
+	_, ok := m.clearedFields[FieldChannel]
+	return ok
+}
+
+// ResetChannel resets all changes to the "channel" field.
+func (m *Mutation) ResetChannel() {
+	m.channel = nil
+	delete(m.clearedFields, FieldChannel)
+	delete(m.exprs, FieldChannel)
+}
+
+// SetCurrency sets the "currency" field.
+func (m *Mutation) SetCurrency(s string) {
+	m.currency = &s
+	delete(m.clearedFields, FieldCurrency)
+	delete(m.exprs, FieldCurrency)
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *Mutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (m *Mutation) ClearCurrency() {
+	m.currency = nil
+	delete(m.exprs, FieldCurrency)
+	m.clearedFields[FieldCurrency] = struct{}{}
+}
+
+// CurrencyCleared returns if the "currency" field was cleared in this mutation.
+func (m *Mutation) CurrencyCleared() bool {
+	_, ok := m.clearedFields[FieldCurrency]
+	return ok
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *Mutation) ResetCurrency() {
+	m.currency = nil
+	delete(m.clearedFields, FieldCurrency)
+	delete(m.exprs, FieldCurrency)
+}
+
 // Where appends a list predicates to the Mutation builder.
 func (m *Mutation) Where(ps ...predicate.Tenant) {
 	m.predicates = append(m.predicates, ps...)
@@ -228,7 +339,7 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 9)
 	if m.alias != nil || m.exprs[FieldAlias] != nil {
 		fields = append(fields, FieldAlias)
 	}
@@ -246,6 +357,15 @@ func (m *Mutation) Fields() []string {
 	}
 	if m.date_created != nil {
 		fields = append(fields, FieldDateCreated)
+	}
+	if m.zone != nil || m.exprs[FieldZone] != nil {
+		fields = append(fields, FieldZone)
+	}
+	if m.channel != nil || m.exprs[FieldChannel] != nil {
+		fields = append(fields, FieldChannel)
+	}
+	if m.currency != nil || m.exprs[FieldCurrency] != nil {
+		fields = append(fields, FieldCurrency)
 	}
 	return fields
 }
@@ -273,6 +393,12 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.DateUpdated()
 	case FieldDateCreated:
 		return m.DateCreated()
+	case FieldZone:
+		return m.Zone()
+	case FieldChannel:
+		return m.Channel()
+	case FieldCurrency:
+		return m.Currency()
 	}
 	return nil, false
 }
@@ -352,6 +478,36 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDateCreated(v)
 		return nil
+	case FieldZone:
+		v, ok := value.(string)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetZone(v)
+		return nil
+	case FieldChannel:
+		v, ok := value.(string)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannel(v)
+		return nil
+	case FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Tenant field %s", name)
 }
@@ -386,6 +542,12 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		m.ResetDateUpdated()
 	case FieldDateCreated:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
+	case FieldZone:
+		m.ResetZone()
+	case FieldChannel:
+		m.ResetChannel()
+	case FieldCurrency:
+		m.ResetCurrency()
 	default:
 		return fmt.Errorf("unknown Tenant field %s", name)
 	}
@@ -422,6 +584,15 @@ func (m *Mutation) ExprFields() []string {
 	if _, ok := m.exprs[FieldDateUpdated]; ok {
 		fields = append(fields, FieldDateUpdated)
 	}
+	if _, ok := m.exprs[FieldZone]; ok {
+		fields = append(fields, FieldZone)
+	}
+	if _, ok := m.exprs[FieldChannel]; ok {
+		fields = append(fields, FieldChannel)
+	}
+	if _, ok := m.exprs[FieldCurrency]; ok {
+		fields = append(fields, FieldCurrency)
+	}
 	return fields
 }
 
@@ -457,6 +628,15 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldDateCreated) {
 		fields = append(fields, FieldDateCreated)
 	}
+	if m.FieldCleared(FieldZone) {
+		fields = append(fields, FieldZone)
+	}
+	if m.FieldCleared(FieldChannel) {
+		fields = append(fields, FieldChannel)
+	}
+	if m.FieldCleared(FieldCurrency) {
+		fields = append(fields, FieldCurrency)
+	}
 	return fields
 }
 
@@ -476,6 +656,15 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldDateCreated:
 		m.ClearDateCreated()
+		return nil
+	case FieldZone:
+		m.ClearZone()
+		return nil
+	case FieldChannel:
+		m.ClearChannel()
+		return nil
+	case FieldCurrency:
+		m.ClearCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown Tenant nullable field %s", name)
@@ -502,6 +691,15 @@ func (m *Mutation) ResetField(name string) error {
 		return nil
 	case FieldDateCreated:
 		m.ResetDateCreated()
+		return nil
+	case FieldZone:
+		m.ResetZone()
+		return nil
+	case FieldChannel:
+		m.ResetChannel()
+		return nil
+	case FieldCurrency:
+		m.ResetCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown Tenant field %s", name)

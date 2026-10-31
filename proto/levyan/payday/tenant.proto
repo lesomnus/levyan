@@ -1,5 +1,4 @@
 edition = "2023";
-
 package levyan;
 
 import "google/protobuf/timestamp.proto";
@@ -7,11 +6,6 @@ import "orm.proto";
 import "payday.proto";
 
 option features.field_presence = IMPLICIT;
-
-// The Go package is the app's, and `pd gen` writes it in. These files are not
-// generated where they live: an app generates from them, so that what comes out
-// -- the messages, the ent schema, the servers -- is one set of types in one
-// module. See the note on `go_package` in docs/schema.md.
 option go_package = "github.com/lesomnus/levyan";
 
 // Tenant is the wall an app is divided by.
@@ -32,7 +26,6 @@ message Tenant {
     key: true
     default: ""
   }];
-
   // Alias is what a person writes this tenant as, and it is unique across the
   // deployment: `@acme/arm-01` says which tenant before it says which row.
   //
@@ -54,11 +47,9 @@ message Tenant {
     (orm.field) = {unique: true},
     (payday.field) = {personal: false}
   ];
-
   string name = 5 [(payday.field) = {personal: false}];
   string desc = 6 [(payday.field) = {personal: false}];
   map<string, string> labels = 7 [(payday.field) = {personal: false}];
-
   // DateUpdated is stamped by the server on every write and refused to a patch
   // document, so it is a version and not a field.
   //
@@ -67,12 +58,10 @@ message Tenant {
   // overwrites an early one that was newer. It is here rather than added when
   // that is built because adding it later is every app's migration.
   google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
-
   google.protobuf.Timestamp date_created = 15 [(orm.field) = {
     immutable: true
     default: ""
   }];
-
   // A tenant is **not** erased softly, and a Holder is. The difference is the
   // trail: every row of it names the Holder that acted, so a deleted Holder
   // would leave the trail saying who while nobody could find out who. Nothing
@@ -104,6 +93,7 @@ message Tenant {
     own: OWN_TENANT
 
     domain: 1
+
     tenant: {}
 
     // A tenant is not erased softly, for the reason above -- and in practice
@@ -136,4 +126,28 @@ message Tenant {
       max: 100
     }
   };
+  // The zone its billing periods are months in: an IANA name, Asia/Seoul.
+  // Empty is UTC. A change applies from the next period on, which begins
+  // where the last one closed ended.
+  string zone = 8 [
+    (orm.field) = {default: ""},
+    (payday.field) = {personal: false}
+  ];
+  // What its statements are priced on until billing accounts say (#4): a
+  // value of `Channel` by its name, `CHANNEL_PG_KR`, as the price book's
+  // rules hold it to (`server/book`). Empty is a product nothing is priced
+  // for yet, whose periods are not closed.
+  //
+  // A name and not the enum, because the enum is the price's, in a file
+  // that imports this one, and the service contracts protobuf-orm generates
+  // do not import an enum declared in another file than their entity's.
+  string channel = 9 [
+    (orm.field) = {default: ""},
+    (payday.field) = {personal: false}
+  ];
+  // What its statements are priced in on that channel, ISO 4217: KRW.
+  string currency = 10 [
+    (orm.field) = {default: ""},
+    (payday.field) = {personal: false}
+  ];
 }

@@ -62,6 +62,20 @@ type Series func(*sql.Selector)
 // ServiceKey is the predicate function for servicekey builders.
 type ServiceKey func(*sql.Selector)
 
+// Statement is the predicate function for statement builders.
+type Statement func(*sql.Selector)
+
+// StatementOrErr calls the predicate only if the error is not nit.
+func StatementOrErr(p Statement, err error) Statement {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)
 

@@ -43,6 +43,7 @@ type Server interface {
 	Price() PriceServiceServer
 	Reading() ReadingServiceServer
 	ServiceKey() ServiceKeyServiceServer
+	Statement() StatementServiceServer
 }
 
 // RegisterServer registers every service of `s` with `g`.
@@ -67,6 +68,7 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterPriceServiceServer(g, s.Price())
 	RegisterReadingServiceServer(g, s.Reading())
 	RegisterServiceKeyServiceServer(g, s.ServiceKey())
+	RegisterStatementServiceServer(g, s.Statement())
 }
 
 type UnimplementedServer struct {
@@ -87,6 +89,7 @@ type UnimplementedServer struct {
 	PriceServer      PriceServiceServer
 	ReadingServer    ReadingServiceServer
 	ServiceKeyServer ServiceKeyServiceServer
+	StatementServer  StatementServiceServer
 }
 
 func (UnimplementedServer) Tenant() TenantServiceServer { return UnimplementedTenantServiceServer{} }
@@ -114,6 +117,9 @@ func (UnimplementedServer) Reading() ReadingServiceServer { return Unimplemented
 func (UnimplementedServer) ServiceKey() ServiceKeyServiceServer {
 	return UnimplementedServiceKeyServiceServer{}
 }
+func (UnimplementedServer) Statement() StatementServiceServer {
+	return UnimplementedStatementServiceServer{}
+}
 
 type StaticServer struct {
 	TenantServer     TenantServiceServer
@@ -133,6 +139,7 @@ type StaticServer struct {
 	PriceServer      PriceServiceServer
 	ReadingServer    ReadingServiceServer
 	ServiceKeyServer ServiceKeyServiceServer
+	StatementServer  StatementServiceServer
 }
 
 func (s StaticServer) Tenant() TenantServiceServer         { return s.TenantServer }
@@ -152,6 +159,7 @@ func (s StaticServer) Point() PointServiceServer           { return s.PointServe
 func (s StaticServer) Price() PriceServiceServer           { return s.PriceServer }
 func (s StaticServer) Reading() ReadingServiceServer       { return s.ReadingServer }
 func (s StaticServer) ServiceKey() ServiceKeyServiceServer { return s.ServiceKeyServer }
+func (s StaticServer) Statement() StatementServiceServer   { return s.StatementServer }
 
 type Client interface {
 	Tenant() TenantServiceClient
@@ -171,6 +179,7 @@ type Client interface {
 	Price() PriceServiceClient
 	Reading() ReadingServiceClient
 	ServiceKey() ServiceKeyServiceClient
+	Statement() StatementServiceClient
 }
 
 func NewClient(c *grpc.ClientConn) Client {
@@ -192,6 +201,7 @@ func NewClient(c *grpc.ClientConn) Client {
 		_Price:      NewPriceServiceClient(c),
 		_Reading:    NewReadingServiceClient(c),
 		_ServiceKey: NewServiceKeyServiceClient(c),
+		_Statement:  NewStatementServiceClient(c),
 	}
 }
 
@@ -213,6 +223,7 @@ type client struct {
 	_Price      PriceServiceClient
 	_Reading    ReadingServiceClient
 	_ServiceKey ServiceKeyServiceClient
+	_Statement  StatementServiceClient
 }
 
 func (c *client) Tenant() TenantServiceClient         { return c._Tenant }
@@ -232,6 +243,7 @@ func (c *client) Point() PointServiceClient           { return c._Point }
 func (c *client) Price() PriceServiceClient           { return c._Price }
 func (c *client) Reading() ReadingServiceClient       { return c._Reading }
 func (c *client) ServiceKey() ServiceKeyServiceClient { return c._ServiceKey }
+func (c *client) Statement() StatementServiceClient   { return c._Statement }
 
 // Middleware is a server that delegates to another server.
 type Middleware interface {

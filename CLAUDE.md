@@ -277,6 +277,29 @@ in force). Keep it there; `server/billing` only reads the ledger into it.
   `cmd.Build` makes reads `cmd.Server.Clock`, so a price can be effective in
   the past of the readings a test records.
 
+## The PG channel (`internal/pg`)
+
+What levyan asks of a PG it sells through (docs/design.md §10): the
+interface, `pg.Channel`, and one candidate's adapter, `internal/pg/toss`.
+**Which PG is the owner's decision and is not made**; nothing but the wiring
+names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
+
+- **Card data never passes through levyan.** A card is registered in the PG's
+  window, and levyan gets a one-time authorization back for the billing key.
+- **A billing key is a secret** (`pg.BillingKey`): it prints and logs as
+  nothing, refuses to marshal, and `Reveal` is the one way to it. Store it
+  sealed, never in a log, a span, an error or the trail. A charge's URL names
+  it, so the `http.Client` an adapter is given must not record URLs.
+- **A declined charge is a result, not an error**: a `Failed` payment. An
+  error is the request failing, and `pg.KindOf` says what is known -- only
+  `Unknown` may have moved money.
+- **An unknown charge is asked about before it is sent again**: query the
+  order; send it again only on `NotFound`, under the same order and a new
+  idempotency key (Toss answers a key with its first answer, an error too).
+- **A webhook is a hint**: `Webhook` reads it without the network for the
+  inbox, `Recheck` asks the PG, and only that answer is believed. Two answers
+  are ordered by `Payment.Progress`, never by time.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:

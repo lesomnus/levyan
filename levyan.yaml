@@ -99,6 +99,29 @@ spin:
 #       file: /run/secrets/levyan/billing-2026-10.key
 #   seal: "2026-10"
 
+# The roster whose accounts pay (#4): asked whether an account a product
+# relays a call for is in good standing, and heard saying when one is
+# suspended or erased. With none, no call an account makes is served. The key
+# is a secret: a deployment key (`rk_`, with the directory its accounts are
+# in) or a tenant key of the directory (`rt_`), whose role holds roster's
+# `standing.Methods` (roster's docs/relying-app.md).
+#
+# auth:
+#   roster:
+#     addr: "roster:50051"
+#     key: "${file:/run/secrets/levyan-roster}"
+#     directory: loft
+
+# Who pays: how many of each payer's workspaces of a product have their
+# allowances, and how long a workspace may go with no payer before it is
+# restricted; how often an erased account is asked about again, and everybody.
+#
+# payers:
+#   free: 3
+#   grace: 720h
+#   settle: 1h
+#   reconcile: 24h
+
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an
 # address the public reaches.

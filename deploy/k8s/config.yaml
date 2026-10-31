@@ -23,6 +23,17 @@ watch:
 spin:
   lease: postgres
 
+# The roster whose accounts pay (#4): every call an account makes, relayed by
+# a product, is held to what roster says of it now, and with no roster named
+# none is served. The key is levyan's at roster, from a Secret an overlay
+# brings; its role holds roster's `standing.Methods`.
+#
+# auth:
+#   roster:
+#     addr: "roster:50051"
+#     key: "${file:/run/secrets/levyan-roster/key}"
+#     directory: loft
+
 # The trail digests every row it records with this key, so that a row written
 # past the servers is found (`levyan trail rows`). Keep it with the backups,
 # apart from the database's.

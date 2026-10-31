@@ -12,8 +12,9 @@ payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. �
 - **계량.** 제품이 보낸 보유량(읽은 값)과 흐름(OpenTelemetry 누적 Sum)을 바뀌지 않는 원장에 남긴다. 같은 값이 두 번 와도 한 행이고, 같은 시각에 다른 값이 오면 거부하고 로그에 남긴다. 이미 닫힌 기간에 대한 늦은 값도 받아서 정정 대상으로 표시한다. 와야 할 보유량이 오지 않으면 경보를 낸다.
 - **금액 계산과 기간 닫기.** 기간은 제품의 zone에서의 달력 월이다. 기간이 끝나고 유예(48시간)가 지나면 닫고, 워크스페이스마다 내역(Statement)을 쓴다. 내역은 바꾸지 않는다. 늦은 값은 다음 내역의 정정 줄이 된다. 제품은 지금 기간의 사용량과 예상 금액, 그리고 내역을 읽는다.
 - **권한 부여.** 워크스페이스마다 Grant(키, 값, 유효 기간)를 주고, payday의 `GrantService`로 제품에게 스트림과 목록을 준다. 제품은 자기 DB에 사본을 두고 검사한다. 운영자는 손으로 주고 끝낸다. 끝이 없는 Grant는 7일 앞까지 유효하고 루프가 갱신한다.
+- **결제 계정과 지불자.** 지불자는 roster 계정이고 결제 계정으로 낸다. 워크스페이스는 만든 사람이 내고, 다른 계정이 받아들이면 다음 기간부터 그 계정이 낸다. 내역은 지불자의 결제 계정의 채널과 통화로 매기고, 지불자마다 먼저 연결된 3개의 워크스페이스만 무료량을 받는다. 지불자 없이 30일이 지난 워크스페이스는 제한된다. 지불자의 호출은 앱이 사용자를 대신해서 보내고, levyan은 roster에 그 계정의 상태를 묻는다.
 
-결제 계정은 다음 하위 이슈(#4)에서 온다. 그때까지 내역은 제품의 기본 채널과 통화로 매긴다. 앱이 할 일은 [docs/apps.md](docs/apps.md)에 있다.
+앱이 할 일은 [docs/apps.md](docs/apps.md)에 있다.
 
 ## 두 바이너리
 
@@ -186,6 +187,31 @@ admin grant end --yes <grant id>
 값은 `--on`, `--limit N`, `--unlimited` 중 하나다. 한도는 더할 양이 아니라 전체다. 빼앗는 것은 끝내는 것이다. 끝난 Grant는 48시간 동안 제품의 목록에 남고, 그 뒤에는 목록에서 빠진다(`grant ls --all`로 본다). 규칙이 준 Grant는 규칙의 것이라 운영자가 끝내지 않는다.
 
 제품은 payday의 `payday.GrantService`(`Watch`, `List`)를 같은 주소에서 같은 키로 부른다. payday의 `entitle.Follower`가 그것으로 사본을 둔다([docs/apps.md](docs/apps.md)). levyan은 Grant의 변경을 늘 outbox에 쓰고, drain 루프(`payday.outbox`)가 broker로 낸다. 그래서 `watch.broker: none`으로는 시작하지 않는다.
+
+### 지불자
+
+제품은 `levyan.v1.WorkspaceService`로 워크스페이스를 만든 사람(`Arrive`), 떠난 계정(`Leave`), 지불자가 되어 달라고 한 계정(`Offer`)을 알리고, 지불자(`GetPayer`)를 묻는다. 지불자의 화면은 앱이 그리고, 앱이 사용자의 roster 계정을 `levyan-account` 헤더에 넣어 `levyan.v1.PayerService`를 대신 부른다.
+
+```sh
+curl -sX POST http://localhost:8080/levyan.v1.PayerService/ListBillingAccounts \
+  -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
+  -H "Authorization: Bearer $KEY" -H "levyan-account: <roster 계정 id>" -d '{}'
+```
+
+levyan은 그 계정이 roster에서 좋은 상태인지 매번 묻는다. 그래서 roster가 있어야 한다. 없으면 지불자의 호출은 모두 거부된다(FailedPrecondition).
+
+```yaml
+auth:
+  roster:
+    addr: "roster:50051"                      # roster의 data plane
+    key: "${file:/run/secrets/levyan-roster}" # rk_… (directory와 함께) 또는 rt_…
+    directory: loft                           # rk_일 때, 계정이 있는 roster tenant
+payers:
+  free: 3        # 지불자마다 무료량을 받는 워크스페이스 수
+  grace: 720h    # 지불자 없이 이만큼 지나면 제한
+```
+
+levyan의 role에는 roster `standing.Methods`(`HolderService/Get`, `SyncService/Watch`, `EmailService/List`, `EmailService/Get`)가 있어야 한다(roster `docs/relying-app.md`). roster가 계정이 정지되거나 지워졌다고 하면 그 계정이 내던 워크스페이스는 기간 끝부터 지불자가 없다. 지워진 계정은 roster에 그 사람이 더 없을 때 결제 계정의 개인정보를 지운다. 사업자 정보 중 세금계산서에 필요한 것은 남긴다.
 
 ## 배포
 

@@ -18,9 +18,17 @@ conn, err := grpc.NewClient(addr,
 )
 ```
 
-## 2. 계량
+## 2. 계량: sink
 
-보유량은 `levyan.v1.MeteringService/Record`로, 흐름은 같은 주소에 OTLP/gRPC로 보낸다. 자세한 것은 README의 "계량: 보유량과 흐름"에 있다.
+앱은 payday의 미터(`meters`, payday#186)로 잰 것을 levyan에 보낸다.
+
+- **보유량**: payday의 `meter.Reader`가 잰 `meter.Reading`을 `levyan.v1.MeteringService/Record`로 보낸다. 이것이 앱 쪽의 `meter.Sink`다. 몇 줄이라 앱에 둔다(design 8장).
+  - 워크스페이스는 앱의 payday tenant id의 정식 텍스트다.
+  - 답은 값마다 하나다. `OUTCOME_REFUSED`는 로그에 남기고 다시 보내지 않는다. 호출 자체가 실패했을 때만 그대로 다시 보낸다.
+  - 워크스페이스를 파기하기 전에 마지막으로 재서 보낸다.
+- **흐름**: 청구용 `MeterProvider`로, 같은 주소에 OTLP/gRPC로 보낸다. 점마다 `payday.tenant` 속성을 붙이고, 프로세스마다 `service.instance.id`를 둔다.
+
+자세한 것은 README의 "계량: 보유량과 흐름"에 있다.
 
 ## 3. 권한: 사본을 두고, 트랜잭션 안에서 검사한다
 
@@ -87,4 +95,37 @@ on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
 
 ### 키
 
-키는 앱의 이름으로 시작하는 점으로 이은 소문자 단어다(`entitle.CheckKey`): `loft.export`, `loft.seats`, `loft.restricted`. 어떤 키에 무엇을 주는지는 levyan이 정하고, 앱은 검사할 키만 안다. 지금 levyan이 주는 것은 운영자의 Grant(파일럿, 계약, 체험)와, #4·#11이 더하는 제한 규칙의 `loft.restricted`다.
+키는 앱의 이름으로 시작하는 점으로 이은 소문자 단어다(`entitle.CheckKey`): `loft.export`, `loft.seats`, `loft.restricted`. 어떤 키에 무엇을 주는지는 levyan이 정하고, 앱은 검사할 키만 안다. 지금 levyan이 주는 것은 운영자의 Grant(파일럿, 계약, 체험)와, 지불자 없이 유예가 지난 워크스페이스의 `loft.restricted`(4장)다. 연체의 제한은 #11이 더한다.
+
+## 4. 누가 내는가: 워크스페이스의 지불자
+
+지불자는 roster 계정이다. 워크스페이스마다 한 번에 한 명이고, 결제 계정으로 낸다. 앱은 levyan에 두 가지를 알린다.
+
+### 앱이 알리는 것 (`levyan.v1.WorkspaceService`, 제품 키로)
+
+- **`Arrive(workspace, creator, created)`**: 워크스페이스를 만들 때마다 부른다. 만든 사람이 만든 때부터 지불자다. 다시 불러도 같으므로, 실패하면 그대로 다시 보낸다. levyan을 붙이기 전에 있던 워크스페이스는 한 번씩 `created`에 만든 때를 넣어 부른다.
+- **`Leave(workspace, account)`**: 계정이 워크스페이스를 떠날 때 부른다(roster가 계정을 지운 경우 포함). 그 계정이 지불자였다면 지금부터 지불자가 없다.
+- **`Offer(workspace, account)`**: 소유자가 다른 계정에게 지불자가 되어 달라고 할 때 부른다. 받아들이는 것은 그 계정이 한다(아래).
+- **`GetPayer(workspace)`**: 지금과 다음 기간의 지불자, 열린 제안, 지불자가 없는 때(`payerless_since`)와 제한되는 때(`restricted_from`). 소유자에게 "지불자가 없습니다, 언제부터 제한됩니다"를 보여 주는 것은 앱이다.
+
+### 지불자의 화면 (`levyan.v1.PayerService`, 사용자를 대신해서)
+
+결제 화면은 앱이 그린다. 앱은 로그인한 사용자의 roster 계정을 자기 키 옆에 붙여 levyan을 부른다.
+
+```go
+ctx = metadata.AppendToOutgoingContext(ctx,
+	"authorization", "Bearer "+key,
+	"levyan-account", account.String(), // 앱이 roster로 로그인시킨 계정
+)
+payers := levyanv1.NewPayerServiceClient(conn)
+bas, err := payers.ListBillingAccounts(ctx, &levyanv1.ListBillingAccountsRequest{})
+```
+
+- 부를 수 있는 것: 결제 계정 목록·만들기·고치기, 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`). 그 밖의 메서드는 거부된다.
+- 받아들이기, `Use`, `Stop`은 지금 기간의 끝에서 바뀐다.
+- **믿음.** 앱이 계정을 보증한다. levyan은 그 계정의 지금 상태를 roster에 묻고, 정지되거나 지워진 계정은 거부한다(PermissionDenied). roster에 물을 수 없으면 Unavailable이니 다시 보낸다. levyan에 roster가 설정되지 않았으면 FailedPrecondition이다.
+- 제안과 연결은 그 호출을 보낸 제품의 것만 보인다. 결제 계정은 제품과 상관없이 그 계정의 것이다.
+
+### 지불자가 없으면
+
+마지막 지불자가 떠난 지 30일(`payers.grace`)이 지나면 levyan이 `<제품>.restricted` ON을 준다(loft는 `loft.restricted`). 앱은 3장처럼 **그 Grant가 있을 때** 막는다. 누가 받아들이면 Grant는 끝난다.

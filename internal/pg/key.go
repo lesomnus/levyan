@@ -13,21 +13,69 @@ import (
 // secret key it charges the payer's card, and nothing else is asked for -- so
 // it is a secret, and says nothing of itself: printed or logged it is
 // "[billing key]", and marshalled it is an error, never the key. [Reveal] is
-// the one way to its value.
+// the one way to its value, and [BillingKey.Seal] the one way it is kept.
 type BillingKey struct{ v string }
 
 const hidden = "[billing key]"
 
 // errMarshal is a billing key asked to be written out.
-var errMarshal = errors.New("pg: a billing key is not marshalled: Reveal it to the store that seals it")
+var errMarshal = errors.New("pg: a billing key is not marshalled: Seal it for the row that keeps it")
 
-// NewBillingKey is v as a billing key: from the PG that issued it, or from
-// the store that kept it sealed.
+// NewBillingKey is v as a billing key, from the PG that issued it. One the
+// store kept is [OpenBillingKey]'s.
 func NewBillingKey(v string) BillingKey { return BillingKey{v} }
 
-// Reveal is the key itself, for the request that sends it to the PG and the
-// store that seals it (package doc). Nothing else asks for it.
+// Reveal is the key itself, for the request that sends it to the PG (package
+// doc). Nothing else asks for it: the store has [BillingKey.Seal].
 func (k BillingKey) Reveal() string { return k.v }
+
+// Sealer is what keeps billing keys sealed at rest: the deployment's keyring
+// (internal/keyring), which seals under a key held apart from the database,
+// for what the associated data names, and opens what any of its keys sealed.
+type Sealer interface {
+	Seal(plain, ad []byte) (string, error)
+	Open(sealed string, ad []byte) ([]byte, error)
+}
+
+// sealedFor is what a billing key is sealed for: that it is a billing key,
+// and the row it is kept in. The first is what keeps one from opening as
+// anything else sealed for the same row under the same keys -- another
+// column of it.
+func sealedFor(row string) []byte {
+	return append([]byte("levyan pg.BillingKey\x00"), row...)
+}
+
+var errNoRow = errors.New("pg: a billing key is sealed for the row it is kept in, and none was named")
+
+// Seal is the key sealed by s for the row it is kept in -- row is that row's
+// id -- which is what the store writes in its place. It opens for that row
+// alone ([OpenBillingKey]): copied to another, it charges nobody.
+func (k BillingKey) Seal(s Sealer, row string) (string, error) {
+	switch {
+	case k.IsZero():
+		return "", errors.New("pg: there is no billing key to seal")
+	case row == "":
+		return "", errNoRow
+	}
+	return s.Seal([]byte(k.v), sealedFor(row))
+}
+
+// OpenBillingKey is the billing key [BillingKey.Seal] sealed for the row whose
+// id row is. One sealed for another row, or changed since, does not open, and
+// the error says nothing of what was sealed.
+func OpenBillingKey(s Sealer, sealed, row string) (BillingKey, error) {
+	if row == "" {
+		return BillingKey{}, errNoRow
+	}
+	b, err := s.Open(sealed, sealedFor(row))
+	if err != nil {
+		return BillingKey{}, fmt.Errorf("pg: the billing key does not open: %w", err)
+	}
+	if len(b) == 0 {
+		return BillingKey{}, errors.New("pg: what was sealed is no billing key")
+	}
+	return BillingKey{string(b)}, nil
+}
 
 // IsZero is whether there is no key.
 func (k BillingKey) IsZero() bool { return k.v == "" }

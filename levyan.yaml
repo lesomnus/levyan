@@ -74,6 +74,28 @@ spin:
 #   horizon: 168h
 #   renew: 1h
 
+# The keys a billing key is sealed under before it is written
+# (`internal/keyring`): a PG's key to a payer's card, which with levyan's own
+# key charges it, kept so that a copy of the database charges nobody. Nothing
+# stores one yet (#4), and with no block here there is no keyring.
+#
+# `kind` is where the keys are. `file` is each key 32 random bytes in a file
+# of its own, which its owner alone may read -- `head -c 32 /dev/urandom >
+# key`, `chmod 400 key`; a file its group or anybody else may read is refused,
+# as is one of another length. `kms` is named and not built yet, and refused.
+#
+# Every key in `keys` opens what it sealed, by the id each sealed value
+# carries, and `seal` is the one that seals. To rotate, each step on every
+# process before the next: add the new key; make it `seal`; seal again what
+# the old one sealed; take the old one out.
+#
+# billing_keys:
+#   kind: file
+#   keys:
+#     - id: "2026-10"
+#       file: /run/secrets/levyan/billing-2026-10.key
+#   seal: "2026-10"
+
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an
 # address the public reaches.

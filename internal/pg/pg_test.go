@@ -2,6 +2,7 @@ package pg_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/lesomnus/levyan/internal/keyring"
 	"github.com/lesomnus/levyan/internal/pg"
 )
 
@@ -49,6 +51,51 @@ func TestABillingKeySaysNothingOfItself(t *testing.T) {
 	require.Equal(t, theKey, k.Reveal())
 	require.False(t, k.IsZero())
 	require.True(t, pg.BillingKey{}.IsZero())
+}
+
+var _ pg.Sealer = (*keyring.Keyring)(nil)
+
+// A billing key is kept sealed for the row it is kept in, and opens for that
+// row alone, as itself: still saying nothing of itself.
+func TestABillingKeyIsSealedForItsRow(t *testing.T) {
+	keys, err := keyring.New("k1", map[string][]byte{"k1": []byte(rand.Text() + rand.Text())[:keyring.Size]})
+	require.NoError(t, err)
+	const row, other = "0193e1f2-7a3c-7d4e-9f10-2b3c4d5e6f70", "0193e1f2-7a3c-7d4e-9f10-2b3c4d5e6f71"
+
+	k := pg.NewBillingKey(theKey)
+	sealed, err := k.Seal(keys, row)
+	require.NoError(t, err)
+	require.NotContains(t, sealed, theKey)
+
+	got, err := pg.OpenBillingKey(keys, sealed, row)
+	require.NoError(t, err)
+	require.Equal(t, theKey, got.Reveal())
+	require.Equal(t, k.Digest(), got.Digest())
+	require.Equal(t, "[billing key]", fmt.Sprint(got))
+
+	_, err = pg.OpenBillingKey(keys, sealed, other)
+	require.ErrorIs(t, err, keyring.ErrOpen, "copied to another row, it charges nobody")
+	require.NotContains(t, err.Error(), theKey)
+
+	// What the keyring sealed for the same row as something else is not a
+	// billing key, and a billing key is not that something else.
+	plain, err := keys.Seal([]byte(theKey), []byte(row))
+	require.NoError(t, err)
+	_, err = pg.OpenBillingKey(keys, plain, row)
+	require.ErrorIs(t, err, keyring.ErrOpen)
+	_, err = keys.Open(sealed, []byte(row))
+	require.ErrorIs(t, err, keyring.ErrOpen)
+
+	_, err = k.Seal(keys, "")
+	require.Error(t, err, "a key is sealed for a row")
+	_, err = pg.OpenBillingKey(keys, sealed, "")
+	require.Error(t, err)
+	_, err = pg.BillingKey{}.Seal(keys, row)
+	require.Error(t, err, "nothing to seal")
+
+	var none *keyring.Keyring
+	_, err = k.Seal(none, row)
+	require.Error(t, err, "a deployment that names no keys seals nothing")
 }
 
 // The digest finds a key without holding it: the same for the same key, and

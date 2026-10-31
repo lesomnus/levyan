@@ -14,6 +14,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
+	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
 	"github.com/lesomnus/levyan/internal/ent/meter"
 	"github.com/lesomnus/levyan/internal/ent/operator"
@@ -44,6 +45,8 @@ type Client struct {
 	Archived *ArchivedClient
 	// Audit is the client for interacting with the Audit builders.
 	Audit *AuditClient
+	// Grant is the client for interacting with the Grant builders.
+	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
 	Holder *HolderClient
 	// Meter is the client for interacting with the Meter builders.
@@ -87,6 +90,7 @@ func (c *Client) init() {
 	c.Access = NewAccessClient(c.config)
 	c.Archived = NewArchivedClient(c.config)
 	c.Audit = NewAuditClient(c.config)
+	c.Grant = NewGrantClient(c.config)
 	c.Holder = NewHolderClient(c.config)
 	c.Meter = NewMeterClient(c.config)
 	c.Operator = NewOperatorClient(c.config)
@@ -197,6 +201,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Access:     NewAccessClient(cfg),
 		Archived:   NewArchivedClient(cfg),
 		Audit:      NewAuditClient(cfg),
+		Grant:      NewGrantClient(cfg),
 		Holder:     NewHolderClient(cfg),
 		Meter:      NewMeterClient(cfg),
 		Operator:   NewOperatorClient(cfg),
@@ -234,6 +239,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Access:     NewAccessClient(cfg),
 		Archived:   NewArchivedClient(cfg),
 		Audit:      NewAuditClient(cfg),
+		Grant:      NewGrantClient(cfg),
 		Holder:     NewHolderClient(cfg),
 		Meter:      NewMeterClient(cfg),
 		Operator:   NewOperatorClient(cfg),
@@ -324,9 +330,9 @@ func (c *Client) InTx() bool {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Access, c.Archived, c.Audit, c.Holder, c.Meter, c.Operator, c.Outbox, c.Owed,
-		c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series, c.ServiceKey,
-		c.Statement, c.Tenant, c.Workspace,
+		c.Access, c.Archived, c.Audit, c.Grant, c.Holder, c.Meter, c.Operator, c.Outbox,
+		c.Owed, c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series,
+		c.ServiceKey, c.Statement, c.Tenant, c.Workspace,
 	} {
 		n.Use(hooks...)
 	}
@@ -336,9 +342,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Access, c.Archived, c.Audit, c.Holder, c.Meter, c.Operator, c.Outbox, c.Owed,
-		c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series, c.ServiceKey,
-		c.Statement, c.Tenant, c.Workspace,
+		c.Access, c.Archived, c.Audit, c.Grant, c.Holder, c.Meter, c.Operator, c.Outbox,
+		c.Owed, c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series,
+		c.ServiceKey, c.Statement, c.Tenant, c.Workspace,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -353,6 +359,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Archived.mutate(ctx, m)
 	case *AuditMutation:
 		return c.Audit.mutate(ctx, m)
+	case *GrantMutation:
+		return c.Grant.mutate(ctx, m)
 	case *HolderMutation:
 		return c.Holder.mutate(ctx, m)
 	case *MeterMutation:
@@ -784,6 +792,171 @@ func (c *AuditClient) mutate(ctx context.Context, m *AuditMutation) (Value, erro
 		return (&AuditDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Audit mutation op: %q", m.Op())
+	}
+}
+
+// GrantClient is a client for the Grant schema.
+type GrantClient struct {
+	config
+}
+
+// NewGrantClient returns a client for the Grant from the given config.
+func NewGrantClient(c config) *GrantClient {
+	return &GrantClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `grant.Hooks(f(g(h())))`.
+func (c *GrantClient) Use(hooks ...Hook) {
+	c.hooks.Grant = append(c.hooks.Grant, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `grant.Intercept(f(g(h())))`.
+func (c *GrantClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Grant = append(c.inters.Grant, interceptors...)
+}
+
+// Create returns a builder for creating a Grant entity.
+func (c *GrantClient) Create() *GrantCreate {
+	mutation := newGrantMutation(c.config, OpCreate)
+	return &GrantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Grant entities.
+func (c *GrantClient) CreateBulk(builders ...*GrantCreate) *GrantCreateBulk {
+	return &GrantCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GrantClient) MapCreateBulk(slice any, setFunc func(*GrantCreate, int)) *GrantCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GrantCreateBulk{err: fmt.Errorf("calling to GrantClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GrantCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GrantCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Grant.
+func (c *GrantClient) Update() *GrantUpdate {
+	mutation := newGrantMutation(c.config, OpUpdate)
+	return &GrantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GrantClient) UpdateOne(_m *Grant) *GrantUpdateOne {
+	mutation := newGrantMutation(c.config, OpUpdateOne, withGrant(_m))
+	return &GrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *GrantClient) UpdateOneId(id uuid.UUID) *GrantUpdateOne {
+	mutation := newGrantMutation(c.config, OpUpdateOne, withGrantId(id))
+	return &GrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Grant.
+func (c *GrantClient) Delete() *GrantDelete {
+	mutation := newGrantMutation(c.config, OpDelete)
+	return &GrantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GrantClient) DeleteOne(_m *Grant) *GrantDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *GrantClient) DeleteOneId(id uuid.UUID) *GrantDeleteOne {
+	builder := c.Delete().Where(grant.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &GrantDeleteOne{builder}
+}
+
+// Query returns a query builder for Grant.
+func (c *GrantClient) Query() *GrantQuery {
+	return &GrantQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGrant},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Grant entity by its id.
+func (c *GrantClient) Get(ctx context.Context, id uuid.UUID) (*Grant, error) {
+	return c.Query().Where(grant.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GrantClient) GetX(ctx context.Context, id uuid.UUID) *Grant {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTenant queries the tenant edge of a Grant.
+func (c *GrantClient) QueryTenant(_m *Grant) *TenantQuery {
+	query := (&TenantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grant.Table, grant.FieldId, id),
+			sqlgraph.To(tenant.Table, tenant.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, grant.TenantTable, grant.TenantColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkspace queries the workspace edge of a Grant.
+func (c *GrantClient) QueryWorkspace(_m *Grant) *WorkspaceQuery {
+	query := (&WorkspaceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grant.Table, grant.FieldId, id),
+			sqlgraph.To(workspace.Table, workspace.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, grant.WorkspaceTable, grant.WorkspaceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *GrantClient) Hooks() []Hook {
+	return c.hooks.Grant
+}
+
+// Interceptors returns the client interceptors.
+func (c *GrantClient) Interceptors() []Interceptor {
+	return c.inters.Grant
+}
+
+func (c *GrantClient) mutate(ctx context.Context, m *GrantMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GrantCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GrantUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GrantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Grant mutation op: %q", m.Op())
 	}
 }
 
@@ -3089,13 +3262,13 @@ func (c *WorkspaceClient) mutate(ctx context.Context, m *WorkspaceMutation) (Val
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Access, Archived, Audit, Holder, Meter, Operator, Outbox, Owed, Period, Point,
-		Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
+		Access, Archived, Audit, Grant, Holder, Meter, Operator, Outbox, Owed, Period,
+		Point, Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
 		Workspace []ent.Hook
 	}
 	inters struct {
-		Access, Archived, Audit, Holder, Meter, Operator, Outbox, Owed, Period, Point,
-		Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
+		Access, Archived, Audit, Grant, Holder, Meter, Operator, Outbox, Owed, Period,
+		Point, Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
 		Workspace []ent.Interceptor
 	}
 )

@@ -20,6 +20,7 @@ import (
 	entAccess "github.com/lesomnus/levyan/internal/ent/access"
 	entArchived "github.com/lesomnus/levyan/internal/ent/archived"
 	entAudit "github.com/lesomnus/levyan/internal/ent/audit"
+	entGrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entHolder "github.com/lesomnus/levyan/internal/ent/holder"
 	entMeter "github.com/lesomnus/levyan/internal/ent/meter"
 	entOperator "github.com/lesomnus/levyan/internal/ent/operator"
@@ -106,6 +107,7 @@ const (
 	AccessDomain     pdid.Domain = 6   // "access"
 	ArchivedDomain   pdid.Domain = 5   // "archived"
 	AuditDomain      pdid.Domain = 3   // "audit"
+	GrantDomain      pdid.Domain = 18  // "grant"
 	HolderDomain     pdid.Domain = 2   // "holder"
 	MeterDomain      pdid.Domain = 10  // "meter"
 	OperatorDomain   pdid.Domain = 8   // "operator"
@@ -127,6 +129,7 @@ func init() {
 	pdid.Register("levyan.Access", AccessDomain, "access")
 	pdid.Register("levyan.Archived", ArchivedDomain, "archived")
 	pdid.Register("levyan.Audit", AuditDomain, "audit")
+	pdid.Register("levyan.Grant", GrantDomain, "grant")
 	pdid.Register("levyan.Holder", HolderDomain, "holder")
 	pdid.Register("levyan.Meter", MeterDomain, "meter")
 	pdid.Register("levyan.Operator", OperatorDomain, "operator")
@@ -152,6 +155,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.Access":     AccessDomain,
 	"levyan.Archived":   ArchivedDomain,
 	"levyan.Audit":      AuditDomain,
+	"levyan.Grant":      GrantDomain,
 	"levyan.Holder":     HolderDomain,
 	"levyan.Meter":      MeterDomain,
 	"levyan.Operator":   OperatorDomain,
@@ -187,6 +191,10 @@ var IndexRenames = []rename.Index{
 	{Table: "audit", From: "audit_tenant_id_domain_date_created", To: "audit_by_tenant_domain"},
 	{Table: "audit", From: "audit_actor_id_date_created", To: "audit_by_actor"},
 	{Table: "audit", From: "audit_date_created_id", To: "audit_by_time"},
+	{Table: "grant", From: "grant_tenant_id_date_created_id", To: "grant_page"},
+	{Table: "grant", From: "grant_workspace_id_date_created_id", To: "grant_workspace"},
+	{Table: "grant", From: "grant_renews_valid_until", To: "grant_renewal"},
+	{Table: "grant", From: "grant_tenant_id_rule_key", To: "grant_rule"},
 	{Table: "holder", From: "holder_alias_tenant_id", To: "holder_slug"},
 	{Table: "holder", From: "holder_tenant_id_date_created_id", To: "holder_page"},
 	{Table: "meter", From: "meter_tenant_id_date_created_id", To: "meter_page"},
@@ -307,6 +315,20 @@ func (wall) AuditScope(ctx context.Context) (predicate.Audit, error) {
 	}
 
 	return entAudit.Or(entAudit.TenantIdIn(vs...), entAudit.ActorTenantIdIn(vs...), entAudit.CounterpartTenantIdIn(vs...)), nil
+}
+
+// GrantScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) GrantScope(ctx context.Context) (predicate.Grant, error) {
+	if _, ok := frame.AccountOf(ctx); ok {
+		return nothing[predicate.Grant](), nil
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entGrant.TenantIdIn(vs...), nil
 }
 
 // HolderScope: a row belongs to the tenant its "tenant" reaches.
@@ -553,6 +575,20 @@ func (x grouped) ArchivedScope(ctx context.Context) (predicate.Archived, error) 
 // AuditScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) AuditScope(ctx context.Context) (predicate.Audit, error) {
 	return nil, nil
+}
+
+// GrantScope: in the Workspace its "workspace" names.
+func (x grouped) GrantScope(ctx context.Context) (predicate.Grant, error) {
+	if _, ok := frame.AccountOf(ctx); ok {
+		return nothing[predicate.Grant](), nil
+	}
+
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entGrant.WorkspaceIdIn(vs...), nil
 }
 
 // HolderScope: in no set -- it declared no field 3, so this narrows nothing.
@@ -1189,6 +1225,336 @@ func filterAudit(f *levyan.AuditFilter) (predicate.Audit, error) {
 	}
 
 	return entAudit.And(ps...), nil
+}
+
+type sinkGrant struct {
+	levyan.GrantServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Grant() levyan.GrantServiceServer {
+	v := sinkGrant{s.Server.Grant(), s.Server.Store, s.w, s.namer, s.joined}
+	v.GrantServiceServer = bare.GrantWithAddRule(v.GrantServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Grant writes: it
+// refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Grant].
+func (s sinkGrant) admit(ctx context.Context, req *levyan.GrantAddRequest) (*levyan.GrantAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Erase forgets what the transaction was told about the row, before it is
+// erased: whether a frame may see it, and where a walk from it arrives.
+// Neither is true of a row that is gone, nor of another put under its
+// key. See [seen.Forget].
+func (s sinkGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levyan.GrantEraseResponse, error) {
+	seen.Forget(s.store.Db.Driver(), "Grant", req)
+
+	return s.GrantServiceServer.Erase(ctx, req)
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkGrant) Apply(ctx context.Context, req *levyan.GrantApplyRequest) (*levyan.Grant, error) {
+	seen.Forget(s.store.Db.Driver(), "Grant", req.GetRef())
+
+	return s.GrantServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkGrant.Apply].
+func (s sinkGrant) Patch(ctx context.Context, req *levyan.GrantPatchRequest) (*levyan.Grant, error) {
+	seen.Forget(s.store.Db.Driver(), "Grant", req.GetRef())
+
+	return s.GrantServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkGrant) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkGrant) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkGrant) tenancy(ctx context.Context, req *levyan.GrantAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderGrant is how Grants come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderGrant = []sqlpage.Order{
+	{Column: entGrant.FieldDateCreated, Desc: false},
+	{Column: entGrant.FieldId, Desc: false},
+}
+
+func afterGrant(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextGrant(last *ent.Grant, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByGrant is an order as ent orders a query by it.
+func orderByGrant(by []sqlpage.Order) []entGrant.OrderOption {
+	out := make([]entGrant.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// GrantPageSize is what a request that did not say gets, and
+	// GrantPageLimit is the most it gets however loudly it asks.
+	GrantPageSize  = 100
+	GrantPageLimit = 500
+
+	// GrantFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	GrantFilterLimit = 32
+)
+
+// List answers with the Grants that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkGrant) List(ctx context.Context, req *levyan.GrantListRequest) (*levyan.GrantListResponse, error) {
+	q := s.store.Db.Grant.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.GrantNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > GrantFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), GrantFilterLimit)
+		}
+
+		ps := make([]predicate.Grant, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterGrant(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entGrant.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderGrant, afterGrant, nextGrant, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	q.WithWorkspace()
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), GrantPageSize, GrantPageLimit)
+	us, err := q.Order(orderByGrant(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Grant, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.GrantListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterGrant turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterGrant(f *levyan.GrantFilter) (predicate.Grant, error) {
+	ps := make([]predicate.Grant, 0, 1)
+	if f.HasRef() {
+		p, err := bare.GrantPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasWorkspace() {
+		w := f.GetWorkspace()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "workspace: %s", err)
+			}
+
+			ps = append(ps, entGrant.WorkspaceIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.WorkspacePick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entGrant.HasWorkspaceWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entGrant.And(ps...), nil
 }
 
 type sinkHolder struct {
@@ -4725,6 +5091,65 @@ func (s gateHolder) admit(ctx context.Context, req *levyan.HolderAddRequest) (*l
 	return req, nil
 }
 
+type gateGrant struct {
+	Gate
+	levyan.GrantServiceServer
+}
+
+func (s Gate) Grant() levyan.GrantServiceServer {
+	v := gateGrant{s, s.Next().Grant()}
+	v.GrantServiceServer = bare.GrantWithAddRule(v.GrantServiceServer, v.admit)
+	return v
+}
+
+// admit refuses a Grant put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Grant].
+func (s gateGrant) admit(ctx context.Context, req *levyan.GrantAddRequest) (*levyan.GrantAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 type gateMeter struct {
 	Gate
 	levyan.MeterServiceServer
@@ -5524,6 +5949,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedArchived.md, describedArchived.secret, describedArchived.personal
 	case AuditDomain:
 		return describedAudit.md, describedAudit.secret, describedAudit.personal
+	case GrantDomain:
+		return describedGrant.md, describedGrant.secret, describedGrant.personal
 	case HolderDomain:
 		return describedHolder.md, describedHolder.secret, describedHolder.personal
 	case MeterDomain:
@@ -5586,6 +6013,9 @@ var (
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedAudit = describe((*levyan.Audit)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
+	describedGrant = describe((*levyan.Grant)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedHolder = describe((*levyan.Holder)(nil),
@@ -5654,6 +6084,7 @@ func hidden(key pdid.Id, p *patchpb.Patch) *patchpb.Patch {
 func added(by string) bool {
 	switch by {
 	case levyan.AuditService_Add_FullMethodName,
+		levyan.GrantService_Add_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
 		levyan.MeterService_Add_FullMethodName,
 		levyan.OperatorService_Add_FullMethodName,
@@ -5726,6 +6157,33 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 		}
 
 		k, err := entuuid.FromBytes(row.GetTenantId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case GrantDomain:
+		row, ok := image.(*levyan.Grant)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
 		if err != nil {
 			return uuid.Nil(), nil, err
 		}
@@ -6055,6 +6513,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 	var vs []audit.Live
 	var err error
 	switch key.Domain() {
+	case GrantDomain:
+		vs, err = rowsGrant(ctx, s.Db, entGrant.IdEQ(uuid.UUID(key)))
 	case HolderDomain:
 		vs, err = rowsHolder(ctx, s.Db, entHolder.IdEQ(uuid.UUID(key)))
 	case MeterDomain:
@@ -6441,6 +6901,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 
 	out := audit.Rows{Skipped: []audit.Skipped{}}
+	if err := audit.CheckKind(ctx, d, checkedGrant(db), archived, &out); err != nil {
+		return out, fmt.Errorf("grant: %w", err)
+	}
 	if err := audit.CheckKind(ctx, d, checkedHolder(db), archived, &out); err != nil {
 		return out, fmt.Errorf("holder: %w", err)
 	}
@@ -6479,6 +6942,52 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 
 	return out, nil
+}
+
+// checkedGrant is what a check of the rows reads of the grant kind.
+func checkedGrant(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Grant) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsGrant(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: GrantDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entGrant.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entGrant.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, GrantDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsGrant(ctx, db, entGrant.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
 }
 
 // checkedHolder is what a check of the rows reads of the holder kind.
@@ -7045,6 +7554,26 @@ func checkedWorkspace(db *ent.Client) audit.Kind {
 	}
 }
 
+// rowsGrant is the rows `ps` says of the grant kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsGrant(ctx context.Context, db *ent.Client, ps ...predicate.Grant) ([]audit.Live, error) {
+	q := db.Grant.Query().Where(ps...)
+	bare.GrantSelectInit(q, nil)
+
+	vs, err := q.Order(entGrant.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // rowsHolder is the rows `ps` says of the holder kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -7508,6 +8037,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 		for page := range slices.Chunk(byKind[d], audit.RowsPage) {
 			var rows []audit.Live
 			switch d {
+			case GrantDomain:
+				rows, err = rowsGrant(ctx, db, entGrant.IdIn(uuids(page)...))
 			case HolderDomain:
 				rows, err = rowsHolder(ctx, db, entHolder.IdIn(uuids(page)...))
 			case MeterDomain:
@@ -7646,6 +8177,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 		var rows []audit.Live
 		var err error
 		switch d {
+		case GrantDomain:
+			rows, err = rowsGrant(ctx, s.db, entGrant.IdIn(uuids(ids)...))
 		case HolderDomain:
 			rows, err = rowsHolder(ctx, s.db, entHolder.IdIn(uuids(ids)...))
 		case MeterDomain:
@@ -7986,6 +8519,79 @@ func (s interceptTenant) List(ctx context.Context, req *levyan.TenantListRequest
 		levyan.TenantService_List_FullMethodName, req, s.TenantServiceServer.List)
 }
 
+func (s Intercept) Workspace() levyan.WorkspaceServiceServer {
+	return interceptWorkspace{s, s.Next().Workspace()}
+}
+
+type interceptWorkspace struct {
+	Intercept
+	levyan.WorkspaceServiceServer
+}
+
+func (s interceptWorkspace) Add(ctx context.Context, req *levyan.WorkspaceAddRequest) (*levyan.Workspace, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
+		levyan.WorkspaceService_Add_FullMethodName, req, s.WorkspaceServiceServer.Add)
+}
+
+func (s interceptWorkspace) Get(ctx context.Context, req *levyan.WorkspaceGetRequest) (*levyan.Workspace, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
+		levyan.WorkspaceService_Get_FullMethodName, req, s.WorkspaceServiceServer.Get)
+}
+
+func (s interceptWorkspace) Patch(ctx context.Context, req *levyan.WorkspacePatchRequest) (*levyan.Workspace, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
+		levyan.WorkspaceService_Patch_FullMethodName, req, s.WorkspaceServiceServer.Patch)
+}
+
+func (s interceptWorkspace) Apply(ctx context.Context, req *levyan.WorkspaceApplyRequest) (*levyan.Workspace, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
+		levyan.WorkspaceService_Apply_FullMethodName, req, s.WorkspaceServiceServer.Apply)
+}
+
+func (s interceptWorkspace) List(ctx context.Context, req *levyan.WorkspaceListRequest) (*levyan.WorkspaceListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
+		levyan.WorkspaceService_List_FullMethodName, req, s.WorkspaceServiceServer.List)
+}
+
+func (s Intercept) Grant() levyan.GrantServiceServer {
+	return interceptGrant{s, s.Next().Grant()}
+}
+
+type interceptGrant struct {
+	Intercept
+	levyan.GrantServiceServer
+}
+
+func (s interceptGrant) Add(ctx context.Context, req *levyan.GrantAddRequest) (*levyan.Grant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
+		levyan.GrantService_Add_FullMethodName, req, s.GrantServiceServer.Add)
+}
+
+func (s interceptGrant) Get(ctx context.Context, req *levyan.GrantGetRequest) (*levyan.Grant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
+		levyan.GrantService_Get_FullMethodName, req, s.GrantServiceServer.Get)
+}
+
+func (s interceptGrant) Patch(ctx context.Context, req *levyan.GrantPatchRequest) (*levyan.Grant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
+		levyan.GrantService_Patch_FullMethodName, req, s.GrantServiceServer.Patch)
+}
+
+func (s interceptGrant) Apply(ctx context.Context, req *levyan.GrantApplyRequest) (*levyan.Grant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
+		levyan.GrantService_Apply_FullMethodName, req, s.GrantServiceServer.Apply)
+}
+
+func (s interceptGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levyan.GrantEraseResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
+		levyan.GrantService_Erase_FullMethodName, req, s.GrantServiceServer.Erase)
+}
+
+func (s interceptGrant) List(ctx context.Context, req *levyan.GrantListRequest) (*levyan.GrantListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
+		levyan.GrantService_List_FullMethodName, req, s.GrantServiceServer.List)
+}
+
 func (s Intercept) Meter() levyan.MeterServiceServer {
 	return interceptMeter{s, s.Next().Meter()}
 }
@@ -8188,40 +8794,6 @@ func (s interceptPeriod) Apply(ctx context.Context, req *levyan.PeriodApplyReque
 func (s interceptPeriod) List(ctx context.Context, req *levyan.PeriodListRequest) (*levyan.PeriodListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.PeriodServiceServer,
 		levyan.PeriodService_List_FullMethodName, req, s.PeriodServiceServer.List)
-}
-
-func (s Intercept) Workspace() levyan.WorkspaceServiceServer {
-	return interceptWorkspace{s, s.Next().Workspace()}
-}
-
-type interceptWorkspace struct {
-	Intercept
-	levyan.WorkspaceServiceServer
-}
-
-func (s interceptWorkspace) Add(ctx context.Context, req *levyan.WorkspaceAddRequest) (*levyan.Workspace, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
-		levyan.WorkspaceService_Add_FullMethodName, req, s.WorkspaceServiceServer.Add)
-}
-
-func (s interceptWorkspace) Get(ctx context.Context, req *levyan.WorkspaceGetRequest) (*levyan.Workspace, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
-		levyan.WorkspaceService_Get_FullMethodName, req, s.WorkspaceServiceServer.Get)
-}
-
-func (s interceptWorkspace) Patch(ctx context.Context, req *levyan.WorkspacePatchRequest) (*levyan.Workspace, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
-		levyan.WorkspaceService_Patch_FullMethodName, req, s.WorkspaceServiceServer.Patch)
-}
-
-func (s interceptWorkspace) Apply(ctx context.Context, req *levyan.WorkspaceApplyRequest) (*levyan.Workspace, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
-		levyan.WorkspaceService_Apply_FullMethodName, req, s.WorkspaceServiceServer.Apply)
-}
-
-func (s interceptWorkspace) List(ctx context.Context, req *levyan.WorkspaceListRequest) (*levyan.WorkspaceListResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceServiceServer,
-		levyan.WorkspaceService_List_FullMethodName, req, s.WorkspaceServiceServer.List)
 }
 
 func (s Intercept) Series() levyan.SeriesServiceServer {
@@ -10114,6 +10686,28 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.TenantRef{}
 	case levyan.TenantService_List_FullMethodName:
 		v = &levyan.TenantListRequest{}
+	case levyan.WorkspaceService_Add_FullMethodName:
+		v = &levyan.WorkspaceAddRequest{}
+	case levyan.WorkspaceService_Get_FullMethodName:
+		v = &levyan.WorkspaceGetRequest{}
+	case levyan.WorkspaceService_Patch_FullMethodName:
+		v = &levyan.WorkspacePatchRequest{}
+	case levyan.WorkspaceService_Apply_FullMethodName:
+		v = &levyan.WorkspaceApplyRequest{}
+	case levyan.WorkspaceService_List_FullMethodName:
+		v = &levyan.WorkspaceListRequest{}
+	case levyan.GrantService_Add_FullMethodName:
+		v = &levyan.GrantAddRequest{}
+	case levyan.GrantService_Get_FullMethodName:
+		v = &levyan.GrantGetRequest{}
+	case levyan.GrantService_Patch_FullMethodName:
+		v = &levyan.GrantPatchRequest{}
+	case levyan.GrantService_Apply_FullMethodName:
+		v = &levyan.GrantApplyRequest{}
+	case levyan.GrantService_Erase_FullMethodName:
+		v = &levyan.GrantRef{}
+	case levyan.GrantService_List_FullMethodName:
+		v = &levyan.GrantListRequest{}
 	case levyan.MeterService_Add_FullMethodName:
 		v = &levyan.MeterAddRequest{}
 	case levyan.MeterService_Get_FullMethodName:
@@ -10156,16 +10750,6 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.PeriodApplyRequest{}
 	case levyan.PeriodService_List_FullMethodName:
 		v = &levyan.PeriodListRequest{}
-	case levyan.WorkspaceService_Add_FullMethodName:
-		v = &levyan.WorkspaceAddRequest{}
-	case levyan.WorkspaceService_Get_FullMethodName:
-		v = &levyan.WorkspaceGetRequest{}
-	case levyan.WorkspaceService_Patch_FullMethodName:
-		v = &levyan.WorkspacePatchRequest{}
-	case levyan.WorkspaceService_Apply_FullMethodName:
-		v = &levyan.WorkspaceApplyRequest{}
-	case levyan.WorkspaceService_List_FullMethodName:
-		v = &levyan.WorkspaceListRequest{}
 	case levyan.SeriesService_Add_FullMethodName:
 		v = &levyan.SeriesAddRequest{}
 	case levyan.SeriesService_Get_FullMethodName:
@@ -10256,6 +10840,28 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Tenant().Erase(ctx, v.(*levyan.TenantRef))
 	case levyan.TenantService_List_FullMethodName:
 		res, err = s.Tenant().List(ctx, v.(*levyan.TenantListRequest))
+	case levyan.WorkspaceService_Add_FullMethodName:
+		res, err = s.Workspace().Add(ctx, v.(*levyan.WorkspaceAddRequest))
+	case levyan.WorkspaceService_Get_FullMethodName:
+		res, err = s.Workspace().Get(ctx, v.(*levyan.WorkspaceGetRequest))
+	case levyan.WorkspaceService_Patch_FullMethodName:
+		res, err = s.Workspace().Patch(ctx, v.(*levyan.WorkspacePatchRequest))
+	case levyan.WorkspaceService_Apply_FullMethodName:
+		res, err = s.Workspace().Apply(ctx, v.(*levyan.WorkspaceApplyRequest))
+	case levyan.WorkspaceService_List_FullMethodName:
+		res, err = s.Workspace().List(ctx, v.(*levyan.WorkspaceListRequest))
+	case levyan.GrantService_Add_FullMethodName:
+		res, err = s.Grant().Add(ctx, v.(*levyan.GrantAddRequest))
+	case levyan.GrantService_Get_FullMethodName:
+		res, err = s.Grant().Get(ctx, v.(*levyan.GrantGetRequest))
+	case levyan.GrantService_Patch_FullMethodName:
+		res, err = s.Grant().Patch(ctx, v.(*levyan.GrantPatchRequest))
+	case levyan.GrantService_Apply_FullMethodName:
+		res, err = s.Grant().Apply(ctx, v.(*levyan.GrantApplyRequest))
+	case levyan.GrantService_Erase_FullMethodName:
+		res, err = s.Grant().Erase(ctx, v.(*levyan.GrantRef))
+	case levyan.GrantService_List_FullMethodName:
+		res, err = s.Grant().List(ctx, v.(*levyan.GrantListRequest))
 	case levyan.MeterService_Add_FullMethodName:
 		res, err = s.Meter().Add(ctx, v.(*levyan.MeterAddRequest))
 	case levyan.MeterService_Get_FullMethodName:
@@ -10298,16 +10904,6 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Period().Apply(ctx, v.(*levyan.PeriodApplyRequest))
 	case levyan.PeriodService_List_FullMethodName:
 		res, err = s.Period().List(ctx, v.(*levyan.PeriodListRequest))
-	case levyan.WorkspaceService_Add_FullMethodName:
-		res, err = s.Workspace().Add(ctx, v.(*levyan.WorkspaceAddRequest))
-	case levyan.WorkspaceService_Get_FullMethodName:
-		res, err = s.Workspace().Get(ctx, v.(*levyan.WorkspaceGetRequest))
-	case levyan.WorkspaceService_Patch_FullMethodName:
-		res, err = s.Workspace().Patch(ctx, v.(*levyan.WorkspacePatchRequest))
-	case levyan.WorkspaceService_Apply_FullMethodName:
-		res, err = s.Workspace().Apply(ctx, v.(*levyan.WorkspaceApplyRequest))
-	case levyan.WorkspaceService_List_FullMethodName:
-		res, err = s.Workspace().List(ctx, v.(*levyan.WorkspaceListRequest))
 	case levyan.SeriesService_Add_FullMethodName:
 		res, err = s.Series().Add(ctx, v.(*levyan.SeriesAddRequest))
 	case levyan.SeriesService_Get_FullMethodName:
@@ -10384,6 +10980,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Access{},
 		&levyan.Archived{},
 		&levyan.Audit{},
+		&levyan.Grant{},
 		&levyan.Holder{},
 		&levyan.Meter{},
 		&levyan.Operator{},
@@ -10493,6 +11090,49 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.Audit.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Grant:
+			ctx, err := read.Allow(ctx, levyan.GrantService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.GrantNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entGrant.Table, []resourcesql.Column{
+				{Number: 1, Name: entGrant.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entGrant.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entGrant.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 6, Name: entGrant.FieldDesc, Type: 9, Nullable: false, Key: 0},
+				{Number: 8, Name: entGrant.FieldKey, Type: 9, Nullable: false, Key: 0},
+				{Number: 9, Name: entGrant.FieldValue, Type: 14, Nullable: false, Key: 0},
+				{Number: 10, Name: entGrant.FieldLimit, Type: 3, Nullable: false, Key: 0},
+				{Number: 11, Name: entGrant.FieldValidFrom, Type: 65, Nullable: false, Key: 0},
+				{Number: 12, Name: entGrant.FieldValidUntil, Type: 65, Nullable: false, Key: 0},
+				{Number: 13, Name: entGrant.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entGrant.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entGrant.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+				{Number: 16, Name: entGrant.FieldVersion, Type: 4, Nullable: false, Key: 0},
+				{Number: 17, Name: entGrant.FieldSource, Type: 14, Nullable: false, Key: 0},
+				{Number: 18, Name: entGrant.FieldRule, Type: 9, Nullable: false, Key: 0},
+				{Number: 19, Name: entGrant.FieldRenews, Type: 8, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Grant.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -10975,6 +11615,14 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.AuditService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.GrantService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.GrantService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.GrantService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.GrantService_Erase_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_DELETED
 	case levyan.HolderService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.HolderService_Patch_FullMethodName:
@@ -11061,7 +11709,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.Holder", "levyan.Meter", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
+	case "levyan.Access", "levyan.Audit", "levyan.Grant", "levyan.Holder", "levyan.Meter", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
 	default:
 		return nil
 	}

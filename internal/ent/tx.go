@@ -18,6 +18,8 @@ type Tx struct {
 	Archived *ArchivedClient
 	// Audit is the client for interacting with the Audit builders.
 	Audit *AuditClient
+	// Grant is the client for interacting with the Grant builders.
+	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
 	Holder *HolderClient
 	// Meter is the client for interacting with the Meter builders.
@@ -182,6 +184,7 @@ func (tx *Tx) init() {
 	tx.Access = NewAccessClient(tx.config)
 	tx.Archived = NewArchivedClient(tx.config)
 	tx.Audit = NewAuditClient(tx.config)
+	tx.Grant = NewGrantClient(tx.config)
 	tx.Holder = NewHolderClient(tx.config)
 	tx.Meter = NewMeterClient(tx.config)
 	tx.Operator = NewOperatorClient(tx.config)

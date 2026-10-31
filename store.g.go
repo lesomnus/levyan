@@ -27,6 +27,8 @@ import (
 
 type Server interface {
 	Tenant() TenantServiceServer
+	Workspace() WorkspaceServiceServer
+	Grant() GrantServiceServer
 	Meter() MeterServiceServer
 	Operator() OperatorServiceServer
 	Access() AccessServiceServer
@@ -37,7 +39,6 @@ type Server interface {
 	Owed() OwedServiceServer
 	RowSeal() RowSealServiceServer
 	Period() PeriodServiceServer
-	Workspace() WorkspaceServiceServer
 	Series() SeriesServiceServer
 	Point() PointServiceServer
 	Price() PriceServiceServer
@@ -52,6 +53,8 @@ type Server interface {
 // server which is not gRPC's own can be handed the same set of services.
 func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterTenantServiceServer(g, s.Tenant())
+	RegisterWorkspaceServiceServer(g, s.Workspace())
+	RegisterGrantServiceServer(g, s.Grant())
 	RegisterMeterServiceServer(g, s.Meter())
 	RegisterOperatorServiceServer(g, s.Operator())
 	RegisterAccessServiceServer(g, s.Access())
@@ -62,7 +65,6 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterOwedServiceServer(g, s.Owed())
 	RegisterRowSealServiceServer(g, s.RowSeal())
 	RegisterPeriodServiceServer(g, s.Period())
-	RegisterWorkspaceServiceServer(g, s.Workspace())
 	RegisterSeriesServiceServer(g, s.Series())
 	RegisterPointServiceServer(g, s.Point())
 	RegisterPriceServiceServer(g, s.Price())
@@ -73,6 +75,8 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 
 type UnimplementedServer struct {
 	TenantServer     TenantServiceServer
+	WorkspaceServer  WorkspaceServiceServer
+	GrantServer      GrantServiceServer
 	MeterServer      MeterServiceServer
 	OperatorServer   OperatorServiceServer
 	AccessServer     AccessServiceServer
@@ -83,7 +87,6 @@ type UnimplementedServer struct {
 	OwedServer       OwedServiceServer
 	RowSealServer    RowSealServiceServer
 	PeriodServer     PeriodServiceServer
-	WorkspaceServer  WorkspaceServiceServer
 	SeriesServer     SeriesServiceServer
 	PointServer      PointServiceServer
 	PriceServer      PriceServiceServer
@@ -93,7 +96,11 @@ type UnimplementedServer struct {
 }
 
 func (UnimplementedServer) Tenant() TenantServiceServer { return UnimplementedTenantServiceServer{} }
-func (UnimplementedServer) Meter() MeterServiceServer   { return UnimplementedMeterServiceServer{} }
+func (UnimplementedServer) Workspace() WorkspaceServiceServer {
+	return UnimplementedWorkspaceServiceServer{}
+}
+func (UnimplementedServer) Grant() GrantServiceServer { return UnimplementedGrantServiceServer{} }
+func (UnimplementedServer) Meter() MeterServiceServer { return UnimplementedMeterServiceServer{} }
 func (UnimplementedServer) Operator() OperatorServiceServer {
 	return UnimplementedOperatorServiceServer{}
 }
@@ -107,9 +114,6 @@ func (UnimplementedServer) Outbox() OutboxServiceServer   { return Unimplemented
 func (UnimplementedServer) Owed() OwedServiceServer       { return UnimplementedOwedServiceServer{} }
 func (UnimplementedServer) RowSeal() RowSealServiceServer { return UnimplementedRowSealServiceServer{} }
 func (UnimplementedServer) Period() PeriodServiceServer   { return UnimplementedPeriodServiceServer{} }
-func (UnimplementedServer) Workspace() WorkspaceServiceServer {
-	return UnimplementedWorkspaceServiceServer{}
-}
 func (UnimplementedServer) Series() SeriesServiceServer   { return UnimplementedSeriesServiceServer{} }
 func (UnimplementedServer) Point() PointServiceServer     { return UnimplementedPointServiceServer{} }
 func (UnimplementedServer) Price() PriceServiceServer     { return UnimplementedPriceServiceServer{} }
@@ -123,6 +127,8 @@ func (UnimplementedServer) Statement() StatementServiceServer {
 
 type StaticServer struct {
 	TenantServer     TenantServiceServer
+	WorkspaceServer  WorkspaceServiceServer
+	GrantServer      GrantServiceServer
 	MeterServer      MeterServiceServer
 	OperatorServer   OperatorServiceServer
 	AccessServer     AccessServiceServer
@@ -133,7 +139,6 @@ type StaticServer struct {
 	OwedServer       OwedServiceServer
 	RowSealServer    RowSealServiceServer
 	PeriodServer     PeriodServiceServer
-	WorkspaceServer  WorkspaceServiceServer
 	SeriesServer     SeriesServiceServer
 	PointServer      PointServiceServer
 	PriceServer      PriceServiceServer
@@ -143,6 +148,8 @@ type StaticServer struct {
 }
 
 func (s StaticServer) Tenant() TenantServiceServer         { return s.TenantServer }
+func (s StaticServer) Workspace() WorkspaceServiceServer   { return s.WorkspaceServer }
+func (s StaticServer) Grant() GrantServiceServer           { return s.GrantServer }
 func (s StaticServer) Meter() MeterServiceServer           { return s.MeterServer }
 func (s StaticServer) Operator() OperatorServiceServer     { return s.OperatorServer }
 func (s StaticServer) Access() AccessServiceServer         { return s.AccessServer }
@@ -153,7 +160,6 @@ func (s StaticServer) Outbox() OutboxServiceServer         { return s.OutboxServ
 func (s StaticServer) Owed() OwedServiceServer             { return s.OwedServer }
 func (s StaticServer) RowSeal() RowSealServiceServer       { return s.RowSealServer }
 func (s StaticServer) Period() PeriodServiceServer         { return s.PeriodServer }
-func (s StaticServer) Workspace() WorkspaceServiceServer   { return s.WorkspaceServer }
 func (s StaticServer) Series() SeriesServiceServer         { return s.SeriesServer }
 func (s StaticServer) Point() PointServiceServer           { return s.PointServer }
 func (s StaticServer) Price() PriceServiceServer           { return s.PriceServer }
@@ -163,6 +169,8 @@ func (s StaticServer) Statement() StatementServiceServer   { return s.StatementS
 
 type Client interface {
 	Tenant() TenantServiceClient
+	Workspace() WorkspaceServiceClient
+	Grant() GrantServiceClient
 	Meter() MeterServiceClient
 	Operator() OperatorServiceClient
 	Access() AccessServiceClient
@@ -173,7 +181,6 @@ type Client interface {
 	Owed() OwedServiceClient
 	RowSeal() RowSealServiceClient
 	Period() PeriodServiceClient
-	Workspace() WorkspaceServiceClient
 	Series() SeriesServiceClient
 	Point() PointServiceClient
 	Price() PriceServiceClient
@@ -185,6 +192,8 @@ type Client interface {
 func NewClient(c *grpc.ClientConn) Client {
 	return &client{
 		_Tenant:     NewTenantServiceClient(c),
+		_Workspace:  NewWorkspaceServiceClient(c),
+		_Grant:      NewGrantServiceClient(c),
 		_Meter:      NewMeterServiceClient(c),
 		_Operator:   NewOperatorServiceClient(c),
 		_Access:     NewAccessServiceClient(c),
@@ -195,7 +204,6 @@ func NewClient(c *grpc.ClientConn) Client {
 		_Owed:       NewOwedServiceClient(c),
 		_RowSeal:    NewRowSealServiceClient(c),
 		_Period:     NewPeriodServiceClient(c),
-		_Workspace:  NewWorkspaceServiceClient(c),
 		_Series:     NewSeriesServiceClient(c),
 		_Point:      NewPointServiceClient(c),
 		_Price:      NewPriceServiceClient(c),
@@ -207,6 +215,8 @@ func NewClient(c *grpc.ClientConn) Client {
 
 type client struct {
 	_Tenant     TenantServiceClient
+	_Workspace  WorkspaceServiceClient
+	_Grant      GrantServiceClient
 	_Meter      MeterServiceClient
 	_Operator   OperatorServiceClient
 	_Access     AccessServiceClient
@@ -217,7 +227,6 @@ type client struct {
 	_Owed       OwedServiceClient
 	_RowSeal    RowSealServiceClient
 	_Period     PeriodServiceClient
-	_Workspace  WorkspaceServiceClient
 	_Series     SeriesServiceClient
 	_Point      PointServiceClient
 	_Price      PriceServiceClient
@@ -227,6 +236,8 @@ type client struct {
 }
 
 func (c *client) Tenant() TenantServiceClient         { return c._Tenant }
+func (c *client) Workspace() WorkspaceServiceClient   { return c._Workspace }
+func (c *client) Grant() GrantServiceClient           { return c._Grant }
 func (c *client) Meter() MeterServiceClient           { return c._Meter }
 func (c *client) Operator() OperatorServiceClient     { return c._Operator }
 func (c *client) Access() AccessServiceClient         { return c._Access }
@@ -237,7 +248,6 @@ func (c *client) Outbox() OutboxServiceClient         { return c._Outbox }
 func (c *client) Owed() OwedServiceClient             { return c._Owed }
 func (c *client) RowSeal() RowSealServiceClient       { return c._RowSeal }
 func (c *client) Period() PeriodServiceClient         { return c._Period }
-func (c *client) Workspace() WorkspaceServiceClient   { return c._Workspace }
 func (c *client) Series() SeriesServiceClient         { return c._Series }
 func (c *client) Point() PointServiceClient           { return c._Point }
 func (c *client) Price() PriceServiceClient           { return c._Price }

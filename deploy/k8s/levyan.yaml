@@ -1,0 +1,186 @@
+# levyan in one pod: the server products call, the operator's entry point
+# beside it, and the migration that runs before either. README.md says what a
+# deployment brings to it.
+#
+# No volumes of its own: what levyan keeps is in its database. A deployment
+# that gives the trail an archive (`audit.archive`, levyan.yaml) mounts one
+# from its overlay.
+
+# What products call: gRPC on 50051, readings and the price book and the
+# statements, and OTLP for the flows -- one port, one door. The operator's
+# entry point has no Service at all.
+apiVersion: v1
+kind: Service
+metadata:
+  name: levyan
+  labels:
+    app.kubernetes.io/name: levyan
+spec:
+  selector:
+    app.kubernetes.io/name: levyan
+    app.kubernetes.io/component: server
+  ports:
+    - { name: grpc, port: 50051, targetPort: grpc, appProtocol: grpc }
+---
+# What reaches the pod over the network: gRPC, and nothing else -- not the
+# operator's entry point, which `kubectl port-forward` or `kubectl exec`
+# reaches without the network (README.md).
+#
+# From anywhere, here. An overlay narrows `from` to the products that call
+# levyan, and has to: a key is what a product is known by, and the network is
+# the second wall in front of it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: levyan
+  labels:
+    app.kubernetes.io/name: levyan
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: levyan
+      app.kubernetes.io/component: server
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - { port: grpc }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: levyan
+  labels:
+    app.kubernetes.io/name: levyan
+    app.kubernetes.io/component: server
+spec:
+  # One, and replaced rather than rolled: the pod before is gone before this
+  # one migrates, so no build serves a schema it did not expect.
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: levyan
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: levyan
+        app.kubernetes.io/component: server
+    spec:
+      # Nothing here asks the Kubernetes API.
+      automountServiceAccountToken: false
+      # **No service-link variables.** Kubernetes hands every process one set
+      # per Service in the namespace, named for the Service -- and a Service
+      # called `levyan` makes them `LEVYAN_PORT`, `LEVYAN_SERVICE_HOST`: the
+      # prefix this reads its configuration from.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+
+      # The tables brought into this build's shape, before anything serves.
+      # The digest's key beside it: a row a migration rewrites beneath the
+      # servers is put on the trail with it.
+      initContainers:
+        - name: migrate
+          image: ghcr.io/lesomnus/levyan
+          args: ["--config", "/etc/levyan/levyan.yaml", "migrate"]
+          env:
+            - name: LEVYAN_DB_DSN
+              valueFrom: { secretKeyRef: { name: levyan, key: db-dsn } }
+            # The file is read whole, and an `${env:...}` it names that is not
+            # set is refused -- so the node's address is here too, though the
+            # migration sends nothing.
+            - name: HOST_IP
+              valueFrom: { fieldRef: { fieldPath: status.hostIP } }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: config, mountPath: /etc/levyan, readOnly: true }
+            - { name: keys, mountPath: /run/secrets/levyan, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+
+      containers:
+        - name: levyan
+          image: ghcr.io/lesomnus/levyan
+          args: ["--config", "/etc/levyan/levyan.yaml", "serve"]
+          env:
+            - name: LEVYAN_DB_DSN
+              valueFrom: { secretKeyRef: { name: levyan, key: db-dsn } }
+            # The node's address, for a collector on every node: what `otel:`
+            # names as ${env:HOST_IP}.
+            - name: HOST_IP
+              valueFrom: { fieldRef: { fieldPath: status.hostIP } }
+          ports:
+            - { name: grpc, containerPort: 50051 }
+          # Listening: levyan serves no health service, and its every RPC asks
+          # for a key.
+          readinessProbe:
+            tcpSocket: { port: grpc }
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: grpc }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: config, mountPath: /etc/levyan, readOnly: true }
+            - { name: keys, mountPath: /run/secrets/levyan, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+
+        # The operator's entry point, in the same pod as the server it stands
+        # beside. The operators' keys are mounted in it and in nothing else.
+        - name: levyan-admin
+          image: ghcr.io/lesomnus/levyan
+          command: ["/usr/local/bin/levyan-admin"]
+          args: ["--config", "/etc/levyan/levyan.yaml", "serve"]
+          env:
+            - name: LEVYAN_DB_DSN
+              valueFrom: { secretKeyRef: { name: levyan, key: db-dsn } }
+            - name: HOST_IP
+              valueFrom: { fieldRef: { fieldPath: status.hostIP } }
+          ports:
+            - { name: admin, containerPort: 8081 }
+          # Listening, which is all that can be asked of it without a key.
+          readinessProbe:
+            tcpSocket: { port: admin }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: config, mountPath: /etc/levyan, readOnly: true }
+            - { name: keys, mountPath: /run/secrets/levyan, readOnly: true }
+            - { name: operators, mountPath: /run/secrets/levyan-admin, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+
+      volumes:
+        - name: config
+          configMap: { name: levyan }
+        # The key the trail's rows are digested with, `digest.key`.
+        - name: keys
+          secret: { secretName: levyan-keys, defaultMode: 288 } # 0440: the pod's group reads it
+        # A file per operator, named as `admin.keys` names them.
+        - name: operators
+          secret: { secretName: levyan-admin, defaultMode: 288 }
+        # Somewhere writable, since the root is not.
+        - name: tmp
+          emptyDir: {}

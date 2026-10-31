@@ -1,0 +1,54 @@
+# What every process in the pod is told (`--config`), beside what is secret,
+# which is in the Secrets README.md names. A LEVYAN_* variable beats what is
+# written here. An overlay replaces this file with its own, starting from this
+# one.
+
+db:
+  driver: pgx
+  # dsn: LEVYAN_DB_DSN, from the Secret `levyan`.
+  #
+  # The init container brings the tables along (`levyan migrate`) before the
+  # pod serves; what serves only checks them.
+  migrate: false
+
+server:
+  # What products call, with their keys: gRPC, which the NetworkPolicy lets
+  # through and an overlay narrows to the products.
+  addr: ":50051"
+
+# Two processes in the pod, the server and the operator's entry point, so the
+# database is where they meet: each loop runs in one of them.
+watch:
+  broker: postgres
+spin:
+  lease: postgres
+
+# The trail digests every row it records with this key, so that a row written
+# past the servers is found (`levyan trail rows`). Keep it with the backups,
+# apart from the database's.
+#
+# How long the trail keeps a row is not said here: with no window it is kept
+# whole, which suits a record of money until the deployment decides its
+# retention (levyan.yaml says what each setting means).
+audit:
+  digest:
+    key: /run/secrets/levyan/digest.key
+
+# The operator's entry point (`levyan-admin serve`): every interface of the pod,
+# so that the probe beside it can reach it, and nothing over the network, which
+# the NetworkPolicy refuses. A file per operator in the Secret `levyan-admin`.
+admin:
+  addr: 0.0.0.0:8081
+  keys:
+    operator: "${file:/run/secrets/levyan-admin/operator}"
+
+# Telemetry to a collector on each node, as a deployment has one:
+#
+# otel:
+#   exporters:
+#     otlp:
+#       endpoint: http://${env:HOST_IP}:4317
+#   providers:
+#     tracer: { processors: [resource/levyan], exporters: [otlp] }
+#     meter: { processors: [resource/levyan], exporters: [otlp] }
+#     logger: { processors: [resource/levyan], exporters: [otlp, pretty] }

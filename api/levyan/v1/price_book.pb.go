@@ -144,6 +144,8 @@ const (
 	Channel_CHANNEL_MOR Channel = 1
 	// A Korean payment gateway.
 	Channel_CHANNEL_PG_KR Channel = 2
+	// A bank transfer in Korea, with a tax invoice.
+	Channel_CHANNEL_BANK_KR Channel = 3
 )
 
 // Enum value maps for Channel.
@@ -152,11 +154,13 @@ var (
 		0: "CHANNEL_UNSPECIFIED",
 		1: "CHANNEL_MOR",
 		2: "CHANNEL_PG_KR",
+		3: "CHANNEL_BANK_KR",
 	}
 	Channel_value = map[string]int32{
 		"CHANNEL_UNSPECIFIED": 0,
 		"CHANNEL_MOR":         1,
 		"CHANNEL_PG_KR":       2,
+		"CHANNEL_BANK_KR":     3,
 	}
 )
 
@@ -1376,11 +1380,12 @@ const file_levyan_v1_price_book_proto_rawDesc = "" +
 	"!AGGREGATION_TIME_WEIGHTED_AVERAGE\x10\x01\x12\x13\n" +
 	"\x0fAGGREGATION_MAX\x10\x02\x12\x14\n" +
 	"\x10AGGREGATION_LAST\x10\x03\x12\x13\n" +
-	"\x0fAGGREGATION_SUM\x10\x04*F\n" +
+	"\x0fAGGREGATION_SUM\x10\x04*[\n" +
 	"\aChannel\x12\x17\n" +
 	"\x13CHANNEL_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vCHANNEL_MOR\x10\x01\x12\x11\n" +
-	"\rCHANNEL_PG_KR\x10\x022\xf3\x01\n" +
+	"\rCHANNEL_PG_KR\x10\x02\x12\x13\n" +
+	"\x0fCHANNEL_BANK_KR\x10\x032\xf3\x01\n" +
 	"\x10PriceBookService\x12I\n" +
 	"\n" +
 	"GetProduct\x12\x1c.levyan.v1.GetProductRequest\x1a\x1d.levyan.v1.GetProductResponse\x12I\n" +

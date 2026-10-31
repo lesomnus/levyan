@@ -36,6 +36,12 @@ const (
 	// A Korean payment gateway: levyan is the seller, and charges the card
 	// itself.
 	Channel_CHANNEL_PG_KR Channel = 2
+	// A bank transfer in Korea, with a tax invoice: levyan is the seller, an
+	// institution pays what its invoice says by transfer, and an operator
+	// records the transfer (#9). Its billing accounts are opened by an
+	// operator, after a contract, and never by an account itself: paying
+	// after the fact is credit.
+	Channel_CHANNEL_BANK_KR Channel = 3
 )
 
 // Enum value maps for Channel.
@@ -44,11 +50,13 @@ var (
 		0: "CHANNEL_UNSPECIFIED",
 		1: "CHANNEL_MOR",
 		2: "CHANNEL_PG_KR",
+		3: "CHANNEL_BANK_KR",
 	}
 	Channel_value = map[string]int32{
 		"CHANNEL_UNSPECIFIED": 0,
 		"CHANNEL_MOR":         1,
 		"CHANNEL_PG_KR":       2,
+		"CHANNEL_BANK_KR":     3,
 	}
 )
 
@@ -642,11 +650,12 @@ const file_levyan_price_proto_rawDesc = "" +
 	"\x05bands\x18\x01 \x03(\v2\x11.levyan.PriceBandR\x05bands\"9\n" +
 	"\tPriceBand\x12\x1a\n" +
 	"\x05up_to\x18\x01 \x01(\x03B\x05\xaa\x01\x02\b\x01R\x04upTo\x12\x10\n" +
-	"\x03fee\x18\x02 \x01(\x03R\x03fee*F\n" +
+	"\x03fee\x18\x02 \x01(\x03R\x03fee*[\n" +
 	"\aChannel\x12\x17\n" +
 	"\x13CHANNEL_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vCHANNEL_MOR\x10\x01\x12\x11\n" +
-	"\rCHANNEL_PG_KR\x10\x02B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
+	"\rCHANNEL_PG_KR\x10\x02\x12\x13\n" +
+	"\x0fCHANNEL_BANK_KR\x10\x03B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_price_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_levyan_price_proto_msgTypes = make([]protoimpl.MessageInfo, 3)

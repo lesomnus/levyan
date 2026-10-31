@@ -1,0 +1,123 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/service_key.proto";
+import "patch/patch.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service ServiceKeyService {
+  // Add creates a new ServiceKey
+  rpc Add(ServiceKeyAddRequest) returns (ServiceKey);
+  // Get retrieves a ServiceKey
+  rpc Get(ServiceKeyGetRequest) returns (ServiceKey);
+  // Patch updates an existing ServiceKey
+  rpc Patch(ServiceKeyPatchRequest) returns (ServiceKey);
+  // Apply applies a patch document to an existing ServiceKey
+  rpc Apply(ServiceKeyApplyRequest) returns (ServiceKey);
+  // Erase deletes a ServiceKey
+  rpc Erase(ServiceKeyRef) returns (ServiceKeyEraseResponse);
+  // List reads ServiceKeys a page at a time.
+  rpc List(ServiceKeyListRequest) returns (ServiceKeyListResponse);
+}
+
+message ServiceKeyAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  string alias = 4 [features.field_presence = IMPLICIT];
+  string desc = 6 [features.field_presence = IMPLICIT];
+  bytes secret = 8 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_expires = 9;
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message ServiceKeyGetRequest {
+  ServiceKeyRef ref = 1;
+  ServiceKeySelect select = 2;
+}
+
+message ServiceKeyRef {
+  oneof key {
+    bytes id = 1;
+    ServiceKeyRefBySlug slug = 4;
+    bytes secret = 8;
+  }
+}
+
+message ServiceKeyRefBySlug {
+  string alias = 4;
+  TenantRef tenant = 2;
+}
+
+message ServiceKeySelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  bool alias = 4;
+  bool desc = 6;
+  bool secret = 8;
+  bool date_expires = 9;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message ServiceKeyPatchRequest {
+  ServiceKeyRef ref = 1;
+  string alias = 8;
+  string desc = 12;
+}
+
+message ServiceKeyApplyRequest {
+  ServiceKeyRef ref = 1;
+  patch.Patch patch = 2;
+}
+
+message ServiceKeyEraseResponse {
+  // Erased is whether this call is the one that erased the row.
+  //
+  // False for a row that was already gone, was never there, or is out
+  // of this caller's reach -- which are one answer on purpose, and the
+  // reason the RPC does not fail instead.
+  bool erased = 1;
+}
+
+message ServiceKeyListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated ServiceKeyFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message ServiceKeyListResponse {
+  repeated ServiceKey items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message ServiceKeyFilter {
+  ServiceKeyRef ref = 1;
+}

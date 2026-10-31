@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: app/payday/audit_svc.g.proto
+// source: levyan/payday/audit_svc.g.proto
 
 package levyan
 
@@ -19,12 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuditService_Add_FullMethodName   = "/app.AuditService/Add"
-	AuditService_Get_FullMethodName   = "/app.AuditService/Get"
-	AuditService_Patch_FullMethodName = "/app.AuditService/Patch"
-	AuditService_Apply_FullMethodName = "/app.AuditService/Apply"
-	AuditService_Erase_FullMethodName = "/app.AuditService/Erase"
-	AuditService_List_FullMethodName  = "/app.AuditService/List"
+	AuditService_Add_FullMethodName   = "/levyan.AuditService/Add"
+	AuditService_Get_FullMethodName   = "/levyan.AuditService/Get"
+	AuditService_Patch_FullMethodName = "/levyan.AuditService/Patch"
+	AuditService_Apply_FullMethodName = "/levyan.AuditService/Apply"
+	AuditService_Erase_FullMethodName = "/levyan.AuditService/Erase"
+	AuditService_List_FullMethodName  = "/levyan.AuditService/List"
 )
 
 // AuditServiceClient is the client API for AuditService service.
@@ -290,7 +290,7 @@ func _AuditService_List_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuditService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "app.AuditService",
+	ServiceName: "levyan.AuditService",
 	HandlerType: (*AuditServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -319,5 +319,5 @@ var AuditService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "app/payday/audit_svc.g.proto",
+	Metadata: "levyan/payday/audit_svc.g.proto",
 }

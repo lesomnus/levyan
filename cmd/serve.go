@@ -25,9 +25,11 @@ import (
 	"github.com/lesomnus/payday/watch"
 	"github.com/lesomnus/payday/web"
 
-	app "github.com/lesomnus/levyan"
+	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/bare"
+	"github.com/lesomnus/levyan/server/book"
+	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/pd"
 )
 
@@ -43,51 +45,41 @@ type Server struct {
 	Drv dialect.Driver
 
 	// Dialect is what that driver speaks, which `Open` worked out and nothing
-	// else can. It is kept because the guard below needs it, and re-deriving it
-	// from the configuration would be a second answer to a question already
-	// answered.
+	// else can.
 	Dialect string
 
+	// Clock is the deployment's time: every stamp the servers write, and what
+	// the price book holds a version's dates to (`server/book`). One clock, so
+	// that a version published "now" is effective at the moment it says it was
+	// published.
+	Clock func() time.Time
+
 	// Watch is what a change is published to once the call that made it has
-	// answered. The broker is named rather than defaulted: the one that
-	// publishes in this process is right for one replica and **silently wrong**
-	// for two, since a subscriber on one never hears about a write on another.
+	// answered.
 	Watch *watch.Watch
 
 	// Walled is what a caller reaches, and Ungated is what the deployment does
-	// its own work through -- putting the first tenant there, working out who
-	// is calling. Neither is a privilege anybody holds: the second is a server
-	// instance somebody was handed, so going around the wall is a line of
-	// wiring a reader can find rather than a rule that opens up whenever
-	// nobody is asking.
-	Walled  app.Server
-	Ungated app.Server
+	// its own work through -- working out who is calling, and what an operator
+	// asks of it through `levyan-admin serve`. Neither is a privilege anybody
+	// holds: the second is a server instance somebody was handed, so going
+	// around the wall is a line of wiring a reader can find rather than a rule
+	// that opens up whenever nobody is asking.
+	Walled  levyan.Server
+	Ungated levyan.Server
 
-	// Auth is how a credential is read, and nothing that faces anybody is
-	// [auth.Plain] -- which believes what the caller writes about themselves.
-	// Replacing it is the first thing this app has to do that payday cannot do
-	// for it.
-	//
-	// It is set after [Build] rather than being one of its arguments, because
-	// what reads a credential is often built from what [Build] made: a session
-	// handler needs a store, and a store is a table in this database.
-	Auth auth.Handler
-
-	// Policy is what a caller may do and which tenants they may see, and nil is
-	// the answer payday gives on its own: their own tenant and nothing more.
-	//
-	// A field beside [Server.Auth] because they are the pair -- who is calling,
-	// and what that means here -- and because the two places it has to be
-	// installed are not one place. `gate.Interceptor` covers the calls gRPC
-	// dispatches; `c.Server.Guard` covers the operations inside a batch, which
-	// arrive as one method carrying many and would otherwise be authorised as
-	// the batch rather than as themselves.
-	//
-	// It is what a second binary is built from. A deployment that wants an
-	// operator's path serves this app again with a policy that answers
-	// differently, on an address only an operator can reach, rather than
-	// putting a rule in here that says some row is special.
+	// Auth is how a credential is read, and Policy is what its caller may do
+	// and which tenants they may see. Both are the door a binary puts on the
+	// server, and so are its own to set after [Build]: `levyan serve` takes
+	// products by their keys (`cli.Front`), and the operator's binary serves
+	// no gRPC at all. [Server.Grpc] refuses to serve without both, rather
+	// than believing what a caller writes about itself (`auth.Plain`) or
+	// letting every caller do everything in its own tenant (a nil policy).
+	Auth   auth.Handler
 	Policy gate.Policy
+
+	// Register is what else the binary serves beside the generated services,
+	// on the same server and behind the same chain: `levyan.v1`, for one.
+	Register []func(grpc.ServiceRegistrar)
 
 	// Access is the access record's writer (payday#111): what a read's row
 	// waits in to be written with the others of its second, and what writes a
@@ -96,14 +88,13 @@ type Server struct {
 	Access *access.Writer
 
 	// Downloads are the methods that hand personal data out to be kept
-	// somewhere else -- an export, a file -- which say what for or are
-	// refused; see `access.Config.Downloads`. Which they are is the app's to
-	// know.
+	// somewhere else, which say what for or are refused. levyan has none yet.
 	Downloads []string
 
-	// Spin is whatever this deployment has to run besides answering requests.
-	// It is a slice rather than a method because a server with nothing to run
-	// should write nothing at all; see `payday/spin`.
+	// Spin is whatever this deployment has to run besides answering requests,
+	// each a loop with a name of its own (`spin.Called`), run under
+	// `spin.lease` by the serve command: in one process of the deployment, but
+	// for what each process runs for itself (`spin.InEveryProcess`).
 	Spin []any
 }
 
@@ -125,14 +116,6 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	drv := entsql.OpenDB(dialect, db)
 	client := ent.NewClient(ent.Driver(drv))
 
-	// The server that talks to the database, twice: once as it is, and once
-	// with the wall on it.
-	//
-	// Two things are said to it rather than to the stack, and for the same
-	// reason -- both are about the statement that runs. The trail is kept by
-	// the servers that do the writing, since every RPC that changes anything
-	// has to report itself from inside the transaction that changes it. The
-	// wall is a predicate and a predicate belongs in the WHERE.
 	b, err := c.Watch.Build(ctx, c.Db)
 	if err != nil {
 		db.Close()
@@ -141,31 +124,25 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 
 	w := watch.New(b)
 
-	// The recorders, in the order they are told. The trail is required -- a
-	// write it could not account for is undone -- and the rest say for
-	// themselves whether they are; see `bare.Recorders`.
-	// Every write is told to these, in this order, inside the transaction that
-	// makes it. It is one value rather than the option given three times
-	// because `WithRecorder` refuses to be given twice: neither losing one nor
-	// quietly appending in call order is a thing a framework should decide, so
-	// the order is written here where it can be read.
-	// What the trail keeps of each kind's writes is the deployment's to say,
-	// `audit.content` -- read here, where the trail is wired, so that a
-	// setting nobody handed over is not a setting that does nothing.
+	// The recorders, in the order they are told, inside the transaction that
+	// makes each write. The trail is required -- a write it could not account
+	// for is undone -- and what it keeps of each kind's writes is the
+	// deployment's to say, `audit.content`, read here where the trail is
+	// wired. The access record's is last: what it writes at the commit is of
+	// the data the call's writes wrote, so it is told of each and writes once.
 	content, err := c.Audit.Contents()
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
-	// The access record's is last: what it writes at the commit is of the
-	// data the call's writes wrote, so it is told of each and writes once.
 	rec := bare.Recorders{
 		pd.Recorder(content),
 		pd.ResourceRecorder(w, c.Watch.Outbox, nil, resource.RecorderOptions{}),
 		pd.AccessRecorder(),
 	}
 
-	opts := []bare.Option{bare.WithMinter(pd.Minter()), bare.WithRecorder(rec)}
+	clock := time.Now
+	opts := []bare.Option{bare.WithMinter(pd.Minter()), bare.WithRecorder(rec), bare.WithClock(clock)}
 
 	sink, err := pd.NewSink(client, opts...)
 	if err != nil {
@@ -179,69 +156,60 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		return nil, err
 	}
 
-	// The stack a caller reaches. `pd.Gate` is outermost, so nothing behind it
-	// asks again.
-	stacked, err := app.Build(walled.WithWatch(w), pd.AuditBuild(), pd.GateBuild())
+	// The stack a caller reaches. The price book's rules (`server/book`) are
+	// behind the gate, so that what they read of a row is what the gate has
+	// already let the caller name; `pd.Gate` is outermost, so nothing behind
+	// it asks again. A key's verifier is cleared on the way out of both
+	// (`pd.Secret`), so that nothing answers with it.
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
 
 	// And the same servers with no wall and no gate, which is what the
-	// deployment does its own work through. It is not a privilege anybody
-	// holds: it is an instance somebody was handed, so going around the wall
-	// is a line of wiring a reader can find rather than a rule that opens up
-	// whenever nobody is asking.
-	ungated, err := app.Build(sink.WithWatch(w), pd.AuditBuild())
+	// deployment does its own work through -- the same rules of the price
+	// book on it, since an operator's price is held to them as a product's
+	// would be. It still keeps the trail: going around the wall is not going
+	// around the record of having done so.
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock))
 	if err != nil {
 		db.Close()
 		return nil, err
 	}
 
-	s := &Server{Db: db, Ent: client, Drv: drv, Dialect: dialect, Watch: w, Walled: stacked, Ungated: ungated}
+	s := &Server{Db: db, Ent: client, Drv: drv, Dialect: dialect, Clock: clock, Watch: w, Walled: stacked, Ungated: ungated}
 
 	// The access record's reads are written a second at a time, by a loop of
-	// each process's own that writes what it holds once more as it stops.
+	// each process's own (`payday.access`) that writes what it holds once
+	// more as it stops.
 	s.Access = &access.Writer{Sink: pd.AccessSink(client)}
 	s.Spin = append(s.Spin, s.Access)
 
 	if c.Watch.Outbox && b != nil {
-		// The loop that makes an event durable. It is not a layer and not a
-		// method on any server -- `spin.Run` finds it in whatever is handed
-		// over, which is what keeps a server that has no background work from
-		// carrying an empty method saying so.
+		// The loop that makes an event durable.
 		s.Spin = append(s.Spin, pd.Drain(client, b, c.Watch.Every()))
 	}
 
 	// And the trail's retention, which is the one loop here that is a
 	// **mechanism** rather than a tidy-up: nothing else applies a window, so an
 	// outage of it is a deployment keeping records it said it would not.
-	//
-	// The policy is resolved and checked **here**, where a refusal stops the
-	// process, rather than at the first pass a day later -- a `retain` with
-	// nowhere to put what leaves it is a configuration that works and destroys
-	// the evidence.
-	//
-	// Configured nowhere, this does nothing and the trail is kept forever. That
-	// is the default because the alternative is a version upgrade deciding how
-	// long somebody's evidence lasts; see `audit:` in the configuration file.
+	// Resolved and checked here, where a refusal stops the process. Configured
+	// nowhere, it does nothing and the trail is kept forever -- which a billing
+	// service's trail, the evidence of what it charged, is until somebody who
+	// knows what it is regulated as says otherwise.
 	p, err := c.Audit.Policy()
 	if err != nil {
 		db.Close()
-
 		return nil, err
 	}
 
-	// And the turns a pass takes with whatever erases from the trail -- a
-	// person forgotten, a tenant leaving -- on the deployment's lease
-	// (`trail.Policy.Lease`), so that neither undoes the other. Its own, and
-	// not the one the loops are run under: a loop's lease is which process
-	// runs it, and the trail's turn is a lock any process takes for a moment.
-	// A process that runs no loops (`none`) has nothing to take turns on.
+	// The trail's turns with whatever erases from it, on the deployment's
+	// lease, so that neither undoes the other. A process that runs no loops
+	// (`none`) has nothing to take turns on.
 	if c.Spin.Lease != "" && c.Spin.Lease != config.LeaseNone {
 		if p.Lease, err = c.Spin.Build(ctx, c.Db); err != nil {
 			db.Close()
-
 			return nil, err
 		}
 	}
@@ -256,33 +224,28 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 
 func (s *Server) Close() error { return s.Db.Close() }
 
-// Grpc builds the server every call arrives at.
+// Grpc builds the server every call arrives at, with the door the binary put
+// on it ([Server.Auth], [Server.Policy]).
 //
 // The chain is payday's and the order is this app's to read: what records a
 // call is outside everything, then the recovery, then the deadline a call that
-// named none is given, then how often one caller may ask, then what is closed
-// to callers entirely.
-//
-// It is separate from [Server.Serve] so that a test can travel exactly this
-// and answer on a listener that is a channel; see pdtest.
+// named none is given, then who is calling, how often one caller may ask, the
+// access record, what this caller may do, and what is closed to callers
+// entirely.
 func (s *Server) Grpc(ctx context.Context, c Config, opts ...grpc.ServerOption) (*grpc.Server, error) {
-	// Who is calling comes first, since everything after it reads the frame.
-	// `Plain` believes what the caller writes, which is right for a sandbox
-	// and for tests and is not something to serve where anyone can reach it.
-	//
-	// [Server.Auth] replaces it, which is how this app reads something else --
-	// a certificate, a token, a session cookie. It is a field rather than a
-	// configuration setting for the reason payday suggests two deployments
-	// rather than a flag: a mistake in a YAML file must not be able to turn
-	// authentication off.
-	h := s.Auth
-	if h == nil {
-		h = auth.Plain()
+	if s.Auth == nil || s.Policy == nil {
+		return nil, errors.New("cmd: nothing says who is calling and what they may do here (Server.Auth, Server.Policy), and a server is not served open")
 	}
 
+	// Who the caller is, from the key they sent and the row it is: the key
+	// itself, in its product's tenant (`server/keys`). Read through the server
+	// with no wall, since working out who is calling happens before there is
+	// anybody to be walled by.
+	resolver := keys.Resolver(s.Ungated, s.Clock)
+
 	chain := grpcx.Serving(ctx, grpcx.WithDeadline(c.Server.CallTimeout())).
-		WithUnary(auth.InterceptorUnary(h, Resolver(s.Ungated), auth.PublicDefault)).
-		WithStream(auth.InterceptorStream(h, Resolver(s.Ungated), auth.PublicDefault)).
+		WithUnary(auth.InterceptorUnary(s.Auth, resolver, auth.PublicDefault)).
+		WithStream(auth.InterceptorStream(s.Auth, resolver, auth.PublicDefault)).
 		WithUnary(grpcx.LimitUnary(c.Server.Limiter(), gate.ByTenant(), pd.Cost)).
 		With(s.accessed().Interceptor()).
 		With(gate.Interceptor(s.Policy)).
@@ -290,9 +253,6 @@ func (s *Server) Grpc(ctx context.Context, c Config, opts ...grpc.ServerOption) 
 		WithUnary(grpcx.ClosedUnary(c.Server.Closed()))
 
 	os := append(opts, chain.ServerOptions()...)
-	// A certificate that cannot be read is a server that must not start, which
-	// is why this answers with an error: `GrpcOptions` reads the files
-	// `server.tls` names.
 	vs, err := c.Server.GrpcOptions()
 	if err != nil {
 		return nil, err
@@ -301,21 +261,16 @@ func (s *Server) Grpc(ctx context.Context, c Config, opts ...grpc.ServerOption) 
 	os = append(os, vs...)
 
 	g := grpc.NewServer(os...)
-	app.RegisterServer(g, s.Walled)
+	levyan.RegisterServer(g, s.Walled)
+	for _, r := range s.Register {
+		r(g)
+	}
 
-	// The batch, with the same rules the chain above enforces -- read off the
-	// same configuration rather than written out again, which is the only way
-	// the two stay in step. What they enforce by looking at the method gRPC
-	// dispatched, this enforces per operation.
-	// Both endpoints share the operation limiter, so switching API names cannot
-	// replenish a caller's Batch budget.
+	// The batch, with the same rules the chain above enforces, per operation.
 	guard := c.Server.Guard(s.Policy)
 	if b, err := pd.Batch(s.Walled, s.Drv, guard); err == nil {
 		pdpb.RegisterBatchServiceServer(g, b)
 
-		// Its Watch evaluates a filter because `cli/filter.go` links the
-		// language, and not because of anything here: this package is the
-		// sandbox's too, and a language named in it is linked into the page.
 		resources, err := pd.Resources(s.Walled, s.Drv, guard, s.Watch,
 			pd.ResourceProjector(s.Ent, pd.Wall(), guard))
 		if err != nil {
@@ -323,9 +278,6 @@ func (s *Server) Grpc(ctx context.Context, c Config, opts ...grpc.ServerOption) 
 		}
 		pdpb.RegisterResourceServiceServer(g, resources)
 	} else {
-		// A deployment that closed nothing, limits nothing and has no policy.
-		// It is a real thing to be and it is also what a guard nobody filled in
-		// looks like, so the batch is not served rather than served open.
 		log.From(ctx).WarnContext(ctx, "no batch", slog.Any("err", err))
 	}
 
@@ -376,8 +328,7 @@ func (s *Server) Serve(ctx context.Context, c Config, l net.Listener) error {
 	}
 
 	// Asked to stop: what was being answered ends first, and what it read is
-	// written after it -- the access record's own last write, as its loop
-	// stops, is too early for a call that answers while the server drains.
+	// written after it.
 	<-stopped
 	last, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
@@ -388,12 +339,13 @@ func (s *Server) Serve(ctx context.Context, c Config, l net.Listener) error {
 	return err
 }
 
-// serveHttp is the second listener, for whatever cannot speak gRPC -- which is
-// every browser. Nothing is opened unless the configuration named an address.
+// serveHttp is the second listener, for a caller that speaks Connect or
+// gRPC-Web rather than gRPC -- a shell with curl, an app in a language with no
+// gRPC of its own. Nothing is opened unless the configuration named an address,
+// and levyan's names none: what calls it is a product's backend.
 //
-// It is the **same** `g`: a page reaches the handlers a gRPC client reaches,
-// through the interceptors a gRPC client goes through, behind the same wall.
-// There is no second stack here for a rule to be missing from.
+// It is the **same** `g`: through the interceptors a gRPC client goes through,
+// behind the same wall.
 func (s *Server) serveHttp(ctx context.Context, c Config, g *grpc.Server) (func(), error) {
 	if !c.Server.Http.Serves() {
 		return func() {}, nil
@@ -404,31 +356,12 @@ func (s *Server) serveHttp(ctx context.Context, c Config, g *grpc.Server) (func(
 		return nil, err
 	}
 
-	// Whatever this app serves over HTTP goes here, on the same mux and behind
-	// the same cross-origin answer. Signing a browser in is the one to expect,
-	// and `auth/authsession` is most of it: the endpoint, the cookie and its
-	// attributes, the expiry and the store it is kept in. What it takes from
-	// this app is a `Verify`, because the people are in this app's schema and
-	// what checking their secret means is this app's to say.
-	//
-	//	h.Handle("GET /session", sessions.Serve(login))     // which session the browser holds
-	//	h.Handle("POST /session", sessions.Serve(login))    // sign in
-	//	h.Handle("DELETE /session", sessions.Serve(login))  // sign out
-	//
-	// with `s.Auth = sessions.Handler()` before [Server.Grpc]. `ts/src/session.tsx`
-	// is the page's half: it holds no credential, so it asks the GET which
-	// session it holds and names its store by the answer.
-	//
-	// A gRPC path is `/<service>/<method>`, so an ordinary route cannot collide
-	// with one -- and `ServeMux` panics rather than shadowing if one somehow
-	// does.
-
 	l, err := net.Listen("tcp", c.Server.Http.Addr)
 	if err != nil {
 		return nil, err
 	}
 
-	srv := &http.Server{Handler: h}
+	srv := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		if err := srv.Serve(l); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.From(ctx).ErrorContext(ctx, "http", slog.Any("err", err))

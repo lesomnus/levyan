@@ -25,15 +25,16 @@ tool (
 )
 
 require (
+	github.com/lesomnus/levyan/api v0.0.0-00010101000000-000000000000
 	github.com/lesomnus/otx v0.0.0-20261013182912-d2af55df512e
 	github.com/lesomnus/payday v0.0.0-20261031012431-027b311316c2
 	github.com/lesomnus/protobuf-patch v0.0.0-20260803175157-e1b7a0c2804f
 	github.com/lesomnus/xli v0.0.0-20261006051808-dadaa2417a76
 	github.com/lesomnus/xli/cfg v0.1.2
-	github.com/lesomnus/z v0.0.0-20260531102454-3f1853bb4278
 	github.com/protobuf-orm/ent v0.0.0-20261024205432-0dd7dadc81bc
 	github.com/protobuf-orm/protobuf-orm v0.0.0-20261017212716-3430237a8656
 	github.com/protobuf-orm/protoc-gen-orm-ent/runtime v0.0.0-20260906232518-fa1777a2628d
+	github.com/stretchr/testify v1.12.1
 	golang.org/x/sync v0.23.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc
 	google.golang.org/grpc v1.83.2
@@ -66,6 +67,10 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.10.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lesomnus/flob v0.0.0-20261010120939-21f89e60609e // indirect
 	github.com/lesomnus/mkot v0.0.0-20261013182918-46d8b05a79b3 // indirect
 	github.com/lesomnus/mkot/mkotx v0.0.0-20261013182918-46d8b05a79b3 // indirect
@@ -73,6 +78,7 @@ require (
 	github.com/lesomnus/otx/otxgrpc v0.0.0-20261013182912-d2af55df512e // indirect
 	github.com/lesomnus/pwr v0.0.0-20261015171245-2ec220d490d1 // indirect
 	github.com/lesomnus/pwr/cel v0.0.0-20261015172325-de464a5ef1fa // indirect
+	github.com/lesomnus/z v0.0.0-20260531102454-3f1853bb4278 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.23 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
@@ -113,3 +119,5 @@ require (
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/lesomnus/levyan/api => ./api

@@ -1,0 +1,169 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Meter is one thing a product is paid by, as levyan prices it: the key its
+// readings are filed under, the unit they count in, whether it is held or
+// happens, and how one period's readings come to one number.
+//
+// It is the price book's, not the product's schema. The product declares what
+// it measures (payday's `meters`, payday#186) and sends readings under these
+// keys; what a key is worth is decided here, as data (`Price`), so that a
+// price or a free allowance decided later changes no code anywhere.
+//
+// What a meter is cannot change. The key, the unit, the kind and the
+// aggregation are immutable, because a period billed by one rule and the next
+// by another under one name are two bills nobody can compare. A meter that
+// comes to count something else is a new key, the rule payday's meters keep
+// too. And so a meter is never erased: its key stays taken, and its prices
+// and the periods billed by them stay as they were.
+message Meter {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // What a person calls it on a statement: "활성 자산".
+  string name = 5 [(payday.field) = {personal: false}];
+
+  string desc = 6 [(payday.field) = {personal: false}];
+
+  // What readings are filed under: lower case words of letters, digits and
+  // `_` joined by dots, the product's name first -- `loft.assets.active` --
+  // as payday's `meter.CheckKey` says. Unique within its product.
+  string key = 8 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // What a reading counts in, as OpenTelemetry writes a unit (UCUM): `By`,
+  // `{asset}`, `d`. A reading in any other unit is not one of this meter's.
+  string unit = 9 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  MeterKind kind = 10 [(orm.field) = {immutable: true}];
+
+  Aggregation aggregation = 11 [(orm.field) = {immutable: true}];
+
+  // A reading of 0 is without bound: loft's `keep_days` 0 is a history kept
+  // forever. A banded price reads such a 0 as above every bound, in its last
+  // band. Only a stock says so -- what happens is never forever.
+  bool unbounded_zero = 12 [(orm.field) = {immutable: true}];
+
+  // Stamped as its name or its description is written, which is all of it
+  // that can be.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase. A key that is unique only among the
+  // meters nobody erased is a key that comes free again, and a key taken
+  // again to count something else is the bill this exists to prevent.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // Not "key", which is what a reference's oneof is called: a meter
+        // named by its key is `MeterRef.keyed`.
+        name: "keyed"
+        refs: [
+          {
+            name: "key"
+            number: 8
+          },
+          {
+            name: "tenant"
+            number: 2
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 10
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [{name: "ref"}]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// MeterKind is whether a meter is of what is held or of what happens.
+enum MeterKind {
+  METER_KIND_UNSPECIFIED = 0;
+
+  // What a tenant holds at a moment -- assets, bytes stored, how long its
+  // history is kept -- read by the product on a schedule and sent as it is.
+  METER_KIND_STOCK = 1;
+
+  // What happens over time -- bytes sent, calls made -- counted where it
+  // happens and sent as an OpenTelemetry Sum, monotonic and cumulative.
+  METER_KIND_FLOW = 2;
+}
+
+// Aggregation is how one period's readings of a meter come to one number.
+//
+// The first three are a stock's, and the last a flow's: a sum of what was held
+// at moments depends on how often somebody looked, and the most of what
+// happened is a rate nobody measured.
+enum Aggregation {
+  AGGREGATION_UNSPECIFIED = 0;
+
+  // What was held, weighed by how long it was held: ten assets for half a
+  // period and twenty for the other half are fifteen.
+  AGGREGATION_TIME_WEIGHTED_AVERAGE = 1;
+
+  // The most it held at any reading of the period.
+  AGGREGATION_MAX = 2;
+
+  // What it held at the last reading of the period.
+  AGGREGATION_LAST = 3;
+
+  // How much happened over the period: the increases of each series, added.
+  AGGREGATION_SUM = 4;
+}

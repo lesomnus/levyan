@@ -20,16 +20,22 @@ type Tx struct {
 	Audit *AuditClient
 	// Holder is the client for interacting with the Holder builders.
 	Holder *HolderClient
+	// Meter is the client for interacting with the Meter builders.
+	Meter *MeterClient
+	// Operator is the client for interacting with the Operator builders.
+	Operator *OperatorClient
 	// Outbox is the client for interacting with the Outbox builders.
 	Outbox *OutboxClient
 	// Owed is the client for interacting with the Owed builders.
 	Owed *OwedClient
+	// Price is the client for interacting with the Price builders.
+	Price *PriceClient
 	// RowSeal is the client for interacting with the RowSeal builders.
 	RowSeal *RowSealClient
+	// ServiceKey is the client for interacting with the ServiceKey builders.
+	ServiceKey *ServiceKeyClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
-	// Thing is the client for interacting with the Thing builders.
-	Thing *ThingClient
 
 	// lazily loaded.
 	client     *Client
@@ -165,11 +171,14 @@ func (tx *Tx) init() {
 	tx.Archived = NewArchivedClient(tx.config)
 	tx.Audit = NewAuditClient(tx.config)
 	tx.Holder = NewHolderClient(tx.config)
+	tx.Meter = NewMeterClient(tx.config)
+	tx.Operator = NewOperatorClient(tx.config)
 	tx.Outbox = NewOutboxClient(tx.config)
 	tx.Owed = NewOwedClient(tx.config)
+	tx.Price = NewPriceClient(tx.config)
 	tx.RowSeal = NewRowSealClient(tx.config)
+	tx.ServiceKey = NewServiceKeyClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
-	tx.Thing = NewThingClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

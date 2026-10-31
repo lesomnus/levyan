@@ -3,9 +3,13 @@
 package ent
 
 import (
+	"github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/audit"
+	"github.com/lesomnus/levyan/internal/ent/price"
 	"github.com/lesomnus/levyan/internal/ent/schema"
+
+	"github.com/protobuf-orm/ent/schema/field"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -24,4 +28,9 @@ func init() {
 	auditDescDomain := auditFields[11].Descriptor()
 	// audit.DefaultDomain holds the default value on creation for the domain field.
 	audit.DefaultDomain = auditDescDomain.Default.(uint32)
+	priceFields := schema.Price{}.Fields()
+	_ = priceFields
+	// priceDescBands is the schema descriptor for bands field.
+	priceDescBands := priceFields[9].Descriptor()
+	price.ValueScanner.Bands = priceDescBands.ValueScanner.(field.TypeValueScanner[*levyan.PriceBands])
 }

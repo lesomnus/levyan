@@ -57,6 +57,30 @@ func (f HolderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HolderMutation", m)
 }
 
+// The MeterFunc type is an adapter to allow the use of ordinary
+// function as Meter mutator.
+type MeterFunc func(context.Context, *ent.MeterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MeterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MeterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MeterMutation", m)
+}
+
+// The OperatorFunc type is an adapter to allow the use of ordinary
+// function as Operator mutator.
+type OperatorFunc func(context.Context, *ent.OperatorMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OperatorFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OperatorMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OperatorMutation", m)
+}
+
 // The OutboxFunc type is an adapter to allow the use of ordinary
 // function as Outbox mutator.
 type OutboxFunc func(context.Context, *ent.OutboxMutation) (ent.Value, error)
@@ -81,6 +105,18 @@ func (f OwedFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OwedMutation", m)
 }
 
+// The PriceFunc type is an adapter to allow the use of ordinary
+// function as Price mutator.
+type PriceFunc func(context.Context, *ent.PriceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PriceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PriceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PriceMutation", m)
+}
+
 // The RowSealFunc type is an adapter to allow the use of ordinary
 // function as RowSeal mutator.
 type RowSealFunc func(context.Context, *ent.RowSealMutation) (ent.Value, error)
@@ -93,6 +129,18 @@ func (f RowSealFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RowSealMutation", m)
 }
 
+// The ServiceKeyFunc type is an adapter to allow the use of ordinary
+// function as ServiceKey mutator.
+type ServiceKeyFunc func(context.Context, *ent.ServiceKeyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ServiceKeyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ServiceKeyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ServiceKeyMutation", m)
+}
+
 // The TenantFunc type is an adapter to allow the use of ordinary
 // function as Tenant mutator.
 type TenantFunc func(context.Context, *ent.TenantMutation) (ent.Value, error)
@@ -103,18 +151,6 @@ func (f TenantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TenantMutation", m)
-}
-
-// The ThingFunc type is an adapter to allow the use of ordinary
-// function as Thing mutator.
-type ThingFunc func(context.Context, *ent.ThingMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f ThingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.ThingMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ThingMutation", m)
 }
 
 // Condition is a hook condition function.

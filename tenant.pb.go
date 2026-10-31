@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: app/payday/tenant.proto
+// source: levyan/payday/tenant.proto
 
 package levyan
 
@@ -50,7 +50,7 @@ type Tenant struct {
 
 func (x *Tenant) Reset() {
 	*x = Tenant{}
-	mi := &file_app_payday_tenant_proto_msgTypes[0]
+	mi := &file_levyan_payday_tenant_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -62,7 +62,7 @@ func (x *Tenant) String() string {
 func (*Tenant) ProtoMessage() {}
 
 func (x *Tenant) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_proto_msgTypes[0]
+	mi := &file_levyan_payday_tenant_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -225,17 +225,17 @@ func (b0 Tenant_builder) Build() *Tenant {
 	return m0
 }
 
-var File_app_payday_tenant_proto protoreflect.FileDescriptor
+var File_levyan_payday_tenant_proto protoreflect.FileDescriptor
 
-const file_app_payday_tenant_proto_rawDesc = "" +
+const file_levyan_payday_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\x17app/payday/tenant.proto\x12\x03app\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xe8\x03\n" +
+	"\x1alevyan/payday/tenant.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xeb\x03\n" +
 	"\x06Tenant\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12\"\n" +
 	"\x05alias\x18\x04 \x01(\tB\f\xea\x82\x16\x020\x01\xaa\xc1\x16\x02\x18\x00R\x05alias\x12\x1a\n" +
 	"\x04name\x18\x05 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x00R\x04name\x12\x1a\n" +
-	"\x04desc\x18\x06 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x00R\x04desc\x127\n" +
-	"\x06labels\x18\a \x03(\v2\x17.app.Tenant.LabelsEntryB\x06\xaa\xc1\x16\x02\x18\x00R\x06labels\x12F\n" +
+	"\x04desc\x18\x06 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x00R\x04desc\x12:\n" +
+	"\x06labels\x18\a \x03(\v2\x1a.levyan.Tenant.LabelsEntryB\x06\xaa\xc1\x16\x02\x18\x00R\x06labels\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12H\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
@@ -252,16 +252,16 @@ const file_app_payday_tenant_proto_rawDesc = "" +
 	"\x03ref \x14(dB\x02\n" +
 	"\x00H\x01\x1a\x00B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
-var file_app_payday_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_payday_tenant_proto_goTypes = []any{
-	(*Tenant)(nil),                // 0: app.Tenant
-	nil,                           // 1: app.Tenant.LabelsEntry
+var file_levyan_payday_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_levyan_payday_tenant_proto_goTypes = []any{
+	(*Tenant)(nil),                // 0: levyan.Tenant
+	nil,                           // 1: levyan.Tenant.LabelsEntry
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 }
-var file_app_payday_tenant_proto_depIdxs = []int32{
-	1, // 0: app.Tenant.labels:type_name -> app.Tenant.LabelsEntry
-	2, // 1: app.Tenant.date_updated:type_name -> google.protobuf.Timestamp
-	2, // 2: app.Tenant.date_created:type_name -> google.protobuf.Timestamp
+var file_levyan_payday_tenant_proto_depIdxs = []int32{
+	1, // 0: levyan.Tenant.labels:type_name -> levyan.Tenant.LabelsEntry
+	2, // 1: levyan.Tenant.date_updated:type_name -> google.protobuf.Timestamp
+	2, // 2: levyan.Tenant.date_created:type_name -> google.protobuf.Timestamp
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -269,26 +269,26 @@ var file_app_payday_tenant_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_app_payday_tenant_proto_init() }
-func file_app_payday_tenant_proto_init() {
-	if File_app_payday_tenant_proto != nil {
+func init() { file_levyan_payday_tenant_proto_init() }
+func file_levyan_payday_tenant_proto_init() {
+	if File_levyan_payday_tenant_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_payday_tenant_proto_rawDesc), len(file_app_payday_tenant_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_payday_tenant_proto_rawDesc), len(file_levyan_payday_tenant_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_app_payday_tenant_proto_goTypes,
-		DependencyIndexes: file_app_payday_tenant_proto_depIdxs,
-		MessageInfos:      file_app_payday_tenant_proto_msgTypes,
+		GoTypes:           file_levyan_payday_tenant_proto_goTypes,
+		DependencyIndexes: file_levyan_payday_tenant_proto_depIdxs,
+		MessageInfos:      file_levyan_payday_tenant_proto_msgTypes,
 	}.Build()
-	File_app_payday_tenant_proto = out.File
-	file_app_payday_tenant_proto_goTypes = nil
-	file_app_payday_tenant_proto_depIdxs = nil
+	File_levyan_payday_tenant_proto = out.File
+	file_levyan_payday_tenant_proto_goTypes = nil
+	file_levyan_payday_tenant_proto_depIdxs = nil
 }

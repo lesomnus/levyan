@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: app/payday/access_svc.g.proto
+// source: levyan/payday/access_svc.g.proto
 
 package levyan
 
@@ -30,7 +30,7 @@ type AccessGetRequest struct {
 
 func (x *AccessGetRequest) Reset() {
 	*x = AccessGetRequest{}
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[0]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *AccessGetRequest) String() string {
 func (*AccessGetRequest) ProtoMessage() {}
 
 func (x *AccessGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[0]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -122,7 +122,7 @@ type AccessRef struct {
 
 func (x *AccessRef) Reset() {
 	*x = AccessRef{}
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[1]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -134,7 +134,7 @@ func (x *AccessRef) String() string {
 func (*AccessRef) ProtoMessage() {}
 
 func (x *AccessRef) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[1]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,7 +222,7 @@ func (b0 AccessRef_builder) Build() *AccessRef {
 type case_AccessRef_Key protoreflect.FieldNumber
 
 func (x case_AccessRef_Key) String() string {
-	md := file_app_payday_access_svc_g_proto_msgTypes[1].Descriptor()
+	md := file_levyan_payday_access_svc_g_proto_msgTypes[1].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -262,7 +262,7 @@ type AccessSelect struct {
 
 func (x *AccessSelect) Reset() {
 	*x = AccessSelect{}
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[2]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -274,7 +274,7 @@ func (x *AccessSelect) String() string {
 func (*AccessSelect) ProtoMessage() {}
 
 func (x *AccessSelect) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[2]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +686,7 @@ type AccessListRequest struct {
 
 func (x *AccessListRequest) Reset() {
 	*x = AccessListRequest{}
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[3]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -698,7 +698,7 @@ func (x *AccessListRequest) String() string {
 func (*AccessListRequest) ProtoMessage() {}
 
 func (x *AccessListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[3]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -798,7 +798,7 @@ type AccessListResponse struct {
 
 func (x *AccessListResponse) Reset() {
 	*x = AccessListResponse{}
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[4]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -810,7 +810,7 @@ func (x *AccessListResponse) String() string {
 func (*AccessListResponse) ProtoMessage() {}
 
 func (x *AccessListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[4]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +882,7 @@ type AccessFilter struct {
 
 func (x *AccessFilter) Reset() {
 	*x = AccessFilter{}
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +894,7 @@ func (x *AccessFilter) String() string {
 func (*AccessFilter) ProtoMessage() {}
 
 func (x *AccessFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_payday_access_svc_g_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1045,14 +1045,14 @@ func (b0 AccessFilter_builder) Build() *AccessFilter {
 	return m0
 }
 
-var File_app_payday_access_svc_g_proto protoreflect.FileDescriptor
+var File_levyan_payday_access_svc_g_proto protoreflect.FileDescriptor
 
-const file_app_payday_access_svc_g_proto_rawDesc = "" +
+const file_levyan_payday_access_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1dapp/payday/access_svc.g.proto\x12\x03app\x1a\x17app/payday/access.proto\"_\n" +
-	"\x10AccessGetRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.AccessRefR\x03ref\x12)\n" +
-	"\x06select\x18\x02 \x01(\v2\x11.app.AccessSelectR\x06select\"$\n" +
+	" levyan/payday/access_svc.g.proto\x12\x06levyan\x1a\x1alevyan/payday/access.proto\"e\n" +
+	"\x10AccessGetRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.AccessRefR\x03ref\x12,\n" +
+	"\x06select\x18\x02 \x01(\v2\x14.levyan.AccessSelectR\x06select\"$\n" +
 	"\tAccessRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02idB\x05\n" +
 	"\x03key\"\xf1\x02\n" +
@@ -1070,43 +1070,43 @@ const file_app_payday_access_svc_g_proto_rawDesc = "" +
 	"\x05value\x18\x11 \x01(\bR\x05value\x12\x16\n" +
 	"\x06domain\x18\x13 \x01(\bR\x06domain\x12\x1a\n" +
 	"\bsubjects\x18\x14 \x01(\bR\bsubjects\x12#\n" +
-	"\rsubject_count\x18\x15 \x01(\bR\fsubjectCount\"\x99\x01\n" +
-	"\x11AccessListRequest\x12+\n" +
-	"\afilters\x18\x01 \x03(\v2\x11.app.AccessFilterR\afilters\x12\x19\n" +
+	"\rsubject_count\x18\x15 \x01(\bR\fsubjectCount\"\x9c\x01\n" +
+	"\x11AccessListRequest\x12.\n" +
+	"\afilters\x18\x01 \x03(\v2\x14.levyan.AccessFilterR\afilters\x12\x19\n" +
 	"\x04size\x18\x02 \x01(\x05B\x05\xaa\x01\x02\b\x02R\x04size\x12\x1b\n" +
 	"\x05after\x18\x03 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05after\x12\x1f\n" +
-	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"R\n" +
-	"\x12AccessListResponse\x12!\n" +
-	"\x05items\x18\x01 \x03(\v2\v.app.AccessR\x05items\x12\x19\n" +
+	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"U\n" +
+	"\x12AccessListResponse\x12$\n" +
+	"\x05items\x18\x01 \x03(\v2\x0e.levyan.AccessR\x05items\x12\x19\n" +
 	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"\x82\x01\n" +
 	"\fAccessFilter\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\fR\aactorId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\fR\btenantId\x12&\n" +
 	"\x0factor_tenant_id\x18\x03 \x01(\fR\ractorTenantId\x12\x12\n" +
-	"\x04kind\x18\x04 \x01(\tR\x04kind2s\n" +
-	"\rAccessService\x12)\n" +
-	"\x03Get\x12\x15.app.AccessGetRequest\x1a\v.app.Access\x127\n" +
-	"\x04List\x12\x16.app.AccessListRequest\x1a\x17.app.AccessListResponseB\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
+	"\x04kind\x18\x04 \x01(\tR\x04kind2\x7f\n" +
+	"\rAccessService\x12/\n" +
+	"\x03Get\x12\x18.levyan.AccessGetRequest\x1a\x0e.levyan.Access\x12=\n" +
+	"\x04List\x12\x19.levyan.AccessListRequest\x1a\x1a.levyan.AccessListResponseB\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
 
-var file_app_payday_access_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_app_payday_access_svc_g_proto_goTypes = []any{
-	(*AccessGetRequest)(nil),   // 0: app.AccessGetRequest
-	(*AccessRef)(nil),          // 1: app.AccessRef
-	(*AccessSelect)(nil),       // 2: app.AccessSelect
-	(*AccessListRequest)(nil),  // 3: app.AccessListRequest
-	(*AccessListResponse)(nil), // 4: app.AccessListResponse
-	(*AccessFilter)(nil),       // 5: app.AccessFilter
-	(*Access)(nil),             // 6: app.Access
+var file_levyan_payday_access_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_levyan_payday_access_svc_g_proto_goTypes = []any{
+	(*AccessGetRequest)(nil),   // 0: levyan.AccessGetRequest
+	(*AccessRef)(nil),          // 1: levyan.AccessRef
+	(*AccessSelect)(nil),       // 2: levyan.AccessSelect
+	(*AccessListRequest)(nil),  // 3: levyan.AccessListRequest
+	(*AccessListResponse)(nil), // 4: levyan.AccessListResponse
+	(*AccessFilter)(nil),       // 5: levyan.AccessFilter
+	(*Access)(nil),             // 6: levyan.Access
 }
-var file_app_payday_access_svc_g_proto_depIdxs = []int32{
-	1, // 0: app.AccessGetRequest.ref:type_name -> app.AccessRef
-	2, // 1: app.AccessGetRequest.select:type_name -> app.AccessSelect
-	5, // 2: app.AccessListRequest.filters:type_name -> app.AccessFilter
-	6, // 3: app.AccessListResponse.items:type_name -> app.Access
-	0, // 4: app.AccessService.Get:input_type -> app.AccessGetRequest
-	3, // 5: app.AccessService.List:input_type -> app.AccessListRequest
-	6, // 6: app.AccessService.Get:output_type -> app.Access
-	4, // 7: app.AccessService.List:output_type -> app.AccessListResponse
+var file_levyan_payday_access_svc_g_proto_depIdxs = []int32{
+	1, // 0: levyan.AccessGetRequest.ref:type_name -> levyan.AccessRef
+	2, // 1: levyan.AccessGetRequest.select:type_name -> levyan.AccessSelect
+	5, // 2: levyan.AccessListRequest.filters:type_name -> levyan.AccessFilter
+	6, // 3: levyan.AccessListResponse.items:type_name -> levyan.Access
+	0, // 4: levyan.AccessService.Get:input_type -> levyan.AccessGetRequest
+	3, // 5: levyan.AccessService.List:input_type -> levyan.AccessListRequest
+	6, // 6: levyan.AccessService.Get:output_type -> levyan.Access
+	4, // 7: levyan.AccessService.List:output_type -> levyan.AccessListResponse
 	6, // [6:8] is the sub-list for method output_type
 	4, // [4:6] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -1114,30 +1114,30 @@ var file_app_payday_access_svc_g_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_app_payday_access_svc_g_proto_init() }
-func file_app_payday_access_svc_g_proto_init() {
-	if File_app_payday_access_svc_g_proto != nil {
+func init() { file_levyan_payday_access_svc_g_proto_init() }
+func file_levyan_payday_access_svc_g_proto_init() {
+	if File_levyan_payday_access_svc_g_proto != nil {
 		return
 	}
-	file_app_payday_access_proto_init()
-	file_app_payday_access_svc_g_proto_msgTypes[1].OneofWrappers = []any{
+	file_levyan_payday_access_proto_init()
+	file_levyan_payday_access_svc_g_proto_msgTypes[1].OneofWrappers = []any{
 		(*accessRef_Id)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_payday_access_svc_g_proto_rawDesc), len(file_app_payday_access_svc_g_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_payday_access_svc_g_proto_rawDesc), len(file_levyan_payday_access_svc_g_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_app_payday_access_svc_g_proto_goTypes,
-		DependencyIndexes: file_app_payday_access_svc_g_proto_depIdxs,
-		MessageInfos:      file_app_payday_access_svc_g_proto_msgTypes,
+		GoTypes:           file_levyan_payday_access_svc_g_proto_goTypes,
+		DependencyIndexes: file_levyan_payday_access_svc_g_proto_depIdxs,
+		MessageInfos:      file_levyan_payday_access_svc_g_proto_msgTypes,
 	}.Build()
-	File_app_payday_access_svc_g_proto = out.File
-	file_app_payday_access_svc_g_proto_goTypes = nil
-	file_app_payday_access_svc_g_proto_depIdxs = nil
+	File_levyan_payday_access_svc_g_proto = out.File
+	file_levyan_payday_access_svc_g_proto_goTypes = nil
+	file_levyan_payday_access_svc_g_proto_depIdxs = nil
 }

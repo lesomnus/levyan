@@ -1,0 +1,103 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/meter_svc.g.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/price.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service PriceService {
+  // Add creates a new Price
+  rpc Add(PriceAddRequest) returns (Price);
+  // Get retrieves a Price
+  rpc Get(PriceGetRequest) returns (Price);
+  // List reads Prices a page at a time.
+  rpc List(PriceListRequest) returns (PriceListResponse);
+}
+
+message PriceAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  string desc = 6 [features.field_presence = IMPLICIT];
+  MeterRef meter = 8;
+  Channel channel = 9 [features.field_presence = IMPLICIT];
+  string currency = 10 [features.field_presence = IMPLICIT];
+  int64 included = 11 [features.field_presence = IMPLICIT];
+  int64 unit_price = 12 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_created = 15;
+  int64 per = 16 [features.field_presence = IMPLICIT];
+  PriceBands bands = 17;
+  google.protobuf.Timestamp date_effective = 18;
+  google.protobuf.Timestamp date_existing = 19;
+}
+
+message PriceGetRequest {
+  PriceRef ref = 1;
+  PriceSelect select = 2;
+}
+
+message PriceRef {
+  oneof key {
+    bytes id = 1;
+  }
+}
+
+message PriceSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  bool desc = 6;
+  MeterSelect meter = 8;
+  bool channel = 9;
+  bool currency = 10;
+  bool included = 11;
+  bool unit_price = 12;
+  bool date_erased = 14;
+  bool date_created = 15;
+  bool per = 16;
+  bool bands = 17;
+  bool date_effective = 18;
+  bool date_existing = 19;
+}
+
+message PriceListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated PriceFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message PriceListResponse {
+  repeated Price items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message PriceFilter {
+  PriceRef ref = 1;
+  MeterRef meter = 2;
+}

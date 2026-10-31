@@ -12,12 +12,15 @@ import (
 	archived "github.com/lesomnus/levyan/internal/ent/archived"
 	audit "github.com/lesomnus/levyan/internal/ent/audit"
 	holder "github.com/lesomnus/levyan/internal/ent/holder"
+	meter "github.com/lesomnus/levyan/internal/ent/meter"
+	operator "github.com/lesomnus/levyan/internal/ent/operator"
 	outbox "github.com/lesomnus/levyan/internal/ent/outbox"
 	owed "github.com/lesomnus/levyan/internal/ent/owed"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
+	price "github.com/lesomnus/levyan/internal/ent/price"
 	rowseal "github.com/lesomnus/levyan/internal/ent/rowseal"
+	servicekey "github.com/lesomnus/levyan/internal/ent/servicekey"
 	tenant "github.com/lesomnus/levyan/internal/ent/tenant"
-	thing "github.com/lesomnus/levyan/internal/ent/thing"
 	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	dialect "github.com/protobuf-orm/ent/dialect"
 	entpatch "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/entpatch"
@@ -368,15 +371,18 @@ func snapshotOrNil(v proto.Message) proto.Message {
 // Embed [Unscoped] to write out only the entities there is something to
 // say about.
 type Scope interface {
+	TenantScope(ctx context.Context) (predicate.Tenant, error)
+	MeterScope(ctx context.Context) (predicate.Meter, error)
+	OperatorScope(ctx context.Context) (predicate.Operator, error)
 	AccessScope(ctx context.Context) (predicate.Access, error)
 	ArchivedScope(ctx context.Context) (predicate.Archived, error)
 	AuditScope(ctx context.Context) (predicate.Audit, error)
-	TenantScope(ctx context.Context) (predicate.Tenant, error)
 	HolderScope(ctx context.Context) (predicate.Holder, error)
 	OutboxScope(ctx context.Context) (predicate.Outbox, error)
 	OwedScope(ctx context.Context) (predicate.Owed, error)
 	RowSealScope(ctx context.Context) (predicate.RowSeal, error)
-	ThingScope(ctx context.Context) (predicate.Thing, error)
+	PriceScope(ctx context.Context) (predicate.Price, error)
+	ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error)
 }
 
 // Unscoped is a [Scope] that narrows nothing. Embed it and write out the
@@ -391,6 +397,15 @@ type Unscoped struct{}
 
 var _ Scope = Unscoped{}
 
+func (Unscoped) TenantScope(_ context.Context) (predicate.Tenant, error) {
+	return nil, nil
+}
+func (Unscoped) MeterScope(_ context.Context) (predicate.Meter, error) {
+	return nil, nil
+}
+func (Unscoped) OperatorScope(_ context.Context) (predicate.Operator, error) {
+	return nil, nil
+}
 func (Unscoped) AccessScope(_ context.Context) (predicate.Access, error) {
 	return nil, nil
 }
@@ -398,9 +413,6 @@ func (Unscoped) ArchivedScope(_ context.Context) (predicate.Archived, error) {
 	return nil, nil
 }
 func (Unscoped) AuditScope(_ context.Context) (predicate.Audit, error) {
-	return nil, nil
-}
-func (Unscoped) TenantScope(_ context.Context) (predicate.Tenant, error) {
 	return nil, nil
 }
 func (Unscoped) HolderScope(_ context.Context) (predicate.Holder, error) {
@@ -415,7 +427,10 @@ func (Unscoped) OwedScope(_ context.Context) (predicate.Owed, error) {
 func (Unscoped) RowSealScope(_ context.Context) (predicate.RowSeal, error) {
 	return nil, nil
 }
-func (Unscoped) ThingScope(_ context.Context) (predicate.Thing, error) {
+func (Unscoped) PriceScope(_ context.Context) (predicate.Price, error) {
+	return nil, nil
+}
+func (Unscoped) ServiceKeyScope(_ context.Context) (predicate.ServiceKey, error) {
 	return nil, nil
 }
 
@@ -437,6 +452,66 @@ func (Unscoped) ThingScope(_ context.Context) (predicate.Thing, error) {
 type Scopes []Scope
 
 var _ Scope = Scopes{}
+
+func (ss Scopes) TenantScope(ctx context.Context) (predicate.Tenant, error) {
+	ps := make([]predicate.Tenant, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.TenantScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return tenant.And(ps...), nil
+}
+
+func (ss Scopes) MeterScope(ctx context.Context) (predicate.Meter, error) {
+	ps := make([]predicate.Meter, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.MeterScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return meter.And(ps...), nil
+}
+
+func (ss Scopes) OperatorScope(ctx context.Context) (predicate.Operator, error) {
+	ps := make([]predicate.Operator, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.OperatorScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return operator.And(ps...), nil
+}
 
 func (ss Scopes) AccessScope(ctx context.Context) (predicate.Access, error) {
 	ps := make([]predicate.Access, 0, len(ss))
@@ -496,26 +571,6 @@ func (ss Scopes) AuditScope(ctx context.Context) (predicate.Audit, error) {
 	}
 
 	return audit.And(ps...), nil
-}
-
-func (ss Scopes) TenantScope(ctx context.Context) (predicate.Tenant, error) {
-	ps := make([]predicate.Tenant, 0, len(ss))
-	for _, s := range ss {
-		p, err := s.TenantScope(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if p == nil {
-			continue
-		}
-
-		ps = append(ps, p)
-	}
-	if len(ps) == 0 {
-		return nil, nil
-	}
-
-	return tenant.And(ps...), nil
 }
 
 func (ss Scopes) HolderScope(ctx context.Context) (predicate.Holder, error) {
@@ -598,10 +653,10 @@ func (ss Scopes) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
 	return rowseal.And(ps...), nil
 }
 
-func (ss Scopes) ThingScope(ctx context.Context) (predicate.Thing, error) {
-	ps := make([]predicate.Thing, 0, len(ss))
+func (ss Scopes) PriceScope(ctx context.Context) (predicate.Price, error) {
+	ps := make([]predicate.Price, 0, len(ss))
 	for _, s := range ss {
-		p, err := s.ThingScope(ctx)
+		p, err := s.PriceScope(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -615,7 +670,27 @@ func (ss Scopes) ThingScope(ctx context.Context) (predicate.Thing, error) {
 		return nil, nil
 	}
 
-	return thing.And(ps...), nil
+	return price.And(ps...), nil
+}
+
+func (ss Scopes) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
+	ps := make([]predicate.ServiceKey, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.ServiceKeyScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return servicekey.And(ps...), nil
 }
 
 // Minter decides the key a row is stored under. It is asked once per Add,
@@ -753,7 +828,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. Holder and Thing free the names they held when a row
+// check. Holder, Meter, Operator, Price and ServiceKey free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -791,12 +866,17 @@ func (s Server) WithDriver(drv dialect.Driver) (levyan.Server, error) {
 	return s, nil
 }
 
+func (s Server) Tenant() levyan.TenantServiceServer     { return TenantServiceServer{Store: s.Store} }
+func (s Server) Meter() levyan.MeterServiceServer       { return MeterServiceServer{Store: s.Store} }
+func (s Server) Operator() levyan.OperatorServiceServer { return OperatorServiceServer{Store: s.Store} }
 func (s Server) Access() levyan.AccessServiceServer     { return AccessServiceServer{Store: s.Store} }
 func (s Server) Archived() levyan.ArchivedServiceServer { return ArchivedServiceServer{Store: s.Store} }
 func (s Server) Audit() levyan.AuditServiceServer       { return AuditServiceServer{Store: s.Store} }
-func (s Server) Tenant() levyan.TenantServiceServer     { return TenantServiceServer{Store: s.Store} }
 func (s Server) Holder() levyan.HolderServiceServer     { return HolderServiceServer{Store: s.Store} }
 func (s Server) Outbox() levyan.OutboxServiceServer     { return OutboxServiceServer{Store: s.Store} }
 func (s Server) Owed() levyan.OwedServiceServer         { return OwedServiceServer{Store: s.Store} }
 func (s Server) RowSeal() levyan.RowSealServiceServer   { return RowSealServiceServer{Store: s.Store} }
-func (s Server) Thing() levyan.ThingServiceServer       { return ThingServiceServer{Store: s.Store} }
+func (s Server) Price() levyan.PriceServiceServer       { return PriceServiceServer{Store: s.Store} }
+func (s Server) ServiceKey() levyan.ServiceKeyServiceServer {
+	return ServiceKeyServiceServer{Store: s.Store}
+}

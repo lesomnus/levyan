@@ -162,7 +162,6 @@ var (
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
-		{Name: "idp_subject", Type: field.TypeString, Nullable: true},
 		{Name: "tenant_id", Type: field.TypeUuid},
 	}
 	// HolderTable holds the schema information for the "holder" table.
@@ -173,7 +172,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "holder_tenant_tenant",
-				Columns:    []*schema.Column{HolderColumns[9]},
+				Columns:    []*schema.Column{HolderColumns[8]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -182,7 +181,7 @@ var (
 			{
 				Name:    "holder_slug",
 				Unique:  true,
-				Columns: []*schema.Column{HolderColumns[1], HolderColumns[9]},
+				Columns: []*schema.Column{HolderColumns[1], HolderColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
@@ -190,12 +189,71 @@ var (
 			{
 				Name:    "holder_page",
 				Unique:  false,
-				Columns: []*schema.Column{HolderColumns[9], HolderColumns[7], HolderColumns[0]},
+				Columns: []*schema.Column{HolderColumns[8], HolderColumns[7], HolderColumns[0]},
+			},
+		},
+	}
+	// MeterColumns holds the columns for the "meter" table.
+	MeterColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "desc", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "unit", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeInt32},
+		{Name: "aggregation", Type: field.TypeInt32},
+		{Name: "unbounded_zero", Type: field.TypeBool},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+	}
+	// MeterTable holds the schema information for the "meter" table.
+	MeterTable = &schema.Table{
+		Name:       "meter",
+		Columns:    MeterColumns,
+		PrimaryKey: []*schema.Column{MeterColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "meter_tenant_tenant",
+				Columns:    []*schema.Column{MeterColumns[11]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "meter_page",
+				Unique:  false,
+				Columns: []*schema.Column{MeterColumns[11], MeterColumns[10], MeterColumns[0]},
 			},
 			{
-				Name:    "holder_idp_subject",
+				Name:    "meter_keyed",
 				Unique:  true,
-				Columns: []*schema.Column{HolderColumns[8]},
+				Columns: []*schema.Column{MeterColumns[3], MeterColumns[11]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
+	// OperatorColumns holds the columns for the "operator" table.
+	OperatorColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "alias", Type: field.TypeString},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+	}
+	// OperatorTable holds the schema information for the "operator" table.
+	OperatorTable = &schema.Table{
+		Name:       "operator",
+		Columns:    OperatorColumns,
+		PrimaryKey: []*schema.Column{OperatorColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "operator_slug",
+				Unique:  true,
+				Columns: []*schema.Column{OperatorColumns[1]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
@@ -247,6 +305,55 @@ var (
 			},
 		},
 	}
+	// PriceColumns holds the columns for the "price" table.
+	PriceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "desc", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeInt32},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "included", Type: field.TypeInt64},
+		{Name: "unit_price", Type: field.TypeInt64},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "per", Type: field.TypeInt64},
+		{Name: "bands", Type: field.TypeJson, Nullable: true},
+		{Name: "date_effective", Type: field.TypeTime, Nullable: true},
+		{Name: "date_existing", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "meter_id", Type: field.TypeUuid},
+	}
+	// PriceTable holds the schema information for the "price" table.
+	PriceTable = &schema.Table{
+		Name:       "price",
+		Columns:    PriceColumns,
+		PrimaryKey: []*schema.Column{PriceColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "price_tenant_tenant",
+				Columns:    []*schema.Column{PriceColumns[12]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "price_meter_meter",
+				Columns:    []*schema.Column{PriceColumns[13]},
+				RefColumns: []*schema.Column{MeterColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "price_page",
+				Unique:  false,
+				Columns: []*schema.Column{PriceColumns[12], PriceColumns[7], PriceColumns[0]},
+			},
+			{
+				Name:    "price_meter",
+				Unique:  false,
+				Columns: []*schema.Column{PriceColumns[13], PriceColumns[7], PriceColumns[0]},
+			},
+		},
+	}
 	// RowsealColumns holds the columns for the "rowseal" table.
 	RowsealColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -259,6 +366,54 @@ var (
 		Name:       "rowseal",
 		Columns:    RowsealColumns,
 		PrimaryKey: []*schema.Column{RowsealColumns[0]},
+	}
+	// ServicekeyColumns holds the columns for the "servicekey" table.
+	ServicekeyColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "alias", Type: field.TypeString},
+		{Name: "desc", Type: field.TypeString},
+		{Name: "secret", Type: field.TypeBytes},
+		{Name: "date_expires", Type: field.TypeTime, Nullable: true},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+	}
+	// ServicekeyTable holds the schema information for the "servicekey" table.
+	ServicekeyTable = &schema.Table{
+		Name:       "servicekey",
+		Columns:    ServicekeyColumns,
+		PrimaryKey: []*schema.Column{ServicekeyColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "servicekey_tenant_tenant",
+				Columns:    []*schema.Column{ServicekeyColumns[7]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "servicekey_page",
+				Unique:  false,
+				Columns: []*schema.Column{ServicekeyColumns[7], ServicekeyColumns[6], ServicekeyColumns[0]},
+			},
+			{
+				Name:    "servicekey_slug",
+				Unique:  true,
+				Columns: []*schema.Column{ServicekeyColumns[1], ServicekeyColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "servicekey_secret",
+				Unique:  true,
+				Columns: []*schema.Column{ServicekeyColumns[3]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
 	}
 	// TenantColumns holds the columns for the "tenant" table.
 	TenantColumns = []*schema.Column{
@@ -283,56 +438,20 @@ var (
 			},
 		},
 	}
-	// ThingColumns holds the columns for the "thing" table.
-	ThingColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUuid, Unique: true},
-		{Name: "alias", Type: field.TypeString},
-		{Name: "desc", Type: field.TypeString},
-		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
-		{Name: "date_updated", Type: field.TypeTime},
-		{Name: "date_created", Type: field.TypeTime, Nullable: true},
-		{Name: "tenant_id", Type: field.TypeUuid},
-	}
-	// ThingTable holds the schema information for the "thing" table.
-	ThingTable = &schema.Table{
-		Name:       "thing",
-		Columns:    ThingColumns,
-		PrimaryKey: []*schema.Column{ThingColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "thing_tenant_tenant",
-				Columns:    []*schema.Column{ThingColumns[6]},
-				RefColumns: []*schema.Column{TenantColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "thing_page",
-				Unique:  false,
-				Columns: []*schema.Column{ThingColumns[6], ThingColumns[5], ThingColumns[0]},
-			},
-			{
-				Name:    "thing_slug",
-				Unique:  true,
-				Columns: []*schema.Column{ThingColumns[1], ThingColumns[6]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "date_erased IS NULL",
-				},
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AccessTable,
 		ArchivedTable,
 		AuditTable,
 		HolderTable,
+		MeterTable,
+		OperatorTable,
 		OutboxTable,
 		OwedTable,
+		PriceTable,
 		RowsealTable,
+		ServicekeyTable,
 		TenantTable,
-		ThingTable,
 	}
 )
 
@@ -350,20 +469,32 @@ func init() {
 	HolderTable.Annotation = &entsql.Annotation{
 		Table: "holder",
 	}
+	MeterTable.ForeignKeys[0].RefTable = TenantTable
+	MeterTable.Annotation = &entsql.Annotation{
+		Table: "meter",
+	}
+	OperatorTable.Annotation = &entsql.Annotation{
+		Table: "operator",
+	}
 	OutboxTable.Annotation = &entsql.Annotation{
 		Table: "outbox",
 	}
 	OwedTable.Annotation = &entsql.Annotation{
 		Table: "owed",
 	}
+	PriceTable.ForeignKeys[0].RefTable = TenantTable
+	PriceTable.ForeignKeys[1].RefTable = MeterTable
+	PriceTable.Annotation = &entsql.Annotation{
+		Table: "price",
+	}
 	RowsealTable.Annotation = &entsql.Annotation{
 		Table: "rowseal",
 	}
+	ServicekeyTable.ForeignKeys[0].RefTable = TenantTable
+	ServicekeyTable.Annotation = &entsql.Annotation{
+		Table: "servicekey",
+	}
 	TenantTable.Annotation = &entsql.Annotation{
 		Table: "tenant",
-	}
-	ThingTable.ForeignKeys[0].RefTable = TenantTable
-	ThingTable.Annotation = &entsql.Annotation{
-		Table: "thing",
 	}
 }

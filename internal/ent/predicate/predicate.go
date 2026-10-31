@@ -18,17 +18,37 @@ type Audit func(*sql.Selector)
 // Holder is the predicate function for holder builders.
 type Holder func(*sql.Selector)
 
+// Meter is the predicate function for meter builders.
+type Meter func(*sql.Selector)
+
+// Operator is the predicate function for operator builders.
+type Operator func(*sql.Selector)
+
 // Outbox is the predicate function for outbox builders.
 type Outbox func(*sql.Selector)
 
 // Owed is the predicate function for owed builders.
 type Owed func(*sql.Selector)
 
+// Price is the predicate function for price builders.
+type Price func(*sql.Selector)
+
+// PriceOrErr calls the predicate only if the error is not nit.
+func PriceOrErr(p Price, err error) Price {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // RowSeal is the predicate function for rowseal builders.
 type RowSeal func(*sql.Selector)
 
+// ServiceKey is the predicate function for servicekey builders.
+type ServiceKey func(*sql.Selector)
+
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)
-
-// Thing is the predicate function for thing builders.
-type Thing func(*sql.Selector)

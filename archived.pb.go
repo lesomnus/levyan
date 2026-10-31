@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: app/payday/archived.proto
+// source: levyan/payday/archived.proto
 
 package levyan
 
@@ -81,7 +81,7 @@ type Archived struct {
 
 func (x *Archived) Reset() {
 	*x = Archived{}
-	mi := &file_app_payday_archived_proto_msgTypes[0]
+	mi := &file_levyan_payday_archived_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -93,7 +93,7 @@ func (x *Archived) String() string {
 func (*Archived) ProtoMessage() {}
 
 func (x *Archived) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_archived_proto_msgTypes[0]
+	mi := &file_levyan_payday_archived_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,14 +324,14 @@ func (b0 Archived_builder) Build() *Archived {
 	return m0
 }
 
-var File_app_payday_archived_proto protoreflect.FileDescriptor
+var File_levyan_payday_archived_proto protoreflect.FileDescriptor
 
-const file_app_payday_archived_proto_rawDesc = "" +
+const file_levyan_payday_archived_proto_rawDesc = "" +
 	"\n" +
-	"\x19app/payday/archived.proto\x12\x03app\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xcd\x04\n" +
+	"\x1clevyan/payday/archived.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xd0\x04\n" +
 	"\bArchived\x12\x1b\n" +
-	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x121\n" +
-	"\x06labels\x18\a \x03(\v2\x19.app.Archived.LabelsEntryR\x06labels\x12\x1c\n" +
+	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x124\n" +
+	"\x06labels\x18\a \x03(\v2\x1c.levyan.Archived.LabelsEntryR\x06labels\x12\x1c\n" +
 	"\tnamespace\x18\b \x01(\tR\tnamespace\x12\x16\n" +
 	"\x06digest\x18\t \x01(\tR\x06digest\x12\x16\n" +
 	"\x06intent\x18\n" +
@@ -353,16 +353,16 @@ const file_app_payday_archived_proto_rawDesc = "" +
 	"\b\x05B\x02\n" +
 	"\x00H\x05*\x00B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
-var file_app_payday_archived_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_app_payday_archived_proto_goTypes = []any{
-	(*Archived)(nil),              // 0: app.Archived
-	nil,                           // 1: app.Archived.LabelsEntry
+var file_levyan_payday_archived_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_levyan_payday_archived_proto_goTypes = []any{
+	(*Archived)(nil),              // 0: levyan.Archived
+	nil,                           // 1: levyan.Archived.LabelsEntry
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 }
-var file_app_payday_archived_proto_depIdxs = []int32{
-	1, // 0: app.Archived.labels:type_name -> app.Archived.LabelsEntry
-	2, // 1: app.Archived.date_updated:type_name -> google.protobuf.Timestamp
-	2, // 2: app.Archived.date_created:type_name -> google.protobuf.Timestamp
+var file_levyan_payday_archived_proto_depIdxs = []int32{
+	1, // 0: levyan.Archived.labels:type_name -> levyan.Archived.LabelsEntry
+	2, // 1: levyan.Archived.date_updated:type_name -> google.protobuf.Timestamp
+	2, // 2: levyan.Archived.date_created:type_name -> google.protobuf.Timestamp
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -370,26 +370,26 @@ var file_app_payday_archived_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_app_payday_archived_proto_init() }
-func file_app_payday_archived_proto_init() {
-	if File_app_payday_archived_proto != nil {
+func init() { file_levyan_payday_archived_proto_init() }
+func file_levyan_payday_archived_proto_init() {
+	if File_levyan_payday_archived_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_payday_archived_proto_rawDesc), len(file_app_payday_archived_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_payday_archived_proto_rawDesc), len(file_levyan_payday_archived_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_app_payday_archived_proto_goTypes,
-		DependencyIndexes: file_app_payday_archived_proto_depIdxs,
-		MessageInfos:      file_app_payday_archived_proto_msgTypes,
+		GoTypes:           file_levyan_payday_archived_proto_goTypes,
+		DependencyIndexes: file_levyan_payday_archived_proto_depIdxs,
+		MessageInfos:      file_levyan_payday_archived_proto_msgTypes,
 	}.Build()
-	File_app_payday_archived_proto = out.File
-	file_app_payday_archived_proto_goTypes = nil
-	file_app_payday_archived_proto_depIdxs = nil
+	File_levyan_payday_archived_proto = out.File
+	file_levyan_payday_archived_proto_goTypes = nil
+	file_levyan_payday_archived_proto_depIdxs = nil
 }

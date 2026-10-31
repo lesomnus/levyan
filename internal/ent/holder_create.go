@@ -82,20 +82,6 @@ func (_c *HolderCreate) SetNillableDateCreated(v *time.Time) *HolderCreate {
 	return _c
 }
 
-// SetIdpSubject sets the "idp_subject" field.
-func (_c *HolderCreate) SetIdpSubject(v string) *HolderCreate {
-	_c.mutation.SetIdpSubject(v)
-	return _c
-}
-
-// SetNillableIdpSubject sets the "idp_subject" field if the given value is not nil.
-func (_c *HolderCreate) SetNillableIdpSubject(v *string) *HolderCreate {
-	if v != nil {
-		_c.SetIdpSubject(*v)
-	}
-	return _c
-}
-
 // SetTenantId sets the "tenant_id" field.
 func (_c *HolderCreate) SetTenantId(v uuid.UUID) *HolderCreate {
 	_c.mutation.SetTenantId(v)
@@ -246,10 +232,6 @@ func (_c *HolderCreate) createSpec() (*Holder, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DateCreated(); ok {
 		_spec.SetField(holder.FieldDateCreated, field.TypeTime, value)
 		_node.DateCreated = value
-	}
-	if value, ok := _c.mutation.IdpSubject(); ok {
-		_spec.SetField(holder.FieldIdpSubject, field.TypeString, value)
-		_node.IdpSubject = &value
 	}
 	if nodes := _c.mutation.TenantIds(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

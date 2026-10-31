@@ -13,11 +13,14 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/holder"
+	"github.com/lesomnus/levyan/internal/ent/meter"
+	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
 	"github.com/lesomnus/levyan/internal/ent/owed"
+	"github.com/lesomnus/levyan/internal/ent/price"
 	"github.com/lesomnus/levyan/internal/ent/rowseal"
+	"github.com/lesomnus/levyan/internal/ent/servicekey"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
-	"github.com/lesomnus/levyan/internal/ent/thing"
 	"github.com/protobuf-orm/ent"
 	"github.com/protobuf-orm/ent/dialect/sql"
 	"github.com/protobuf-orm/ent/dialect/sql/sqlgraph"
@@ -81,15 +84,18 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			access.Table:   access.ValidColumn,
-			archived.Table: archived.ValidColumn,
-			audit.Table:    audit.ValidColumn,
-			holder.Table:   holder.ValidColumn,
-			outbox.Table:   outbox.ValidColumn,
-			owed.Table:     owed.ValidColumn,
-			rowseal.Table:  rowseal.ValidColumn,
-			tenant.Table:   tenant.ValidColumn,
-			thing.Table:    thing.ValidColumn,
+			access.Table:     access.ValidColumn,
+			archived.Table:   archived.ValidColumn,
+			audit.Table:      audit.ValidColumn,
+			holder.Table:     holder.ValidColumn,
+			meter.Table:      meter.ValidColumn,
+			operator.Table:   operator.ValidColumn,
+			outbox.Table:     outbox.ValidColumn,
+			owed.Table:       owed.ValidColumn,
+			price.Table:      price.ValidColumn,
+			rowseal.Table:    rowseal.ValidColumn,
+			servicekey.Table: servicekey.ValidColumn,
+			tenant.Table:     tenant.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

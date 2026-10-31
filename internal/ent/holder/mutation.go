@@ -24,7 +24,6 @@ type Mutation struct {
 	date_updated  *time.Time
 	date_erased   *time.Time
 	date_created  *time.Time
-	idp_subject   *string
 	clearedFields map[string]struct{}
 	exprs         map[string]sql.Querier
 	tenant        *uuid.UUID
@@ -235,42 +234,6 @@ func (m *Mutation) ResetDateCreated() {
 	delete(m.clearedFields, FieldDateCreated)
 }
 
-// SetIdpSubject sets the "idp_subject" field.
-func (m *Mutation) SetIdpSubject(s string) {
-	m.idp_subject = &s
-	delete(m.clearedFields, FieldIdpSubject)
-	delete(m.exprs, FieldIdpSubject)
-}
-
-// IdpSubject returns the value of the "idp_subject" field in the mutation.
-func (m *Mutation) IdpSubject() (r string, exists bool) {
-	v := m.idp_subject
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearIdpSubject clears the value of the "idp_subject" field.
-func (m *Mutation) ClearIdpSubject() {
-	m.idp_subject = nil
-	delete(m.exprs, FieldIdpSubject)
-	m.clearedFields[FieldIdpSubject] = struct{}{}
-}
-
-// IdpSubjectCleared returns if the "idp_subject" field was cleared in this mutation.
-func (m *Mutation) IdpSubjectCleared() bool {
-	_, ok := m.clearedFields[FieldIdpSubject]
-	return ok
-}
-
-// ResetIdpSubject resets all changes to the "idp_subject" field.
-func (m *Mutation) ResetIdpSubject() {
-	m.idp_subject = nil
-	delete(m.clearedFields, FieldIdpSubject)
-	delete(m.exprs, FieldIdpSubject)
-}
-
 // SetTenantId sets the "tenant_id" field.
 func (m *Mutation) SetTenantId(u uuid.UUID) {
 	m.tenant = &u
@@ -351,7 +314,7 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 8)
 	if m.alias != nil || m.exprs[FieldAlias] != nil {
 		fields = append(fields, FieldAlias)
 	}
@@ -372,9 +335,6 @@ func (m *Mutation) Fields() []string {
 	}
 	if m.date_created != nil {
 		fields = append(fields, FieldDateCreated)
-	}
-	if m.idp_subject != nil || m.exprs[FieldIdpSubject] != nil {
-		fields = append(fields, FieldIdpSubject)
 	}
 	if m.tenant != nil {
 		fields = append(fields, FieldTenantId)
@@ -407,8 +367,6 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.DateErased()
 	case FieldDateCreated:
 		return m.DateCreated()
-	case FieldIdpSubject:
-		return m.IdpSubject()
 	case FieldTenantId:
 		return m.TenantId()
 	}
@@ -500,16 +458,6 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDateCreated(v)
 		return nil
-	case FieldIdpSubject:
-		v, ok := value.(string)
-		if !ok {
-			if e, ok := value.(sql.Querier); ok {
-				return m.SetFieldExpr(name, e)
-			}
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIdpSubject(v)
-		return nil
 	case FieldTenantId:
 		v, ok := value.(uuid.UUID)
 		if !ok {
@@ -556,8 +504,6 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		m.ResetDateErased()
 	case FieldDateCreated:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldIdpSubject:
-		m.ResetIdpSubject()
 	case FieldTenantId:
 		return fmt.Errorf("field %s cannot be assigned an expression: it holds an edge, which is set through the edge", name)
 	default:
@@ -599,9 +545,6 @@ func (m *Mutation) ExprFields() []string {
 	if _, ok := m.exprs[FieldDateErased]; ok {
 		fields = append(fields, FieldDateErased)
 	}
-	if _, ok := m.exprs[FieldIdpSubject]; ok {
-		fields = append(fields, FieldIdpSubject)
-	}
 	return fields
 }
 
@@ -640,9 +583,6 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldDateCreated) {
 		fields = append(fields, FieldDateCreated)
 	}
-	if m.FieldCleared(FieldIdpSubject) {
-		fields = append(fields, FieldIdpSubject)
-	}
 	return fields
 }
 
@@ -665,9 +605,6 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldDateCreated:
 		m.ClearDateCreated()
-		return nil
-	case FieldIdpSubject:
-		m.ClearIdpSubject()
 		return nil
 	}
 	return fmt.Errorf("unknown Holder nullable field %s", name)
@@ -697,9 +634,6 @@ func (m *Mutation) ResetField(name string) error {
 		return nil
 	case FieldDateCreated:
 		m.ResetDateCreated()
-		return nil
-	case FieldIdpSubject:
-		m.ResetIdpSubject()
 		return nil
 	case FieldTenantId:
 		m.ResetTenantId()

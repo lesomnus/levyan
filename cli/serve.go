@@ -10,15 +10,33 @@ import (
 	"github.com/lesomnus/xli"
 	entschema "github.com/protobuf-orm/ent/dialect/sql/schema"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 
+	"github.com/lesomnus/payday/auth"
 	"github.com/lesomnus/payday/spin"
 	"github.com/lesomnus/payday/valid"
 
 	"github.com/lesomnus/levyan/cmd"
 	entmigrate "github.com/lesomnus/levyan/internal/ent/migrate"
+	"github.com/lesomnus/levyan/server/api"
+	"github.com/lesomnus/levyan/server/keys"
+	"github.com/lesomnus/levyan/server/policy"
 )
 
-// NewCmdServe is `<app> serve`.
+// Front is the door `levyan serve` puts on what `cmd.Build` made: a product,
+// by the service key it sends, served as that key in its own tenant
+// (`server/keys`); what it may call, the policy table (`server/policy`); and
+// `levyan.v1`, what it calls (`server/api`), on the walled stack.
+//
+// A function rather than lines in the command so that a test serves exactly
+// this, over a connection, and asks it what a product is told.
+func Front(s *cmd.Server) {
+	s.Auth = auth.Bearer(keys.Store(s.Ungated, s.Clock))
+	s.Policy = policy.Policy{}
+	s.Register = append(s.Register, func(g grpc.ServiceRegistrar) { api.Register(g, s.Walled) })
+}
+
+// NewCmdServe is `levyan serve`: products' calls, on `server.addr`.
 //
 // It is the app's own and not payday's, for the reason at the top of
 // `cmd/config.go`: the body of this command is the stack, and a framework that
@@ -27,14 +45,14 @@ import (
 func NewCmdServe(c *cmd.Config) *xli.Command {
 	return &xli.Command{
 		Name:  "serve",
-		Brief: "answer requests",
+		Brief: "answer products' calls",
 
 		Handler: xli.OnRun(func(ctx context.Context, _ *xli.Command, next xli.Next) error {
 			// Telemetry first, because everything after it logs. What
 			// `Build` answers with is a context carrying the providers, and
 			// what reads them is `grpcx` -- so a server built on a context
 			// this did not touch traces and logs into providers that discard.
-			ctx, done, err := Telemetry(ctx, c)
+			ctx, done, err := cmd.Telemetry(ctx, c)
 			if err != nil {
 				return err
 			}
@@ -45,6 +63,7 @@ func NewCmdServe(c *cmd.Config) *xli.Command {
 				return err
 			}
 			defer s.Close()
+			Front(s)
 
 			// The database, before anything is served on it.
 			//

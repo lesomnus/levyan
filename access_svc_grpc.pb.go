@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: app/payday/access_svc.g.proto
+// source: levyan/payday/access_svc.g.proto
 
 package levyan
 
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AccessService_Get_FullMethodName  = "/app.AccessService/Get"
-	AccessService_List_FullMethodName = "/app.AccessService/List"
+	AccessService_Get_FullMethodName  = "/levyan.AccessService/Get"
+	AccessService_List_FullMethodName = "/levyan.AccessService/List"
 )
 
 // AccessServiceClient is the client API for AccessService service.
@@ -146,7 +146,7 @@ func _AccessService_List_Handler(srv interface{}, ctx context.Context, dec func(
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AccessService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "app.AccessService",
+	ServiceName: "levyan.AccessService",
 	HandlerType: (*AccessServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -159,5 +159,5 @@ var AccessService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "app/payday/access_svc.g.proto",
+	Metadata: "levyan/payday/access_svc.g.proto",
 }

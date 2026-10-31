@@ -86,11 +86,6 @@ func DateCreated(v time.Time) predicate.Holder {
 	return predicate.Holder(sql.FieldEQ(FieldDateCreated, v))
 }
 
-// IdpSubject applies equality check predicate on the "idp_subject" field. It's identical to IdpSubjectEQ.
-func IdpSubject(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldEQ(FieldIdpSubject, v))
-}
-
 // TenantId applies equality check predicate on the "tenant_id" field. It's identical to TenantIdEQ.
 func TenantId(v uuid.UUID) predicate.Holder {
 	return predicate.Holder(sql.FieldEQ(FieldTenantId, v))
@@ -439,81 +434,6 @@ func DateCreatedIsNil() predicate.Holder {
 // DateCreatedNotNil applies the NotNil predicate on the "date_created" field.
 func DateCreatedNotNil() predicate.Holder {
 	return predicate.Holder(sql.FieldNotNull(FieldDateCreated))
-}
-
-// IdpSubjectEQ applies the EQ predicate on the "idp_subject" field.
-func IdpSubjectEQ(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldEQ(FieldIdpSubject, v))
-}
-
-// IdpSubjectNEQ applies the NEQ predicate on the "idp_subject" field.
-func IdpSubjectNEQ(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldNEQ(FieldIdpSubject, v))
-}
-
-// IdpSubjectIn applies the In predicate on the "idp_subject" field.
-func IdpSubjectIn(vs ...string) predicate.Holder {
-	return predicate.Holder(sql.FieldIn(FieldIdpSubject, vs...))
-}
-
-// IdpSubjectNotIn applies the NotIn predicate on the "idp_subject" field.
-func IdpSubjectNotIn(vs ...string) predicate.Holder {
-	return predicate.Holder(sql.FieldNotIn(FieldIdpSubject, vs...))
-}
-
-// IdpSubjectGT applies the GT predicate on the "idp_subject" field.
-func IdpSubjectGT(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldGT(FieldIdpSubject, v))
-}
-
-// IdpSubjectGTE applies the GTE predicate on the "idp_subject" field.
-func IdpSubjectGTE(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldGTE(FieldIdpSubject, v))
-}
-
-// IdpSubjectLT applies the LT predicate on the "idp_subject" field.
-func IdpSubjectLT(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldLT(FieldIdpSubject, v))
-}
-
-// IdpSubjectLTE applies the LTE predicate on the "idp_subject" field.
-func IdpSubjectLTE(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldLTE(FieldIdpSubject, v))
-}
-
-// IdpSubjectContains applies the Contains predicate on the "idp_subject" field.
-func IdpSubjectContains(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldContains(FieldIdpSubject, v))
-}
-
-// IdpSubjectHasPrefix applies the HasPrefix predicate on the "idp_subject" field.
-func IdpSubjectHasPrefix(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldHasPrefix(FieldIdpSubject, v))
-}
-
-// IdpSubjectHasSuffix applies the HasSuffix predicate on the "idp_subject" field.
-func IdpSubjectHasSuffix(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldHasSuffix(FieldIdpSubject, v))
-}
-
-// IdpSubjectIsNil applies the IsNil predicate on the "idp_subject" field.
-func IdpSubjectIsNil() predicate.Holder {
-	return predicate.Holder(sql.FieldIsNull(FieldIdpSubject))
-}
-
-// IdpSubjectNotNil applies the NotNil predicate on the "idp_subject" field.
-func IdpSubjectNotNil() predicate.Holder {
-	return predicate.Holder(sql.FieldNotNull(FieldIdpSubject))
-}
-
-// IdpSubjectEqualFold applies the EqualFold predicate on the "idp_subject" field.
-func IdpSubjectEqualFold(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldEqualFold(FieldIdpSubject, v))
-}
-
-// IdpSubjectContainsFold applies the ContainsFold predicate on the "idp_subject" field.
-func IdpSubjectContainsFold(v string) predicate.Holder {
-	return predicate.Holder(sql.FieldContainsFold(FieldIdpSubject, v))
 }
 
 // TenantIdEQ applies the EQ predicate on the "tenant_id" field.

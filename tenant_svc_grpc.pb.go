@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: app/payday/tenant_svc.g.proto
+// source: levyan/payday/tenant_svc.g.proto
 
 package levyan
 
@@ -19,12 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TenantService_Add_FullMethodName   = "/app.TenantService/Add"
-	TenantService_Get_FullMethodName   = "/app.TenantService/Get"
-	TenantService_Patch_FullMethodName = "/app.TenantService/Patch"
-	TenantService_Apply_FullMethodName = "/app.TenantService/Apply"
-	TenantService_Erase_FullMethodName = "/app.TenantService/Erase"
-	TenantService_List_FullMethodName  = "/app.TenantService/List"
+	TenantService_Add_FullMethodName   = "/levyan.TenantService/Add"
+	TenantService_Get_FullMethodName   = "/levyan.TenantService/Get"
+	TenantService_Patch_FullMethodName = "/levyan.TenantService/Patch"
+	TenantService_Apply_FullMethodName = "/levyan.TenantService/Apply"
+	TenantService_Erase_FullMethodName = "/levyan.TenantService/Erase"
+	TenantService_List_FullMethodName  = "/levyan.TenantService/List"
 )
 
 // TenantServiceClient is the client API for TenantService service.
@@ -290,7 +290,7 @@ func _TenantService_List_Handler(srv interface{}, ctx context.Context, dec func(
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TenantService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "app.TenantService",
+	ServiceName: "levyan.TenantService",
 	HandlerType: (*TenantServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -319,5 +319,5 @@ var TenantService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "app/payday/tenant_svc.g.proto",
+	Metadata: "levyan/payday/tenant_svc.g.proto",
 }

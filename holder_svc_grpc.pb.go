@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: app/payday/holder_svc.g.proto
+// source: levyan/payday/holder_svc.g.proto
 
 package levyan
 
@@ -19,13 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	HolderService_Add_FullMethodName   = "/app.HolderService/Add"
-	HolderService_Get_FullMethodName   = "/app.HolderService/Get"
-	HolderService_Patch_FullMethodName = "/app.HolderService/Patch"
-	HolderService_Apply_FullMethodName = "/app.HolderService/Apply"
-	HolderService_Erase_FullMethodName = "/app.HolderService/Erase"
-	HolderService_List_FullMethodName  = "/app.HolderService/List"
-	HolderService_Watch_FullMethodName = "/app.HolderService/Watch"
+	HolderService_Add_FullMethodName   = "/levyan.HolderService/Add"
+	HolderService_Get_FullMethodName   = "/levyan.HolderService/Get"
+	HolderService_Patch_FullMethodName = "/levyan.HolderService/Patch"
+	HolderService_Apply_FullMethodName = "/levyan.HolderService/Apply"
+	HolderService_Erase_FullMethodName = "/levyan.HolderService/Erase"
+	HolderService_List_FullMethodName  = "/levyan.HolderService/List"
+	HolderService_Watch_FullMethodName = "/levyan.HolderService/Watch"
 )
 
 // HolderServiceClient is the client API for HolderService service.
@@ -348,7 +348,7 @@ type HolderService_WatchServer = grpc.ServerStreamingServer[HolderWatchResponse]
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var HolderService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "app.HolderService",
+	ServiceName: "levyan.HolderService",
 	HandlerType: (*HolderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -383,5 +383,5 @@ var HolderService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "app/payday/holder_svc.g.proto",
+	Metadata: "levyan/payday/holder_svc.g.proto",
 }

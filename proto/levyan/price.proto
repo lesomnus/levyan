@@ -1,0 +1,209 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/meter.proto";
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Price is one version of what a meter costs, on a channel, in a currency.
+//
+// A version is never changed. What a meter costs from some day on is a new
+// version published beside the old ones, which stay as they were, so that
+// what a period was billed at can be asked again later and answered the same
+// (`internal/book`). Every field is immutable and there is no Patch and no
+// Erase: a version published by mistake is answered by another of the same
+// dates published after it, which is then the one in force.
+//
+// Which version is in force for a customer is said by two dates: from when it
+// applies to a customer who starts on it or later (`date_effective`), and
+// from when to the customers who were there already (`date_existing`) --
+// which is how a price rise gives notice. Of the versions that apply to a
+// customer at a moment, the one with the latest `date_effective` is in force,
+// and of two with the same, the one published last.
+//
+// A version prices the meter one of two ways. By the unit: what is included
+// for nothing, and what each `per` units past that cost. Or by bands of the
+// meter's value, each a fee for the period: the retention window a workspace
+// keeps its history for, priced for a year, three years or forever.
+//
+// Every amount is a whole number of the currency's minor unit -- won for KRW,
+// cents for USD -- and a version prices in one currency, so that two
+// currencies are never added up (`internal/money`).
+message Price {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of, which is the meter's.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // Why this version was published, as the operator who published it says:
+  // "2027년 단가, 2026-11-01 고지".
+  string desc = 6 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // What it prices.
+  Meter meter = 8 [(orm.edge) = {immutable: true}];
+
+  // Who it is sold through.
+  Channel channel = 9 [(orm.field) = {immutable: true}];
+
+  // ISO 4217, in capitals: what every amount of this version is in. Only a
+  // currency `internal/money` knows is taken.
+  string currency = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // How much of the meter a period includes for nothing, in the meter's unit.
+  int64 included = 11 [(orm.field) = {immutable: true}];
+
+  // What each `per` units past the included ones cost, in the currency's
+  // minor unit.
+  int64 unit_price = 12 [(orm.field) = {immutable: true}];
+
+  // Never stamped: nothing erases a version, and the RPC is not generated.
+  // Said because payday asks what an erase would do to a row, and of a price
+  // somebody was billed by the only answer is that the row stays.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // How many units `unit_price` is for: 1 for a price of each asset,
+  // 1073741824 for a price of each GiB a meter counts in bytes. Unset is 1.
+  int64 per = 16 [(orm.field) = {immutable: true}];
+
+  // A price by bands of the meter's value, in place of a unit price: set, and
+  // `included`, `unit_price` and `per` are not.
+  PriceBands bands = 17 [(orm.field) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // From when it applies to a customer who starts on it or later. Unset is
+  // the moment it is published, and it is never before that: a price does
+  // not reach back into a period somebody has used, and what a closed period
+  // was billed is corrected by a correction, never by a price.
+  google.protobuf.Timestamp date_effective = 18 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // From when it applies to the customers who were there before
+  // `date_effective`: the same moment or later, and later is the notice a
+  // rise gives them. Unset is `date_effective`.
+  google.protobuf.Timestamp date_existing = 19 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        name: "meter"
+        refs: [
+          {
+            name: "meter"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 11
+    tenanted: {
+      via: "tenant"
+      agrees: ["meter.tenant"]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "meter"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// Channel is who a product is sold through: who runs the billing cycle and
+// issues the legal documents for it. What a period costs is levyan's to say
+// on every channel.
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+
+  // A merchant of record, for customers abroad: it is the seller, and is told
+  // what each closed period came to.
+  CHANNEL_MOR = 1;
+
+  // A Korean payment gateway, for customers in Korea: levyan is the seller,
+  // and charges the card itself.
+  CHANNEL_PG_KR = 2;
+}
+
+// PriceBands is a price by bands of a meter's value.
+//
+// Bands go up: each holds the values above the bound of the one before it and
+// up to its own, and the last has no bound, so that every value is in one.
+message PriceBands {
+  repeated PriceBand bands = 1;
+}
+
+// PriceBand is one band of a banded price.
+message PriceBand {
+  // The most a value in this band may be, in the meter's unit; unset on the
+  // last band.
+  int64 up_to = 1 [features.field_presence = EXPLICIT];
+
+  // What a period in this band costs, in the price's minor unit. A period in
+  // two bands costs each for the time it spent in it.
+  int64 fee = 2;
+}

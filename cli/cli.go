@@ -1,26 +1,15 @@
-// Package cli is this app's command line, and what only a process does.
+// Package cli is `levyan`, the binary products call: its command line, and
+// the door it puts on the server `cmd` builds ([Front]).
 //
-// `cmd` is the wiring both entry points share -- `Build` is there, and an app's
-// sandbox calls it to stand up the same server the process stands up. This
-// package is everything on the other side of that: parsing arguments, the
-// database engine a process opens, the language its Watch filters are
-// evaluated in, and what to do about the shape of a database that was already
-// there.
+// `cmd` is the wiring both binaries share. This package is the public one's
+// side of it -- service keys, the policy table, `levyan.v1` -- and
+// `cli/admin` is the operator's, and neither imports the other: the public
+// binary has no path that writes as the deployment, and the operator's has no
+// API a product calls (cmd/levyan's test asks the toolchain, every run).
 //
-// # Why a package and not a build tag
-//
-// Because the linker follows imports. A blank-imported driver or a migration
-// engine named in `cmd` is linked into the sandbox whether the page can use it
-// or not, and neither is small: measured on payday's own app, the wazero SQLite
-// engine was 15 MB of the sandbox module and Atlas -- which `Schema.Create`
-// reaches -- another 10.5 MB, out of 72 MB the browser had to download. CEL,
-// which `filter.go` links, was 10 MB more.
-//
-// A `//go:build !js` on each would also have done it, and is worse: a tag
-// refuses to compile what would compile, and says nothing about why. What is
-// true is that a process and a page need different things, and a package
-// boundary is how Go says that. Nothing here is excluded from a build; the
-// sandbox simply does not import it.
+// It is also what only a process needs and a library does not: the database
+// engines it opens, the language a Watch filter is evaluated in, the
+// migration.
 package cli
 
 import (
@@ -68,14 +57,14 @@ func Cmd(c *cmd.Config) *xli.Command {
 
 	return &xli.Command{
 		Name:  cmd.Name,
-		Brief: "levyan",
+		Brief: "usage-based billing for payday apps: what products call",
 
 		Flags: flg.Flags{cfg.ConfigFlag()},
 
 		Commands: []*xli.Command{
 			version,
 			cfg.NewCmdConfig(l),
-			NewCmdInit(c),
+			NewCmdMigrate(c),
 			NewCmdServe(c),
 		},
 
@@ -83,11 +72,9 @@ func Cmd(c *cmd.Config) *xli.Command {
 	}
 }
 
-// Migrate brings the database s runs on into the shape this app's schema says.
-//
-// It is here and not on `cmd.Server` because this is the call that links the
-// migration engine, and `cmd` is what an app's sandbox imports. A sandbox does
-// not migrate: there is no database there that outlives the page.
+// Migrate brings the database s runs on into the shape this app's schema says:
+// `levyan migrate`, which a deployment runs before it serves a build, and the
+// one binary that alters tables.
 //
 // The indexes an earlier build made under another name are moved to this
 // build's first: a migration finds an index by its name, and one it does not

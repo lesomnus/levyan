@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: app/payday/access.proto
+// source: levyan/payday/access.proto
 
 package levyan
 
@@ -70,7 +70,7 @@ type Access struct {
 
 func (x *Access) Reset() {
 	*x = Access{}
-	mi := &file_app_payday_access_proto_msgTypes[0]
+	mi := &file_levyan_payday_access_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -82,7 +82,7 @@ func (x *Access) String() string {
 func (*Access) ProtoMessage() {}
 
 func (x *Access) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_access_proto_msgTypes[0]
+	mi := &file_levyan_payday_access_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -320,11 +320,11 @@ func (b0 Access_builder) Build() *Access {
 	return m0
 }
 
-var File_app_payday_access_proto protoreflect.FileDescriptor
+var File_levyan_payday_access_proto protoreflect.FileDescriptor
 
-const file_app_payday_access_proto_rawDesc = "" +
+const file_levyan_payday_access_proto_rawDesc = "" +
 	"\n" +
-	"\x17app/payday/access.proto\x12\x03app\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x84\x06\n" +
+	"\x1alevyan/payday/access.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x84\x06\n" +
 	"\x06Access\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12#\n" +
 	"\ttenant_id\x18\x02 \x01(\fB\x06\xea\x82\x16\x02\x10@R\btenantId\x12!\n" +
@@ -361,13 +361,13 @@ const file_app_payday_access_proto_rawDesc = "" +
 	"\x04kind 2(\xc8\x01B\x02\n" +
 	"\x00H\x06\"\x1c\x12\ttenant_id\x12\x0factor_tenant_idB!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
-var file_app_payday_access_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_app_payday_access_proto_goTypes = []any{
-	(*Access)(nil),                // 0: app.Access
+var file_levyan_payday_access_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_levyan_payday_access_proto_goTypes = []any{
+	(*Access)(nil),                // 0: levyan.Access
 	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
 }
-var file_app_payday_access_proto_depIdxs = []int32{
-	1, // 0: app.Access.date_created:type_name -> google.protobuf.Timestamp
+var file_levyan_payday_access_proto_depIdxs = []int32{
+	1, // 0: levyan.Access.date_created:type_name -> google.protobuf.Timestamp
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -375,26 +375,26 @@ var file_app_payday_access_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_app_payday_access_proto_init() }
-func file_app_payday_access_proto_init() {
-	if File_app_payday_access_proto != nil {
+func init() { file_levyan_payday_access_proto_init() }
+func file_levyan_payday_access_proto_init() {
+	if File_levyan_payday_access_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_payday_access_proto_rawDesc), len(file_app_payday_access_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_payday_access_proto_rawDesc), len(file_levyan_payday_access_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_app_payday_access_proto_goTypes,
-		DependencyIndexes: file_app_payday_access_proto_depIdxs,
-		MessageInfos:      file_app_payday_access_proto_msgTypes,
+		GoTypes:           file_levyan_payday_access_proto_goTypes,
+		DependencyIndexes: file_levyan_payday_access_proto_depIdxs,
+		MessageInfos:      file_levyan_payday_access_proto_msgTypes,
 	}.Build()
-	File_app_payday_access_proto = out.File
-	file_app_payday_access_proto_goTypes = nil
-	file_app_payday_access_proto_depIdxs = nil
+	File_levyan_payday_access_proto = out.File
+	file_levyan_payday_access_proto_goTypes = nil
+	file_levyan_payday_access_proto_depIdxs = nil
 }

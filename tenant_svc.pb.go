@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: app/payday/tenant_svc.g.proto
+// source: levyan/payday/tenant_svc.g.proto
 
 package levyan
 
@@ -38,7 +38,7 @@ type TenantAddRequest struct {
 
 func (x *TenantAddRequest) Reset() {
 	*x = TenantAddRequest{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[0]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *TenantAddRequest) String() string {
 func (*TenantAddRequest) ProtoMessage() {}
 
 func (x *TenantAddRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[0]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -191,7 +191,7 @@ type TenantGetRequest struct {
 
 func (x *TenantGetRequest) Reset() {
 	*x = TenantGetRequest{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[1]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -203,7 +203,7 @@ func (x *TenantGetRequest) String() string {
 func (*TenantGetRequest) ProtoMessage() {}
 
 func (x *TenantGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[1]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,7 +283,7 @@ type TenantRef struct {
 
 func (x *TenantRef) Reset() {
 	*x = TenantRef{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[2]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -295,7 +295,7 @@ func (x *TenantRef) String() string {
 func (*TenantRef) ProtoMessage() {}
 
 func (x *TenantRef) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[2]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -417,7 +417,7 @@ func (b0 TenantRef_builder) Build() *TenantRef {
 type case_TenantRef_Key protoreflect.FieldNumber
 
 func (x case_TenantRef_Key) String() string {
-	md := file_app_payday_tenant_svc_g_proto_msgTypes[2].Descriptor()
+	md := file_levyan_payday_tenant_svc_g_proto_msgTypes[2].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -457,7 +457,7 @@ type TenantSelect struct {
 
 func (x *TenantSelect) Reset() {
 	*x = TenantSelect{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[3]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -469,7 +469,7 @@ func (x *TenantSelect) String() string {
 func (*TenantSelect) ProtoMessage() {}
 
 func (x *TenantSelect) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[3]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -712,7 +712,7 @@ type TenantPatchRequest struct {
 
 func (x *TenantPatchRequest) Reset() {
 	*x = TenantPatchRequest{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[4]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +724,7 @@ func (x *TenantPatchRequest) String() string {
 func (*TenantPatchRequest) ProtoMessage() {}
 
 func (x *TenantPatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[4]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +955,7 @@ type TenantApplyRequest struct {
 
 func (x *TenantApplyRequest) Reset() {
 	*x = TenantApplyRequest{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +967,7 @@ func (x *TenantApplyRequest) String() string {
 func (*TenantApplyRequest) ProtoMessage() {}
 
 func (x *TenantApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1049,7 +1049,7 @@ type TenantEraseResponse struct {
 
 func (x *TenantEraseResponse) Reset() {
 	*x = TenantEraseResponse{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[6]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +1061,7 @@ func (x *TenantEraseResponse) String() string {
 func (*TenantEraseResponse) ProtoMessage() {}
 
 func (x *TenantEraseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[6]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1130,7 +1130,7 @@ type TenantListRequest struct {
 
 func (x *TenantListRequest) Reset() {
 	*x = TenantListRequest{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[7]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1142,7 +1142,7 @@ func (x *TenantListRequest) String() string {
 func (*TenantListRequest) ProtoMessage() {}
 
 func (x *TenantListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[7]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,7 +1242,7 @@ type TenantListResponse struct {
 
 func (x *TenantListResponse) Reset() {
 	*x = TenantListResponse{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[8]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1254,7 +1254,7 @@ func (x *TenantListResponse) String() string {
 func (*TenantListResponse) ProtoMessage() {}
 
 func (x *TenantListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[8]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1321,7 +1321,7 @@ type TenantFilter struct {
 
 func (x *TenantFilter) Reset() {
 	*x = TenantFilter{}
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[9]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1333,7 +1333,7 @@ func (x *TenantFilter) String() string {
 func (*TenantFilter) ProtoMessage() {}
 
 func (x *TenantFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_tenant_svc_g_proto_msgTypes[9]
+	mi := &file_levyan_payday_tenant_svc_g_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1380,24 +1380,24 @@ func (b0 TenantFilter_builder) Build() *TenantFilter {
 	return m0
 }
 
-var File_app_payday_tenant_svc_g_proto protoreflect.FileDescriptor
+var File_levyan_payday_tenant_svc_g_proto protoreflect.FileDescriptor
 
-const file_app_payday_tenant_svc_g_proto_rawDesc = "" +
+const file_levyan_payday_tenant_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1dapp/payday/tenant_svc.g.proto\x12\x03app\x1a\x17app/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x11patch/patch.proto\"\xaa\x02\n" +
+	" levyan/payday/tenant_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x11patch/patch.proto\"\xad\x02\n" +
 	"\x10TenantAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x1b\n" +
 	"\x05alias\x18\x04 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05alias\x12\x19\n" +
 	"\x04name\x18\x05 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04name\x12\x19\n" +
-	"\x04desc\x18\x06 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04desc\x129\n" +
-	"\x06labels\x18\a \x03(\v2!.app.TenantAddRequest.LabelsEntryR\x06labels\x12=\n" +
+	"\x04desc\x18\x06 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04desc\x12<\n" +
+	"\x06labels\x18\a \x03(\v2$.levyan.TenantAddRequest.LabelsEntryR\x06labels\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"_\n" +
-	"\x10TenantGetRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.TenantRefR\x03ref\x12)\n" +
-	"\x06select\x18\x02 \x01(\v2\x11.app.TenantSelectR\x06select\"<\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"e\n" +
+	"\x10TenantGetRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.TenantRefR\x03ref\x12,\n" +
+	"\x06select\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06select\"<\n" +
 	"\tTenantRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02id\x12\x16\n" +
 	"\x05alias\x18\x04 \x01(\tH\x00R\x05aliasB\x05\n" +
@@ -1409,85 +1409,85 @@ const file_app_payday_tenant_svc_g_proto_rawDesc = "" +
 	"\x04desc\x18\x06 \x01(\bR\x04desc\x12\x16\n" +
 	"\x06labels\x18\a \x01(\bR\x06labels\x12!\n" +
 	"\fdate_updated\x18\r \x01(\bR\vdateUpdated\x12!\n" +
-	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\xd9\x02\n" +
-	"\x12TenantPatchRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.TenantRefR\x03ref\x12\x14\n" +
+	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\xdf\x02\n" +
+	"\x12TenantPatchRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.TenantRefR\x03ref\x12\x14\n" +
 	"\x05alias\x18\b \x01(\tR\x05alias\x12\x12\n" +
 	"\x04name\x18\n" +
 	" \x01(\tR\x04name\x12\x12\n" +
-	"\x04desc\x18\f \x01(\tR\x04desc\x12;\n" +
-	"\x06labels\x18\x0e \x03(\v2#.app.TenantPatchRequest.LabelsEntryR\x06labels\x12=\n" +
+	"\x04desc\x18\f \x01(\tR\x04desc\x12>\n" +
+	"\x06labels\x18\x0e \x03(\v2&.levyan.TenantPatchRequest.LabelsEntryR\x06labels\x12=\n" +
 	"\fdate_updated\x18\x1a \x01(\v2\x1a.google.protobuf.TimestampR\vdateUpdated\x12,\n" +
 	"\x12date_updated_force\x18\x1b \x01(\bR\x10dateUpdatedForce\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Z\n" +
-	"\x12TenantApplyRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.TenantRefR\x03ref\x12\"\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"]\n" +
+	"\x12TenantApplyRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.TenantRefR\x03ref\x12\"\n" +
 	"\x05patch\x18\x02 \x01(\v2\f.patch.PatchR\x05patch\"-\n" +
 	"\x13TenantEraseResponse\x12\x16\n" +
-	"\x06erased\x18\x01 \x01(\bR\x06erased\"\x99\x01\n" +
-	"\x11TenantListRequest\x12+\n" +
-	"\afilters\x18\x01 \x03(\v2\x11.app.TenantFilterR\afilters\x12\x19\n" +
+	"\x06erased\x18\x01 \x01(\bR\x06erased\"\x9c\x01\n" +
+	"\x11TenantListRequest\x12.\n" +
+	"\afilters\x18\x01 \x03(\v2\x14.levyan.TenantFilterR\afilters\x12\x19\n" +
 	"\x04size\x18\x02 \x01(\x05B\x05\xaa\x01\x02\b\x02R\x04size\x12\x1b\n" +
 	"\x05after\x18\x03 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05after\x12\x1f\n" +
-	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"R\n" +
-	"\x12TenantListResponse\x12!\n" +
-	"\x05items\x18\x01 \x03(\v2\v.app.TenantR\x05items\x12\x19\n" +
-	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"0\n" +
-	"\fTenantFilter\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.TenantRefR\x03ref2\xaf\x02\n" +
-	"\rTenantService\x12)\n" +
-	"\x03Add\x12\x15.app.TenantAddRequest\x1a\v.app.Tenant\x12)\n" +
-	"\x03Get\x12\x15.app.TenantGetRequest\x1a\v.app.Tenant\x12-\n" +
-	"\x05Patch\x12\x17.app.TenantPatchRequest\x1a\v.app.Tenant\x12-\n" +
-	"\x05Apply\x12\x17.app.TenantApplyRequest\x1a\v.app.Tenant\x121\n" +
-	"\x05Erase\x12\x0e.app.TenantRef\x1a\x18.app.TenantEraseResponse\x127\n" +
-	"\x04List\x12\x16.app.TenantListRequest\x1a\x17.app.TenantListResponseB\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
+	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"U\n" +
+	"\x12TenantListResponse\x12$\n" +
+	"\x05items\x18\x01 \x03(\v2\x0e.levyan.TenantR\x05items\x12\x19\n" +
+	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"3\n" +
+	"\fTenantFilter\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.TenantRefR\x03ref2\xd3\x02\n" +
+	"\rTenantService\x12/\n" +
+	"\x03Add\x12\x18.levyan.TenantAddRequest\x1a\x0e.levyan.Tenant\x12/\n" +
+	"\x03Get\x12\x18.levyan.TenantGetRequest\x1a\x0e.levyan.Tenant\x123\n" +
+	"\x05Patch\x12\x1a.levyan.TenantPatchRequest\x1a\x0e.levyan.Tenant\x123\n" +
+	"\x05Apply\x12\x1a.levyan.TenantApplyRequest\x1a\x0e.levyan.Tenant\x127\n" +
+	"\x05Erase\x12\x11.levyan.TenantRef\x1a\x1b.levyan.TenantEraseResponse\x12=\n" +
+	"\x04List\x12\x19.levyan.TenantListRequest\x1a\x1a.levyan.TenantListResponseB\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
 
-var file_app_payday_tenant_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_app_payday_tenant_svc_g_proto_goTypes = []any{
-	(*TenantAddRequest)(nil),      // 0: app.TenantAddRequest
-	(*TenantGetRequest)(nil),      // 1: app.TenantGetRequest
-	(*TenantRef)(nil),             // 2: app.TenantRef
-	(*TenantSelect)(nil),          // 3: app.TenantSelect
-	(*TenantPatchRequest)(nil),    // 4: app.TenantPatchRequest
-	(*TenantApplyRequest)(nil),    // 5: app.TenantApplyRequest
-	(*TenantEraseResponse)(nil),   // 6: app.TenantEraseResponse
-	(*TenantListRequest)(nil),     // 7: app.TenantListRequest
-	(*TenantListResponse)(nil),    // 8: app.TenantListResponse
-	(*TenantFilter)(nil),          // 9: app.TenantFilter
-	nil,                           // 10: app.TenantAddRequest.LabelsEntry
-	nil,                           // 11: app.TenantPatchRequest.LabelsEntry
+var file_levyan_payday_tenant_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_levyan_payday_tenant_svc_g_proto_goTypes = []any{
+	(*TenantAddRequest)(nil),      // 0: levyan.TenantAddRequest
+	(*TenantGetRequest)(nil),      // 1: levyan.TenantGetRequest
+	(*TenantRef)(nil),             // 2: levyan.TenantRef
+	(*TenantSelect)(nil),          // 3: levyan.TenantSelect
+	(*TenantPatchRequest)(nil),    // 4: levyan.TenantPatchRequest
+	(*TenantApplyRequest)(nil),    // 5: levyan.TenantApplyRequest
+	(*TenantEraseResponse)(nil),   // 6: levyan.TenantEraseResponse
+	(*TenantListRequest)(nil),     // 7: levyan.TenantListRequest
+	(*TenantListResponse)(nil),    // 8: levyan.TenantListResponse
+	(*TenantFilter)(nil),          // 9: levyan.TenantFilter
+	nil,                           // 10: levyan.TenantAddRequest.LabelsEntry
+	nil,                           // 11: levyan.TenantPatchRequest.LabelsEntry
 	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
 	(*patchpb.Patch)(nil),         // 13: patch.Patch
-	(*Tenant)(nil),                // 14: app.Tenant
+	(*Tenant)(nil),                // 14: levyan.Tenant
 }
-var file_app_payday_tenant_svc_g_proto_depIdxs = []int32{
-	10, // 0: app.TenantAddRequest.labels:type_name -> app.TenantAddRequest.LabelsEntry
-	12, // 1: app.TenantAddRequest.date_created:type_name -> google.protobuf.Timestamp
-	2,  // 2: app.TenantGetRequest.ref:type_name -> app.TenantRef
-	3,  // 3: app.TenantGetRequest.select:type_name -> app.TenantSelect
-	2,  // 4: app.TenantPatchRequest.ref:type_name -> app.TenantRef
-	11, // 5: app.TenantPatchRequest.labels:type_name -> app.TenantPatchRequest.LabelsEntry
-	12, // 6: app.TenantPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
-	2,  // 7: app.TenantApplyRequest.ref:type_name -> app.TenantRef
-	13, // 8: app.TenantApplyRequest.patch:type_name -> patch.Patch
-	9,  // 9: app.TenantListRequest.filters:type_name -> app.TenantFilter
-	14, // 10: app.TenantListResponse.items:type_name -> app.Tenant
-	2,  // 11: app.TenantFilter.ref:type_name -> app.TenantRef
-	0,  // 12: app.TenantService.Add:input_type -> app.TenantAddRequest
-	1,  // 13: app.TenantService.Get:input_type -> app.TenantGetRequest
-	4,  // 14: app.TenantService.Patch:input_type -> app.TenantPatchRequest
-	5,  // 15: app.TenantService.Apply:input_type -> app.TenantApplyRequest
-	2,  // 16: app.TenantService.Erase:input_type -> app.TenantRef
-	7,  // 17: app.TenantService.List:input_type -> app.TenantListRequest
-	14, // 18: app.TenantService.Add:output_type -> app.Tenant
-	14, // 19: app.TenantService.Get:output_type -> app.Tenant
-	14, // 20: app.TenantService.Patch:output_type -> app.Tenant
-	14, // 21: app.TenantService.Apply:output_type -> app.Tenant
-	6,  // 22: app.TenantService.Erase:output_type -> app.TenantEraseResponse
-	8,  // 23: app.TenantService.List:output_type -> app.TenantListResponse
+var file_levyan_payday_tenant_svc_g_proto_depIdxs = []int32{
+	10, // 0: levyan.TenantAddRequest.labels:type_name -> levyan.TenantAddRequest.LabelsEntry
+	12, // 1: levyan.TenantAddRequest.date_created:type_name -> google.protobuf.Timestamp
+	2,  // 2: levyan.TenantGetRequest.ref:type_name -> levyan.TenantRef
+	3,  // 3: levyan.TenantGetRequest.select:type_name -> levyan.TenantSelect
+	2,  // 4: levyan.TenantPatchRequest.ref:type_name -> levyan.TenantRef
+	11, // 5: levyan.TenantPatchRequest.labels:type_name -> levyan.TenantPatchRequest.LabelsEntry
+	12, // 6: levyan.TenantPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
+	2,  // 7: levyan.TenantApplyRequest.ref:type_name -> levyan.TenantRef
+	13, // 8: levyan.TenantApplyRequest.patch:type_name -> patch.Patch
+	9,  // 9: levyan.TenantListRequest.filters:type_name -> levyan.TenantFilter
+	14, // 10: levyan.TenantListResponse.items:type_name -> levyan.Tenant
+	2,  // 11: levyan.TenantFilter.ref:type_name -> levyan.TenantRef
+	0,  // 12: levyan.TenantService.Add:input_type -> levyan.TenantAddRequest
+	1,  // 13: levyan.TenantService.Get:input_type -> levyan.TenantGetRequest
+	4,  // 14: levyan.TenantService.Patch:input_type -> levyan.TenantPatchRequest
+	5,  // 15: levyan.TenantService.Apply:input_type -> levyan.TenantApplyRequest
+	2,  // 16: levyan.TenantService.Erase:input_type -> levyan.TenantRef
+	7,  // 17: levyan.TenantService.List:input_type -> levyan.TenantListRequest
+	14, // 18: levyan.TenantService.Add:output_type -> levyan.Tenant
+	14, // 19: levyan.TenantService.Get:output_type -> levyan.Tenant
+	14, // 20: levyan.TenantService.Patch:output_type -> levyan.Tenant
+	14, // 21: levyan.TenantService.Apply:output_type -> levyan.Tenant
+	6,  // 22: levyan.TenantService.Erase:output_type -> levyan.TenantEraseResponse
+	8,  // 23: levyan.TenantService.List:output_type -> levyan.TenantListResponse
 	18, // [18:24] is the sub-list for method output_type
 	12, // [12:18] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
@@ -1495,13 +1495,13 @@ var file_app_payday_tenant_svc_g_proto_depIdxs = []int32{
 	0,  // [0:12] is the sub-list for field type_name
 }
 
-func init() { file_app_payday_tenant_svc_g_proto_init() }
-func file_app_payday_tenant_svc_g_proto_init() {
-	if File_app_payday_tenant_svc_g_proto != nil {
+func init() { file_levyan_payday_tenant_svc_g_proto_init() }
+func file_levyan_payday_tenant_svc_g_proto_init() {
+	if File_levyan_payday_tenant_svc_g_proto != nil {
 		return
 	}
-	file_app_payday_tenant_proto_init()
-	file_app_payday_tenant_svc_g_proto_msgTypes[2].OneofWrappers = []any{
+	file_levyan_payday_tenant_proto_init()
+	file_levyan_payday_tenant_svc_g_proto_msgTypes[2].OneofWrappers = []any{
 		(*tenantRef_Id)(nil),
 		(*tenantRef_Alias)(nil),
 	}
@@ -1509,17 +1509,17 @@ func file_app_payday_tenant_svc_g_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_payday_tenant_svc_g_proto_rawDesc), len(file_app_payday_tenant_svc_g_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_payday_tenant_svc_g_proto_rawDesc), len(file_levyan_payday_tenant_svc_g_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_app_payday_tenant_svc_g_proto_goTypes,
-		DependencyIndexes: file_app_payday_tenant_svc_g_proto_depIdxs,
-		MessageInfos:      file_app_payday_tenant_svc_g_proto_msgTypes,
+		GoTypes:           file_levyan_payday_tenant_svc_g_proto_goTypes,
+		DependencyIndexes: file_levyan_payday_tenant_svc_g_proto_depIdxs,
+		MessageInfos:      file_levyan_payday_tenant_svc_g_proto_msgTypes,
 	}.Build()
-	File_app_payday_tenant_svc_g_proto = out.File
-	file_app_payday_tenant_svc_g_proto_goTypes = nil
-	file_app_payday_tenant_svc_g_proto_depIdxs = nil
+	File_levyan_payday_tenant_svc_g_proto = out.File
+	file_levyan_payday_tenant_svc_g_proto_goTypes = nil
+	file_levyan_payday_tenant_svc_g_proto_depIdxs = nil
 }

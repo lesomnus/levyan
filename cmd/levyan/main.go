@@ -1,10 +1,11 @@
-// Command levyan is a payday app.
+// Command levyan is levyan's public binary: what products call, with their
+// service keys (`levyan serve`), and the migration a deployment runs before it
+// serves a build (`levyan migrate`).
 //
-// What to read first is `cmd/serve.go`: it is the stack, written out, and it is
-// the whole of what this app says to stand up a served, migrated, walled
-// server. `cli` is the command line over it, and is a package of its own so
-// that what only a process needs -- the database engine, the migration engine
-// -- is not linked into a sandbox that needs neither.
+// What to read first is `cmd/serve.go`: it is the stack, written out -- which
+// layers, in which order, and which server the wall is on. `cli` is the
+// command line over it and the door this binary puts on it. The operator's
+// door is another binary, `levyan-admin`, which this one does not link.
 package main
 
 import (

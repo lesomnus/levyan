@@ -26,15 +26,18 @@ import (
 )
 
 type Server interface {
+	Tenant() TenantServiceServer
+	Meter() MeterServiceServer
+	Operator() OperatorServiceServer
 	Access() AccessServiceServer
 	Archived() ArchivedServiceServer
 	Audit() AuditServiceServer
-	Tenant() TenantServiceServer
 	Holder() HolderServiceServer
 	Outbox() OutboxServiceServer
 	Owed() OwedServiceServer
 	RowSeal() RowSealServiceServer
-	Thing() ThingServiceServer
+	Price() PriceServiceServer
+	ServiceKey() ServiceKeyServiceServer
 }
 
 // RegisterServer registers every service of `s` with `g`.
@@ -42,110 +45,141 @@ type Server interface {
 // It takes a [grpc.ServiceRegistrar] rather than a *grpc.Server so that a
 // server which is not gRPC's own can be handed the same set of services.
 func RegisterServer(g grpc.ServiceRegistrar, s Server) {
+	RegisterTenantServiceServer(g, s.Tenant())
+	RegisterMeterServiceServer(g, s.Meter())
+	RegisterOperatorServiceServer(g, s.Operator())
 	RegisterAccessServiceServer(g, s.Access())
 	RegisterArchivedServiceServer(g, s.Archived())
 	RegisterAuditServiceServer(g, s.Audit())
-	RegisterTenantServiceServer(g, s.Tenant())
 	RegisterHolderServiceServer(g, s.Holder())
 	RegisterOutboxServiceServer(g, s.Outbox())
 	RegisterOwedServiceServer(g, s.Owed())
 	RegisterRowSealServiceServer(g, s.RowSeal())
-	RegisterThingServiceServer(g, s.Thing())
+	RegisterPriceServiceServer(g, s.Price())
+	RegisterServiceKeyServiceServer(g, s.ServiceKey())
 }
 
 type UnimplementedServer struct {
-	AccessServer   AccessServiceServer
-	ArchivedServer ArchivedServiceServer
-	AuditServer    AuditServiceServer
-	TenantServer   TenantServiceServer
-	HolderServer   HolderServiceServer
-	OutboxServer   OutboxServiceServer
-	OwedServer     OwedServiceServer
-	RowSealServer  RowSealServiceServer
-	ThingServer    ThingServiceServer
+	TenantServer     TenantServiceServer
+	MeterServer      MeterServiceServer
+	OperatorServer   OperatorServiceServer
+	AccessServer     AccessServiceServer
+	ArchivedServer   ArchivedServiceServer
+	AuditServer      AuditServiceServer
+	HolderServer     HolderServiceServer
+	OutboxServer     OutboxServiceServer
+	OwedServer       OwedServiceServer
+	RowSealServer    RowSealServiceServer
+	PriceServer      PriceServiceServer
+	ServiceKeyServer ServiceKeyServiceServer
 }
 
+func (UnimplementedServer) Tenant() TenantServiceServer { return UnimplementedTenantServiceServer{} }
+func (UnimplementedServer) Meter() MeterServiceServer   { return UnimplementedMeterServiceServer{} }
+func (UnimplementedServer) Operator() OperatorServiceServer {
+	return UnimplementedOperatorServiceServer{}
+}
 func (UnimplementedServer) Access() AccessServiceServer { return UnimplementedAccessServiceServer{} }
 func (UnimplementedServer) Archived() ArchivedServiceServer {
 	return UnimplementedArchivedServiceServer{}
 }
 func (UnimplementedServer) Audit() AuditServiceServer     { return UnimplementedAuditServiceServer{} }
-func (UnimplementedServer) Tenant() TenantServiceServer   { return UnimplementedTenantServiceServer{} }
 func (UnimplementedServer) Holder() HolderServiceServer   { return UnimplementedHolderServiceServer{} }
 func (UnimplementedServer) Outbox() OutboxServiceServer   { return UnimplementedOutboxServiceServer{} }
 func (UnimplementedServer) Owed() OwedServiceServer       { return UnimplementedOwedServiceServer{} }
 func (UnimplementedServer) RowSeal() RowSealServiceServer { return UnimplementedRowSealServiceServer{} }
-func (UnimplementedServer) Thing() ThingServiceServer     { return UnimplementedThingServiceServer{} }
-
-type StaticServer struct {
-	AccessServer   AccessServiceServer
-	ArchivedServer ArchivedServiceServer
-	AuditServer    AuditServiceServer
-	TenantServer   TenantServiceServer
-	HolderServer   HolderServiceServer
-	OutboxServer   OutboxServiceServer
-	OwedServer     OwedServiceServer
-	RowSealServer  RowSealServiceServer
-	ThingServer    ThingServiceServer
+func (UnimplementedServer) Price() PriceServiceServer     { return UnimplementedPriceServiceServer{} }
+func (UnimplementedServer) ServiceKey() ServiceKeyServiceServer {
+	return UnimplementedServiceKeyServiceServer{}
 }
 
-func (s StaticServer) Access() AccessServiceServer     { return s.AccessServer }
-func (s StaticServer) Archived() ArchivedServiceServer { return s.ArchivedServer }
-func (s StaticServer) Audit() AuditServiceServer       { return s.AuditServer }
-func (s StaticServer) Tenant() TenantServiceServer     { return s.TenantServer }
-func (s StaticServer) Holder() HolderServiceServer     { return s.HolderServer }
-func (s StaticServer) Outbox() OutboxServiceServer     { return s.OutboxServer }
-func (s StaticServer) Owed() OwedServiceServer         { return s.OwedServer }
-func (s StaticServer) RowSeal() RowSealServiceServer   { return s.RowSealServer }
-func (s StaticServer) Thing() ThingServiceServer       { return s.ThingServer }
+type StaticServer struct {
+	TenantServer     TenantServiceServer
+	MeterServer      MeterServiceServer
+	OperatorServer   OperatorServiceServer
+	AccessServer     AccessServiceServer
+	ArchivedServer   ArchivedServiceServer
+	AuditServer      AuditServiceServer
+	HolderServer     HolderServiceServer
+	OutboxServer     OutboxServiceServer
+	OwedServer       OwedServiceServer
+	RowSealServer    RowSealServiceServer
+	PriceServer      PriceServiceServer
+	ServiceKeyServer ServiceKeyServiceServer
+}
+
+func (s StaticServer) Tenant() TenantServiceServer         { return s.TenantServer }
+func (s StaticServer) Meter() MeterServiceServer           { return s.MeterServer }
+func (s StaticServer) Operator() OperatorServiceServer     { return s.OperatorServer }
+func (s StaticServer) Access() AccessServiceServer         { return s.AccessServer }
+func (s StaticServer) Archived() ArchivedServiceServer     { return s.ArchivedServer }
+func (s StaticServer) Audit() AuditServiceServer           { return s.AuditServer }
+func (s StaticServer) Holder() HolderServiceServer         { return s.HolderServer }
+func (s StaticServer) Outbox() OutboxServiceServer         { return s.OutboxServer }
+func (s StaticServer) Owed() OwedServiceServer             { return s.OwedServer }
+func (s StaticServer) RowSeal() RowSealServiceServer       { return s.RowSealServer }
+func (s StaticServer) Price() PriceServiceServer           { return s.PriceServer }
+func (s StaticServer) ServiceKey() ServiceKeyServiceServer { return s.ServiceKeyServer }
 
 type Client interface {
+	Tenant() TenantServiceClient
+	Meter() MeterServiceClient
+	Operator() OperatorServiceClient
 	Access() AccessServiceClient
 	Archived() ArchivedServiceClient
 	Audit() AuditServiceClient
-	Tenant() TenantServiceClient
 	Holder() HolderServiceClient
 	Outbox() OutboxServiceClient
 	Owed() OwedServiceClient
 	RowSeal() RowSealServiceClient
-	Thing() ThingServiceClient
+	Price() PriceServiceClient
+	ServiceKey() ServiceKeyServiceClient
 }
 
 func NewClient(c *grpc.ClientConn) Client {
 	return &client{
-		_Access:   NewAccessServiceClient(c),
-		_Archived: NewArchivedServiceClient(c),
-		_Audit:    NewAuditServiceClient(c),
-		_Tenant:   NewTenantServiceClient(c),
-		_Holder:   NewHolderServiceClient(c),
-		_Outbox:   NewOutboxServiceClient(c),
-		_Owed:     NewOwedServiceClient(c),
-		_RowSeal:  NewRowSealServiceClient(c),
-		_Thing:    NewThingServiceClient(c),
+		_Tenant:     NewTenantServiceClient(c),
+		_Meter:      NewMeterServiceClient(c),
+		_Operator:   NewOperatorServiceClient(c),
+		_Access:     NewAccessServiceClient(c),
+		_Archived:   NewArchivedServiceClient(c),
+		_Audit:      NewAuditServiceClient(c),
+		_Holder:     NewHolderServiceClient(c),
+		_Outbox:     NewOutboxServiceClient(c),
+		_Owed:       NewOwedServiceClient(c),
+		_RowSeal:    NewRowSealServiceClient(c),
+		_Price:      NewPriceServiceClient(c),
+		_ServiceKey: NewServiceKeyServiceClient(c),
 	}
 }
 
 type client struct {
-	_Access   AccessServiceClient
-	_Archived ArchivedServiceClient
-	_Audit    AuditServiceClient
-	_Tenant   TenantServiceClient
-	_Holder   HolderServiceClient
-	_Outbox   OutboxServiceClient
-	_Owed     OwedServiceClient
-	_RowSeal  RowSealServiceClient
-	_Thing    ThingServiceClient
+	_Tenant     TenantServiceClient
+	_Meter      MeterServiceClient
+	_Operator   OperatorServiceClient
+	_Access     AccessServiceClient
+	_Archived   ArchivedServiceClient
+	_Audit      AuditServiceClient
+	_Holder     HolderServiceClient
+	_Outbox     OutboxServiceClient
+	_Owed       OwedServiceClient
+	_RowSeal    RowSealServiceClient
+	_Price      PriceServiceClient
+	_ServiceKey ServiceKeyServiceClient
 }
 
-func (c *client) Access() AccessServiceClient     { return c._Access }
-func (c *client) Archived() ArchivedServiceClient { return c._Archived }
-func (c *client) Audit() AuditServiceClient       { return c._Audit }
-func (c *client) Tenant() TenantServiceClient     { return c._Tenant }
-func (c *client) Holder() HolderServiceClient     { return c._Holder }
-func (c *client) Outbox() OutboxServiceClient     { return c._Outbox }
-func (c *client) Owed() OwedServiceClient         { return c._Owed }
-func (c *client) RowSeal() RowSealServiceClient   { return c._RowSeal }
-func (c *client) Thing() ThingServiceClient       { return c._Thing }
+func (c *client) Tenant() TenantServiceClient         { return c._Tenant }
+func (c *client) Meter() MeterServiceClient           { return c._Meter }
+func (c *client) Operator() OperatorServiceClient     { return c._Operator }
+func (c *client) Access() AccessServiceClient         { return c._Access }
+func (c *client) Archived() ArchivedServiceClient     { return c._Archived }
+func (c *client) Audit() AuditServiceClient           { return c._Audit }
+func (c *client) Holder() HolderServiceClient         { return c._Holder }
+func (c *client) Outbox() OutboxServiceClient         { return c._Outbox }
+func (c *client) Owed() OwedServiceClient             { return c._Owed }
+func (c *client) RowSeal() RowSealServiceClient       { return c._RowSeal }
+func (c *client) Price() PriceServiceClient           { return c._Price }
+func (c *client) ServiceKey() ServiceKeyServiceClient { return c._ServiceKey }
 
 // Middleware is a server that delegates to another server.
 type Middleware interface {
@@ -217,7 +251,7 @@ func SinkOf(s Server) Server {
 //		Overlay
 //	}
 //
-//	func (s Server) Access() AccessServiceServer { ... }
+//	func (s Server) Tenant() TenantServiceServer { ... }
 type Overlay struct {
 	Server
 }

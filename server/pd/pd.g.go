@@ -21,12 +21,15 @@ import (
 	entArchived "github.com/lesomnus/levyan/internal/ent/archived"
 	entAudit "github.com/lesomnus/levyan/internal/ent/audit"
 	entHolder "github.com/lesomnus/levyan/internal/ent/holder"
+	entMeter "github.com/lesomnus/levyan/internal/ent/meter"
+	entOperator "github.com/lesomnus/levyan/internal/ent/operator"
 	entOutbox "github.com/lesomnus/levyan/internal/ent/outbox"
 	entOwed "github.com/lesomnus/levyan/internal/ent/owed"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
+	entPrice "github.com/lesomnus/levyan/internal/ent/price"
 	entRowSeal "github.com/lesomnus/levyan/internal/ent/rowseal"
+	entServiceKey "github.com/lesomnus/levyan/internal/ent/servicekey"
 	entTenant "github.com/lesomnus/levyan/internal/ent/tenant"
-	entThing "github.com/lesomnus/levyan/internal/ent/thing"
 	bare "github.com/lesomnus/levyan/server/bare"
 	log "github.com/lesomnus/otx/log"
 	access "github.com/lesomnus/payday/access"
@@ -94,27 +97,33 @@ func Check() error { return version.Same(Payday) }
 // trail says what kind of thing it was long after the row is gone. So a
 // number is chosen once and never given to something else.
 const (
-	AccessDomain   pdid.Domain = 6   // "access"
-	ArchivedDomain pdid.Domain = 5   // "archived"
-	AuditDomain    pdid.Domain = 3   // "audit"
-	HolderDomain   pdid.Domain = 2   // "holder"
-	OutboxDomain   pdid.Domain = 4   // "outbox"
-	OwedDomain     pdid.Domain = 254 // "owed"
-	RowSealDomain  pdid.Domain = 255 // "row-seal"
-	TenantDomain   pdid.Domain = 1   // "tenant"
-	ThingDomain    pdid.Domain = 7   // "thing"
+	AccessDomain     pdid.Domain = 6   // "access"
+	ArchivedDomain   pdid.Domain = 5   // "archived"
+	AuditDomain      pdid.Domain = 3   // "audit"
+	HolderDomain     pdid.Domain = 2   // "holder"
+	MeterDomain      pdid.Domain = 10  // "meter"
+	OperatorDomain   pdid.Domain = 8   // "operator"
+	OutboxDomain     pdid.Domain = 4   // "outbox"
+	OwedDomain       pdid.Domain = 254 // "owed"
+	PriceDomain      pdid.Domain = 11  // "price"
+	RowSealDomain    pdid.Domain = 255 // "row-seal"
+	ServiceKeyDomain pdid.Domain = 9   // "service-key"
+	TenantDomain     pdid.Domain = 1   // "tenant"
 )
 
 func init() {
-	pdid.Register("app.Access", AccessDomain, "access")
-	pdid.Register("app.Archived", ArchivedDomain, "archived")
-	pdid.Register("app.Audit", AuditDomain, "audit")
-	pdid.Register("app.Holder", HolderDomain, "holder")
-	pdid.Register("app.Outbox", OutboxDomain, "outbox")
-	pdid.Register("app.Owed", OwedDomain, "owed")
-	pdid.Register("app.RowSeal", RowSealDomain, "row-seal")
-	pdid.Register("app.Tenant", TenantDomain, "tenant")
-	pdid.Register("app.Thing", ThingDomain, "thing")
+	pdid.Register("levyan.Access", AccessDomain, "access")
+	pdid.Register("levyan.Archived", ArchivedDomain, "archived")
+	pdid.Register("levyan.Audit", AuditDomain, "audit")
+	pdid.Register("levyan.Holder", HolderDomain, "holder")
+	pdid.Register("levyan.Meter", MeterDomain, "meter")
+	pdid.Register("levyan.Operator", OperatorDomain, "operator")
+	pdid.Register("levyan.Outbox", OutboxDomain, "outbox")
+	pdid.Register("levyan.Owed", OwedDomain, "owed")
+	pdid.Register("levyan.Price", PriceDomain, "price")
+	pdid.Register("levyan.RowSeal", RowSealDomain, "row-seal")
+	pdid.Register("levyan.ServiceKey", ServiceKeyDomain, "service-key")
+	pdid.Register("levyan.Tenant", TenantDomain, "tenant")
 
 	pdid.RegisterTenant(TenantDomain)
 }
@@ -122,15 +131,18 @@ func init() {
 // Domains is the domain of each entity by the full name of its message,
 // which is the name a [Minter] is asked about.
 var Domains = map[string]pdid.Domain{
-	"app.Access":   AccessDomain,
-	"app.Archived": ArchivedDomain,
-	"app.Audit":    AuditDomain,
-	"app.Holder":   HolderDomain,
-	"app.Outbox":   OutboxDomain,
-	"app.Owed":     OwedDomain,
-	"app.RowSeal":  RowSealDomain,
-	"app.Tenant":   TenantDomain,
-	"app.Thing":    ThingDomain,
+	"levyan.Access":     AccessDomain,
+	"levyan.Archived":   ArchivedDomain,
+	"levyan.Audit":      AuditDomain,
+	"levyan.Holder":     HolderDomain,
+	"levyan.Meter":      MeterDomain,
+	"levyan.Operator":   OperatorDomain,
+	"levyan.Outbox":     OutboxDomain,
+	"levyan.Owed":       OwedDomain,
+	"levyan.Price":      PriceDomain,
+	"levyan.RowSeal":    RowSealDomain,
+	"levyan.ServiceKey": ServiceKeyDomain,
+	"levyan.Tenant":     TenantDomain,
 }
 
 // IndexRenames are the indexes this schema names, by what an earlier build
@@ -153,11 +165,16 @@ var IndexRenames = []rename.Index{
 	{Table: "audit", From: "audit_date_created_id", To: "audit_by_time"},
 	{Table: "holder", From: "holder_alias_tenant_id", To: "holder_slug"},
 	{Table: "holder", From: "holder_tenant_id_date_created_id", To: "holder_page"},
+	{Table: "meter", From: "meter_tenant_id_date_created_id", To: "meter_page"},
+	{Table: "meter", From: "meter_key_tenant_id", To: "meter_keyed"},
+	{Table: "operator", From: "operator_alias", To: "operator_slug"},
 	{Table: "outbox", From: "outbox_id", To: "outbox_queue"},
 	{Table: "owed", From: "owed_date_created_id", To: "owed_owed"},
+	{Table: "price", From: "price_tenant_id_date_created_id", To: "price_page"},
+	{Table: "price", From: "price_meter_id_date_created_id", To: "price_meter"},
+	{Table: "servicekey", From: "servicekey_tenant_id_date_created_id", To: "servicekey_page"},
+	{Table: "servicekey", From: "servicekey_alias_tenant_id", To: "servicekey_slug"},
 	{Table: "tenant", From: "tenant_date_created_id", To: "tenant_page"},
-	{Table: "thing", From: "thing_tenant_id_date_created_id", To: "thing_page"},
-	{Table: "thing", From: "thing_alias_tenant_id", To: "thing_slug"},
 }
 
 // Minter answers with the [bare.Minter] that gives every new row an
@@ -237,6 +254,21 @@ func (wall) HolderScope(ctx context.Context) (predicate.Holder, error) {
 	return entHolder.TenantIdIn(vs...), nil
 }
 
+// MeterScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) MeterScope(ctx context.Context) (predicate.Meter, error) {
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entMeter.TenantIdIn(vs...), nil
+}
+
+// OperatorScope: declared `global`, so it is not behind the wall at all.
+func (wall) OperatorScope(ctx context.Context) (predicate.Operator, error) {
+	return nil, nil
+}
+
 // OutboxScope: declared `global`, so it is not behind the wall at all.
 func (wall) OutboxScope(ctx context.Context) (predicate.Outbox, error) {
 	return nil, nil
@@ -245,6 +277,16 @@ func (wall) OutboxScope(ctx context.Context) (predicate.Outbox, error) {
 // OwedScope: declared `global`, so it is not behind the wall at all.
 func (wall) OwedScope(ctx context.Context) (predicate.Owed, error) {
 	return nil, nil
+}
+
+// PriceScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) PriceScope(ctx context.Context) (predicate.Price, error) {
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entPrice.TenantIdIn(vs...), nil
 }
 
 // RowSealScope: a row belongs to the tenant its "tenant_id" names, which it holds without an edge.
@@ -257,6 +299,16 @@ func (wall) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
 	return entRowSeal.TenantIdIn(vs...), nil
 }
 
+// ServiceKeyScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entServiceKey.TenantIdIn(vs...), nil
+}
+
 // TenantScope: a tenant is inside itself, which is what a tenant being a wall comes down to.
 func (wall) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 	vs, all, err := frame.Narrow(ctx)
@@ -265,16 +317,6 @@ func (wall) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 	}
 
 	return entTenant.IdIn(vs...), nil
-}
-
-// ThingScope: a row belongs to the tenant its "tenant" reaches.
-func (wall) ThingScope(ctx context.Context) (predicate.Thing, error) {
-	vs, all, err := frame.Narrow(ctx)
-	if all || err != nil {
-		return nil, err
-	}
-
-	return entThing.TenantIdIn(vs...), nil
 }
 
 // Sink is the server the stack is built on: the generated CRUD servers,
@@ -824,7 +866,7 @@ func (s sinkHolder) admit(ctx context.Context, req *levyan.HolderAddRequest) (*l
 	// changing a value they can read back.
 	r := proto.CloneOf(req)
 
-	v, err := slug.NameWith(ctx, s.namer, "app.Holder", req.GetAlias(), req)
+	v, err := slug.NameWith(ctx, s.namer, "levyan.Holder", req.GetAlias(), req)
 	if err != nil {
 		return nil, pderr.At("alias", err)
 	}
@@ -1296,6 +1338,896 @@ func (s sinkHolder) watchHolderKeys(
 	return ks, nil
 }
 
+type sinkMeter struct {
+	levyan.MeterServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Meter() levyan.MeterServiceServer {
+	return sinkMeter{s.Server.Meter(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkMeter) Apply(ctx context.Context, req *levyan.MeterApplyRequest) (*levyan.Meter, error) {
+	seen.Forget(s.store.Db.Driver(), "Meter", req.GetRef())
+
+	return s.MeterServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkMeter.Apply].
+func (s sinkMeter) Patch(ctx context.Context, req *levyan.MeterPatchRequest) (*levyan.Meter, error) {
+	seen.Forget(s.store.Db.Driver(), "Meter", req.GetRef())
+
+	return s.MeterServiceServer.Patch(ctx, req)
+}
+
+// orderMeter is how Meters come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderMeter = []sqlpage.Order{
+	{Column: entMeter.FieldDateCreated, Desc: false},
+	{Column: entMeter.FieldId, Desc: false},
+}
+
+func afterMeter(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextMeter(last *ent.Meter, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByMeter is an order as ent orders a query by it.
+func orderByMeter(by []sqlpage.Order) []entMeter.OrderOption {
+	out := make([]entMeter.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// MeterPageSize is what a request that did not say gets, and
+	// MeterPageLimit is the most it gets however loudly it asks.
+	MeterPageSize  = 50
+	MeterPageLimit = 200
+
+	// MeterFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	MeterFilterLimit = 32
+)
+
+// List answers with the Meters that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkMeter) List(ctx context.Context, req *levyan.MeterListRequest) (*levyan.MeterListResponse, error) {
+	q := s.store.Db.Meter.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.MeterNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > MeterFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), MeterFilterLimit)
+		}
+
+		ps := make([]predicate.Meter, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterMeter(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entMeter.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderMeter, afterMeter, nextMeter, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), MeterPageSize, MeterPageLimit)
+	us, err := q.Order(orderByMeter(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Meter, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.MeterListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterMeter turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterMeter(f *levyan.MeterFilter) (predicate.Meter, error) {
+	ps := make([]predicate.Meter, 0, 1)
+	if f.HasRef() {
+		p, err := bare.MeterPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entMeter.And(ps...), nil
+}
+
+type sinkOperator struct {
+	levyan.OperatorServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Operator() levyan.OperatorServiceServer {
+	v := sinkOperator{s.Server.Operator(), s.Server.Store, s.w, s.namer, s.joined}
+	v.OperatorServiceServer = bare.OperatorWithAddRule(v.OperatorServiceServer, v.admit)
+	return v
+}
+
+// admit decides the name of a row an Add of Operator writes, refusing one
+// that was given and cannot be one.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Operator].
+//
+// The name goes through [Sink.WithNamer], which is unset in most
+// deployments and then means: fold what was given, and make a name up
+// when nothing was -- for the reason `bare.Minter` makes a key up. An app
+// whose rows have to be named says so with `slug.Required`; see
+// `slug.Names` for why that is the way round it is.
+func (s sinkOperator) admit(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.OperatorAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	v, err := slug.NameWith(ctx, s.namer, "levyan.Operator", req.GetAlias(), req)
+	if err != nil {
+		return nil, pderr.At("alias", err)
+	}
+	r.SetAlias(v)
+
+	return r, nil
+}
+
+// Add tries again when the name it made up was taken.
+//
+// The name is [sinkOperator.admit]'s, and every try goes through it, so a
+// name made up is made up again and a name given is the same each time.
+func (s sinkOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
+	// How many names to try. More than one only when the caller named
+	// nothing -- then the name is this server's and a collision is this
+	// server's to resolve. A name the caller gave is theirs, and quietly
+	// choosing a different one would write a row they did not ask for.
+	//
+	// And only when this Add opens its own transaction; see [Sink.joined].
+	tries := 1
+	if req.GetAlias() == "" && !s.joined {
+		tries = slug.Tries
+	}
+
+	for try := 0; ; try++ {
+		res, err := s.OperatorServiceServer.Add(ctx, req)
+		if err == nil || try+1 >= tries || status.Code(err) != codes.AlreadyExists {
+			// Whatever it was, said in the words it was said in. Rewriting
+			// it into "no free name" would assert the one thing this cannot
+			// know -- a duplicate key is the same code -- and would say it
+			// loudest exactly when it is wrong.
+			return res, err
+		}
+	}
+}
+
+// Patch folds a name it was given, and says nothing about one it was not.
+//
+// The presence is the whole of the difference from [sinkOperator.Add]: a patch
+// that does not mention the alias is not a patch setting it to the empty
+// string, and refusing one would make every patch of any other field carry
+// the name along.
+//
+// The namer is **not** asked here, and that is the second difference. It
+// decides the name of a row being made; a patch that cleared the alias is
+// a caller asking for something invalid, and answering that with an
+// invented name would hand them a row they did not ask for.
+//
+// And it forgets what the transaction was told about the row; see
+// [sinkOperator.Apply].
+func (s sinkOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
+	seen.Forget(s.store.Db.Driver(), "Operator", req.GetRef())
+
+	if !req.HasAlias() {
+		return s.OperatorServiceServer.Patch(ctx, req)
+	}
+
+	v, err := slug.ParseAlias(req.GetAlias())
+	if err != nil {
+		return nil, pderr.At("alias", err)
+	}
+
+	req = proto.CloneOf(req)
+	req.SetAlias(v)
+
+	return s.OperatorServiceServer.Patch(ctx, req)
+}
+
+// Erase forgets what the transaction was told about the row, before it is
+// erased: whether a frame may see it, and where a walk from it arrives.
+// Neither is true of a row that is gone, nor of another put under its
+// key. See [seen.Forget].
+func (s sinkOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
+	seen.Forget(s.store.Db.Driver(), "Operator", req)
+
+	return s.OperatorServiceServer.Erase(ctx, req)
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
+	seen.Forget(s.store.Db.Driver(), "Operator", req.GetRef())
+
+	return s.OperatorServiceServer.Apply(ctx, req)
+}
+
+type sinkPrice struct {
+	levyan.PriceServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Price() levyan.PriceServiceServer {
+	v := sinkPrice{s.Server.Price(), s.Server.Store, s.w, s.namer, s.joined}
+	v.PriceServiceServer = bare.PriceWithAddRule(v.PriceServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Price writes: it
+// refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Price].
+func (s sinkPrice) admit(ctx context.Context, req *levyan.PriceAddRequest) (*levyan.PriceAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkPrice) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtMeterTenant is the tenant "meter.tenant" arrives at.
+func (s sinkPrice) tenantAtMeterTenant(ctx context.Context, ref *levyan.MeterRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("meter", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Meter", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.MeterPick(ref)
+		if err != nil {
+			return nil, pderr.At("meter", err)
+		}
+
+		k, err := s.store.Db.Meter.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("meter", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkPrice) tenancy(ctx context.Context, req *levyan.PriceAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasMeter() {
+		got, err := s.tenantAtMeterTenant(ctx, req.GetMeter())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("meter",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderPrice is how Prices come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderPrice = []sqlpage.Order{
+	{Column: entPrice.FieldDateCreated, Desc: false},
+	{Column: entPrice.FieldId, Desc: false},
+}
+
+func afterPrice(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextPrice(last *ent.Price, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByPrice is an order as ent orders a query by it.
+func orderByPrice(by []sqlpage.Order) []entPrice.OrderOption {
+	out := make([]entPrice.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// PricePageSize is what a request that did not say gets, and
+	// PricePageLimit is the most it gets however loudly it asks.
+	PricePageSize  = 50
+	PricePageLimit = 200
+
+	// PriceFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	PriceFilterLimit = 32
+)
+
+// List answers with the Prices that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkPrice) List(ctx context.Context, req *levyan.PriceListRequest) (*levyan.PriceListResponse, error) {
+	q := s.store.Db.Price.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.PriceNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > PriceFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), PriceFilterLimit)
+		}
+
+		ps := make([]predicate.Price, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterPrice(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entPrice.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderPrice, afterPrice, nextPrice, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), PricePageSize, PricePageLimit)
+	us, err := q.Order(orderByPrice(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Price, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.PriceListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterPrice turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterPrice(f *levyan.PriceFilter) (predicate.Price, error) {
+	ps := make([]predicate.Price, 0, 1)
+	if f.HasRef() {
+		p, err := bare.PricePick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasMeter() {
+		w := f.GetMeter()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "meter: %s", err)
+			}
+
+			ps = append(ps, entPrice.MeterIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.MeterPick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entPrice.HasMeterWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entPrice.And(ps...), nil
+}
+
+type sinkServiceKey struct {
+	levyan.ServiceKeyServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) ServiceKey() levyan.ServiceKeyServiceServer {
+	v := sinkServiceKey{s.Server.ServiceKey(), s.Server.Store, s.w, s.namer, s.joined}
+	v.ServiceKeyServiceServer = bare.ServiceKeyWithAddRule(v.ServiceKeyServiceServer, v.admit)
+	return v
+}
+
+// admit decides the name of a row an Add of ServiceKey writes, refusing one
+// that was given and cannot be one.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.ServiceKey].
+//
+// The name goes through [Sink.WithNamer], which is unset in most
+// deployments and then means: fold what was given, and make a name up
+// when nothing was -- for the reason `bare.Minter` makes a key up. An app
+// whose rows have to be named says so with `slug.Required`; see
+// `slug.Names` for why that is the way round it is.
+func (s sinkServiceKey) admit(ctx context.Context, req *levyan.ServiceKeyAddRequest) (*levyan.ServiceKeyAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	v, err := slug.NameWith(ctx, s.namer, "levyan.ServiceKey", req.GetAlias(), req)
+	if err != nil {
+		return nil, pderr.At("alias", err)
+	}
+	r.SetAlias(v)
+
+	return r, nil
+}
+
+// Add tries again when the name it made up was taken.
+//
+// The name is [sinkServiceKey.admit]'s, and every try goes through it, so a
+// name made up is made up again and a name given is the same each time.
+func (s sinkServiceKey) Add(ctx context.Context, req *levyan.ServiceKeyAddRequest) (*levyan.ServiceKey, error) {
+	// How many names to try. More than one only when the caller named
+	// nothing -- then the name is this server's and a collision is this
+	// server's to resolve. A name the caller gave is theirs, and quietly
+	// choosing a different one would write a row they did not ask for.
+	//
+	// And only when this Add opens its own transaction; see [Sink.joined].
+	tries := 1
+	if req.GetAlias() == "" && !s.joined {
+		tries = slug.Tries
+	}
+
+	for try := 0; ; try++ {
+		res, err := s.ServiceKeyServiceServer.Add(ctx, req)
+		if err == nil || try+1 >= tries || status.Code(err) != codes.AlreadyExists {
+			// Whatever it was, said in the words it was said in. Rewriting
+			// it into "no free name" would assert the one thing this cannot
+			// know -- a duplicate key is the same code -- and would say it
+			// loudest exactly when it is wrong.
+			return res, err
+		}
+	}
+}
+
+// Patch folds a name it was given, and says nothing about one it was not.
+//
+// The presence is the whole of the difference from [sinkServiceKey.Add]: a patch
+// that does not mention the alias is not a patch setting it to the empty
+// string, and refusing one would make every patch of any other field carry
+// the name along.
+//
+// The namer is **not** asked here, and that is the second difference. It
+// decides the name of a row being made; a patch that cleared the alias is
+// a caller asking for something invalid, and answering that with an
+// invented name would hand them a row they did not ask for.
+//
+// And it forgets what the transaction was told about the row; see
+// [sinkServiceKey.Apply].
+func (s sinkServiceKey) Patch(ctx context.Context, req *levyan.ServiceKeyPatchRequest) (*levyan.ServiceKey, error) {
+	seen.Forget(s.store.Db.Driver(), "ServiceKey", req.GetRef())
+
+	if !req.HasAlias() {
+		return s.ServiceKeyServiceServer.Patch(ctx, req)
+	}
+
+	v, err := slug.ParseAlias(req.GetAlias())
+	if err != nil {
+		return nil, pderr.At("alias", err)
+	}
+
+	req = proto.CloneOf(req)
+	req.SetAlias(v)
+
+	return s.ServiceKeyServiceServer.Patch(ctx, req)
+}
+
+// Erase forgets what the transaction was told about the row, before it is
+// erased: whether a frame may see it, and where a walk from it arrives.
+// Neither is true of a row that is gone, nor of another put under its
+// key. See [seen.Forget].
+func (s sinkServiceKey) Erase(ctx context.Context, req *levyan.ServiceKeyRef) (*levyan.ServiceKeyEraseResponse, error) {
+	seen.Forget(s.store.Db.Driver(), "ServiceKey", req)
+
+	return s.ServiceKeyServiceServer.Erase(ctx, req)
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkServiceKey) Apply(ctx context.Context, req *levyan.ServiceKeyApplyRequest) (*levyan.ServiceKey, error) {
+	seen.Forget(s.store.Db.Driver(), "ServiceKey", req.GetRef())
+
+	return s.ServiceKeyServiceServer.Apply(ctx, req)
+}
+
+// orderServiceKey is how ServiceKeys come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderServiceKey = []sqlpage.Order{
+	{Column: entServiceKey.FieldDateCreated, Desc: false},
+	{Column: entServiceKey.FieldId, Desc: false},
+}
+
+func afterServiceKey(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextServiceKey(last *ent.ServiceKey, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByServiceKey is an order as ent orders a query by it.
+func orderByServiceKey(by []sqlpage.Order) []entServiceKey.OrderOption {
+	out := make([]entServiceKey.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// ServiceKeyPageSize is what a request that did not say gets, and
+	// ServiceKeyPageLimit is the most it gets however loudly it asks.
+	ServiceKeyPageSize  = 20
+	ServiceKeyPageLimit = 100
+
+	// ServiceKeyFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	ServiceKeyFilterLimit = 32
+)
+
+// List answers with the ServiceKeys that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
+	q := s.store.Db.ServiceKey.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.ServiceKeyNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > ServiceKeyFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), ServiceKeyFilterLimit)
+		}
+
+		ps := make([]predicate.ServiceKey, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterServiceKey(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entServiceKey.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderServiceKey, afterServiceKey, nextServiceKey, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), ServiceKeyPageSize, ServiceKeyPageLimit)
+	us, err := q.Order(orderByServiceKey(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.ServiceKey, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.ServiceKeyListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterServiceKey turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterServiceKey(f *levyan.ServiceKeyFilter) (predicate.ServiceKey, error) {
+	ps := make([]predicate.ServiceKey, 0, 1)
+	if f.HasRef() {
+		p, err := bare.ServiceKeyPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entServiceKey.And(ps...), nil
+}
+
 type sinkTenant struct {
 	levyan.TenantServiceServer
 	store  bare.Store
@@ -1327,7 +2259,7 @@ func (s sinkTenant) admit(ctx context.Context, req *levyan.TenantAddRequest) (*l
 	// changing a value they can read back.
 	r := proto.CloneOf(req)
 
-	v, err := slug.NameWith(ctx, s.namer, "app.Tenant", req.GetAlias(), req)
+	v, err := slug.NameWith(ctx, s.namer, "levyan.Tenant", req.GetAlias(), req)
 	if err != nil {
 		return nil, pderr.At("alias", err)
 	}
@@ -1576,468 +2508,6 @@ func filterTenant(f *levyan.TenantFilter) (predicate.Tenant, error) {
 	return entTenant.And(ps...), nil
 }
 
-type sinkThing struct {
-	levyan.ThingServiceServer
-	store  bare.Store
-	w      *watch.Watch
-	namer  slug.Namer
-	joined bool
-}
-
-func (s Sink) Thing() levyan.ThingServiceServer {
-	v := sinkThing{s.Server.Thing(), s.Server.Store, s.w, s.namer, s.joined}
-	v.ThingServiceServer = bare.ThingWithAddRule(v.ThingServiceServer, v.admit)
-	return v
-}
-
-// admit decides the name of a row an Add of Thing writes, refusing one that
-// was given and cannot be one.
-//
-// It is asked of an Add and of every item of an AddMany; see [Sink.Thing].
-//
-// The name goes through [Sink.WithNamer], which is unset in most
-// deployments and then means: fold what was given, and make a name up
-// when nothing was -- for the reason `bare.Minter` makes a key up. An app
-// whose rows have to be named says so with `slug.Required`; see
-// `slug.Names` for why that is the way round it is.
-func (s sinkThing) admit(ctx context.Context, req *levyan.ThingAddRequest) (*levyan.ThingAddRequest, error) {
-	// Copied rather than written to: the request belongs to whoever called,
-	// and for a call made in this process that is a message they may still
-	// be holding -- a server that changed a caller's own field would be
-	// changing a value they can read back.
-	r := proto.CloneOf(req)
-
-	v, err := slug.NameWith(ctx, s.namer, "app.Thing", req.GetAlias(), req)
-	if err != nil {
-		return nil, pderr.At("alias", err)
-	}
-	r.SetAlias(v)
-
-	return r, nil
-}
-
-// Add tries again when the name it made up was taken.
-//
-// The name is [sinkThing.admit]'s, and every try goes through it, so a
-// name made up is made up again and a name given is the same each time.
-func (s sinkThing) Add(ctx context.Context, req *levyan.ThingAddRequest) (*levyan.Thing, error) {
-	// How many names to try. More than one only when the caller named
-	// nothing -- then the name is this server's and a collision is this
-	// server's to resolve. A name the caller gave is theirs, and quietly
-	// choosing a different one would write a row they did not ask for.
-	//
-	// And only when this Add opens its own transaction; see [Sink.joined].
-	tries := 1
-	if req.GetAlias() == "" && !s.joined {
-		tries = slug.Tries
-	}
-
-	for try := 0; ; try++ {
-		res, err := s.ThingServiceServer.Add(ctx, req)
-		if err == nil || try+1 >= tries || status.Code(err) != codes.AlreadyExists {
-			// Whatever it was, said in the words it was said in. Rewriting
-			// it into "no free name" would assert the one thing this cannot
-			// know -- a duplicate key is the same code -- and would say it
-			// loudest exactly when it is wrong.
-			return res, err
-		}
-	}
-}
-
-// Patch folds a name it was given, and says nothing about one it was not.
-//
-// The presence is the whole of the difference from [sinkThing.Add]: a patch
-// that does not mention the alias is not a patch setting it to the empty
-// string, and refusing one would make every patch of any other field carry
-// the name along.
-//
-// The namer is **not** asked here, and that is the second difference. It
-// decides the name of a row being made; a patch that cleared the alias is
-// a caller asking for something invalid, and answering that with an
-// invented name would hand them a row they did not ask for.
-//
-// And it forgets what the transaction was told about the row; see
-// [sinkThing.Apply].
-func (s sinkThing) Patch(ctx context.Context, req *levyan.ThingPatchRequest) (*levyan.Thing, error) {
-	seen.Forget(s.store.Db.Driver(), "Thing", req.GetRef())
-
-	if !req.HasAlias() {
-		return s.ThingServiceServer.Patch(ctx, req)
-	}
-
-	v, err := slug.ParseAlias(req.GetAlias())
-	if err != nil {
-		return nil, pderr.At("alias", err)
-	}
-
-	req = proto.CloneOf(req)
-	req.SetAlias(v)
-
-	return s.ThingServiceServer.Patch(ctx, req)
-}
-
-// Erase forgets what the transaction was told about the row, before it is
-// erased: whether a frame may see it, and where a walk from it arrives.
-// Neither is true of a row that is gone, nor of another put under its
-// key. See [seen.Forget].
-func (s sinkThing) Erase(ctx context.Context, req *levyan.ThingRef) (*levyan.ThingEraseResponse, error) {
-	seen.Forget(s.store.Db.Driver(), "Thing", req)
-
-	return s.ThingServiceServer.Erase(ctx, req)
-}
-
-// Apply forgets what the transaction was told about the row, before it is
-// written: a document may move it to a set the caller cannot see. See
-// [seen.Forget].
-func (s sinkThing) Apply(ctx context.Context, req *levyan.ThingApplyRequest) (*levyan.Thing, error) {
-	seen.Forget(s.store.Db.Driver(), "Thing", req.GetRef())
-
-	return s.ThingServiceServer.Apply(ctx, req)
-}
-
-// orderThing is how Things come back.
-//
-// The last column is the key, and it is not decoration: a cursor cannot
-// tell apart two rows equal in every column of the order, so the page after
-// the first of them either repeats the second or skips it. Rows written by
-// one request are stamped a moment apart at best.
-var orderThing = []sqlpage.Order{
-	{Column: entThing.FieldDateCreated, Desc: false},
-	{Column: entThing.FieldId, Desc: false},
-}
-
-func afterThing(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
-	var (
-		at0 time.Time
-		at1 uuid.UUID
-	)
-	if err := pdAfter(v, tag, &at0, &at1); err != nil {
-		return nil, err
-	}
-
-	return sqlpage.After(by, []any{at0, at1})
-}
-
-func nextThing(last *ent.Thing, tag string) (string, error) {
-	return pdNext(tag, last.DateCreated, last.Id)
-}
-
-// orderByThing is an order as ent orders a query by it.
-func orderByThing(by []sqlpage.Order) []entThing.OrderOption {
-	out := make([]entThing.OrderOption, len(by))
-	for i, o := range by {
-		if o.Desc {
-			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
-			continue
-		}
-
-		out[i] = sql.OrderByField(o.Column).ToFunc()
-	}
-
-	return out
-}
-
-const (
-	// ThingPageSize is what a request that did not say gets, and
-	// ThingPageLimit is the most it gets however loudly it asks.
-	ThingPageSize  = 20
-	ThingPageLimit = 100
-
-	// ThingFilterLimit is how many filters one request may carry. Each is a
-	// predicate in the same query, so it is what says how much of the
-	// database a request may ask to read -- and it is refused rather than
-	// clamped, because dropping half the filters would answer a question
-	// nobody asked.
-	ThingFilterLimit = 32
-)
-
-// List answers with the Things that match any of the given filters, or with
-// every one there is if the request named none, a page at a time.
-func (s sinkThing) List(ctx context.Context, req *levyan.ThingListRequest) (*levyan.ThingListResponse, error) {
-	q := s.store.Db.Thing.Query()
-
-	// Through the same narrowing every generated read goes through, and not
-	// by asking the scope alone: what narrows a read is the wall today and
-	// the wall and something else tomorrow, and a list that reached past it
-	// would be the one read that missed the something else.
-	if p, err := bare.ThingNarrow(ctx, s.store.Scope, nil); err != nil {
-		return nil, err
-	} else if p != nil {
-		q.Where(p)
-	}
-
-	if fs := req.GetFilters(); len(fs) > 0 {
-		if len(fs) > ThingFilterLimit {
-			return nil, status.Errorf(codes.InvalidArgument,
-				"filters: %d of them, and %d is the most one list carries", len(fs), ThingFilterLimit)
-		}
-
-		ps := make([]predicate.Thing, 0, len(fs))
-		for i, f := range fs {
-			p, err := filterThing(f)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
-			}
-
-			ps = append(ps, p)
-		}
-
-		q.Where(entThing.Or(ps...))
-	}
-
-	// Which order, and which way: one the schema declared, and never one a
-	// request makes up, since an order is a walk of an index.
-	by, after, next, tag := orderThing, afterThing, nextThing, ""
-	if req.GetReverse() {
-		// The same index, walked from the other end.
-		by, tag = pdReverse(by), tag+"/reverse"
-	}
-
-	if v := req.GetAfter(); v != "" {
-		p, err := after(v, by, tag)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
-		}
-
-		q.Where(p)
-	}
-
-	// One row more than the page, which is how "is there another" is answered
-	// without a second query and without a count. The extra is dropped before
-	// the answer is built; it was only ever asked for to see whether it was
-	// there -- so a full last page answers with no cursor rather than sending
-	// the caller back for an empty one.
-	size := sqlpage.Size(int(req.GetSize()), ThingPageSize, ThingPageLimit)
-	us, err := q.Order(orderByThing(by)...).Limit(size + 1).All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	more := len(us) > size
-	if more {
-		us = us[:size]
-	}
-
-	items := make([]*levyan.Thing, len(us))
-	for i, u := range us {
-		items[i] = u.Proto()
-	}
-
-	res := levyan.ThingListResponse_builder{Items: items}.Build()
-	if more {
-		v, err := next(us[len(us)-1], tag)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "next: %s", err)
-		}
-
-		res.SetNext(v)
-	}
-
-	return res, nil
-}
-
-// filterThing turns one filter into the predicate that selects what it
-// names. Naming nothing is refused, since the request asked for "these" and
-// did not say which.
-func filterThing(f *levyan.ThingFilter) (predicate.Thing, error) {
-	ps := make([]predicate.Thing, 0, 1)
-	if f.HasRef() {
-		p, err := bare.ThingPick(f.GetRef())
-		if err != nil {
-			return nil, err
-		}
-
-		ps = append(ps, p)
-	}
-	if len(ps) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
-	}
-
-	return entThing.And(ps...), nil
-}
-
-// ThingService is the prefix of every Rpc of that service, which is how a
-// change is known to be about a Thing. A service is named for the entity it
-// is about, so the name carries it.
-var ThingService = watch.ServiceOf(levyan.ThingService_Get_FullMethodName)
-
-// Watch answers with the Things this caller may see, as they are now and as
-// they change.
-//
-// What is sent is **state and never a delta**, which is what makes a stream
-// that missed something still correct: the next item about a row carries the
-// whole of it, so a client converges rather than replays. It is also what
-// makes the first message safe to duplicate against the ones after it.
-func (s sinkThing) Watch(req *levyan.ThingWatchRequest, out grpc.ServerStreamingServer[levyan.ThingWatchResponse]) error {
-	ctx := out.Context()
-
-	// A watch with no filters is the whole table, forever. It is the one
-	// shape that has no cap at all, so it is the one shape refused.
-	fs := req.GetFilters()
-	switch {
-	case len(fs) == 0:
-		return status.Error(codes.InvalidArgument,
-			"filters: a watch says which rows it is about; one that says nothing is the whole table, for as long as it is open")
-	case len(fs) > ThingFilterLimit:
-		return status.Errorf(codes.InvalidArgument,
-			"filters: %d of them, and %d is the most one watch carries", len(fs), ThingFilterLimit)
-	}
-
-	// Resolved before anything is subscribed to, so a name that names
-	// nothing is an answer rather than a stream that quietly watches none.
-	watching, err := s.watchThingKeys(ctx, fs)
-	if err != nil {
-		return err
-	}
-
-	var snapshot func(watch.Seen) error
-	if !req.GetSkipSnapshot() {
-		snapshot = func(sent watch.Seen) error { return s.watchNow(ctx, req, out, sent) }
-	}
-
-	if s.w == nil {
-		return status.Error(codes.Unimplemented,
-			"this deployment publishes no changes; see WithWatch")
-	}
-
-	return watch.Stream(ctx, s.w, ThingService, snapshot,
-		func(ks map[pdid.Id]string, sent watch.Seen) error {
-			items := make([]*levyan.ThingWatchItem, 0, len(ks))
-			for k, action := range ks {
-				u, err := s.watchRead(ctx, watching, k)
-				if err != nil {
-					return err
-				}
-				if u == nil && !sent[k] {
-					// Not theirs, or not what they asked for, and they
-					// have never been told about it. A row that never
-					// matched is not news.
-					continue
-				}
-
-				sent[k] = u != nil
-				items = append(items, levyan.ThingWatchItem_builder{
-					Id:     k.Bytes(),
-					Value:  u,
-					Action: action,
-				}.Build())
-			}
-			if len(items) == 0 {
-				return nil
-			}
-
-			return out.Send(levyan.ThingWatchResponse_builder{Items: items}.Build())
-		})
-}
-
-// watchNow sends what matches right now, through the same List a caller
-// would have called -- so what a stream begins with and what a list answers
-// cannot disagree, and a client does not have to do both and race them.
-func (s sinkThing) watchNow(
-	ctx context.Context, req *levyan.ThingWatchRequest, out grpc.ServerStreamingServer[levyan.ThingWatchResponse],
-	sent watch.Seen,
-) error {
-	after := ""
-	for {
-		res, err := s.List(ctx, levyan.ThingListRequest_builder{
-			Filters: req.GetFilters(),
-			After:   after,
-		}.Build())
-		if err != nil {
-			return err
-		}
-
-		items := make([]*levyan.ThingWatchItem, 0, len(res.GetItems()))
-		for _, u := range res.GetItems() {
-			k, err := pdid.From(u.GetId())
-			if err != nil {
-				return err
-			}
-
-			sent[k] = true
-			// No action: this is not something anybody asked for, it is
-			// what is already there.
-			items = append(items, levyan.ThingWatchItem_builder{Id: u.GetId(), Value: u}.Build())
-		}
-		if len(items) > 0 {
-			if err := out.Send(levyan.ThingWatchResponse_builder{Items: items}.Build()); err != nil {
-				return err
-			}
-		}
-
-		if after = res.GetNext(); after == "" {
-			return nil
-		}
-	}
-}
-
-// watchRead answers with the row as it is now, or nil when it is no longer
-// one this caller may see -- erased, walled off, or no longer matching what
-// they asked for. The three are deliberately indistinguishable to a caller:
-// a stream that told them apart would be saying which rows stopped being
-// theirs, which is the thing the wall is for.
-//
-// The Get is what keeps the wall out of this file. It goes through the same
-// server every other read does, with the context of the caller who asked, so
-// a row they may not see comes back NotFound and is never sent.
-func (s sinkThing) watchRead(
-	ctx context.Context, watching []pdid.Id, k pdid.Id,
-) (*levyan.Thing, error) {
-	// Not one of the rows this stream is about. Asked before the read, so a
-	// busy table costs a stream nothing for the rows it does not watch.
-	if !slices.Contains(watching, k) {
-		return nil, nil
-	}
-
-	v, err := s.Get(ctx, levyan.ThingGetRequest_builder{
-		Ref: levyan.ThingRef_builder{Id: k.Bytes()}.Build(),
-	}.Build())
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return v, nil
-}
-
-// watchThingKeys is the rows a stream is about, resolved once when it opens.
-//
-// A filter names a row and a row is named several ways -- by identifier, or
-// by whatever unique index the schema declared. Resolving them here rather
-// than comparing them per event does three things: the comparison afterwards
-// is an identifier against an identifier, a name that names nothing is
-// refused when the stream opens rather than silently watching nothing, and a
-// row renamed while the stream is open goes on being the row that was asked
-// for -- which is what somebody watching a thing meant.
-func (s sinkThing) watchThingKeys(
-	ctx context.Context, fs []*levyan.ThingFilter,
-) ([]pdid.Id, error) {
-	ks := make([]pdid.Id, 0, len(fs))
-	for i, f := range fs {
-		if !f.HasRef() {
-			return nil, status.Errorf(codes.InvalidArgument,
-				"filters[%d]: a watch says which rows it is about by naming them", i)
-		}
-
-		v, err := s.Get(ctx, levyan.ThingGetRequest_builder{Ref: f.GetRef()}.Build())
-		if err != nil {
-			return nil, err
-		}
-
-		k, err := pdid.From(v.GetId())
-		if err != nil {
-			return nil, err
-		}
-
-		ks = append(ks, k)
-	}
-
-	return ks, nil
-}
-
 // pdAfter reads a cursor into the values it carries, refusing one of another
 // order, or of this one read the other way.
 func pdAfter(v string, tag string, into ...any) error {
@@ -2205,18 +2675,18 @@ func (s gateHolder) admit(ctx context.Context, req *levyan.HolderAddRequest) (*l
 	return req, nil
 }
 
-type gateThing struct {
+type gateMeter struct {
 	Gate
-	levyan.ThingServiceServer
+	levyan.MeterServiceServer
 }
 
-func (s Gate) Thing() levyan.ThingServiceServer {
-	v := gateThing{s, s.Next().Thing()}
-	v.ThingServiceServer = bare.ThingWithAddRule(v.ThingServiceServer, v.admit)
+func (s Gate) Meter() levyan.MeterServiceServer {
+	v := gateMeter{s, s.Next().Meter()}
+	v.MeterServiceServer = bare.MeterWithAddRule(v.MeterServiceServer, v.admit)
 	return v
 }
 
-// admit refuses a Thing put into a Tenant this caller cannot see.
+// admit refuses a Meter put into a Tenant this caller cannot see.
 //
 // The wall is a predicate and an Add has no query, so without this the
 // identifier in `tenant` becomes a foreign key with nothing consulted.
@@ -2229,8 +2699,111 @@ func (s Gate) Thing() levyan.ThingServiceServer {
 // should not be told.
 //
 // It is what an Add is asked, and an AddMany of every item it carries;
-// see [Gate.Thing].
-func (s gateThing) admit(ctx context.Context, req *levyan.ThingAddRequest) (*levyan.ThingAddRequest, error) {
+// see [Gate.Meter].
+func (s gateMeter) admit(ctx context.Context, req *levyan.MeterAddRequest) (*levyan.MeterAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
+type gatePrice struct {
+	Gate
+	levyan.PriceServiceServer
+}
+
+func (s Gate) Price() levyan.PriceServiceServer {
+	v := gatePrice{s, s.Next().Price()}
+	v.PriceServiceServer = bare.PriceWithAddRule(v.PriceServiceServer, v.admit)
+	return v
+}
+
+// admit refuses a Price put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Price].
+func (s gatePrice) admit(ctx context.Context, req *levyan.PriceAddRequest) (*levyan.PriceAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetMeter(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Meter", ref, func() error {
+			_, err := s.Gate.Next().Meter().Get(ctx, levyan.MeterGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Meter")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
+type gateServiceKey struct {
+	Gate
+	levyan.ServiceKeyServiceServer
+}
+
+func (s Gate) ServiceKey() levyan.ServiceKeyServiceServer {
+	v := gateServiceKey{s, s.Next().ServiceKey()}
+	v.ServiceKeyServiceServer = bare.ServiceKeyWithAddRule(v.ServiceKeyServiceServer, v.admit)
+	return v
+}
+
+// admit refuses a ServiceKey put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.ServiceKey].
+func (s gateServiceKey) admit(ctx context.Context, req *levyan.ServiceKeyAddRequest) (*levyan.ServiceKeyAddRequest, error) {
 	if ref := req.GetTenant(); ref != nil {
 		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
 			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
@@ -2519,16 +3092,22 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedAudit.md, describedAudit.secret, describedAudit.personal
 	case HolderDomain:
 		return describedHolder.md, describedHolder.secret, describedHolder.personal
+	case MeterDomain:
+		return describedMeter.md, describedMeter.secret, describedMeter.personal
+	case OperatorDomain:
+		return describedOperator.md, describedOperator.secret, describedOperator.personal
 	case OutboxDomain:
 		return describedOutbox.md, describedOutbox.secret, describedOutbox.personal
 	case OwedDomain:
 		return describedOwed.md, describedOwed.secret, describedOwed.personal
+	case PriceDomain:
+		return describedPrice.md, describedPrice.secret, describedPrice.personal
 	case RowSealDomain:
 		return describedRowSeal.md, describedRowSeal.secret, describedRowSeal.personal
+	case ServiceKeyDomain:
+		return describedServiceKey.md, describedServiceKey.secret, describedServiceKey.personal
 	case TenantDomain:
 		return describedTenant.md, describedTenant.secret, describedTenant.personal
-	case ThingDomain:
-		return describedThing.md, describedThing.secret, describedThing.personal
 	}
 
 	return nil, nil, nil
@@ -2566,19 +3145,28 @@ var (
 	describedHolder = describe((*levyan.Holder)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{4, 5, 6, 7})
+	describedMeter = describe((*levyan.Meter)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
+	describedOperator = describe((*levyan.Operator)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{4})
 	describedOutbox = describe((*levyan.Outbox)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedOwed = describe((*levyan.Owed)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedPrice = describe((*levyan.Price)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 	describedRowSeal = describe((*levyan.RowSeal)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
-	describedTenant = describe((*levyan.Tenant)(nil),
-		[]protoreflect.FieldNumber{},
+	describedServiceKey = describe((*levyan.ServiceKey)(nil),
+		[]protoreflect.FieldNumber{8},
 		[]protoreflect.FieldNumber{})
-	describedThing = describe((*levyan.Thing)(nil),
+	describedTenant = describe((*levyan.Tenant)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 )
@@ -2603,8 +3191,11 @@ func added(by string) bool {
 	switch by {
 	case levyan.AuditService_Add_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
-		levyan.TenantService_Add_FullMethodName,
-		levyan.ThingService_Add_FullMethodName:
+		levyan.MeterService_Add_FullMethodName,
+		levyan.OperatorService_Add_FullMethodName,
+		levyan.PriceService_Add_FullMethodName,
+		levyan.ServiceKeyService_Add_FullMethodName,
+		levyan.TenantService_Add_FullMethodName:
 		return true
 	}
 
@@ -2701,31 +3292,8 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 
 		return k, b, nil
 
-	case TenantDomain:
-		row, ok := image.(*levyan.Tenant)
-		if !ok {
-			return uuid.Nil(), []byte{}, nil
-		}
-
-		b := []byte{}
-		if keep {
-			kept := row
-			v, err := proto.Marshal(kept)
-			if err != nil {
-				return uuid.Nil(), nil, err
-			}
-			b = v
-		}
-
-		k, err := entuuid.FromBytes(row.GetId())
-		if err != nil {
-			return uuid.Nil(), nil, err
-		}
-
-		return k, b, nil
-
-	case ThingDomain:
-		row, ok := image.(*levyan.Thing)
+	case MeterDomain:
+		row, ok := image.(*levyan.Meter)
 		if !ok {
 			return uuid.Nil(), []byte{}, nil
 		}
@@ -2745,6 +3313,88 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 		}
 
 		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case PriceDomain:
+		row, ok := image.(*levyan.Price)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case ServiceKeyDomain:
+		row, ok := image.(*levyan.ServiceKey)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			kept = proto.Clone(row).(*levyan.ServiceKey)
+			_, secret, personal := described(key)
+			audit.Clear(kept, secret)
+			audit.Clear(kept, personal)
+
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case TenantDomain:
+		row, ok := image.(*levyan.Tenant)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		k, err := entuuid.FromBytes(row.GetId())
 		if err != nil {
 			return uuid.Nil(), nil, err
 		}
@@ -2773,10 +3423,16 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 	switch key.Domain() {
 	case HolderDomain:
 		vs, err = rowsHolder(ctx, s.Db, entHolder.IdEQ(uuid.UUID(key)))
+	case MeterDomain:
+		vs, err = rowsMeter(ctx, s.Db, entMeter.IdEQ(uuid.UUID(key)))
+	case OperatorDomain:
+		vs, err = rowsOperator(ctx, s.Db, entOperator.IdEQ(uuid.UUID(key)))
+	case PriceDomain:
+		vs, err = rowsPrice(ctx, s.Db, entPrice.IdEQ(uuid.UUID(key)))
+	case ServiceKeyDomain:
+		vs, err = rowsServiceKey(ctx, s.Db, entServiceKey.IdEQ(uuid.UUID(key)))
 	case TenantDomain:
 		vs, err = rowsTenant(ctx, s.Db, entTenant.IdEQ(uuid.UUID(key)))
-	case ThingDomain:
-		vs, err = rowsThing(ctx, s.Db, entThing.IdEQ(uuid.UUID(key)))
 	default:
 		return nil, nil
 	}
@@ -2921,7 +3577,7 @@ func (v *keptTrail) write(ctx context.Context) error {
 // row's seal covers (payday#115).
 func isSealed(key pdid.Id) bool {
 	switch key.Domain() {
-	case HolderDomain:
+	case HolderDomain, OperatorDomain:
 		return true
 	}
 
@@ -3142,11 +3798,20 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	if err := audit.CheckKind(ctx, d, checkedHolder(db), archived, &out); err != nil {
 		return out, fmt.Errorf("holder: %w", err)
 	}
+	if err := audit.CheckKind(ctx, d, checkedMeter(db), archived, &out); err != nil {
+		return out, fmt.Errorf("meter: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedOperator(db), archived, &out); err != nil {
+		return out, fmt.Errorf("operator: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedPrice(db), archived, &out); err != nil {
+		return out, fmt.Errorf("price: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedServiceKey(db), archived, &out); err != nil {
+		return out, fmt.Errorf("service-key: %w", err)
+	}
 	if err := audit.CheckKind(ctx, d, checkedTenant(db), archived, &out); err != nil {
 		return out, fmt.Errorf("tenant: %w", err)
-	}
-	if err := audit.CheckKind(ctx, d, checkedThing(db), archived, &out); err != nil {
-		return out, fmt.Errorf("thing: %w", err)
 	}
 
 	return out, nil
@@ -3191,6 +3856,196 @@ func checkedHolder(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsHolder(ctx, db, entHolder.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedMeter is what a check of the rows reads of the meter kind.
+func checkedMeter(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Meter) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsMeter(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: MeterDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entMeter.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entMeter.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, MeterDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsMeter(ctx, db, entMeter.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedOperator is what a check of the rows reads of the operator kind.
+func checkedOperator(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Operator) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsOperator(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: OperatorDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entOperator.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entOperator.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, OperatorDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsOperator(ctx, db, entOperator.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedPrice is what a check of the rows reads of the price kind.
+func checkedPrice(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Price) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsPrice(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: PriceDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entPrice.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entPrice.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, PriceDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsPrice(ctx, db, entPrice.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedServiceKey is what a check of the rows reads of the service-key kind.
+func checkedServiceKey(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.ServiceKey) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsServiceKey(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: ServiceKeyDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entServiceKey.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entServiceKey.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, ServiceKeyDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsServiceKey(ctx, db, entServiceKey.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -3250,52 +4105,6 @@ func checkedTenant(db *ent.Client) audit.Kind {
 	}
 }
 
-// checkedThing is what a check of the rows reads of the thing kind.
-func checkedThing(db *ent.Client) audit.Kind {
-	read := func(ctx context.Context, ps ...predicate.Thing) (audit.Page, error) {
-		var out audit.Page
-		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
-			rows, err := rowsThing(ctx, db, ps...)
-			if err != nil {
-				return err
-			}
-
-			recorded, err := newestDigests(ctx, db, objects(rows))
-			out = audit.Page{Rows: rows, Recorded: recorded}
-			return err
-		})
-
-		return out, err
-	}
-
-	return audit.Kind{
-		Domain: ThingDomain,
-		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
-			return read(ctx, entThing.IdGT(uuid.UUID(after)))
-		},
-		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
-			return read(ctx, entThing.IdIn(uuids(ids)...))
-		},
-		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
-			return trailObjects(ctx, db, ThingDomain, yield)
-		},
-		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
-			var out map[pdid.Id]*audit.Recorded
-			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
-				rows, err := rowsThing(ctx, db, entThing.IdIn(uuids(ids)...))
-				if err != nil {
-					return err
-				}
-
-				out, err = goneOf(ctx, db, ids, rows)
-				return err
-			})
-
-			return out, err
-		},
-	}
-}
-
 // rowsHolder is the rows `ps` says of the holder kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -3316,14 +4125,14 @@ func rowsHolder(ctx context.Context, db *ent.Client, ps ...predicate.Holder) ([]
 	return out, nil
 }
 
-// rowsTenant is the rows `ps` says of the tenant kind -- every row there is,
+// rowsMeter is the rows `ps` says of the meter kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
-func rowsTenant(ctx context.Context, db *ent.Client, ps ...predicate.Tenant) ([]audit.Live, error) {
-	q := db.Tenant.Query().Where(ps...)
-	bare.TenantSelectInit(q, nil)
+func rowsMeter(ctx context.Context, db *ent.Client, ps ...predicate.Meter) ([]audit.Live, error) {
+	q := db.Meter.Query().Where(ps...)
+	bare.MeterSelectInit(q, nil)
 
-	vs, err := q.Order(entTenant.ById()).Limit(audit.RowsPage).All(ctx)
+	vs, err := q.Order(entMeter.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -3336,14 +4145,74 @@ func rowsTenant(ctx context.Context, db *ent.Client, ps ...predicate.Tenant) ([]
 	return out, nil
 }
 
-// rowsThing is the rows `ps` says of the thing kind -- every row there is,
+// rowsOperator is the rows `ps` says of the operator kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
-func rowsThing(ctx context.Context, db *ent.Client, ps ...predicate.Thing) ([]audit.Live, error) {
-	q := db.Thing.Query().Where(ps...)
-	bare.ThingSelectInit(q, nil)
+func rowsOperator(ctx context.Context, db *ent.Client, ps ...predicate.Operator) ([]audit.Live, error) {
+	q := db.Operator.Query().Where(ps...)
+	bare.OperatorSelectInit(q, nil)
 
-	vs, err := q.Order(entThing.ById()).Limit(audit.RowsPage).All(ctx)
+	vs, err := q.Order(entOperator.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsPrice is the rows `ps` says of the price kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsPrice(ctx context.Context, db *ent.Client, ps ...predicate.Price) ([]audit.Live, error) {
+	q := db.Price.Query().Where(ps...)
+	bare.PriceSelectInit(q, nil)
+
+	vs, err := q.Order(entPrice.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsServiceKey is the rows `ps` says of the service-key kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsServiceKey(ctx context.Context, db *ent.Client, ps ...predicate.ServiceKey) ([]audit.Live, error) {
+	q := db.ServiceKey.Query().Where(ps...)
+	bare.ServiceKeySelectInit(q, nil)
+
+	vs, err := q.Order(entServiceKey.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsTenant is the rows `ps` says of the tenant kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsTenant(ctx context.Context, db *ent.Client, ps ...predicate.Tenant) ([]audit.Live, error) {
+	q := db.Tenant.Query().Where(ps...)
+	bare.TenantSelectInit(q, nil)
+
+	vs, err := q.Order(entTenant.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -3581,10 +4450,16 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 			switch d {
 			case HolderDomain:
 				rows, err = rowsHolder(ctx, db, entHolder.IdIn(uuids(page)...))
+			case MeterDomain:
+				rows, err = rowsMeter(ctx, db, entMeter.IdIn(uuids(page)...))
+			case OperatorDomain:
+				rows, err = rowsOperator(ctx, db, entOperator.IdIn(uuids(page)...))
+			case PriceDomain:
+				rows, err = rowsPrice(ctx, db, entPrice.IdIn(uuids(page)...))
+			case ServiceKeyDomain:
+				rows, err = rowsServiceKey(ctx, db, entServiceKey.IdIn(uuids(page)...))
 			case TenantDomain:
 				rows, err = rowsTenant(ctx, db, entTenant.IdIn(uuids(page)...))
-			case ThingDomain:
-				rows, err = rowsThing(ctx, db, entThing.IdIn(uuids(page)...))
 			default:
 				// Kept off the trail, so no act on it is recorded.
 				continue
@@ -3701,10 +4576,16 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 		switch d {
 		case HolderDomain:
 			rows, err = rowsHolder(ctx, s.db, entHolder.IdIn(uuids(ids)...))
+		case MeterDomain:
+			rows, err = rowsMeter(ctx, s.db, entMeter.IdIn(uuids(ids)...))
+		case OperatorDomain:
+			rows, err = rowsOperator(ctx, s.db, entOperator.IdIn(uuids(ids)...))
+		case PriceDomain:
+			rows, err = rowsPrice(ctx, s.db, entPrice.IdIn(uuids(ids)...))
+		case ServiceKeyDomain:
+			rows, err = rowsServiceKey(ctx, s.db, entServiceKey.IdIn(uuids(ids)...))
 		case TenantDomain:
 			rows, err = rowsTenant(ctx, s.db, entTenant.IdIn(uuids(ids)...))
-		case ThingDomain:
-			rows, err = rowsThing(ctx, s.db, entThing.IdIn(uuids(ids)...))
 		default:
 			// A kind no check reads, so there is nothing to carry forward to.
 			return n, nil
@@ -3785,6 +4666,127 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 
 var _ *patchpb.Patch
 
+// Secret is the layer that keeps a declared secret off the wire.
+//
+// Every field marked `(payday.field).secret` is cleared on the way out:
+// from what an `Add` echoes, what a `Get` answers, and every item of a
+// `List` or an `AddMany`. The write side is untouched, because writing is
+// the half that works.
+//
+//	app.Build(walled, core.Build(), pd.AuditBuild(), pd.SecretBuild(), pd.GateBuild())
+//
+// It clears rather than refuses. A caller asking for a column that is not
+// answered has not done anything wrong -- `Select{All: true}` is the
+// ordinary way to ask for a row -- and an error there would make the
+// common call the failing one.
+type Secret struct {
+	levyan.Overlay
+}
+
+func NewSecret(next levyan.Server) Secret {
+	return Secret{levyan.NewOverlay(next)}
+}
+
+var _ levyan.Server = Secret{}
+
+// WithDriver answers with this stack running on `drv`.
+//
+// Every layer writes this and none can inherit it: an overlay holds what
+// is behind it and cannot make itself again.
+func (s Secret) WithDriver(drv dialect.Driver) (levyan.Server, error) {
+	next, err := enttx.Rebind(s.Next(), drv)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSecret(next), nil
+}
+
+func SecretBuild() levyan.Builder { return secretBuilder{} }
+
+type secretBuilder struct{}
+
+func (secretBuilder) Build(next levyan.Server) (levyan.Server, error) {
+	return NewSecret(next), nil
+}
+
+func (s Secret) ServiceKey() levyan.ServiceKeyServiceServer {
+	return secretServiceKey{s, s.Next().ServiceKey()}
+}
+
+type secretServiceKey struct {
+	Secret
+	levyan.ServiceKeyServiceServer
+}
+
+func (s secretServiceKey) Add(ctx context.Context, req *levyan.ServiceKeyAddRequest) (*levyan.ServiceKey, error) {
+	v, err := s.ServiceKeyServiceServer.Add(ctx, req)
+
+	return hideServiceKey(v), err
+}
+
+func (s secretServiceKey) Get(ctx context.Context, req *levyan.ServiceKeyGetRequest) (*levyan.ServiceKey, error) {
+	v, err := s.ServiceKeyServiceServer.Get(ctx, req)
+
+	return hideServiceKey(v), err
+}
+
+func (s secretServiceKey) Patch(ctx context.Context, req *levyan.ServiceKeyPatchRequest) (*levyan.ServiceKey, error) {
+	v, err := s.ServiceKeyServiceServer.Patch(ctx, req)
+
+	return hideServiceKey(v), err
+}
+
+func (s secretServiceKey) Apply(ctx context.Context, req *levyan.ServiceKeyApplyRequest) (*levyan.ServiceKey, error) {
+	v, err := s.ServiceKeyServiceServer.Apply(ctx, req)
+
+	return hideServiceKey(v), err
+}
+
+func (s secretServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
+	v, err := s.ServiceKeyServiceServer.List(ctx, req)
+	if v == nil {
+		return v, err
+	}
+
+	for _, w := range v.GetItems() {
+		hideServiceKey(w)
+	}
+
+	return v, err
+}
+
+// hideServiceKey clears what this entity declared it never answers with.
+//
+// A nil row passes through, because an error is answered with one and the
+// caller of this is handing both on.
+//
+// By field number and through the descriptor, rather than a setter per
+// field, because a setter's argument has a type and this has to hold for
+// every field a row can carry. A `Set<F>(nil)` per secret is what this
+// was, and it compiled only while every secret anybody had declared was
+// `bytes`: a `string` one ended the build in a generated file, and an
+// enum would have needed its own type spelled out here to say zero.
+//
+// Clear is also the truer word. A field with presence is **absent**
+// afterwards rather than present and empty, which is what "never answered
+// with" says; one without presence reads as its zero value either way.
+// And the numbers are the ones `hidden` filters the trail's patch by, so
+// the two cannot come to disagree about which fields they are.
+func hideServiceKey(v *levyan.ServiceKey) *levyan.ServiceKey {
+	if v == nil {
+		return nil
+	}
+
+	m := v.ProtoReflect()
+	fs := m.Descriptor().Fields()
+	for _, n := range []protoreflect.FieldNumber{8} {
+		m.Clear(fs.ByNumber(n))
+	}
+
+	return v
+}
+
 // Intercept is the layer that runs gRPC interceptors between two layers.
 //
 // They are `grpc.UnaryServerInterceptor` and `grpc.StreamServerInterceptor`,
@@ -3861,6 +4863,113 @@ func (s Intercept) WithDriver(drv dialect.Driver) (levyan.Server, error) {
 	return Intercept{Overlay: levyan.NewOverlay(next), unary: s.unary, stream: s.stream}, nil
 }
 
+func (s Intercept) Tenant() levyan.TenantServiceServer {
+	return interceptTenant{s, s.Next().Tenant()}
+}
+
+type interceptTenant struct {
+	Intercept
+	levyan.TenantServiceServer
+}
+
+func (s interceptTenant) Add(ctx context.Context, req *levyan.TenantAddRequest) (*levyan.Tenant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
+		levyan.TenantService_Add_FullMethodName, req, s.TenantServiceServer.Add)
+}
+
+func (s interceptTenant) Get(ctx context.Context, req *levyan.TenantGetRequest) (*levyan.Tenant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
+		levyan.TenantService_Get_FullMethodName, req, s.TenantServiceServer.Get)
+}
+
+func (s interceptTenant) Patch(ctx context.Context, req *levyan.TenantPatchRequest) (*levyan.Tenant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
+		levyan.TenantService_Patch_FullMethodName, req, s.TenantServiceServer.Patch)
+}
+
+func (s interceptTenant) Apply(ctx context.Context, req *levyan.TenantApplyRequest) (*levyan.Tenant, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
+		levyan.TenantService_Apply_FullMethodName, req, s.TenantServiceServer.Apply)
+}
+
+func (s interceptTenant) Erase(ctx context.Context, req *levyan.TenantRef) (*levyan.TenantEraseResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
+		levyan.TenantService_Erase_FullMethodName, req, s.TenantServiceServer.Erase)
+}
+
+func (s interceptTenant) List(ctx context.Context, req *levyan.TenantListRequest) (*levyan.TenantListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
+		levyan.TenantService_List_FullMethodName, req, s.TenantServiceServer.List)
+}
+
+func (s Intercept) Meter() levyan.MeterServiceServer {
+	return interceptMeter{s, s.Next().Meter()}
+}
+
+type interceptMeter struct {
+	Intercept
+	levyan.MeterServiceServer
+}
+
+func (s interceptMeter) Add(ctx context.Context, req *levyan.MeterAddRequest) (*levyan.Meter, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.MeterServiceServer,
+		levyan.MeterService_Add_FullMethodName, req, s.MeterServiceServer.Add)
+}
+
+func (s interceptMeter) Get(ctx context.Context, req *levyan.MeterGetRequest) (*levyan.Meter, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.MeterServiceServer,
+		levyan.MeterService_Get_FullMethodName, req, s.MeterServiceServer.Get)
+}
+
+func (s interceptMeter) Patch(ctx context.Context, req *levyan.MeterPatchRequest) (*levyan.Meter, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.MeterServiceServer,
+		levyan.MeterService_Patch_FullMethodName, req, s.MeterServiceServer.Patch)
+}
+
+func (s interceptMeter) Apply(ctx context.Context, req *levyan.MeterApplyRequest) (*levyan.Meter, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.MeterServiceServer,
+		levyan.MeterService_Apply_FullMethodName, req, s.MeterServiceServer.Apply)
+}
+
+func (s interceptMeter) List(ctx context.Context, req *levyan.MeterListRequest) (*levyan.MeterListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.MeterServiceServer,
+		levyan.MeterService_List_FullMethodName, req, s.MeterServiceServer.List)
+}
+
+func (s Intercept) Operator() levyan.OperatorServiceServer {
+	return interceptOperator{s, s.Next().Operator()}
+}
+
+type interceptOperator struct {
+	Intercept
+	levyan.OperatorServiceServer
+}
+
+func (s interceptOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Add_FullMethodName, req, s.OperatorServiceServer.Add)
+}
+
+func (s interceptOperator) Get(ctx context.Context, req *levyan.OperatorGetRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Get_FullMethodName, req, s.OperatorServiceServer.Get)
+}
+
+func (s interceptOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Patch_FullMethodName, req, s.OperatorServiceServer.Patch)
+}
+
+func (s interceptOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Apply_FullMethodName, req, s.OperatorServiceServer.Apply)
+}
+
+func (s interceptOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Erase_FullMethodName, req, s.OperatorServiceServer.Erase)
+}
+
 func (s Intercept) Access() levyan.AccessServiceServer {
 	return interceptAccess{s, s.Next().Access()}
 }
@@ -3919,45 +5028,6 @@ func (s interceptAudit) List(ctx context.Context, req *levyan.AuditListRequest) 
 		levyan.AuditService_List_FullMethodName, req, s.AuditServiceServer.List)
 }
 
-func (s Intercept) Tenant() levyan.TenantServiceServer {
-	return interceptTenant{s, s.Next().Tenant()}
-}
-
-type interceptTenant struct {
-	Intercept
-	levyan.TenantServiceServer
-}
-
-func (s interceptTenant) Add(ctx context.Context, req *levyan.TenantAddRequest) (*levyan.Tenant, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
-		levyan.TenantService_Add_FullMethodName, req, s.TenantServiceServer.Add)
-}
-
-func (s interceptTenant) Get(ctx context.Context, req *levyan.TenantGetRequest) (*levyan.Tenant, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
-		levyan.TenantService_Get_FullMethodName, req, s.TenantServiceServer.Get)
-}
-
-func (s interceptTenant) Patch(ctx context.Context, req *levyan.TenantPatchRequest) (*levyan.Tenant, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
-		levyan.TenantService_Patch_FullMethodName, req, s.TenantServiceServer.Patch)
-}
-
-func (s interceptTenant) Apply(ctx context.Context, req *levyan.TenantApplyRequest) (*levyan.Tenant, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
-		levyan.TenantService_Apply_FullMethodName, req, s.TenantServiceServer.Apply)
-}
-
-func (s interceptTenant) Erase(ctx context.Context, req *levyan.TenantRef) (*levyan.TenantEraseResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
-		levyan.TenantService_Erase_FullMethodName, req, s.TenantServiceServer.Erase)
-}
-
-func (s interceptTenant) List(ctx context.Context, req *levyan.TenantListRequest) (*levyan.TenantListResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.TenantServiceServer,
-		levyan.TenantService_List_FullMethodName, req, s.TenantServiceServer.List)
-}
-
 func (s Intercept) Holder() levyan.HolderServiceServer {
 	return interceptHolder{s, s.Next().Holder()}
 }
@@ -4002,48 +5072,67 @@ func (s interceptHolder) Watch(req *levyan.HolderWatchRequest, out grpc.ServerSt
 		levyan.HolderService_Watch_FullMethodName, req, out, s.HolderServiceServer.Watch)
 }
 
-func (s Intercept) Thing() levyan.ThingServiceServer {
-	return interceptThing{s, s.Next().Thing()}
+func (s Intercept) Price() levyan.PriceServiceServer {
+	return interceptPrice{s, s.Next().Price()}
 }
 
-type interceptThing struct {
+type interceptPrice struct {
 	Intercept
-	levyan.ThingServiceServer
+	levyan.PriceServiceServer
 }
 
-func (s interceptThing) Add(ctx context.Context, req *levyan.ThingAddRequest) (*levyan.Thing, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.ThingServiceServer,
-		levyan.ThingService_Add_FullMethodName, req, s.ThingServiceServer.Add)
+func (s interceptPrice) Add(ctx context.Context, req *levyan.PriceAddRequest) (*levyan.Price, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PriceServiceServer,
+		levyan.PriceService_Add_FullMethodName, req, s.PriceServiceServer.Add)
 }
 
-func (s interceptThing) Get(ctx context.Context, req *levyan.ThingGetRequest) (*levyan.Thing, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.ThingServiceServer,
-		levyan.ThingService_Get_FullMethodName, req, s.ThingServiceServer.Get)
+func (s interceptPrice) Get(ctx context.Context, req *levyan.PriceGetRequest) (*levyan.Price, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PriceServiceServer,
+		levyan.PriceService_Get_FullMethodName, req, s.PriceServiceServer.Get)
 }
 
-func (s interceptThing) Patch(ctx context.Context, req *levyan.ThingPatchRequest) (*levyan.Thing, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.ThingServiceServer,
-		levyan.ThingService_Patch_FullMethodName, req, s.ThingServiceServer.Patch)
+func (s interceptPrice) List(ctx context.Context, req *levyan.PriceListRequest) (*levyan.PriceListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PriceServiceServer,
+		levyan.PriceService_List_FullMethodName, req, s.PriceServiceServer.List)
 }
 
-func (s interceptThing) Apply(ctx context.Context, req *levyan.ThingApplyRequest) (*levyan.Thing, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.ThingServiceServer,
-		levyan.ThingService_Apply_FullMethodName, req, s.ThingServiceServer.Apply)
+func (s Intercept) ServiceKey() levyan.ServiceKeyServiceServer {
+	return interceptServiceKey{s, s.Next().ServiceKey()}
 }
 
-func (s interceptThing) Erase(ctx context.Context, req *levyan.ThingRef) (*levyan.ThingEraseResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.ThingServiceServer,
-		levyan.ThingService_Erase_FullMethodName, req, s.ThingServiceServer.Erase)
+type interceptServiceKey struct {
+	Intercept
+	levyan.ServiceKeyServiceServer
 }
 
-func (s interceptThing) List(ctx context.Context, req *levyan.ThingListRequest) (*levyan.ThingListResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.ThingServiceServer,
-		levyan.ThingService_List_FullMethodName, req, s.ThingServiceServer.List)
+func (s interceptServiceKey) Add(ctx context.Context, req *levyan.ServiceKeyAddRequest) (*levyan.ServiceKey, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
+		levyan.ServiceKeyService_Add_FullMethodName, req, s.ServiceKeyServiceServer.Add)
 }
 
-func (s interceptThing) Watch(req *levyan.ThingWatchRequest, out grpc.ServerStreamingServer[levyan.ThingWatchResponse]) error {
-	return grpcx.RunStream(s.stream, s.ThingServiceServer,
-		levyan.ThingService_Watch_FullMethodName, req, out, s.ThingServiceServer.Watch)
+func (s interceptServiceKey) Get(ctx context.Context, req *levyan.ServiceKeyGetRequest) (*levyan.ServiceKey, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
+		levyan.ServiceKeyService_Get_FullMethodName, req, s.ServiceKeyServiceServer.Get)
+}
+
+func (s interceptServiceKey) Patch(ctx context.Context, req *levyan.ServiceKeyPatchRequest) (*levyan.ServiceKey, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
+		levyan.ServiceKeyService_Patch_FullMethodName, req, s.ServiceKeyServiceServer.Patch)
+}
+
+func (s interceptServiceKey) Apply(ctx context.Context, req *levyan.ServiceKeyApplyRequest) (*levyan.ServiceKey, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
+		levyan.ServiceKeyService_Apply_FullMethodName, req, s.ServiceKeyServiceServer.Apply)
+}
+
+func (s interceptServiceKey) Erase(ctx context.Context, req *levyan.ServiceKeyRef) (*levyan.ServiceKeyEraseResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
+		levyan.ServiceKeyService_Erase_FullMethodName, req, s.ServiceKeyServiceServer.Erase)
+}
+
+func (s interceptServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
+		levyan.ServiceKeyService_List_FullMethodName, req, s.ServiceKeyServiceServer.List)
 }
 
 // WatchRecorder answers with the recorder that remembers a write for `w`.
@@ -5195,6 +6284,18 @@ func init() {
 		r := (&levyan.HolderRef{}).ProtoReflect().Descriptor()
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
+	{
+		md := (&levyan.Operator{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(4),
+			},
+		}
+		r := (&levyan.OperatorRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
 }
 
 // Subjects is whose personal data `m` carries (payday#111): the key of every
@@ -5441,9 +6542,13 @@ func (accessRecorder) Snapshots(method string) bare.SnapshotOptions {
 	switch method {
 	case levyan.HolderService_Add_FullMethodName,
 		levyan.HolderService_Patch_FullMethodName,
-		levyan.HolderService_Apply_FullMethodName:
+		levyan.HolderService_Apply_FullMethodName,
+		levyan.OperatorService_Add_FullMethodName,
+		levyan.OperatorService_Patch_FullMethodName,
+		levyan.OperatorService_Apply_FullMethodName:
 		return bare.SnapshotOptions{Value: true}
-	case levyan.HolderService_Erase_FullMethodName:
+	case levyan.HolderService_Erase_FullMethodName,
+		levyan.OperatorService_Erase_FullMethodName:
 		return bare.SnapshotOptions{Previous: true}
 	}
 
@@ -5730,6 +6835,26 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.TenantRef{}
 	case levyan.TenantService_List_FullMethodName:
 		v = &levyan.TenantListRequest{}
+	case levyan.MeterService_Add_FullMethodName:
+		v = &levyan.MeterAddRequest{}
+	case levyan.MeterService_Get_FullMethodName:
+		v = &levyan.MeterGetRequest{}
+	case levyan.MeterService_Patch_FullMethodName:
+		v = &levyan.MeterPatchRequest{}
+	case levyan.MeterService_Apply_FullMethodName:
+		v = &levyan.MeterApplyRequest{}
+	case levyan.MeterService_List_FullMethodName:
+		v = &levyan.MeterListRequest{}
+	case levyan.OperatorService_Add_FullMethodName:
+		v = &levyan.OperatorAddRequest{}
+	case levyan.OperatorService_Get_FullMethodName:
+		v = &levyan.OperatorGetRequest{}
+	case levyan.OperatorService_Patch_FullMethodName:
+		v = &levyan.OperatorPatchRequest{}
+	case levyan.OperatorService_Apply_FullMethodName:
+		v = &levyan.OperatorApplyRequest{}
+	case levyan.OperatorService_Erase_FullMethodName:
+		v = &levyan.OperatorRef{}
 	case levyan.HolderService_Add_FullMethodName:
 		v = &levyan.HolderAddRequest{}
 	case levyan.HolderService_Get_FullMethodName:
@@ -5742,18 +6867,24 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.HolderRef{}
 	case levyan.HolderService_List_FullMethodName:
 		v = &levyan.HolderListRequest{}
-	case levyan.ThingService_Add_FullMethodName:
-		v = &levyan.ThingAddRequest{}
-	case levyan.ThingService_Get_FullMethodName:
-		v = &levyan.ThingGetRequest{}
-	case levyan.ThingService_Patch_FullMethodName:
-		v = &levyan.ThingPatchRequest{}
-	case levyan.ThingService_Apply_FullMethodName:
-		v = &levyan.ThingApplyRequest{}
-	case levyan.ThingService_Erase_FullMethodName:
-		v = &levyan.ThingRef{}
-	case levyan.ThingService_List_FullMethodName:
-		v = &levyan.ThingListRequest{}
+	case levyan.PriceService_Add_FullMethodName:
+		v = &levyan.PriceAddRequest{}
+	case levyan.PriceService_Get_FullMethodName:
+		v = &levyan.PriceGetRequest{}
+	case levyan.PriceService_List_FullMethodName:
+		v = &levyan.PriceListRequest{}
+	case levyan.ServiceKeyService_Add_FullMethodName:
+		v = &levyan.ServiceKeyAddRequest{}
+	case levyan.ServiceKeyService_Get_FullMethodName:
+		v = &levyan.ServiceKeyGetRequest{}
+	case levyan.ServiceKeyService_Patch_FullMethodName:
+		v = &levyan.ServiceKeyPatchRequest{}
+	case levyan.ServiceKeyService_Apply_FullMethodName:
+		v = &levyan.ServiceKeyApplyRequest{}
+	case levyan.ServiceKeyService_Erase_FullMethodName:
+		v = &levyan.ServiceKeyRef{}
+	case levyan.ServiceKeyService_List_FullMethodName:
+		v = &levyan.ServiceKeyListRequest{}
 	default:
 		// Including every Rpc written by hand: those live on a service of
 		// their own, which `Server` has no accessor for.
@@ -5794,6 +6925,26 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Tenant().Erase(ctx, v.(*levyan.TenantRef))
 	case levyan.TenantService_List_FullMethodName:
 		res, err = s.Tenant().List(ctx, v.(*levyan.TenantListRequest))
+	case levyan.MeterService_Add_FullMethodName:
+		res, err = s.Meter().Add(ctx, v.(*levyan.MeterAddRequest))
+	case levyan.MeterService_Get_FullMethodName:
+		res, err = s.Meter().Get(ctx, v.(*levyan.MeterGetRequest))
+	case levyan.MeterService_Patch_FullMethodName:
+		res, err = s.Meter().Patch(ctx, v.(*levyan.MeterPatchRequest))
+	case levyan.MeterService_Apply_FullMethodName:
+		res, err = s.Meter().Apply(ctx, v.(*levyan.MeterApplyRequest))
+	case levyan.MeterService_List_FullMethodName:
+		res, err = s.Meter().List(ctx, v.(*levyan.MeterListRequest))
+	case levyan.OperatorService_Add_FullMethodName:
+		res, err = s.Operator().Add(ctx, v.(*levyan.OperatorAddRequest))
+	case levyan.OperatorService_Get_FullMethodName:
+		res, err = s.Operator().Get(ctx, v.(*levyan.OperatorGetRequest))
+	case levyan.OperatorService_Patch_FullMethodName:
+		res, err = s.Operator().Patch(ctx, v.(*levyan.OperatorPatchRequest))
+	case levyan.OperatorService_Apply_FullMethodName:
+		res, err = s.Operator().Apply(ctx, v.(*levyan.OperatorApplyRequest))
+	case levyan.OperatorService_Erase_FullMethodName:
+		res, err = s.Operator().Erase(ctx, v.(*levyan.OperatorRef))
 	case levyan.HolderService_Add_FullMethodName:
 		res, err = s.Holder().Add(ctx, v.(*levyan.HolderAddRequest))
 	case levyan.HolderService_Get_FullMethodName:
@@ -5806,18 +6957,24 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Holder().Erase(ctx, v.(*levyan.HolderRef))
 	case levyan.HolderService_List_FullMethodName:
 		res, err = s.Holder().List(ctx, v.(*levyan.HolderListRequest))
-	case levyan.ThingService_Add_FullMethodName:
-		res, err = s.Thing().Add(ctx, v.(*levyan.ThingAddRequest))
-	case levyan.ThingService_Get_FullMethodName:
-		res, err = s.Thing().Get(ctx, v.(*levyan.ThingGetRequest))
-	case levyan.ThingService_Patch_FullMethodName:
-		res, err = s.Thing().Patch(ctx, v.(*levyan.ThingPatchRequest))
-	case levyan.ThingService_Apply_FullMethodName:
-		res, err = s.Thing().Apply(ctx, v.(*levyan.ThingApplyRequest))
-	case levyan.ThingService_Erase_FullMethodName:
-		res, err = s.Thing().Erase(ctx, v.(*levyan.ThingRef))
-	case levyan.ThingService_List_FullMethodName:
-		res, err = s.Thing().List(ctx, v.(*levyan.ThingListRequest))
+	case levyan.PriceService_Add_FullMethodName:
+		res, err = s.Price().Add(ctx, v.(*levyan.PriceAddRequest))
+	case levyan.PriceService_Get_FullMethodName:
+		res, err = s.Price().Get(ctx, v.(*levyan.PriceGetRequest))
+	case levyan.PriceService_List_FullMethodName:
+		res, err = s.Price().List(ctx, v.(*levyan.PriceListRequest))
+	case levyan.ServiceKeyService_Add_FullMethodName:
+		res, err = s.ServiceKey().Add(ctx, v.(*levyan.ServiceKeyAddRequest))
+	case levyan.ServiceKeyService_Get_FullMethodName:
+		res, err = s.ServiceKey().Get(ctx, v.(*levyan.ServiceKeyGetRequest))
+	case levyan.ServiceKeyService_Patch_FullMethodName:
+		res, err = s.ServiceKey().Patch(ctx, v.(*levyan.ServiceKeyPatchRequest))
+	case levyan.ServiceKeyService_Apply_FullMethodName:
+		res, err = s.ServiceKey().Apply(ctx, v.(*levyan.ServiceKeyApplyRequest))
+	case levyan.ServiceKeyService_Erase_FullMethodName:
+		res, err = s.ServiceKey().Erase(ctx, v.(*levyan.ServiceKeyRef))
+	case levyan.ServiceKeyService_List_FullMethodName:
+		res, err = s.ServiceKey().List(ctx, v.(*levyan.ServiceKeyListRequest))
 	default:
 		return nil, batch.ErrNoMethod(m)
 	}
@@ -5845,15 +7002,22 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Archived{},
 		&levyan.Audit{},
 		&levyan.Holder{},
+		&levyan.Meter{},
+		&levyan.Operator{},
 		&levyan.Outbox{},
 		&levyan.Owed{},
+		&levyan.Price{},
 		&levyan.RowSeal{},
+		&levyan.ServiceKey{},
 		&levyan.Tenant{},
-		&levyan.Thing{},
 	)
 }
 
-var resourceSecrets = map[protoreflect.FullName][]protoreflect.FieldNumber{}
+var resourceSecrets = map[protoreflect.FullName][]protoreflect.FieldNumber{
+	"levyan.ServiceKey": {
+		8,
+	},
+}
 
 func publicResource(v proto.Message) proto.Message { return resource.Redact(v, resourceSecrets) }
 
@@ -5983,6 +7147,150 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.Meter:
+			ctx, err := read.Allow(ctx, levyan.MeterService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.MeterNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entMeter.Table, []resourcesql.Column{
+				{Number: 1, Name: entMeter.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entMeter.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 5, Name: entMeter.FieldName, Type: 9, Nullable: false, Key: 0},
+				{Number: 6, Name: entMeter.FieldDesc, Type: 9, Nullable: false, Key: 0},
+				{Number: 8, Name: entMeter.FieldKey, Type: 9, Nullable: false, Key: 0},
+				{Number: 9, Name: entMeter.FieldUnit, Type: 9, Nullable: false, Key: 0},
+				{Number: 10, Name: entMeter.FieldKind, Type: 14, Nullable: false, Key: 0},
+				{Number: 11, Name: entMeter.FieldAggregation, Type: 14, Nullable: false, Key: 0},
+				{Number: 12, Name: entMeter.FieldUnboundedZero, Type: 8, Nullable: false, Key: 0},
+				{Number: 13, Name: entMeter.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entMeter.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entMeter.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Meter.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Operator:
+			ctx, err := read.Allow(ctx, levyan.OperatorService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.OperatorNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entOperator.Table, []resourcesql.Column{
+				{Number: 1, Name: entOperator.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 4, Name: entOperator.FieldAlias, Type: 9, Nullable: false, Key: 0},
+				{Number: 14, Name: entOperator.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entOperator.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Operator.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Price:
+			ctx, err := read.Allow(ctx, levyan.PriceService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.PriceNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entPrice.Table, []resourcesql.Column{
+				{Number: 1, Name: entPrice.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entPrice.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 6, Name: entPrice.FieldDesc, Type: 9, Nullable: false, Key: 0},
+				{Number: 8, Name: entPrice.MeterColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entPrice.FieldChannel, Type: 14, Nullable: false, Key: 0},
+				{Number: 10, Name: entPrice.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entPrice.FieldIncluded, Type: 3, Nullable: false, Key: 0},
+				{Number: 12, Name: entPrice.FieldUnitPrice, Type: 3, Nullable: false, Key: 0},
+				{Number: 14, Name: entPrice.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entPrice.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+				{Number: 16, Name: entPrice.FieldPer, Type: 3, Nullable: false, Key: 0},
+				{Number: 18, Name: entPrice.FieldDateEffective, Type: 65, Nullable: false, Key: 0},
+				{Number: 19, Name: entPrice.FieldDateExisting, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Price.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.ServiceKey:
+			ctx, err := read.Allow(ctx, levyan.ServiceKeyService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.ServiceKeyNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entServiceKey.Table, []resourcesql.Column{
+				{Number: 1, Name: entServiceKey.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entServiceKey.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 4, Name: entServiceKey.FieldAlias, Type: 9, Nullable: false, Key: 0},
+				{Number: 6, Name: entServiceKey.FieldDesc, Type: 9, Nullable: false, Key: 0},
+				{Number: 9, Name: entServiceKey.FieldDateExpires, Type: 65, Nullable: true, Key: 0},
+				{Number: 14, Name: entServiceKey.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entServiceKey.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.ServiceKey.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Tenant:
 			ctx, err := read.Allow(ctx, levyan.TenantService_Get_FullMethodName, 1)
 			if err != nil {
@@ -6008,40 +7316,6 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.Tenant.Query()
-			if pred != nil {
-				query.Where(pred)
-			}
-			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
-			if err != nil || !ok {
-				return nil, err
-			}
-			return publicResource(v), nil
-		case *levyan.Thing:
-			ctx, err := read.Allow(ctx, levyan.ThingService_Get_FullMethodName, 1)
-			if err != nil {
-				switch status.Code(err) {
-				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
-					return nil, nil
-				}
-				return nil, err
-			}
-			pred, err := bare.ThingNarrow(ctx, scope, nil)
-			if err != nil {
-				return nil, err
-			}
-			row, err := resourcesql.Row(db.Dialect(), entThing.Table, []resourcesql.Column{
-				{Number: 1, Name: entThing.FieldId, Type: 64, Nullable: false, Key: 0},
-				{Number: 2, Name: entThing.TenantColumn, Type: 64, Nullable: false, Key: 1},
-				{Number: 4, Name: entThing.FieldAlias, Type: 9, Nullable: false, Key: 0},
-				{Number: 6, Name: entThing.FieldDesc, Type: 9, Nullable: false, Key: 0},
-				{Number: 14, Name: entThing.FieldDateErased, Type: 65, Nullable: true, Key: 0},
-				{Number: 13, Name: entThing.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
-				{Number: 15, Name: entThing.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
-			}, v)
-			if err != nil {
-				return nil, err
-			}
-			query := db.Thing.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -6101,6 +7375,30 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.HolderService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.MeterService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.MeterService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.MeterService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.OperatorService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.OperatorService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.OperatorService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.OperatorService_Erase_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.PriceService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.ServiceKeyService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.ServiceKeyService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.ServiceKeyService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.ServiceKeyService_Erase_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_DELETED
 	case levyan.TenantService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.TenantService_Patch_FullMethodName:
@@ -6108,14 +7406,6 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 	case levyan.TenantService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.TenantService_Erase_FullMethodName:
-		return pdpb.ChangeKind_CHANGE_KIND_DELETED
-	case levyan.ThingService_Add_FullMethodName:
-		return pdpb.ChangeKind_CHANGE_KIND_CREATED
-	case levyan.ThingService_Patch_FullMethodName:
-		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
-	case levyan.ThingService_Apply_FullMethodName:
-		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
-	case levyan.ThingService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
 	default:
 		return pdpb.ChangeKind_CHANGE_KIND_UNSPECIFIED
@@ -6135,7 +7425,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "app.Access", "app.Audit", "app.Holder", "app.Tenant", "app.Thing":
+	case "levyan.Access", "levyan.Audit", "levyan.Holder", "levyan.Meter", "levyan.Operator", "levyan.Price", "levyan.ServiceKey", "levyan.Tenant":
 	default:
 		return nil
 	}

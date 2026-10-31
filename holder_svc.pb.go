@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: app/payday/holder_svc.g.proto
+// source: levyan/payday/holder_svc.g.proto
 
 package levyan
 
@@ -31,7 +31,6 @@ type HolderAddRequest struct {
 	xxx_hidden_Desc        string                 `protobuf:"bytes,6,opt,name=desc"`
 	xxx_hidden_Labels      map[string]string      `protobuf:"bytes,7,rep,name=labels" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_IdpSubject  *string                `protobuf:"bytes,8,opt,name=idp_subject,json=idpSubject"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -40,7 +39,7 @@ type HolderAddRequest struct {
 
 func (x *HolderAddRequest) Reset() {
 	*x = HolderAddRequest{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[0]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -52,7 +51,7 @@ func (x *HolderAddRequest) String() string {
 func (*HolderAddRequest) ProtoMessage() {}
 
 func (x *HolderAddRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[0]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -112,22 +111,12 @@ func (x *HolderAddRequest) GetDateCreated() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *HolderAddRequest) GetIdpSubject() string {
-	if x != nil {
-		if x.xxx_hidden_IdpSubject != nil {
-			return *x.xxx_hidden_IdpSubject
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *HolderAddRequest) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
 }
 
 func (x *HolderAddRequest) SetTenant(v *TenantRef) {
@@ -154,11 +143,6 @@ func (x *HolderAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
 }
 
-func (x *HolderAddRequest) SetIdpSubject(v string) {
-	x.xxx_hidden_IdpSubject = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
-}
-
 func (x *HolderAddRequest) HasId() bool {
 	if x == nil {
 		return false
@@ -180,13 +164,6 @@ func (x *HolderAddRequest) HasDateCreated() bool {
 	return x.xxx_hidden_DateCreated != nil
 }
 
-func (x *HolderAddRequest) HasIdpSubject() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
-}
-
 func (x *HolderAddRequest) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -200,11 +177,6 @@ func (x *HolderAddRequest) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
 
-func (x *HolderAddRequest) ClearIdpSubject() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
-	x.xxx_hidden_IdpSubject = nil
-}
-
 type HolderAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -215,7 +187,6 @@ type HolderAddRequest_builder struct {
 	Desc        string
 	Labels      map[string]string
 	DateCreated *timestamppb.Timestamp
-	IdpSubject  *string
 }
 
 func (b0 HolderAddRequest_builder) Build() *HolderAddRequest {
@@ -223,7 +194,7 @@ func (b0 HolderAddRequest_builder) Build() *HolderAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Tenant = b.Tenant
@@ -232,10 +203,6 @@ func (b0 HolderAddRequest_builder) Build() *HolderAddRequest {
 	x.xxx_hidden_Desc = b.Desc
 	x.xxx_hidden_Labels = b.Labels
 	x.xxx_hidden_DateCreated = b.DateCreated
-	if b.IdpSubject != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
-		x.xxx_hidden_IdpSubject = b.IdpSubject
-	}
 	return m0
 }
 
@@ -249,7 +216,7 @@ type HolderGetRequest struct {
 
 func (x *HolderGetRequest) Reset() {
 	*x = HolderGetRequest{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[1]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +228,7 @@ func (x *HolderGetRequest) String() string {
 func (*HolderGetRequest) ProtoMessage() {}
 
 func (x *HolderGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[1]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -341,7 +308,7 @@ type HolderRef struct {
 
 func (x *HolderRef) Reset() {
 	*x = HolderRef{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[2]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -353,7 +320,7 @@ func (x *HolderRef) String() string {
 func (*HolderRef) ProtoMessage() {}
 
 func (x *HolderRef) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[2]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,15 +349,6 @@ func (x *HolderRef) GetSlug() *HolderRefBySlug {
 	return nil
 }
 
-func (x *HolderRef) GetIdpSubject() string {
-	if x != nil {
-		if x, ok := x.xxx_hidden_Key.(*holderRef_IdpSubject); ok {
-			return x.IdpSubject
-		}
-	}
-	return ""
-}
-
 func (x *HolderRef) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -404,10 +362,6 @@ func (x *HolderRef) SetSlug(v *HolderRefBySlug) {
 		return
 	}
 	x.xxx_hidden_Key = &holderRef_Slug{v}
-}
-
-func (x *HolderRef) SetIdpSubject(v string) {
-	x.xxx_hidden_Key = &holderRef_IdpSubject{v}
 }
 
 func (x *HolderRef) HasKey() bool {
@@ -433,14 +387,6 @@ func (x *HolderRef) HasSlug() bool {
 	return ok
 }
 
-func (x *HolderRef) HasIdpSubject() bool {
-	if x == nil {
-		return false
-	}
-	_, ok := x.xxx_hidden_Key.(*holderRef_IdpSubject)
-	return ok
-}
-
 func (x *HolderRef) ClearKey() {
 	x.xxx_hidden_Key = nil
 }
@@ -457,16 +403,9 @@ func (x *HolderRef) ClearSlug() {
 	}
 }
 
-func (x *HolderRef) ClearIdpSubject() {
-	if _, ok := x.xxx_hidden_Key.(*holderRef_IdpSubject); ok {
-		x.xxx_hidden_Key = nil
-	}
-}
-
 const HolderRef_Key_not_set_case case_HolderRef_Key = 0
 const HolderRef_Id_case case_HolderRef_Key = 1
 const HolderRef_Slug_case case_HolderRef_Key = 4
-const HolderRef_IdpSubject_case case_HolderRef_Key = 8
 
 func (x *HolderRef) WhichKey() case_HolderRef_Key {
 	if x == nil {
@@ -477,8 +416,6 @@ func (x *HolderRef) WhichKey() case_HolderRef_Key {
 		return HolderRef_Id_case
 	case *holderRef_Slug:
 		return HolderRef_Slug_case
-	case *holderRef_IdpSubject:
-		return HolderRef_IdpSubject_case
 	default:
 		return HolderRef_Key_not_set_case
 	}
@@ -488,9 +425,8 @@ type HolderRef_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// Fields of oneof xxx_hidden_Key:
-	Id         []byte
-	Slug       *HolderRefBySlug
-	IdpSubject *string
+	Id   []byte
+	Slug *HolderRefBySlug
 	// -- end of xxx_hidden_Key
 }
 
@@ -504,16 +440,13 @@ func (b0 HolderRef_builder) Build() *HolderRef {
 	if b.Slug != nil {
 		x.xxx_hidden_Key = &holderRef_Slug{b.Slug}
 	}
-	if b.IdpSubject != nil {
-		x.xxx_hidden_Key = &holderRef_IdpSubject{*b.IdpSubject}
-	}
 	return m0
 }
 
 type case_HolderRef_Key protoreflect.FieldNumber
 
 func (x case_HolderRef_Key) String() string {
-	md := file_app_payday_holder_svc_g_proto_msgTypes[2].Descriptor()
+	md := file_levyan_payday_holder_svc_g_proto_msgTypes[2].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -532,15 +465,9 @@ type holderRef_Slug struct {
 	Slug *HolderRefBySlug `protobuf:"bytes,4,opt,name=slug,oneof"`
 }
 
-type holderRef_IdpSubject struct {
-	IdpSubject string `protobuf:"bytes,8,opt,name=idp_subject,json=idpSubject,oneof"`
-}
-
 func (*holderRef_Id) isHolderRef_Key() {}
 
 func (*holderRef_Slug) isHolderRef_Key() {}
-
-func (*holderRef_IdpSubject) isHolderRef_Key() {}
 
 type HolderRefBySlug struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
@@ -554,7 +481,7 @@ type HolderRefBySlug struct {
 
 func (x *HolderRefBySlug) Reset() {
 	*x = HolderRefBySlug{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[3]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -566,7 +493,7 @@ func (x *HolderRefBySlug) String() string {
 func (*HolderRefBySlug) ProtoMessage() {}
 
 func (x *HolderRefBySlug) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[3]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +583,6 @@ type HolderSelect struct {
 	xxx_hidden_DateUpdated bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateErased  bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_IdpSubject  bool                   `protobuf:"varint,8,opt,name=idp_subject,json=idpSubject"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -665,7 +591,7 @@ type HolderSelect struct {
 
 func (x *HolderSelect) Reset() {
 	*x = HolderSelect{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[4]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -677,7 +603,7 @@ func (x *HolderSelect) String() string {
 func (*HolderSelect) ProtoMessage() {}
 
 func (x *HolderSelect) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[4]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -751,16 +677,9 @@ func (x *HolderSelect) GetDateCreated() bool {
 	return false
 }
 
-func (x *HolderSelect) GetIdpSubject() bool {
-	if x != nil {
-		return x.xxx_hidden_IdpSubject
-	}
-	return false
-}
-
 func (x *HolderSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
 }
 
 func (x *HolderSelect) SetTenant(v *TenantSelect) {
@@ -769,42 +688,37 @@ func (x *HolderSelect) SetTenant(v *TenantSelect) {
 
 func (x *HolderSelect) SetAlias(v bool) {
 	x.xxx_hidden_Alias = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *HolderSelect) SetName(v bool) {
 	x.xxx_hidden_Name = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *HolderSelect) SetDesc(v bool) {
 	x.xxx_hidden_Desc = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
 }
 
 func (x *HolderSelect) SetLabels(v bool) {
 	x.xxx_hidden_Labels = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
 }
 
 func (x *HolderSelect) SetDateUpdated(v bool) {
 	x.xxx_hidden_DateUpdated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
 }
 
 func (x *HolderSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
 }
 
 func (x *HolderSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
-}
-
-func (x *HolderSelect) SetIdpSubject(v bool) {
-	x.xxx_hidden_IdpSubject = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
 }
 
 func (x *HolderSelect) HasAll() bool {
@@ -870,13 +784,6 @@ func (x *HolderSelect) HasDateCreated() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
-func (x *HolderSelect) HasIdpSubject() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
-}
-
 func (x *HolderSelect) ClearAll() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_All = false
@@ -921,11 +828,6 @@ func (x *HolderSelect) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = false
 }
 
-func (x *HolderSelect) ClearIdpSubject() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
-	x.xxx_hidden_IdpSubject = false
-}
-
 type HolderSelect_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -938,7 +840,6 @@ type HolderSelect_builder struct {
 	DateUpdated *bool
 	DateErased  *bool
 	DateCreated *bool
-	IdpSubject  *bool
 }
 
 func (b0 HolderSelect_builder) Build() *HolderSelect {
@@ -946,41 +847,37 @@ func (b0 HolderSelect_builder) Build() *HolderSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_All = *b.All
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	if b.Alias != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_Alias = *b.Alias
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_Name = *b.Name
 	}
 	if b.Desc != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
 		x.xxx_hidden_Desc = *b.Desc
 	}
 	if b.Labels != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
 		x.xxx_hidden_Labels = *b.Labels
 	}
 	if b.DateUpdated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
 		x.xxx_hidden_DateUpdated = *b.DateUpdated
 	}
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
 		x.xxx_hidden_DateCreated = *b.DateCreated
-	}
-	if b.IdpSubject != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
-		x.xxx_hidden_IdpSubject = *b.IdpSubject
 	}
 	return m0
 }
@@ -994,8 +891,6 @@ type HolderPatchRequest struct {
 	xxx_hidden_Labels           map[string]string      `protobuf:"bytes,14,rep,name=labels" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_DateUpdated      *timestamppb.Timestamp `protobuf:"bytes,26,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateUpdatedForce bool                   `protobuf:"varint,27,opt,name=date_updated_force,json=dateUpdatedForce"`
-	xxx_hidden_IdpSubject       *string                `protobuf:"bytes,16,opt,name=idp_subject,json=idpSubject"`
-	xxx_hidden_IdpSubjectNull   bool                   `protobuf:"varint,17,opt,name=idp_subject_null,json=idpSubjectNull"`
 	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
 	XXX_presence                [1]uint32
 	unknownFields               protoimpl.UnknownFields
@@ -1004,7 +899,7 @@ type HolderPatchRequest struct {
 
 func (x *HolderPatchRequest) Reset() {
 	*x = HolderPatchRequest{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1016,7 +911,7 @@ func (x *HolderPatchRequest) String() string {
 func (*HolderPatchRequest) ProtoMessage() {}
 
 func (x *HolderPatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[5]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1085,40 +980,23 @@ func (x *HolderPatchRequest) GetDateUpdatedForce() bool {
 	return false
 }
 
-func (x *HolderPatchRequest) GetIdpSubject() string {
-	if x != nil {
-		if x.xxx_hidden_IdpSubject != nil {
-			return *x.xxx_hidden_IdpSubject
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *HolderPatchRequest) GetIdpSubjectNull() bool {
-	if x != nil {
-		return x.xxx_hidden_IdpSubjectNull
-	}
-	return false
-}
-
 func (x *HolderPatchRequest) SetRef(v *HolderRef) {
 	x.xxx_hidden_Ref = v
 }
 
 func (x *HolderPatchRequest) SetAlias(v string) {
 	x.xxx_hidden_Alias = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *HolderPatchRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
 func (x *HolderPatchRequest) SetDesc(v string) {
 	x.xxx_hidden_Desc = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
 func (x *HolderPatchRequest) SetLabels(v map[string]string) {
@@ -1131,17 +1009,7 @@ func (x *HolderPatchRequest) SetDateUpdated(v *timestamppb.Timestamp) {
 
 func (x *HolderPatchRequest) SetDateUpdatedForce(v bool) {
 	x.xxx_hidden_DateUpdatedForce = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
-}
-
-func (x *HolderPatchRequest) SetIdpSubject(v string) {
-	x.xxx_hidden_IdpSubject = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
-}
-
-func (x *HolderPatchRequest) SetIdpSubjectNull(v bool) {
-	x.xxx_hidden_IdpSubjectNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
 }
 
 func (x *HolderPatchRequest) HasRef() bool {
@@ -1186,20 +1054,6 @@ func (x *HolderPatchRequest) HasDateUpdatedForce() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *HolderPatchRequest) HasIdpSubject() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
-}
-
-func (x *HolderPatchRequest) HasIdpSubjectNull() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
-}
-
 func (x *HolderPatchRequest) ClearRef() {
 	x.xxx_hidden_Ref = nil
 }
@@ -1228,16 +1082,6 @@ func (x *HolderPatchRequest) ClearDateUpdatedForce() {
 	x.xxx_hidden_DateUpdatedForce = false
 }
 
-func (x *HolderPatchRequest) ClearIdpSubject() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
-	x.xxx_hidden_IdpSubject = nil
-}
-
-func (x *HolderPatchRequest) ClearIdpSubjectNull() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
-	x.xxx_hidden_IdpSubjectNull = false
-}
-
 type HolderPatchRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1260,12 +1104,6 @@ type HolderPatchRequest_builder struct {
 	// refused rather than assumed, because an unset field cannot be told
 	// apart from a caller who never considered locking at all.
 	DateUpdatedForce *bool
-	IdpSubject       *string
-	// Clear idp_subject instead of writing it.
-	// It takes a field of its own because an unset value already means
-	// "leave it alone", so no value could have meant NULL. It wins
-	// outright: setting both this and idp_subject clears.
-	IdpSubjectNull *bool
 }
 
 func (b0 HolderPatchRequest_builder) Build() *HolderPatchRequest {
@@ -1274,30 +1112,22 @@ func (b0 HolderPatchRequest_builder) Build() *HolderPatchRequest {
 	_, _ = b, x
 	x.xxx_hidden_Ref = b.Ref
 	if b.Alias != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_Alias = b.Alias
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Desc != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
 		x.xxx_hidden_Desc = b.Desc
 	}
 	x.xxx_hidden_Labels = b.Labels
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	if b.DateUpdatedForce != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
 		x.xxx_hidden_DateUpdatedForce = *b.DateUpdatedForce
-	}
-	if b.IdpSubject != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
-		x.xxx_hidden_IdpSubject = b.IdpSubject
-	}
-	if b.IdpSubjectNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
-		x.xxx_hidden_IdpSubjectNull = *b.IdpSubjectNull
 	}
 	return m0
 }
@@ -1312,7 +1142,7 @@ type HolderApplyRequest struct {
 
 func (x *HolderApplyRequest) Reset() {
 	*x = HolderApplyRequest{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[6]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1324,7 +1154,7 @@ func (x *HolderApplyRequest) String() string {
 func (*HolderApplyRequest) ProtoMessage() {}
 
 func (x *HolderApplyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[6]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1406,7 +1236,7 @@ type HolderEraseResponse struct {
 
 func (x *HolderEraseResponse) Reset() {
 	*x = HolderEraseResponse{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[7]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1418,7 +1248,7 @@ func (x *HolderEraseResponse) String() string {
 func (*HolderEraseResponse) ProtoMessage() {}
 
 func (x *HolderEraseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[7]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1487,7 +1317,7 @@ type HolderListRequest struct {
 
 func (x *HolderListRequest) Reset() {
 	*x = HolderListRequest{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[8]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1499,7 +1329,7 @@ func (x *HolderListRequest) String() string {
 func (*HolderListRequest) ProtoMessage() {}
 
 func (x *HolderListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[8]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1599,7 +1429,7 @@ type HolderListResponse struct {
 
 func (x *HolderListResponse) Reset() {
 	*x = HolderListResponse{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[9]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1611,7 +1441,7 @@ func (x *HolderListResponse) String() string {
 func (*HolderListResponse) ProtoMessage() {}
 
 func (x *HolderListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[9]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,7 +1510,7 @@ type HolderFilter struct {
 
 func (x *HolderFilter) Reset() {
 	*x = HolderFilter{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[10]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1692,7 +1522,7 @@ func (x *HolderFilter) String() string {
 func (*HolderFilter) ProtoMessage() {}
 
 func (x *HolderFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[10]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1786,7 +1616,7 @@ type HolderWatchRequest struct {
 
 func (x *HolderWatchRequest) Reset() {
 	*x = HolderWatchRequest{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[11]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1798,7 +1628,7 @@ func (x *HolderWatchRequest) String() string {
 func (*HolderWatchRequest) ProtoMessage() {}
 
 func (x *HolderWatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[11]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1870,7 +1700,7 @@ type HolderWatchResponse struct {
 
 func (x *HolderWatchResponse) Reset() {
 	*x = HolderWatchResponse{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[12]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1882,7 +1712,7 @@ func (x *HolderWatchResponse) String() string {
 func (*HolderWatchResponse) ProtoMessage() {}
 
 func (x *HolderWatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[12]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1934,7 +1764,7 @@ type HolderWatchItem struct {
 
 func (x *HolderWatchItem) Reset() {
 	*x = HolderWatchItem{}
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[13]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1946,7 +1776,7 @@ func (x *HolderWatchItem) String() string {
 func (*HolderWatchItem) ProtoMessage() {}
 
 func (x *HolderWatchItem) ProtoReflect() protoreflect.Message {
-	mi := &file_app_payday_holder_svc_g_proto_msgTypes[13]
+	mi := &file_levyan_payday_holder_svc_g_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2055,39 +1885,35 @@ func (b0 HolderWatchItem_builder) Build() *HolderWatchItem {
 	return m0
 }
 
-var File_app_payday_holder_svc_g_proto protoreflect.FileDescriptor
+var File_levyan_payday_holder_svc_g_proto protoreflect.FileDescriptor
 
-const file_app_payday_holder_svc_g_proto_rawDesc = "" +
+const file_levyan_payday_holder_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1dapp/payday/holder_svc.g.proto\x12\x03app\x1a\x17app/payday/holder.proto\x1a\x1dapp/payday/tenant_svc.g.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x11patch/patch.proto\"\xf3\x02\n" +
+	" levyan/payday/holder_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1alevyan/payday/holder.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x11patch/patch.proto\"\xd8\x02\n" +
 	"\x10HolderAddRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\fR\x02id\x12&\n" +
-	"\x06tenant\x18\x02 \x01(\v2\x0e.app.TenantRefR\x06tenant\x12\x1b\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
+	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x12\x1b\n" +
 	"\x05alias\x18\x04 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05alias\x12\x19\n" +
 	"\x04name\x18\x05 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04name\x12\x19\n" +
-	"\x04desc\x18\x06 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04desc\x129\n" +
-	"\x06labels\x18\a \x03(\v2!.app.HolderAddRequest.LabelsEntryR\x06labels\x12=\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\x12\x1f\n" +
-	"\vidp_subject\x18\b \x01(\tR\n" +
-	"idpSubject\x1a9\n" +
+	"\x04desc\x18\x06 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04desc\x12<\n" +
+	"\x06labels\x18\a \x03(\v2$.levyan.HolderAddRequest.LabelsEntryR\x06labels\x12=\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"_\n" +
-	"\x10HolderGetRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.HolderRefR\x03ref\x12)\n" +
-	"\x06select\x18\x02 \x01(\v2\x11.app.HolderSelectR\x06select\"s\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"e\n" +
+	"\x10HolderGetRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.HolderRefR\x03ref\x12,\n" +
+	"\x06select\x18\x02 \x01(\v2\x14.levyan.HolderSelectR\x06select\"S\n" +
 	"\tHolderRef\x12\x10\n" +
-	"\x02id\x18\x01 \x01(\fH\x00R\x02id\x12*\n" +
-	"\x04slug\x18\x04 \x01(\v2\x14.app.HolderRefBySlugH\x00R\x04slug\x12!\n" +
-	"\vidp_subject\x18\b \x01(\tH\x00R\n" +
-	"idpSubjectB\x05\n" +
-	"\x03key\"O\n" +
+	"\x02id\x18\x01 \x01(\fH\x00R\x02id\x12-\n" +
+	"\x04slug\x18\x04 \x01(\v2\x17.levyan.HolderRefBySlugH\x00R\x04slugB\x05\n" +
+	"\x03key\"R\n" +
 	"\x0fHolderRefBySlug\x12\x14\n" +
-	"\x05alias\x18\x04 \x01(\tR\x05alias\x12&\n" +
-	"\x06tenant\x18\x02 \x01(\v2\x0e.app.TenantRefR\x06tenant\"\xa9\x02\n" +
+	"\x05alias\x18\x04 \x01(\tR\x05alias\x12)\n" +
+	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\"\x8b\x02\n" +
 	"\fHolderSelect\x12\x10\n" +
-	"\x03all\x18\x01 \x01(\bR\x03all\x12)\n" +
-	"\x06tenant\x18\x02 \x01(\v2\x11.app.TenantSelectR\x06tenant\x12\x14\n" +
+	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
+	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x12\x14\n" +
 	"\x05alias\x18\x04 \x01(\bR\x05alias\x12\x12\n" +
 	"\x04name\x18\x05 \x01(\bR\x04name\x12\x12\n" +
 	"\x04desc\x18\x06 \x01(\bR\x04desc\x12\x16\n" +
@@ -2095,123 +1921,118 @@ const file_app_payday_holder_svc_g_proto_rawDesc = "" +
 	"\fdate_updated\x18\r \x01(\bR\vdateUpdated\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
 	"dateErased\x12!\n" +
-	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\x12\x1f\n" +
-	"\vidp_subject\x18\b \x01(\bR\n" +
-	"idpSubject\"\xa4\x03\n" +
-	"\x12HolderPatchRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.HolderRefR\x03ref\x12\x14\n" +
+	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\xdf\x02\n" +
+	"\x12HolderPatchRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.HolderRefR\x03ref\x12\x14\n" +
 	"\x05alias\x18\b \x01(\tR\x05alias\x12\x12\n" +
 	"\x04name\x18\n" +
 	" \x01(\tR\x04name\x12\x12\n" +
-	"\x04desc\x18\f \x01(\tR\x04desc\x12;\n" +
-	"\x06labels\x18\x0e \x03(\v2#.app.HolderPatchRequest.LabelsEntryR\x06labels\x12=\n" +
+	"\x04desc\x18\f \x01(\tR\x04desc\x12>\n" +
+	"\x06labels\x18\x0e \x03(\v2&.levyan.HolderPatchRequest.LabelsEntryR\x06labels\x12=\n" +
 	"\fdate_updated\x18\x1a \x01(\v2\x1a.google.protobuf.TimestampR\vdateUpdated\x12,\n" +
-	"\x12date_updated_force\x18\x1b \x01(\bR\x10dateUpdatedForce\x12\x1f\n" +
-	"\vidp_subject\x18\x10 \x01(\tR\n" +
-	"idpSubject\x12(\n" +
-	"\x10idp_subject_null\x18\x11 \x01(\bR\x0eidpSubjectNull\x1a9\n" +
+	"\x12date_updated_force\x18\x1b \x01(\bR\x10dateUpdatedForce\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Z\n" +
-	"\x12HolderApplyRequest\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.HolderRefR\x03ref\x12\"\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"]\n" +
+	"\x12HolderApplyRequest\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.HolderRefR\x03ref\x12\"\n" +
 	"\x05patch\x18\x02 \x01(\v2\f.patch.PatchR\x05patch\"-\n" +
 	"\x13HolderEraseResponse\x12\x16\n" +
-	"\x06erased\x18\x01 \x01(\bR\x06erased\"\x99\x01\n" +
-	"\x11HolderListRequest\x12+\n" +
-	"\afilters\x18\x01 \x03(\v2\x11.app.HolderFilterR\afilters\x12\x19\n" +
+	"\x06erased\x18\x01 \x01(\bR\x06erased\"\x9c\x01\n" +
+	"\x11HolderListRequest\x12.\n" +
+	"\afilters\x18\x01 \x03(\v2\x14.levyan.HolderFilterR\afilters\x12\x19\n" +
 	"\x04size\x18\x02 \x01(\x05B\x05\xaa\x01\x02\b\x02R\x04size\x12\x1b\n" +
 	"\x05after\x18\x03 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05after\x12\x1f\n" +
-	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"R\n" +
-	"\x12HolderListResponse\x12!\n" +
-	"\x05items\x18\x01 \x03(\v2\v.app.HolderR\x05items\x12\x19\n" +
-	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"\xca\x01\n" +
-	"\fHolderFilter\x12 \n" +
-	"\x03ref\x18\x01 \x01(\v2\x0e.app.HolderRefR\x03ref\x12&\n" +
-	"\x06tenant\x18\x02 \x01(\v2\x0e.app.TenantRefR\x06tenant\x125\n" +
-	"\x06labels\x18\x03 \x03(\v2\x1d.app.HolderFilter.LabelsEntryR\x06labels\x1a9\n" +
+	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"U\n" +
+	"\x12HolderListResponse\x12$\n" +
+	"\x05items\x18\x01 \x03(\v2\x0e.levyan.HolderR\x05items\x12\x19\n" +
+	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"\xd3\x01\n" +
+	"\fHolderFilter\x12#\n" +
+	"\x03ref\x18\x01 \x01(\v2\x11.levyan.HolderRefR\x03ref\x12)\n" +
+	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x128\n" +
+	"\x06labels\x18\x03 \x03(\v2 .levyan.HolderFilter.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"m\n" +
-	"\x12HolderWatchRequest\x12+\n" +
-	"\afilters\x18\x01 \x03(\v2\x11.app.HolderFilterR\afilters\x12*\n" +
-	"\rskip_snapshot\x18\x02 \x01(\bB\x05\xaa\x01\x02\b\x02R\fskipSnapshot\"A\n" +
-	"\x13HolderWatchResponse\x12*\n" +
-	"\x05items\x18\x01 \x03(\v2\x14.app.HolderWatchItemR\x05items\"c\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"p\n" +
+	"\x12HolderWatchRequest\x12.\n" +
+	"\afilters\x18\x01 \x03(\v2\x14.levyan.HolderFilterR\afilters\x12*\n" +
+	"\rskip_snapshot\x18\x02 \x01(\bB\x05\xaa\x01\x02\b\x02R\fskipSnapshot\"D\n" +
+	"\x13HolderWatchResponse\x12-\n" +
+	"\x05items\x18\x01 \x03(\v2\x17.levyan.HolderWatchItemR\x05items\"f\n" +
 	"\x0fHolderWatchItem\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\fR\x02id\x12!\n" +
-	"\x05value\x18\x02 \x01(\v2\v.app.HolderR\x05value\x12\x1d\n" +
-	"\x06action\x18\x03 \x01(\tB\x05\xaa\x01\x02\b\x02R\x06action2\xed\x02\n" +
-	"\rHolderService\x12)\n" +
-	"\x03Add\x12\x15.app.HolderAddRequest\x1a\v.app.Holder\x12)\n" +
-	"\x03Get\x12\x15.app.HolderGetRequest\x1a\v.app.Holder\x12-\n" +
-	"\x05Patch\x12\x17.app.HolderPatchRequest\x1a\v.app.Holder\x12-\n" +
-	"\x05Apply\x12\x17.app.HolderApplyRequest\x1a\v.app.Holder\x121\n" +
-	"\x05Erase\x12\x0e.app.HolderRef\x1a\x18.app.HolderEraseResponse\x127\n" +
-	"\x04List\x12\x16.app.HolderListRequest\x1a\x17.app.HolderListResponse\x12<\n" +
-	"\x05Watch\x12\x17.app.HolderWatchRequest\x1a\x18.app.HolderWatchResponse0\x01B\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
+	"\x02id\x18\x01 \x01(\fR\x02id\x12$\n" +
+	"\x05value\x18\x02 \x01(\v2\x0e.levyan.HolderR\x05value\x12\x1d\n" +
+	"\x06action\x18\x03 \x01(\tB\x05\xaa\x01\x02\b\x02R\x06action2\x97\x03\n" +
+	"\rHolderService\x12/\n" +
+	"\x03Add\x12\x18.levyan.HolderAddRequest\x1a\x0e.levyan.Holder\x12/\n" +
+	"\x03Get\x12\x18.levyan.HolderGetRequest\x1a\x0e.levyan.Holder\x123\n" +
+	"\x05Patch\x12\x1a.levyan.HolderPatchRequest\x1a\x0e.levyan.Holder\x123\n" +
+	"\x05Apply\x12\x1a.levyan.HolderApplyRequest\x1a\x0e.levyan.Holder\x127\n" +
+	"\x05Erase\x12\x11.levyan.HolderRef\x1a\x1b.levyan.HolderEraseResponse\x12=\n" +
+	"\x04List\x12\x19.levyan.HolderListRequest\x1a\x1a.levyan.HolderListResponse\x12B\n" +
+	"\x05Watch\x12\x1a.levyan.HolderWatchRequest\x1a\x1b.levyan.HolderWatchResponse0\x01B\x1cZ\x1agithub.com/lesomnus/levyanb\beditionsp\xe8\a"
 
-var file_app_payday_holder_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
-var file_app_payday_holder_svc_g_proto_goTypes = []any{
-	(*HolderAddRequest)(nil),      // 0: app.HolderAddRequest
-	(*HolderGetRequest)(nil),      // 1: app.HolderGetRequest
-	(*HolderRef)(nil),             // 2: app.HolderRef
-	(*HolderRefBySlug)(nil),       // 3: app.HolderRefBySlug
-	(*HolderSelect)(nil),          // 4: app.HolderSelect
-	(*HolderPatchRequest)(nil),    // 5: app.HolderPatchRequest
-	(*HolderApplyRequest)(nil),    // 6: app.HolderApplyRequest
-	(*HolderEraseResponse)(nil),   // 7: app.HolderEraseResponse
-	(*HolderListRequest)(nil),     // 8: app.HolderListRequest
-	(*HolderListResponse)(nil),    // 9: app.HolderListResponse
-	(*HolderFilter)(nil),          // 10: app.HolderFilter
-	(*HolderWatchRequest)(nil),    // 11: app.HolderWatchRequest
-	(*HolderWatchResponse)(nil),   // 12: app.HolderWatchResponse
-	(*HolderWatchItem)(nil),       // 13: app.HolderWatchItem
-	nil,                           // 14: app.HolderAddRequest.LabelsEntry
-	nil,                           // 15: app.HolderPatchRequest.LabelsEntry
-	nil,                           // 16: app.HolderFilter.LabelsEntry
-	(*TenantRef)(nil),             // 17: app.TenantRef
+var file_levyan_payday_holder_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_levyan_payday_holder_svc_g_proto_goTypes = []any{
+	(*HolderAddRequest)(nil),      // 0: levyan.HolderAddRequest
+	(*HolderGetRequest)(nil),      // 1: levyan.HolderGetRequest
+	(*HolderRef)(nil),             // 2: levyan.HolderRef
+	(*HolderRefBySlug)(nil),       // 3: levyan.HolderRefBySlug
+	(*HolderSelect)(nil),          // 4: levyan.HolderSelect
+	(*HolderPatchRequest)(nil),    // 5: levyan.HolderPatchRequest
+	(*HolderApplyRequest)(nil),    // 6: levyan.HolderApplyRequest
+	(*HolderEraseResponse)(nil),   // 7: levyan.HolderEraseResponse
+	(*HolderListRequest)(nil),     // 8: levyan.HolderListRequest
+	(*HolderListResponse)(nil),    // 9: levyan.HolderListResponse
+	(*HolderFilter)(nil),          // 10: levyan.HolderFilter
+	(*HolderWatchRequest)(nil),    // 11: levyan.HolderWatchRequest
+	(*HolderWatchResponse)(nil),   // 12: levyan.HolderWatchResponse
+	(*HolderWatchItem)(nil),       // 13: levyan.HolderWatchItem
+	nil,                           // 14: levyan.HolderAddRequest.LabelsEntry
+	nil,                           // 15: levyan.HolderPatchRequest.LabelsEntry
+	nil,                           // 16: levyan.HolderFilter.LabelsEntry
+	(*TenantRef)(nil),             // 17: levyan.TenantRef
 	(*timestamppb.Timestamp)(nil), // 18: google.protobuf.Timestamp
-	(*TenantSelect)(nil),          // 19: app.TenantSelect
+	(*TenantSelect)(nil),          // 19: levyan.TenantSelect
 	(*patchpb.Patch)(nil),         // 20: patch.Patch
-	(*Holder)(nil),                // 21: app.Holder
+	(*Holder)(nil),                // 21: levyan.Holder
 }
-var file_app_payday_holder_svc_g_proto_depIdxs = []int32{
-	17, // 0: app.HolderAddRequest.tenant:type_name -> app.TenantRef
-	14, // 1: app.HolderAddRequest.labels:type_name -> app.HolderAddRequest.LabelsEntry
-	18, // 2: app.HolderAddRequest.date_created:type_name -> google.protobuf.Timestamp
-	2,  // 3: app.HolderGetRequest.ref:type_name -> app.HolderRef
-	4,  // 4: app.HolderGetRequest.select:type_name -> app.HolderSelect
-	3,  // 5: app.HolderRef.slug:type_name -> app.HolderRefBySlug
-	17, // 6: app.HolderRefBySlug.tenant:type_name -> app.TenantRef
-	19, // 7: app.HolderSelect.tenant:type_name -> app.TenantSelect
-	2,  // 8: app.HolderPatchRequest.ref:type_name -> app.HolderRef
-	15, // 9: app.HolderPatchRequest.labels:type_name -> app.HolderPatchRequest.LabelsEntry
-	18, // 10: app.HolderPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
-	2,  // 11: app.HolderApplyRequest.ref:type_name -> app.HolderRef
-	20, // 12: app.HolderApplyRequest.patch:type_name -> patch.Patch
-	10, // 13: app.HolderListRequest.filters:type_name -> app.HolderFilter
-	21, // 14: app.HolderListResponse.items:type_name -> app.Holder
-	2,  // 15: app.HolderFilter.ref:type_name -> app.HolderRef
-	17, // 16: app.HolderFilter.tenant:type_name -> app.TenantRef
-	16, // 17: app.HolderFilter.labels:type_name -> app.HolderFilter.LabelsEntry
-	10, // 18: app.HolderWatchRequest.filters:type_name -> app.HolderFilter
-	13, // 19: app.HolderWatchResponse.items:type_name -> app.HolderWatchItem
-	21, // 20: app.HolderWatchItem.value:type_name -> app.Holder
-	0,  // 21: app.HolderService.Add:input_type -> app.HolderAddRequest
-	1,  // 22: app.HolderService.Get:input_type -> app.HolderGetRequest
-	5,  // 23: app.HolderService.Patch:input_type -> app.HolderPatchRequest
-	6,  // 24: app.HolderService.Apply:input_type -> app.HolderApplyRequest
-	2,  // 25: app.HolderService.Erase:input_type -> app.HolderRef
-	8,  // 26: app.HolderService.List:input_type -> app.HolderListRequest
-	11, // 27: app.HolderService.Watch:input_type -> app.HolderWatchRequest
-	21, // 28: app.HolderService.Add:output_type -> app.Holder
-	21, // 29: app.HolderService.Get:output_type -> app.Holder
-	21, // 30: app.HolderService.Patch:output_type -> app.Holder
-	21, // 31: app.HolderService.Apply:output_type -> app.Holder
-	7,  // 32: app.HolderService.Erase:output_type -> app.HolderEraseResponse
-	9,  // 33: app.HolderService.List:output_type -> app.HolderListResponse
-	12, // 34: app.HolderService.Watch:output_type -> app.HolderWatchResponse
+var file_levyan_payday_holder_svc_g_proto_depIdxs = []int32{
+	17, // 0: levyan.HolderAddRequest.tenant:type_name -> levyan.TenantRef
+	14, // 1: levyan.HolderAddRequest.labels:type_name -> levyan.HolderAddRequest.LabelsEntry
+	18, // 2: levyan.HolderAddRequest.date_created:type_name -> google.protobuf.Timestamp
+	2,  // 3: levyan.HolderGetRequest.ref:type_name -> levyan.HolderRef
+	4,  // 4: levyan.HolderGetRequest.select:type_name -> levyan.HolderSelect
+	3,  // 5: levyan.HolderRef.slug:type_name -> levyan.HolderRefBySlug
+	17, // 6: levyan.HolderRefBySlug.tenant:type_name -> levyan.TenantRef
+	19, // 7: levyan.HolderSelect.tenant:type_name -> levyan.TenantSelect
+	2,  // 8: levyan.HolderPatchRequest.ref:type_name -> levyan.HolderRef
+	15, // 9: levyan.HolderPatchRequest.labels:type_name -> levyan.HolderPatchRequest.LabelsEntry
+	18, // 10: levyan.HolderPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
+	2,  // 11: levyan.HolderApplyRequest.ref:type_name -> levyan.HolderRef
+	20, // 12: levyan.HolderApplyRequest.patch:type_name -> patch.Patch
+	10, // 13: levyan.HolderListRequest.filters:type_name -> levyan.HolderFilter
+	21, // 14: levyan.HolderListResponse.items:type_name -> levyan.Holder
+	2,  // 15: levyan.HolderFilter.ref:type_name -> levyan.HolderRef
+	17, // 16: levyan.HolderFilter.tenant:type_name -> levyan.TenantRef
+	16, // 17: levyan.HolderFilter.labels:type_name -> levyan.HolderFilter.LabelsEntry
+	10, // 18: levyan.HolderWatchRequest.filters:type_name -> levyan.HolderFilter
+	13, // 19: levyan.HolderWatchResponse.items:type_name -> levyan.HolderWatchItem
+	21, // 20: levyan.HolderWatchItem.value:type_name -> levyan.Holder
+	0,  // 21: levyan.HolderService.Add:input_type -> levyan.HolderAddRequest
+	1,  // 22: levyan.HolderService.Get:input_type -> levyan.HolderGetRequest
+	5,  // 23: levyan.HolderService.Patch:input_type -> levyan.HolderPatchRequest
+	6,  // 24: levyan.HolderService.Apply:input_type -> levyan.HolderApplyRequest
+	2,  // 25: levyan.HolderService.Erase:input_type -> levyan.HolderRef
+	8,  // 26: levyan.HolderService.List:input_type -> levyan.HolderListRequest
+	11, // 27: levyan.HolderService.Watch:input_type -> levyan.HolderWatchRequest
+	21, // 28: levyan.HolderService.Add:output_type -> levyan.Holder
+	21, // 29: levyan.HolderService.Get:output_type -> levyan.Holder
+	21, // 30: levyan.HolderService.Patch:output_type -> levyan.Holder
+	21, // 31: levyan.HolderService.Apply:output_type -> levyan.Holder
+	7,  // 32: levyan.HolderService.Erase:output_type -> levyan.HolderEraseResponse
+	9,  // 33: levyan.HolderService.List:output_type -> levyan.HolderListResponse
+	12, // 34: levyan.HolderService.Watch:output_type -> levyan.HolderWatchResponse
 	28, // [28:35] is the sub-list for method output_type
 	21, // [21:28] is the sub-list for method input_type
 	21, // [21:21] is the sub-list for extension type_name
@@ -2219,33 +2040,32 @@ var file_app_payday_holder_svc_g_proto_depIdxs = []int32{
 	0,  // [0:21] is the sub-list for field type_name
 }
 
-func init() { file_app_payday_holder_svc_g_proto_init() }
-func file_app_payday_holder_svc_g_proto_init() {
-	if File_app_payday_holder_svc_g_proto != nil {
+func init() { file_levyan_payday_holder_svc_g_proto_init() }
+func file_levyan_payday_holder_svc_g_proto_init() {
+	if File_levyan_payday_holder_svc_g_proto != nil {
 		return
 	}
-	file_app_payday_holder_proto_init()
-	file_app_payday_tenant_svc_g_proto_init()
-	file_app_payday_holder_svc_g_proto_msgTypes[2].OneofWrappers = []any{
+	file_levyan_payday_holder_proto_init()
+	file_levyan_payday_tenant_svc_g_proto_init()
+	file_levyan_payday_holder_svc_g_proto_msgTypes[2].OneofWrappers = []any{
 		(*holderRef_Id)(nil),
 		(*holderRef_Slug)(nil),
-		(*holderRef_IdpSubject)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_app_payday_holder_svc_g_proto_rawDesc), len(file_app_payday_holder_svc_g_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_payday_holder_svc_g_proto_rawDesc), len(file_levyan_payday_holder_svc_g_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_app_payday_holder_svc_g_proto_goTypes,
-		DependencyIndexes: file_app_payday_holder_svc_g_proto_depIdxs,
-		MessageInfos:      file_app_payday_holder_svc_g_proto_msgTypes,
+		GoTypes:           file_levyan_payday_holder_svc_g_proto_goTypes,
+		DependencyIndexes: file_levyan_payday_holder_svc_g_proto_depIdxs,
+		MessageInfos:      file_levyan_payday_holder_svc_g_proto_msgTypes,
 	}.Build()
-	File_app_payday_holder_svc_g_proto = out.File
-	file_app_payday_holder_svc_g_proto_goTypes = nil
-	file_app_payday_holder_svc_g_proto_depIdxs = nil
+	File_levyan_payday_holder_svc_g_proto = out.File
+	file_levyan_payday_holder_svc_g_proto_goTypes = nil
+	file_levyan_payday_holder_svc_g_proto_depIdxs = nil
 }

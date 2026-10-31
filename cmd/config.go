@@ -93,8 +93,10 @@ type Config struct {
 
 	// Mor is the merchant of record a billing account on its channel is
 	// collected through (#12): Paddle. With no block, none is configured --
-	// a checkout is refused, and nothing is received from or pulled of a
-	// merchant -- and nothing else changes.
+	// a checkout is refused, nothing is received from or pulled of a
+	// merchant, and nothing collects on its channel -- and nothing else
+	// changes. Named, its channel is collected from `invoices.mor.live_from`
+	// on, which is then required.
 	Mor *MorConfig `yaml:"mor"`
 }
 
@@ -117,6 +119,40 @@ type InvoicesConfig struct {
 	// institution pays by transfer, with a tax invoice. Not configured --
 	// no issuer named -- it collects nothing, and its drafts wait.
 	BankKR BankConfig `yaml:"bank_kr"`
+
+	// Mor is the merchant of record's channel (`CHANNEL_MOR`), which `mor`
+	// names the merchant of: when collection on it begins.
+	Mor MorInvoicesConfig `yaml:"mor"`
+}
+
+// MorInvoicesConfig is when collection on the merchant of record's channel
+// begins.
+type MorInvoicesConfig struct {
+	// LiveFrom is when collection on the merchant of record's channel
+	// begins, an instant with its offset (RFC 3339:
+	// 2026-12-01T00:00:00+09:00). A draft of it whose first period ended
+	// before then is the shadow billing's, and is closed as a shadow, never
+	// collected; a period that ends at or after it is invoiced and charged.
+	// Required once `mor` names a merchant, so that nobody turns charging on
+	// without choosing when it begins (Claude's, 2026-10-31).
+	LiveFrom *time.Time `yaml:"live_from"`
+}
+
+// Validate refuses what one block of the configuration says against another,
+// as it is loaded: a merchant of record named, which charges what is due on
+// its channel, with no day collection on it begins.
+func (c Config) Validate() error {
+	return c.liveFrom()
+}
+
+// liveFrom is nil when collection on the merchant of record's channel has a
+// day it begins, or no merchant collects on it.
+func (c Config) liveFrom() error {
+	if c.Mor != nil && c.Invoices.Mor.LiveFrom == nil {
+		return errors.New("invoices.mor.live_from: none, and `mor` names a merchant of record, which charges what is due on its channel: say when collection on it begins (RFC 3339, 2026-12-01T00:00:00+09:00), and the drafts of the periods before it stay the shadow billing's, never charged")
+	}
+
+	return nil
 }
 
 // BankConfig is the bank-transfer channel: who issues its tax invoices, the

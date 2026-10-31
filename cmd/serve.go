@@ -39,6 +39,7 @@ import (
 	"github.com/lesomnus/levyan/server/book"
 	"github.com/lesomnus/levyan/server/grants"
 	"github.com/lesomnus/levyan/server/invoices"
+	"github.com/lesomnus/levyan/server/invoices/merchant"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
@@ -122,7 +123,10 @@ type Server struct {
 	// Invoices is what billing accounts are asked to pay, and the money it
 	// moves (#9), through the server with no wall: by the loop
 	// `levyan.invoices.collect`, and by an operator's hand. Its Collectors
-	// are how each channel is collected, which a deployment wires, or a test.
+	// are how each channel is collected, which a deployment wires -- the
+	// bank transfer's when `invoices.bank_kr` names an issuer, the merchant
+	// of record's when `mor` names one, from `invoices.mor.live_from` on
+	// (LiveFrom) -- or a test.
 	Invoices invoices.Invoices
 
 	// Grants gives and ends what products' workspaces are granted, through
@@ -170,6 +174,12 @@ type Server struct {
 	// merchant.
 	Inbox    *subscriptions.Inbox
 	Webhooks bool
+
+	// Taker is what takes the inbox, by the loop `levyan.mor.inbox`: what
+	// each notice names asked of the merchant again, and written down -- its
+	// mirror, and what each transaction brings the attempts whose keys it
+	// carries to (`merchant.Collector.Heard`). Empty with no merchant.
+	Taker subscriptions.Taker
 
 	closeRoster func() error
 
@@ -221,7 +231,9 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 
 	// The merchant of record, if one is named, the same: one that could not
 	// be reached, or a currency billed on it with no plan to subscribe to,
-	// stops the deployment before anything is opened.
+	// stops the deployment before anything is opened -- and so does one with
+	// no day collection on its channel begins, before which its drafts are
+	// the shadow billing's.
 	var ch mor.Channel
 	if c.Mor != nil {
 		pc, err := c.Mor.Paddle()
@@ -234,6 +246,9 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		if err != nil {
 			return nil, fmt.Errorf("mor: %w", err)
 		}
+	}
+	if err := c.liveFrom(); err != nil {
+		return nil, err
 	}
 
 	db, dialect, err := c.Db.Open(ctx)
@@ -357,9 +372,21 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		db.Close()
 		return nil, fmt.Errorf("invoices.tax: %w", err)
 	}
-	s.Invoices = invoices.Invoices{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Collectors: map[levyan.Channel]invoices.Collector{}, Tax: tax}
+	s.Invoices = invoices.Invoices{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Collectors: map[levyan.Channel]invoices.Collector{}, LiveFrom: map[levyan.Channel]time.Time{}, Tax: tax}
 	if bankKR != nil {
 		s.Invoices.Collectors[levyan.Channel_CHANNEL_BANK_KR] = bankKR
+	}
+	// The merchant of record's channel, when one is named: its invoices
+	// charged to the payer's subscription with it, from the day collection on
+	// it begins -- the drafts of the periods before are the shadow billing's,
+	// closed and never charged -- and what its notices say of each charge
+	// and refund settled as they are taken, below.
+	var merchantOf *merchant.Collector
+	if ch != nil {
+		merchantOf = &merchant.Collector{Channel: ch, Db: client, Ledger: &s.Invoices}
+		s.Invoices.Collectors[levyan.Channel_CHANNEL_MOR] = merchantOf
+		s.Invoices.LiveFrom[levyan.Channel_CHANNEL_MOR] = ledger.Moment(*c.Invoices.Mor.LiveFrom)
+		log.From(ctx).InfoContext(ctx, "mor: its channel is collected", slog.String("mor", ch.Name()), slog.Time("live_from", *c.Invoices.Mor.LiveFrom))
 	}
 	s.Spin = append(s.Spin, invoices.Collects(&s.Invoices, c.Invoices.CollectEvery()))
 
@@ -387,8 +414,9 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	if ch != nil {
 		s.Inbox = subscriptions.NewInbox(client, ch, clock)
 		s.Webhooks = !c.Mor.WebhookSecret.IsZero()
+		s.Taker = subscriptions.Taker{In: s.Inbox, Subs: s.Subscriptions, Transaction: merchantOf.Heard}
 		s.Spin = append(s.Spin,
-			subscriptions.Takes(subscriptions.Taker{In: s.Inbox, Subs: s.Subscriptions}, 5*time.Second),
+			subscriptions.Takes(s.Taker, 5*time.Second),
 			subscriptions.Pulls(subscriptions.Puller{In: s.Inbox, Now: c.Mor.Clock}, c.Mor.PullEvery()),
 		)
 		if !s.Webhooks {

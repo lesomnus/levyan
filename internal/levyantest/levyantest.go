@@ -246,9 +246,11 @@ func Tenant() pdid.Id { return pdid.New(pd.TenantDomain) }
 
 // Merchant is a levyan's configuration naming the fake Paddle `srv` as its
 // merchant of record (`mor`): its keys -- made up for the fake as it starts,
-// never written in a file -- its plans, its API and its clock. Without
-// `webhooks`, no webhook secret is named, and the merchant's events are
-// pulled alone.
+// never written in a file -- its plans, its API and its clock; and, unless
+// the configuration says one, collection on its channel beginning as the
+// fake's clock is now (`invoices.mor.live_from`, which [LiveFrom] says
+// otherwise). Without `webhooks`, no webhook secret is named, and the
+// merchant's events are pulled alone.
 func Merchant(srv *paddletest.Server, webhooks bool) func(*cmd.Config) {
 	return func(c *cmd.Config) {
 		m := &cmd.MorConfig{
@@ -264,5 +266,15 @@ func Merchant(srv *paddletest.Server, webhooks bool) func(*cmd.Config) {
 			m.WebhookSecret = paddletest.Secret(srv.WebhookSecret)
 		}
 		c.Mor = m
+		if c.Invoices.Mor.LiveFrom == nil {
+			at := srv.Now()
+			c.Invoices.Mor.LiveFrom = &at
+		}
 	}
+}
+
+// LiveFrom is a levyan's configuration in which collection on the merchant of
+// record's channel begins at `at` (`invoices.mor.live_from`).
+func LiveFrom(at time.Time) func(*cmd.Config) {
+	return func(c *cmd.Config) { c.Invoices.Mor.LiveFrom = &at }
 }

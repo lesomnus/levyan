@@ -109,7 +109,10 @@ func TestTheMerchantOfRecordIsNamedOrNone(t *testing.T) {
 	secret := "MOR_TEST_WEBHOOK_SECRET=pdl_ntfset_" + strings.Repeat("0", 26) + "_" + strings.Repeat("A", 32)
 	price := "pri_" + strings.Repeat("0", 26)
 	token := "test_" + strings.Repeat("0", 27)
-	ok := `
+	// The day collection on its channel begins first, so that what a case
+	// below adds to the end is the merchant's.
+	live := "invoices:\n  mor:\n    live_from: 2026-12-01T00:00:00+09:00\n"
+	ok := live + `
 mor:
   kind: paddle
   environment: sandbox
@@ -127,6 +130,7 @@ mor:
 	x.Equal(price, pc.Plans["KRW"])
 	x.Equal(time.Minute, c.Mor.PullEvery())
 	x.False(c.Mor.WebhookSecret.IsZero())
+	x.True(time.Date(2026, 11, 30, 15, 0, 0, 0, time.UTC).Equal(*c.Invoices.Mor.LiveFrom), "an instant, with its offset")
 
 	for yaml, says := range map[string][]string{
 		// Wrong of itself: said where it is written.
@@ -158,4 +162,43 @@ mor:
 	x.NoError(err, "plans need not say more than there is to sell")
 	_, err = cmd.Build(t.Context(), c)
 	x.ErrorContains(err, "mor: plans: none in USD, which payers.channels bills on the merchant of record")
+}
+
+// A merchant of record named charges what is due on its channel, so the day
+// collection on it begins is said with it, or nothing is loaded -- and
+// nothing is built of a configuration made with none, before the database is
+// reached (Claude's, 2026-10-31). With no merchant, the day is nobody's.
+func TestCollectionOnTheMerchantsChannelBeginsOnADaySaid(t *testing.T) {
+	x := require.New(t)
+	key := "MOR_TEST_API_KEY=pdl_sdbx_apikey_" + strings.Repeat("0", 26) + "_" + strings.Repeat("A", 22) + "_AAA"
+	price := "pri_" + strings.Repeat("0", 26)
+	merchant := `
+mor:
+  kind: paddle
+  environment: sandbox
+  api_key: "${env:MOR_TEST_API_KEY}"
+  client_token: test_` + strings.Repeat("0", 27) + `
+  plans: {KRW: ` + price + `, USD: ` + price + `}
+`
+	_, err := load(t, merchant, key)
+	x.ErrorContains(err, "invoices.mor.live_from: none, and `mor` names a merchant of record")
+
+	c, err := load(t, merchant, key, "LEVYAN_INVOICES_MOR_LIVE_FROM=2026-12-01T00:00:00Z")
+	x.NoError(err, "said in the environment")
+	x.True(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC).Equal(*c.Invoices.Mor.LiveFrom))
+
+	_, err = load(t, merchant+"invoices: {mor: {live_from: 2026-12-01}}\n", key)
+	x.ErrorContains(err, "invoices.mor.live_from", "a day is no instant: which zone's midnight it is, is said")
+
+	c, err = load(t, "invoices: {mor: {live_from: 2026-12-01T00:00:00Z}}\n")
+	x.NoError(err, "a day with no merchant is nobody's")
+	x.Nil(c.Mor)
+
+	// Made in code, not loaded: refused all the same, before the database,
+	// which is named nowhere here.
+	c, err = load(t, merchant+"invoices: {mor: {live_from: 2026-12-01T00:00:00Z}}\n", key)
+	x.NoError(err)
+	c.Invoices.Mor.LiveFrom = nil
+	_, err = cmd.Build(t.Context(), c)
+	x.ErrorContains(err, "invoices.mor.live_from: none")
 }

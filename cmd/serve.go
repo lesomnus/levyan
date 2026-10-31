@@ -188,6 +188,19 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		return nil, fmt.Errorf("payers.channels: %w", err)
 	}
 
+	// The bank-transfer channel, when it is configured: its issuer of tax
+	// invoices opened before the database is, so that one no binary links,
+	// or a seller no tax invoice can name, stops the deployment rather than
+	// its first invoice.
+	var bankKR invoices.Collector
+	if c.Invoices.BankKR.Configured() {
+		v, err := c.Invoices.BankKR.Collector()
+		if err != nil {
+			return nil, fmt.Errorf("invoices.bank_kr.%w", err)
+		}
+		bankKR = v
+	}
+
 	db, dialect, err := c.Db.Open(ctx)
 	if err != nil {
 		return nil, err
@@ -310,6 +323,9 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		return nil, fmt.Errorf("invoices.tax: %w", err)
 	}
 	s.Invoices = invoices.Invoices{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Collectors: map[levyan.Channel]invoices.Collector{}, Tax: tax}
+	if bankKR != nil {
+		s.Invoices.Collectors[levyan.Channel_CHANNEL_BANK_KR] = bankKR
+	}
 	s.Spin = append(s.Spin, invoices.Collects(&s.Invoices, c.Invoices.CollectEvery()))
 
 	// The loop that keeps what products' workspaces are granted

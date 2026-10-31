@@ -175,7 +175,7 @@ func (v Invoices) amend(ctx context.Context, cn *ent.CreditNote) error {
 		Number:     *cn.Number,
 		CreditNote: true,
 		Reason:     levyan.CreditNoteReason(cn.Reason),
-		Original:   original,
+		Amends:     original,
 		Document:   inv.Document,
 		Invoice:    invoiceOf(inv, product),
 		Currency:   cn.Currency,
@@ -183,6 +183,7 @@ func (v Invoices) amend(ctx context.Context, cn *ent.CreditNote) error {
 		Tax:        -cn.Tax,
 		Rate:       inv.TaxRate,
 		Written:    Day(product, cn.DateCreated),
+		Original:   LastDay(product, inv.DateEnd),
 		BillTo:     inv.BillTo,
 	})
 	if err != nil {

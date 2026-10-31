@@ -809,7 +809,8 @@ func TestASellersInvoiceIsNumberedAndIssued(t *testing.T) {
 	x.True(amended.CreditNote)
 	x.Equal(int64(-1005), amended.Supply)
 	x.Equal(int64(-100), amended.Tax)
-	x.Equal(*ia.Number, amended.Original)
+	x.Equal(*ia.Number, amended.Amends)
+	x.True(amended.Original.Equal(on(1, 31)), "the day its invoice was written for")
 	x.Equal(ia.Document, amended.Document)
 }
 

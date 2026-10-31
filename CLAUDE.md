@@ -109,6 +109,32 @@ A tenant here is a **product** (loft is the first). Field 3 is free for a set
 smaller than a product -- a product's own tenant, a workspace, is the obvious
 one when payers come (#4).
 
+## Adding a field to an entity that has shipped
+
+A field added to an entity that is on `main` already has a **default** the
+database fills the rows it has with -- `(orm.field) = {default: ""}`, the
+field's zero -- or is **nullable**. A column that may
+not be NULL and has no default cannot be added to a table with rows in it:
+PostgreSQL refuses it (`column "label" of relation "workspace" contains null
+values`), and SQLite too. This is Claude's rule (2026-10-31), after
+`Workspace.label` (#25) stopped staging's migration; `Statement.first_unit`
+(#22) was the same. A default gives the generated Add request's field
+explicit presence, so a builder sets it with `proto.Bool`, `proto.String`.
+
+No test says so -- every one starts from an empty database. `scripts/upgrade.sh
+BEFORE NOW` does, and CI runs it (`upgrade`): the build before, and `OLDEST`,
+the build staging runs (pinned in the workflow; move it when staging moves),
+write what a product and an operator write, and this build migrates it and
+reads it back. A feature that writes rows reachable without a roster or a
+merchant of record is written there too, and read back.
+
+```sh
+go build -o /tmp/now/ ./cmd/levyan ./cmd/levyan-admin
+git worktree add --detach /tmp/before-src origin/main
+(cd /tmp/before-src && go build -o /tmp/before/ ./cmd/levyan ./cmd/levyan-admin)
+scripts/upgrade.sh /tmp/before /tmp/now   # and UPGRADE_POSTGRES=postgres://…/<empty db>
+```
+
 ## Writing a layer
 
 A layer embeds `Overlay` — and must also write `WithDriver`, which nothing

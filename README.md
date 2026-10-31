@@ -298,6 +298,8 @@ go test ./...                                             # SQLite
 PDTEST_POSTGRES='postgres://…?sslmode=disable' go test ./... # PostgreSQL
 ```
 
+main에 이미 있는 엔티티에 필드를 더할 때는 기본값을 주거나 NULL을 허용한다(Claude, 2026-10-31). 행이 있는 테이블에는 그런 열만 더할 수 있다. 확인은 `scripts/upgrade.sh BEFORE NOW`가 한다(CI의 `upgrade`). 앞 빌드가 데이터를 쓰고, 이 빌드가 그 DB를 마이그레이션한 뒤 다시 읽는다. `BEFORE`와 `NOW`는 각 빌드의 `levyan`, `levyan-admin`이 든 디렉터리다(`go build -o <디렉터리>/ ./cmd/levyan ./cmd/levyan-admin`). PostgreSQL에서도 보려면 빈 DB를 `UPGRADE_POSTGRES`에 준다.
+
 `pd gen`은 자기가 고정한 buf를 받아서 쓰고, `scripts/api.sh`도 그 buf를 쓴다. API(`api/`)는 따로 된 모듈이라 `pd gen`이 건드리지 않는다(payday#189). `scripts/gen.sh`가 둘을 차례로 한다. 이 저장소에는 페이지(TS)가 없으므로 node는 필요 없다.
 
 `CLAUDE.md`는 이 저장소에서 일하는 법을 영어로 적은 것이다.

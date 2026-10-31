@@ -521,22 +521,13 @@ func (c *Channel) Charge(ctx context.Context, ch mor.Charge) (mor.Transaction, e
 		return mor.Transaction{}, invalid(op, "the description is 2 to 200 characters")
 	}
 
+	// What the charge is, first: one made is what it is whatever has become
+	// of its subscription since, and one that may still be on its way is
+	// not known to have been refused.
 	s, next, err := c.subscription(ctx, op, ch.Subscription, true)
 	if err != nil {
 		return mor.Transaction{}, err
 	}
-	switch {
-	case s.Status == mor.Canceled:
-		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrEnded}
-	case s.Status == mor.PastDue:
-		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrPastDue}
-	case s.Currency != ch.Amount.Currency:
-		return mor.Transaction{}, invalid(op, fmt.Sprintf("the subscription is billed in %s, and the charge is in %s", s.Currency, ch.Amount.Currency))
-	case ch.When == mor.NextPeriod && !s.Renews():
-		// Paddle would take it, and forgive it when the subscription ends.
-		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrNoNextPeriod}
-	}
-
 	found, err := c.find(ctx, op, s, next, ch.Key)
 	if err != nil {
 		return mor.Transaction{}, err
@@ -553,6 +544,18 @@ func (c *Channel) Charge(ctx context.Context, ch mor.Charge) (mor.Transaction, e
 	}
 	if c.tooSoon(ch.Sent) {
 		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Unknown, Err: mor.ErrTooSoon}
+	}
+
+	switch {
+	case s.Status == mor.Canceled:
+		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrEnded}
+	case s.Status == mor.PastDue:
+		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrPastDue}
+	case s.Currency != ch.Amount.Currency:
+		return mor.Transaction{}, invalid(op, fmt.Sprintf("the subscription is billed in %s, and the charge is in %s", s.Currency, ch.Amount.Currency))
+	case ch.When == mor.NextPeriod && !s.Renews():
+		// Paddle would take it, and forgive it when the subscription ends.
+		return mor.Transaction{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrNoNextPeriod}
 	}
 
 	when := "immediately"

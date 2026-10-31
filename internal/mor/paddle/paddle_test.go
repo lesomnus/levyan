@@ -367,6 +367,38 @@ func TestAnAnswerLostAfterTheChargeIsUnknownUntilTheKeyIsFound(t *testing.T) {
 	require.Equal(t, 1, srv.Charged())
 }
 
+// A charge that was made is what it is, whatever has become of its
+// subscription since: sent again after its answer was lost and the
+// subscription canceled, it is the charge, and not a refusal that would say
+// nothing was charged.
+func TestAChargeMadeIsFoundOnceItsSubscriptionHasEnded(t *testing.T) {
+	srv, ch := setup(t)
+	ctx := t.Context()
+	s := subscribe(t, srv, ch)
+
+	c := now(s, "stmt-0001", 15_000)
+	srv.Fail(paddletest.Charge, paddletest.Fault{Status: 500, Code: "internal_error", After: true})
+	_, err := ch.Charge(ctx, c)
+	require.Equal(t, mor.Unknown, mor.KindOf(err))
+	c.Sent = srv.Now()
+	_, err = ch.Cancel(ctx, mor.Cancel{Subscription: s.ID, Now: true})
+	require.NoError(t, err)
+
+	tx, err := ch.Charge(ctx, c)
+	require.NoError(t, err)
+	require.Equal(t, mor.Paid, tx.Status)
+
+	// One that may still be on its way is not known to be refused either.
+	d := now(s, "stmt-0002", 15_000)
+	d.Sent = srv.Now()
+	_, err = ch.Charge(ctx, d)
+	require.ErrorIs(t, err, mor.ErrTooSoon)
+	srv.Advance(mor.Settle)
+	_, err = ch.Charge(ctx, d)
+	require.ErrorIs(t, err, mor.ErrEnded)
+	require.Equal(t, 1, srv.Requests(paddletest.Charge))
+}
+
 // A timeout, and the charge still on its way into Paddle's records when the
 // client gave up: a look sees nothing, and nothing is believed of that until
 // Settle has passed -- the one window a look-first adapter cannot see into.

@@ -57,6 +57,41 @@ type Config struct {
 
 	// Periods is when a product's periods are closed.
 	Periods PeriodsConfig `yaml:"periods"`
+
+	// Grants is how what levyan gives products' workspaces is kept.
+	Grants GrantsConfig `yaml:"grants"`
+}
+
+// GrantsConfig is how what levyan gives products' workspaces is kept
+// (`server/grants`): how far a grant that renews reaches, and how often the
+// loop `levyan.grants.renew` keeps them.
+type GrantsConfig struct {
+	// Horizon is how far a grant that renews reaches from its last renewal:
+	// a week when unset. It is how long a product that stops hearing from
+	// levyan keeps what it was given -- the most a copy of a grant can be
+	// stale by -- and a grant is renewed once less than half of it is left.
+	Horizon time.Duration `yaml:"horizon"`
+
+	// Renew is how often the loop gives what the rules want, ends what they
+	// no longer want, renews what is due and erases what has been over for
+	// long enough: an hour when unset.
+	Renew time.Duration `yaml:"renew"`
+}
+
+// HorizonOf is [GrantsConfig.Horizon], or its default.
+func (c GrantsConfig) HorizonOf() time.Duration {
+	if c.Horizon <= 0 {
+		return 7 * 24 * time.Hour
+	}
+	return c.Horizon
+}
+
+// RenewEvery is [GrantsConfig.Renew], or its default.
+func (c GrantsConfig) RenewEvery() time.Duration {
+	if c.Renew <= 0 {
+		return time.Hour
+	}
+	return c.Renew
 }
 
 // PeriodsConfig is when a product's periods are closed: by the loop

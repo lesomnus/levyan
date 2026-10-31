@@ -29,9 +29,10 @@ import (
 // Front is the door `levyan serve` puts on what `cmd.Build` made: a product,
 // by the service key it sends, served as that key in its own tenant
 // (`server/keys`); what it may call, the policy table (`server/policy`); and
-// what it calls, on the walled stack -- `levyan.v1` (`server/api`), and
-// OpenTelemetry's `MetricsService` for what its workspaces do
-// (`server/otlp`), both writing the ledger as the product (`server/ledger`).
+// what it calls, on the walled stack -- `levyan.v1` and payday's
+// `GrantService` (`server/api`), and OpenTelemetry's `MetricsService` for
+// what its workspaces do (`server/otlp`), both writing the ledger as the
+// product (`server/ledger`).
 //
 // A function rather than lines in the command so that a test serves exactly
 // this, over a connection, and asks it what a product is told.
@@ -41,7 +42,9 @@ func Front(s *cmd.Server) {
 	now := func() time.Time { return s.Clock() }
 	l := ledger.Ledger{S: s.Walled, Drv: s.Drv, Dialect: s.Dialect, Now: now}
 	s.Register = append(s.Register,
-		func(g grpc.ServiceRegistrar) { api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now}) },
+		func(g grpc.ServiceRegistrar) {
+			api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now, W: s.Watch})
+		},
 		func(g grpc.ServiceRegistrar) { otlp.Register(g, l) },
 	)
 }

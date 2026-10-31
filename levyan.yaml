@@ -25,6 +25,10 @@ watch:
   # leaving out. `memory` publishes inside this process, which is right for one
   # replica and silently wrong for two -- a client watching against one never
   # hears about a write that landed on another, and nothing reports it.
+  #
+  # And never `none`: what products are granted is streamed to them
+  # (`payday.GrantService`), from the outbox every grant's change is written to
+  # and through this broker, which the loop `payday.outbox` publishes to.
   broker: memory
 
 spin:
@@ -58,6 +62,17 @@ spin:
 # periods:
 #   grace: 48h
 #   every: 1h
+
+# What products' workspaces are granted (`server/grants`). A grant with no end
+# of its own reaches `horizon` from its last renewal, and the loop
+# `levyan.grants.renew`, every `renew`, renews each once less than half of that
+# is left -- so a product that stops hearing from levyan keeps it for half a
+# horizon at least and a whole one at most -- gives and ends what the rules
+# want, and takes out of every list what has been over for two days.
+#
+# grants:
+#   horizon: 168h
+#   renew: 1h
 
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an

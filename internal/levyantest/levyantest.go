@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lesomnus/payday/pdid"
 	"github.com/lesomnus/payday/pdtest"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -24,6 +25,7 @@ import (
 	"github.com/lesomnus/levyan/cli"
 	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/server/keys"
+	"github.com/lesomnus/levyan/server/pd"
 )
 
 // World is a levyan, built and migrated.
@@ -153,3 +155,26 @@ func Ref(p *levyan.Tenant) *levyan.TenantRef {
 func As(ctx context.Context, token string) context.Context {
 	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token)
 }
+
+// Drain publishes what the outbox holds as `levyan serve`'s loop does
+// (`payday.outbox`), every few milliseconds for as long as the test runs: what
+// a product's stream of its grants is fed by.
+func (w *World) Drain() {
+	w.t.Helper()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	d := pd.Drain(w.S.Ent, w.S.Watch.Broker(), 5*time.Millisecond)
+	go func() {
+		defer close(done)
+		_ = d.Spin(ctx)
+	}()
+	w.t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+}
+
+// Tenant is a workspace as a product names one, new: the identifier of a
+// payday tenant of its own.
+func Tenant() pdid.Id { return pdid.New(pd.TenantDomain) }

@@ -1,6 +1,7 @@
 // Package api is `levyan.v1` served: what a product calls -- its price book,
 // the ledger its readings are kept in, and what its workspaces come to
-// (docs/design.md, "앱이 levyan을 부르는 길").
+// (docs/design.md, "앱이 levyan을 부르는 길") -- and payday's `GrantService`,
+// what its workspaces are granted ([Grants]).
 //
 // Every method reads through the stack a caller reaches, with the caller's
 // frame, so the wall keeps a product to its own rows here as it does
@@ -24,6 +25,8 @@ import (
 
 	"github.com/lesomnus/payday/gate"
 	"github.com/lesomnus/payday/pdid"
+	"github.com/lesomnus/payday/pdpb"
+	"github.com/lesomnus/payday/watch"
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
@@ -51,6 +54,9 @@ type Deps struct {
 	// product (see [Billing]), and Now the deployment's clock.
 	Db  *ent.Client
 	Now func() time.Time
+
+	// W is what a change of a grant is published to ([Grants]).
+	W *watch.Watch
 }
 
 // Register serves `levyan.v1` on g, from d.
@@ -58,6 +64,7 @@ func Register(g grpc.ServiceRegistrar, d Deps) {
 	levyanv1.RegisterPriceBookServiceServer(g, PriceBook{S: d.S})
 	levyanv1.RegisterMeteringServiceServer(g, Metering{L: d.L})
 	levyanv1.RegisterBillingServiceServer(g, Billing{S: d.S, Db: d.Db, Now: d.Now})
+	pdpb.RegisterGrantServiceServer(g, Grants{S: d.S, W: d.W})
 }
 
 // page is how many rows one read through the stack asks for at a time.

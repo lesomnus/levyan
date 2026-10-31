@@ -1,0 +1,12 @@
+# The API an app calls levyan with, as a buf module of its own: it is not
+# levyan's schema (`proto/`), names nothing of payday's and generates with no
+# generator of payday's (scripts/api.sh).
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

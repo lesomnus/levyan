@@ -1,0 +1,129 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// ServiceKey is what a product calls levyan with: a key its deployment holds,
+// issued by an operator (`levyan-admin key issue`), that frames every call it
+// makes in the product's own tenant -- so the wall keeps one product's rows
+// from another's whatever a call asks for.
+//
+// The actor is the key, as it is for roster's deployment keys: the trail names
+// which key wrote what, revoking one is an erase, and no row of anybody's
+// grants a product anything (`server/keys`). What a key may call is the
+// policy's to say of a product (`server/policy`), and not the key's: a
+// product is one kind of caller, and a list of methods on every key would be a
+// second policy nobody reviews.
+//
+// Nothing a product may call reads or writes these. They are written by the
+// operator's entry point, as the deployment's own work, and read by the
+// public binary to find who is calling, through the server with no wall.
+message ServiceKey {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product the key calls as.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // What an operator calls the key when deciding whether to revoke it:
+  // "loft-prod". Unique within its product, so that a list of them reads.
+  string alias = 4 [(payday.field) = {personal: false}];
+
+  // More about it: where it is mounted, a ticket.
+  string desc = 6 [(payday.field) = {personal: false}];
+
+  // The verifier, never the key: the SHA-256 of it. The key is shown once,
+  // when it is issued, and nothing here can say what it was.
+  //
+  // Unsalted and unique, because it is also how the row is **found**: a key is
+  // 256 bits from `crypto/rand`, so there is no dictionary for a slow salted
+  // hash to defend against, and a salt per row would make finding the row a
+  // scan of every row on every call. A password is the opposite case, which is
+  // why levyan holds none.
+  //
+  // Declared `secret`, so that the servers clear it on the way out and the
+  // trail keeps no copy of it.
+  bytes secret = 8 [
+    (orm.field) = {
+      unique: true
+      immutable: true
+    },
+    (payday.field) = {secret: true}
+  ];
+
+  // When it stops working, and unset for one that does not -- which a
+  // service running unattended needs, and which makes rotating it somebody's
+  // job rather than an outage.
+  google.protobuf.Timestamp date_expires = 9 [(orm.field) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // Stamped when it is revoked: the key opens nothing from then on, and the
+  // rows the trail names it on still name something.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {crud: true}
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        name: "slug"
+        refs: [
+          {
+            name: "alias"
+            number: 4
+          },
+          {
+            name: "tenant"
+            number: 2
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 9
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [{name: "ref"}]
+      size: 20
+      max: 100
+    }
+  };
+}

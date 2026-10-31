@@ -1,0 +1,7 @@
+# What an image is built from is the checkout's source and nothing it made or
+# holds: a desk's database never goes into an image. The repository itself
+# goes in, so that the build says which commit it is (`levyan version`).
+**/*.db
+**/*.db-*
+**/*-checkpoints.pem
+.gen/

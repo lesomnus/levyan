@@ -1,0 +1,16 @@
+# Run from the repository's root (scripts/api.sh), so that `go tool` is the
+# root module's and the generators are the ones it pins -- protoc-gen-go in
+# the opaque API, as payday generates an app's messages.
+version: v2
+inputs:
+  - directory: api
+plugins:
+  - local: [go, tool, google.golang.org/protobuf/cmd/protoc-gen-go]
+    out: api
+    opt:
+      - paths=source_relative
+      - default_api_level=API_OPAQUE
+  - local: [go, tool, google.golang.org/grpc/cmd/protoc-gen-go-grpc]
+    out: api
+    opt:
+      - paths=source_relative

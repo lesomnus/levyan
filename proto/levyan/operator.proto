@@ -1,0 +1,67 @@
+edition = "2023";
+
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Operator is somebody who runs this deployment: one of the names
+// `admin.keys` lists, as a row, so that what they do through the operator's
+// entry point (`levyan-admin serve`) is on the trail as theirs. Who published
+// a price is a question a bill gets asked, and a log line is not an answer
+// that lasts.
+//
+// It is not a Holder. A holder is somebody inside a tenant, and a tenant here
+// is a product: an operator is inside none of them and acts on all of them,
+// through a door the public binary does not have. `levyan-admin serve` writes
+// the row of each name it is configured with as it starts (`server/admin`),
+// and nothing else writes one. Their keys are in the configuration, never in
+// a row.
+//
+// Global, because there is no tenant it could belong to. Nothing a product
+// may call reads it (`server/policy`).
+message Operator {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The name `admin.keys` gives them, which the log says beside what they
+  // did. It may be a person's own name, so the trail keeps that it was
+  // written and not what.
+  string alias = 4 [(payday.field) = {personal: true}];
+
+  // Stamped when their name leaves `admin.keys`, so that their key opens
+  // nothing and the rows the trail names them on still name somebody.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {crud: true}
+    indexes: [
+      {
+        name: "slug"
+        refs: [
+          {
+            name: "alias"
+            number: 4
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 8
+    global: {}
+  };
+}

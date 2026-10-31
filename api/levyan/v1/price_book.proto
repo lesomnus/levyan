@@ -1,0 +1,205 @@
+edition = "2023";
+
+// What a product calls levyan with.
+//
+// This is levyan's contract with the apps it bills, and it is written by hand
+// rather than generated from levyan's schema, so that an app's client is made
+// of these messages and nothing of levyan's own: an app is never held to the
+// payday levyan is built with (docs/design.md, "앱이 levyan을 부르는 길").
+// Fields are added and never renumbered, renamed or retyped; `buf breaking`
+// holds every change to that.
+package levyan.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
+
+// PriceBookService is what a product reads of its own price book: who it is
+// to levyan, what it is metered by, and what each meter costs.
+//
+// Every call is the calling product's own. It calls with its service key
+// (`authorization: Bearer lvk_…`), and is answered about the product that key
+// was issued for and no other: nothing here names a product, so there is no
+// other to ask about.
+service PriceBookService {
+  // GetProduct is the product calling, as levyan knows it.
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+
+  // ListMeters is every meter the product is priced by, oldest first.
+  rpc ListMeters(ListMetersRequest) returns (ListMetersResponse);
+
+  // ListPrices is every version of what one of its meters costs, on every
+  // channel and in every currency, in the order they were published. A
+  // version is never changed, so what this answers of one it answers of it
+  // later too.
+  rpc ListPrices(ListPricesRequest) returns (ListPricesResponse);
+}
+
+message GetProductRequest {}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+// Product is one product levyan bills for -- loft, say -- which is what a
+// service key calls as.
+message Product {
+  // Its identifier, as text.
+  string id = 1;
+
+  // What it is called in a path or a command: "loft".
+  string alias = 2;
+
+  // What it is called in a sentence: "Loft".
+  string name = 3;
+}
+
+message ListMetersRequest {}
+
+message ListMetersResponse {
+  repeated Meter meters = 1;
+}
+
+// Meter is one thing a product is paid by: what readings are filed under, the
+// unit they count in, and how a period's readings come to one number.
+message Meter {
+  // What readings are filed under: `loft.assets.active`. The key of payday's
+  // meter declaration that measures it.
+  string key = 1;
+
+  // What a person calls it: "활성 자산".
+  string name = 2;
+
+  // What a reading counts in, as OpenTelemetry writes a unit (UCUM): `By`,
+  // `{asset}`, `d`. A reading in another unit is not one of this meter's.
+  string unit = 3;
+
+  MeterKind kind = 4;
+
+  Aggregation aggregation = 5;
+
+  // A reading of 0 is without bound -- a history kept forever -- and a banded
+  // price reads it so, as above every bound.
+  bool unbounded_zero = 6;
+}
+
+// MeterKind is whether a meter is of what is held or of what happens.
+enum MeterKind {
+  METER_KIND_UNSPECIFIED = 0;
+
+  // What a tenant holds at a moment, read on a schedule and sent as it is.
+  METER_KIND_STOCK = 1;
+
+  // What happens over time, counted where it happens and sent as an
+  // OpenTelemetry Sum, monotonic and cumulative.
+  METER_KIND_FLOW = 2;
+}
+
+// Aggregation is how one period's readings of a meter come to one number.
+enum Aggregation {
+  AGGREGATION_UNSPECIFIED = 0;
+
+  // What was held, weighed by how long it was held.
+  AGGREGATION_TIME_WEIGHTED_AVERAGE = 1;
+
+  // The most it held at any reading of the period.
+  AGGREGATION_MAX = 2;
+
+  // What it held at the last reading of the period.
+  AGGREGATION_LAST = 3;
+
+  // How much happened over the period.
+  AGGREGATION_SUM = 4;
+}
+
+message ListPricesRequest {
+  // The meter, by its key.
+  string meter = 1;
+}
+
+message ListPricesResponse {
+  repeated Price prices = 1;
+}
+
+// Price is one version of what a meter costs, on one channel, in one
+// currency.
+//
+// Of the versions of a meter on a channel in a currency, the one in force for
+// a customer at a moment is the one with the latest `effective` of those that
+// apply to them by then -- `effective` for a customer who started on it or
+// later, `existing` for one who was there before -- and of two with the same
+// `effective`, the one published last.
+message Price {
+  // Its identifier, as text.
+  string id = 1;
+
+  // The meter it prices, by its key.
+  string meter = 2;
+
+  Channel channel = 3;
+
+  // ISO 4217, in capitals. Every amount of the version is a whole number of
+  // its minor unit: won for KRW, cents for USD.
+  string currency = 4;
+
+  // How it prices the meter.
+  oneof rate {
+    PerUnit per_unit = 5;
+    Banded banded = 6;
+  }
+
+  // From when it applies to a customer who starts on it or later.
+  google.protobuf.Timestamp effective = 7;
+
+  // From when it applies to the customers who were there before `effective`:
+  // the same moment or later, which is the notice a rise gives.
+  google.protobuf.Timestamp existing = 8;
+
+  // When it was published.
+  google.protobuf.Timestamp published = 9;
+
+  // Why it was published, as the operator who published it said.
+  string desc = 10;
+}
+
+// PerUnit prices a meter by the unit.
+message PerUnit {
+  // How much of the meter a period includes for nothing, in its unit.
+  int64 included = 1;
+
+  // What each `per` units past the included ones cost, in the minor unit.
+  int64 unit_price = 2;
+
+  // How many units `unit_price` is for.
+  int64 per = 3;
+}
+
+// Banded prices a meter by bands of its value, each a fee for the period.
+message Banded {
+  // Bands go up: each holds the values above the bound of the one before it
+  // and up to its own, and the last has no bound.
+  repeated Band bands = 1;
+}
+
+// Band is one band of a banded price.
+message Band {
+  // The most a value in this band may be, in the meter's unit; unset on the
+  // last band.
+  int64 up_to = 1 [features.field_presence = EXPLICIT];
+
+  // What a whole period in this band costs, in the minor unit. A period in two
+  // bands costs each for the share of it spent there.
+  int64 fee = 2;
+}
+
+// Channel is who a product is sold through.
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+
+  // A merchant of record, for customers abroad.
+  CHANNEL_MOR = 1;
+
+  // A Korean payment gateway, for customers in Korea.
+  CHANNEL_PG_KR = 2;
+}

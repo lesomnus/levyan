@@ -1,0 +1,8 @@
+.gen/
+dist/
+*.db
+*.db-*
+
+# A key the trail's archive is signed with. A key that signs is never
+# committed.
+*-checkpoints.pem

@@ -105,6 +105,30 @@ func (f OwedFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OwedMutation", m)
 }
 
+// The PeriodFunc type is an adapter to allow the use of ordinary
+// function as Period mutator.
+type PeriodFunc func(context.Context, *ent.PeriodMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PeriodFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PeriodMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PeriodMutation", m)
+}
+
+// The PointFunc type is an adapter to allow the use of ordinary
+// function as Point mutator.
+type PointFunc func(context.Context, *ent.PointMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PointFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PointMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PointMutation", m)
+}
+
 // The PriceFunc type is an adapter to allow the use of ordinary
 // function as Price mutator.
 type PriceFunc func(context.Context, *ent.PriceMutation) (ent.Value, error)
@@ -117,6 +141,18 @@ func (f PriceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PriceMutation", m)
 }
 
+// The ReadingFunc type is an adapter to allow the use of ordinary
+// function as Reading mutator.
+type ReadingFunc func(context.Context, *ent.ReadingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReadingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReadingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReadingMutation", m)
+}
+
 // The RowSealFunc type is an adapter to allow the use of ordinary
 // function as RowSeal mutator.
 type RowSealFunc func(context.Context, *ent.RowSealMutation) (ent.Value, error)
@@ -127,6 +163,18 @@ func (f RowSealFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RowSealMutation", m)
+}
+
+// The SeriesFunc type is an adapter to allow the use of ordinary
+// function as Series mutator.
+type SeriesFunc func(context.Context, *ent.SeriesMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SeriesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SeriesMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SeriesMutation", m)
 }
 
 // The ServiceKeyFunc type is an adapter to allow the use of ordinary
@@ -151,6 +199,18 @@ func (f TenantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TenantMutation", m)
+}
+
+// The WorkspaceFunc type is an adapter to allow the use of ordinary
+// function as Workspace mutator.
+type WorkspaceFunc func(context.Context, *ent.WorkspaceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkspaceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkspaceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkspaceMutation", m)
 }
 
 // Condition is a hook condition function.

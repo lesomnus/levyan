@@ -1,0 +1,112 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/point.proto";
+import "levyan/series_svc.g.proto";
+import "levyan/workspace_svc.g.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service PointService {
+  // Add creates a new Point
+  rpc Add(PointAddRequest) returns (Point);
+  // AddMany creates up to 1000 new Point rows in one call, all of them or none
+  rpc AddMany(PointAddManyRequest) returns (PointAddManyResponse);
+  // Get retrieves a Point
+  rpc Get(PointGetRequest) returns (Point);
+  // List reads Points a page at a time.
+  rpc List(PointListRequest) returns (PointListResponse);
+}
+
+message PointAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  WorkspaceRef workspace = 3;
+  SeriesRef series = 8;
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp counted_at = 10;
+  int64 value = 11 [features.field_presence = IMPLICIT];
+  bool late = 12 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message PointAddManyRequest {
+  repeated PointAddRequest items = 1;
+}
+
+message PointAddManyResponse {
+  repeated Point items = 1;
+}
+
+message PointGetRequest {
+  PointRef ref = 1;
+  PointSelect select = 2;
+}
+
+message PointRef {
+  oneof key {
+    bytes id = 1;
+    PointRefByCounted counted = 8;
+  }
+}
+
+message PointRefByCounted {
+  SeriesRef series = 8;
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp counted_at = 10;
+}
+
+message PointSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  WorkspaceSelect workspace = 3;
+  SeriesSelect series = 8;
+  bool started_at = 9;
+  bool counted_at = 10;
+  bool value = 11;
+  bool late = 12;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message PointListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated PointFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message PointListResponse {
+  repeated Point items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message PointFilter {
+  PointRef ref = 1;
+}

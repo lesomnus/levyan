@@ -1,0 +1,120 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Period is one stretch of a product's billing, from when to when -- a
+// calendar month in the product's zone -- that has been closed, or is being.
+//
+// It is written as the close of the period begins (#6), before any statement
+// of it, and from then on what is measured in it is late: kept, and marked
+// for the correction a later statement makes (`server/ledger`). Writing it
+// first is what leaves no moment in which a reading could be neither in a
+// statement nor marked. Its `date_closed` is stamped once every workspace's
+// statement of it is written.
+//
+// A product's periods follow one another: each begins where the one before it
+// ended, whatever its zone was then.
+message Period {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product whose period it is.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // Its first moment, and the first moment after it.
+  google.protobuf.Timestamp date_start = 8 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+  google.protobuf.Timestamp date_end = 9 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // The zone it is a month in: an IANA name, as the product said it when the
+  // period was closed.
+  string zone = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // When every workspace's statement of it was written; unset while the
+  // close is under way.
+  google.protobuf.Timestamp date_closed = 11 [(orm.field) = {nullable: true}];
+
+  // Stamped as `date_closed` is, which is all of it that is ever written
+  // again.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When its close began.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_start"
+            number: 8
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        name: "begins"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_start"
+            number: 8
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 16
+    list: {
+      order: [
+        {field: {name: "date_start"}},
+        {field: {name: "id"}}
+      ]
+      by: [{name: "ref"}]
+      size: 50
+      max: 200
+    }
+  };
+}

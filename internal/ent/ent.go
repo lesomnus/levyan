@@ -17,10 +17,15 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
 	"github.com/lesomnus/levyan/internal/ent/owed"
+	"github.com/lesomnus/levyan/internal/ent/period"
+	"github.com/lesomnus/levyan/internal/ent/point"
 	"github.com/lesomnus/levyan/internal/ent/price"
+	"github.com/lesomnus/levyan/internal/ent/reading"
 	"github.com/lesomnus/levyan/internal/ent/rowseal"
+	"github.com/lesomnus/levyan/internal/ent/series"
 	"github.com/lesomnus/levyan/internal/ent/servicekey"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
+	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent"
 	"github.com/protobuf-orm/ent/dialect/sql"
 	"github.com/protobuf-orm/ent/dialect/sql/sqlgraph"
@@ -92,10 +97,15 @@ func checkColumn(t, c string) error {
 			operator.Table:   operator.ValidColumn,
 			outbox.Table:     outbox.ValidColumn,
 			owed.Table:       owed.ValidColumn,
+			period.Table:     period.ValidColumn,
+			point.Table:      point.ValidColumn,
 			price.Table:      price.ValidColumn,
+			reading.Table:    reading.ValidColumn,
 			rowseal.Table:    rowseal.ValidColumn,
+			series.Table:     series.ValidColumn,
 			servicekey.Table: servicekey.ValidColumn,
 			tenant.Table:     tenant.ValidColumn,
+			workspace.Table:  workspace.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

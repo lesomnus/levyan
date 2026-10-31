@@ -28,14 +28,24 @@ type Tx struct {
 	Outbox *OutboxClient
 	// Owed is the client for interacting with the Owed builders.
 	Owed *OwedClient
+	// Period is the client for interacting with the Period builders.
+	Period *PeriodClient
+	// Point is the client for interacting with the Point builders.
+	Point *PointClient
 	// Price is the client for interacting with the Price builders.
 	Price *PriceClient
+	// Reading is the client for interacting with the Reading builders.
+	Reading *ReadingClient
 	// RowSeal is the client for interacting with the RowSeal builders.
 	RowSeal *RowSealClient
+	// Series is the client for interacting with the Series builders.
+	Series *SeriesClient
 	// ServiceKey is the client for interacting with the ServiceKey builders.
 	ServiceKey *ServiceKeyClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
+	// Workspace is the client for interacting with the Workspace builders.
+	Workspace *WorkspaceClient
 
 	// lazily loaded.
 	client     *Client
@@ -175,10 +185,15 @@ func (tx *Tx) init() {
 	tx.Operator = NewOperatorClient(tx.config)
 	tx.Outbox = NewOutboxClient(tx.config)
 	tx.Owed = NewOwedClient(tx.config)
+	tx.Period = NewPeriodClient(tx.config)
+	tx.Point = NewPointClient(tx.config)
 	tx.Price = NewPriceClient(tx.config)
+	tx.Reading = NewReadingClient(tx.config)
 	tx.RowSeal = NewRowSealClient(tx.config)
+	tx.Series = NewSeriesClient(tx.config)
 	tx.ServiceKey = NewServiceKeyClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
+	tx.Workspace = NewWorkspaceClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

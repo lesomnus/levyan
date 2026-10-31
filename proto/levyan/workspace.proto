@@ -1,0 +1,110 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Workspace is one of a product's own tenants -- a workspace of loft's -- as
+// levyan knows it: what the product's readings and flows are of, and what a
+// statement is written for.
+//
+// It is the set a product's ledger is divided by: field 3 of a reading, of a
+// flow's series and points, and of a statement, so that a caller who comes to
+// see one workspace (a payer, #4) is narrowed to it by the axis payday reads,
+// beside the wall that keeps a product to its own.
+//
+// Written the first time anything is heard of it, through the servers, and
+// never changed or erased: what it was billed outlives the workspace at the
+// product, as a seller's records outlive its customers. Every write of the
+// ledger for a workspace holds its row until the write is done
+// (`server/ledger`), which is what makes "measured in a period that was closed
+// already" a question with one answer.
+message Workspace {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is a workspace of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace as the product knows it: the identifier of its payday
+  // tenant there, as sixteen bytes. What a product sends as `workspace`, and
+  // as `payday.tenant` on a flow, is the canonical text of it.
+  bytes key = 8 [(orm.field) = {immutable: true}];
+
+  // Never stamped: there is no Erase. The rows of its ledger and its
+  // statements name it for as long as they are kept.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When levyan first heard of it.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    // Patch is generated though nothing here may change -- every field is
+    // immutable -- because protobuf-orm writes `<Entity>GetKey`, which an
+    // edge to this entity is resolved by, only beside a Patch. No caller is
+    // given it (`server/policy`).
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A workspace named by what the product calls it is
+        // `WorkspaceRef.keyed`, as a meter named by its key is.
+        name: "keyed"
+        refs: [
+          {
+            name: "key"
+            number: 8
+          },
+          {
+            name: "tenant"
+            number: 2
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 12
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [{name: "ref"}]
+      size: 50
+      max: 200
+    }
+  };
+}

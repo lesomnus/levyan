@@ -45,8 +45,9 @@ type KeyConfig struct {
 	// again by another key, since a value names its key by it.
 	ID string `yaml:"id"`
 
-	// File is where a key of the file kind is: 32 random bytes, which its
-	// owner alone may read ([ReadFile]).
+	// File is where a key of the file kind is: 32 random bytes, in a file of
+	// the process's own that nobody else may touch, or of root's that its
+	// group may read as well ([ReadFile]).
 	File string `yaml:"file"`
 }
 
@@ -58,9 +59,10 @@ func (c Config) IsZero() bool {
 
 // Open is the keyring c says, refused for what cannot be: a kind there is
 // not, or `kms`, which is not built yet; no keys, an id that is no id, the
-// same id or the same key twice; a key file that is not its owner's alone,
-// or not 32 bytes; and a key to seal with that is none of them. Each refusal
-// names the field it is of, as the configuration names it.
+// same id or the same key twice; a key file of an owner or a mode
+// [ReadFile] refuses, or not of 32 bytes; and a key to seal with that is none
+// of them. Each refusal names the field it is of, as the configuration names
+// it.
 func (c Config) Open() (*Keyring, error) {
 	switch c.Kind {
 	case KindFile:

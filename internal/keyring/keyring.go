@@ -6,9 +6,10 @@
 // Whose it is: that the keys' configuration names a kind, which says where
 // the keys come from, and that only `file` is built now, is the owner's
 // (levyan#10, 27). That a sealed value names the key that sealed it, so that
-// keys can be rotated, and that a KMS kind follows payday's KMS signers, are
-// Claude's, the lead's. The rest -- the cipher, the form of a sealed value,
-// what a key file has to be -- is the implementation's.
+// keys can be rotated; that a key file is 32 random bytes, held to the rule
+// PostgreSQL holds its server.key to; and that a KMS kind follows payday's KMS
+// signers, are Claude's, the lead's. The rest -- the cipher, the form of a
+// sealed value -- is the implementation's.
 //
 // # A sealed value
 //
@@ -54,9 +55,11 @@
 // A deployment says where its keys are by their kind ([Config], levyan's
 // `billing_keys`):
 //
-//   - `file`: each key 32 random bytes in a file of its own, which its owner
-//     alone may read ([ReadFile]): `head -c 32 /dev/urandom > key`, and
-//     `chmod 400 key`.
+//   - `file`: each key 32 random bytes in a file of its own ([ReadFile]):
+//     `head -c 32 /dev/urandom > key`, and `chmod 400 key`. The file is the
+//     process's own and nobody else's, or root's and readable by its group as
+//     well, as a Kubernetes Secret mounted with defaultMode 0440 and an
+//     fsGroup is: PostgreSQL's rule for its server.key.
 //   - `kms`: named, and not built. A configuration that says it is refused
 //     where the process comes up ([Config.Open]).
 //

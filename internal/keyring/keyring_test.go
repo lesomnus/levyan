@@ -282,9 +282,14 @@ func keyFile(t *testing.T, b []byte, m fs.FileMode) string {
 	return p
 }
 
-// A key file is its owner's alone: one its group or anybody else may read,
-// or write, is refused, and said so with its mode and nothing of the key.
-func TestAKeyFileIsItsOwnersAlone(t *testing.T) {
+// A key file of the process's own is its alone: one its group or anybody
+// else may read, or write, is refused, and said so with its mode and nothing
+// of the key. A file of root's, which its group may read too, is perm's test,
+// since a test makes no file of root's.
+func TestAKeyFileOfTheProcesssOwnIsItsAlone(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("a file a test makes as root is root's, which its group may read")
+	}
 	k := key(t)
 	for _, m := range []fs.FileMode{0o400, 0o600, 0o700} {
 		got, err := keyring.ReadFile(keyFile(t, k, m))

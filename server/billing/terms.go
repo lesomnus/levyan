@@ -32,13 +32,14 @@
 // late row names the periods it speaks for. A correction already made is found
 // by the same arithmetic, and comes to nothing.
 //
-// # Until billing accounts
+// # Who pays
 //
-// Every workspace of a product is priced on the product's channel, in its
-// currency ([Terms]), until billing accounts say whose a workspace is and so
-// what it is sold through (#4); then the account's channel and currency are
-// what a statement is priced by, and the product's are what a workspace with
-// no account is.
+// A workspace's period is billed to its payer over it ([Rater.PayerOf]), on
+// the channel and in the currency of the billing account they paid with, and
+// on the product's ([Terms]) when they have none or nobody paid (#4). What a
+// workspace's prices include is its own when it is one of its payer's first
+// few of the product, and when nobody paid for it; otherwise it is rated from
+// the first unit.
 package billing
 
 import (
@@ -54,11 +55,16 @@ import (
 )
 
 // Terms is how a product is billed: the zone its periods are months in, and
-// the channel and currency its statements are priced on and in.
+// the channel and currency its statements are priced on and in -- a
+// workspace's, once its payer's billing account says ([Rater.TermsFor]).
 type Terms struct {
 	Zone     *time.Location
 	Channel  levyan.Channel
 	Currency string
+
+	// FirstUnit is a workspace rated from the first unit, what its prices
+	// include not being its: none of its payer's first few (#4).
+	FirstUnit bool
 }
 
 // Priced says whether the terms price anything: a product that names no

@@ -69,6 +69,103 @@ type Config struct {
 	// Named nowhere, there is no keyring, and nothing stores a billing key yet
 	// (#4); named wrong, the process is refused where it comes up.
 	BillingKeys keyring.Config `yaml:"billing_keys"`
+
+	// Auth is who levyan asks about the people it bills: roster.
+	Auth AuthConfig `yaml:"auth"`
+
+	// Payers is who pays for products' workspaces (#4).
+	Payers PayersConfig `yaml:"payers"`
+}
+
+// AuthConfig is who levyan asks about the people it bills.
+type AuthConfig struct {
+	// Roster is the roster whose accounts pay: asked whether an account a
+	// product relays a call for is in good standing, and heard saying when
+	// one is suspended or erased (roster's `standing`, its
+	// `docs/relying-app.md`).
+	Roster RosterConfig `yaml:"roster"`
+}
+
+// RosterConfig is the roster levyan asks, and who levyan is there.
+//
+// With no address, no account's standing can be asked, so levyan serves no
+// call an account makes ( `levyan.v1.PayerService`) -- it refuses them all
+// rather than serve one on nobody's word -- and hears nothing of roster.
+type RosterConfig struct {
+	// Addr is roster's data plane, as gRPC dials it: `roster:50051`.
+	Addr string `yaml:"addr"`
+
+	// Key is what levyan calls roster with, a secret (`${file:/run/…}`):
+	// a deployment key, `rk_…`, which every call names the directory beside
+	// (`roster-at`), or a tenant key, `rt_…`, of the directory itself (roster's
+	// `docs/apps.md`). Its role holds `standing.Methods`.
+	Key cfg.Secret `yaml:"key"`
+
+	// Directory is the roster tenant the accounts are in, by its alias: one
+	// for the whole deployment. Required with a deployment key; a tenant key
+	// is its own tenant's, and names none.
+	Directory string `yaml:"directory"`
+
+	// Insecure dials roster in plaintext, for a lab; CaFile pins the CA its
+	// certificate chains to, and empty is the system's.
+	Insecure bool   `yaml:"insecure"`
+	CaFile   string `yaml:"ca_file"`
+}
+
+// Configured says whether a roster is named at all.
+func (c RosterConfig) Configured() bool { return c.Addr != "" }
+
+// PayersConfig is who pays for products' workspaces (#4).
+type PayersConfig struct {
+	// Free is how many of each payer's workspaces of a product have the
+	// allowances their prices include: 3 when unset, as many as an account
+	// may own in loft (`app.workspaces.owned`). The others are rated from
+	// the first unit. Zero is written `0` and is none.
+	Free *int `yaml:"free"`
+
+	// Grace is how long a workspace may go with nobody paying for it before
+	// it is restricted: 30 days when unset.
+	Grace time.Duration `yaml:"grace"`
+
+	// Settle is how often what roster said of an erased account is asked
+	// again, and acted on once roster has nobody by them: an hour when unset.
+	Settle time.Duration `yaml:"settle"`
+
+	// Reconcile is how often roster is asked about every account levyan
+	// bills, for what its stream missed: a day when unset.
+	Reconcile time.Duration `yaml:"reconcile"`
+}
+
+// FreeOf is [PayersConfig.Free], or its default.
+func (c PayersConfig) FreeOf() int {
+	if c.Free == nil {
+		return 3
+	}
+	return max(*c.Free, 0)
+}
+
+// GraceOf is [PayersConfig.Grace], or its default.
+func (c PayersConfig) GraceOf() time.Duration {
+	if c.Grace <= 0 {
+		return 30 * 24 * time.Hour
+	}
+	return c.Grace
+}
+
+// SettleEvery is [PayersConfig.Settle], or its default.
+func (c PayersConfig) SettleEvery() time.Duration {
+	if c.Settle <= 0 {
+		return time.Hour
+	}
+	return c.Settle
+}
+
+// ReconcileEvery is [PayersConfig.Reconcile], or its default.
+func (c PayersConfig) ReconcileEvery() time.Duration {
+	if c.Reconcile <= 0 {
+		return 24 * time.Hour
+	}
+	return c.Reconcile
 }
 
 // GrantsConfig is how what levyan gives products' workspaces is kept

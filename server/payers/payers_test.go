@@ -1,0 +1,450 @@
+package payers_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+	"uuid"
+
+	"github.com/lesomnus/payday/pdid"
+	"github.com/lesomnus/payday/pdtest"
+	"github.com/lesomnus/roster/standing"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/ent"
+	entgrant "github.com/lesomnus/levyan/internal/ent/grant"
+	entlink "github.com/lesomnus/levyan/internal/ent/link"
+	"github.com/lesomnus/levyan/internal/levyantest"
+	"github.com/lesomnus/levyan/server/payers"
+)
+
+// on is a day of 2027 at midnight UTC.
+func on(month, d int) time.Time { return time.Date(2027, time.Month(month), d, 0, 0, 0, 0, time.UTC) }
+
+type world struct {
+	*levyantest.World
+	t    *testing.T
+	ctx  context.Context
+	loft *levyan.Tenant
+	p    pdid.Id
+}
+
+func setup(t *testing.T) world {
+	w := levyantest.New(t)
+	w.At(on(1, 15))
+	loft := w.Product("loft")
+	p, err := pdid.From(loft.GetId())
+	w.X.NoError(err)
+
+	return world{World: w, t: t, ctx: context.Background(), loft: loft, p: p}
+}
+
+func (w world) payers() payers.Payers { return w.S.Payers }
+
+// account is a billing account of `owner`'s in `country`.
+func (w world) account(owner pdid.Id, country string) pdid.Id {
+	w.t.Helper()
+	v, err := w.payers().Create(w.ctx, owner, levyan.BillingAccount_builder{
+		Name: "회사용", Country: country, Recipient: "김수민", Email: "billing@example.com", Address: "서울",
+		Business: levyan.BillingBusiness_builder{
+			Registration: "123-45-67890", Name: "주식회사 예시", Representative: "김수민",
+			Address: "서울", Kind: "서비스", Item: "소프트웨어", Email: "tax@example.com",
+		}.Build(),
+	}.Build())
+	w.X.NoError(err)
+	id, err := pdid.From(v.GetId())
+	w.X.NoError(err)
+	return id
+}
+
+func (w world) state(ws pdid.Id) payers.State {
+	w.t.Helper()
+	st, err := w.payers().State(w.ctx, w.p, ws)
+	w.X.NoError(err)
+	return st
+}
+
+func payer(l *ent.Link) pdid.Id {
+	if l == nil {
+		return pdid.Nil
+	}
+	return pdid.Id(l.Payer)
+}
+
+// A workspace is paid for by its creator from when the product says it was
+// made, with the first billing account they made; said again, nothing
+// changes. A workspace made in the future is no workspace made.
+func TestAWorkspaceIsPaidForByItsCreator(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a := levyantest.Account()
+	first := w.account(a, "KR")
+	w.account(a, "US")
+	ws := levyantest.Tenant()
+
+	st, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	x.NotNil(st.Current)
+	x.Equal(a, payer(st.Current))
+	x.Equal(first.Uuid(), st.Current.BillingAccountId, "the first they made")
+	x.Equal(on(1, 3), st.Current.DateStart.UTC())
+	x.Equal(int32(levyan.LinkBegan_LINK_BEGAN_ARRIVED), st.Current.Began)
+	x.Nil(st.Next)
+	x.False(st.Payerless())
+
+	again, err := w.payers().Arrive(w.ctx, w.p, ws, levyantest.Account(), time.Time{})
+	x.NoError(err)
+	x.Equal(st.Current.Id, again.Current.Id, "said again, it changes nothing")
+
+	none := levyantest.Account()
+	st, err = w.payers().Arrive(w.ctx, w.p, levyantest.Tenant(), none, time.Time{})
+	x.NoError(err)
+	x.Equal(none, payer(st.Current))
+	x.Equal(uuid.UUID{}, st.Current.BillingAccountId, "none made yet")
+	x.Equal(on(1, 15), st.Current.DateStart.UTC(), "made now")
+
+	_, err = w.payers().Arrive(w.ctx, w.p, levyantest.Tenant(), a, on(2, 1))
+	x.Equal(codes.InvalidArgument, status.Code(err), "made ahead of now")
+}
+
+// Another account pays once it accepts, and from the end of the period it
+// accepted in: the payer before it pays until then. What is offered is one
+// at a time, answered once, and only by the account it was made to.
+func TestANewPayerPaysFromTheEndOfThePeriodItAccepted(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a, b, c := levyantest.Account(), levyantest.Account(), levyantest.Account()
+	ws := levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+
+	_, err = w.payers().Offer(w.ctx, w.p, ws, a)
+	x.Equal(codes.FailedPrecondition, status.Code(err), "it pays already")
+
+	toC, err := w.payers().Offer(w.ctx, w.p, ws, c)
+	x.NoError(err)
+	toB, err := w.payers().Offer(w.ctx, w.p, ws, b)
+	x.NoError(err)
+	cId, _ := pdid.From(toC.GetId())
+	bId, _ := pdid.From(toB.GetId())
+
+	_, err = w.payers().Accept(w.ctx, w.p, c, cId, pdid.Nil)
+	x.Equal(codes.FailedPrecondition, status.Code(err), "withdrawn by the offer after it")
+	_, err = w.payers().Accept(w.ctx, w.p, c, bId, pdid.Nil)
+	x.Equal(codes.NotFound, status.Code(err), "another's offer is no offer of theirs")
+	_, err = w.payers().Accept(w.ctx, w.p, b, bId, w.account(c, "KR"))
+	x.Equal(codes.NotFound, status.Code(err), "nor another's billing account theirs")
+
+	ba := w.account(b, "US")
+	l, err := w.payers().Accept(w.ctx, w.p, b, bId, ba)
+	x.NoError(err)
+	x.Equal(on(2, 1), l.GetDateStart().AsTime(), "from the end of the period")
+	x.Equal(levyan.LinkBegan_LINK_BEGAN_ACCEPTED, l.GetBegan())
+
+	st := w.state(ws)
+	x.Equal(a, payer(st.Current), "who paid pays until then")
+	x.Equal(on(2, 1), st.Current.DateEnd.UTC())
+	x.Equal(int32(levyan.LinkEnded_LINK_ENDED_REPLACED), st.Current.Ended)
+	x.Equal(b, payer(st.Next))
+	x.Nil(st.Offer, "answered")
+
+	_, err = w.payers().Accept(w.ctx, w.p, b, bId, ba)
+	x.Equal(codes.FailedPrecondition, status.Code(err), "answered once")
+
+	w.At(on(2, 2))
+	st = w.state(ws)
+	x.Equal(b, payer(st.Current))
+	x.Nil(st.Next)
+
+	// Declined, and nothing changes.
+	toA, err := w.payers().Offer(w.ctx, w.p, ws, a)
+	x.NoError(err)
+	aId, _ := pdid.From(toA.GetId())
+	x.NoError(w.payers().Decline(w.ctx, w.p, a, aId))
+	x.Equal(b, payer(w.state(ws).Current))
+}
+
+// A payer pays with another of its billing accounts, or stops paying, from
+// the end of the period; once it has stopped, the workspace has no payer.
+func TestAChangeOfAPayersIsAtTheEndOfThePeriod(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a := levyantest.Account()
+	kr := w.account(a, "KR")
+	ws := levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+
+	us := w.account(a, "US")
+	l, err := w.payers().Use(w.ctx, w.p, a, ws, us)
+	x.NoError(err)
+	x.Equal(on(2, 1), l.GetDateStart().AsTime())
+	st := w.state(ws)
+	x.Equal(kr.Uuid(), st.Current.BillingAccountId, "until the end of the period")
+	x.Equal(us.Uuid(), st.Next.BillingAccountId)
+
+	_, err = w.payers().Stop(w.ctx, w.p, levyantest.Account(), ws)
+	x.Equal(codes.FailedPrecondition, status.Code(err), "nobody else's to stop")
+
+	_, err = w.payers().Stop(w.ctx, w.p, a, ws)
+	x.NoError(err)
+	st = w.state(ws)
+	x.Equal(a, payer(st.Current), "it pays until the end of the period")
+	x.Nil(st.Next, "and not after")
+	x.False(st.Payerless())
+
+	w.At(on(2, 3))
+	st = w.state(ws)
+	x.Nil(st.Current)
+	x.True(st.Payerless())
+	x.Equal(on(2, 1), st.Since)
+	x.Equal(on(2, 1).Add(payers.DefaultGrace), st.Restricted)
+}
+
+// An account that leaves a workspace pays for it no longer, from now, and
+// what was offered to it is withdrawn.
+func TestAnAccountThatLeavesPaysNoLonger(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a, b := levyantest.Account(), levyantest.Account()
+	ws := levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	o, err := w.payers().Offer(w.ctx, w.p, ws, b)
+	x.NoError(err)
+	oId, _ := pdid.From(o.GetId())
+
+	st, err := w.payers().Leave(w.ctx, w.p, ws, b)
+	x.NoError(err)
+	x.Nil(st.Offer, "what was offered to it is withdrawn")
+	_, err = w.payers().Accept(w.ctx, w.p, b, oId, pdid.Nil)
+	x.Equal(codes.FailedPrecondition, status.Code(err))
+
+	w.At(on(1, 20))
+	st, err = w.payers().Leave(w.ctx, w.p, ws, a)
+	x.NoError(err)
+	x.Nil(st.Current)
+	x.True(st.Payerless())
+	x.Equal(on(1, 20), st.Since)
+
+	again, err := w.payers().Leave(w.ctx, w.p, ws, a)
+	x.NoError(err)
+	x.Equal(st.Since, again.Since, "said again, it changes nothing")
+}
+
+// A workspace nobody pays for is restricted once that has lasted the grace
+// -- a grant of the rule's, `loft.restricted` ON -- and the restriction ends
+// once somebody accepts to pay, from when they accept. One that never had a
+// payer is not restricted.
+func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a, b := levyantest.Account(), levyantest.Account()
+	ws := levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	_, err = w.payers().Leave(w.ctx, w.p, ws, a)
+	x.NoError(err)
+
+	restricted := func() []*ent.Grant {
+		vs, err := w.S.Ent.Grant.Query().Where(entgrant.Key("loft.restricted")).All(w.ctx)
+		x.NoError(err)
+		return vs
+	}
+
+	w.At(on(1, 15).Add(payers.DefaultGrace - time.Hour))
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	x.Empty(restricted(), "within its grace")
+
+	w.At(on(1, 15).Add(payers.DefaultGrace + time.Hour))
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	vs := restricted()
+	x.Len(vs, 1)
+	x.Equal(payers.RuleName, vs[0].Rule)
+	x.Equal(int32(levyan.GrantValue_GRANT_VALUE_ON), vs[0].Value)
+	x.True(vs[0].Renews)
+
+	o, err := w.payers().Offer(w.ctx, w.p, ws, b)
+	x.NoError(err)
+	oId, _ := pdid.From(o.GetId())
+	_, err = w.payers().Accept(w.ctx, w.p, b, oId, pdid.Nil)
+	x.NoError(err)
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	vs = restricted()
+	x.Len(vs, 1)
+	x.False(vs[0].Renews, "ended: somebody will pay")
+	x.False(vs[0].ValidUntil.After(w.S.Clock()))
+
+	// A workspace levyan never heard of a payer of is not restricted.
+	key, err := payers.Restricted("loft")
+	x.NoError(err)
+	x.Equal("loft.restricted", key)
+	_, err = payers.Restricted("9lives")
+	x.Error(err)
+}
+
+// A billing account is in a country, which says the channel it is sold
+// through and the currency it is billed in, whatever a request says.
+func TestABillingAccountIsBilledAsItsCountryIs(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a := levyantest.Account()
+	kr := w.account(a, "KR")
+	us := w.account(a, "US")
+	v, err := w.S.Ent.BillingAccount.Get(w.ctx, kr.Uuid())
+	x.NoError(err)
+	x.Equal(levyan.Channel_CHANNEL_PG_KR.String(), v.Channel)
+	x.Equal("KRW", v.Currency)
+	v, err = w.S.Ent.BillingAccount.Get(w.ctx, us.Uuid())
+	x.NoError(err)
+	x.Equal(levyan.Channel_CHANNEL_MOR.String(), v.Channel)
+	x.Equal("USD", v.Currency)
+
+	_, err = w.S.Ungated.BillingAccount().Add(w.ctx, levyan.BillingAccountAddRequest_builder{
+		Owner: a.Bytes(), Country: "KR", Channel: levyan.Channel_CHANNEL_MOR.String(), Currency: "USD",
+	}.Build())
+	x.NoError(err)
+	for _, c := range []string{"kr", "KOR", ""} {
+		_, err := w.payers().Create(w.ctx, a, levyan.BillingAccount_builder{Country: c}.Build())
+		x.Equal(codes.InvalidArgument, status.Code(err), "%q", c)
+	}
+	_, err = w.S.Ungated.BillingAccount().Add(w.ctx, levyan.BillingAccountAddRequest_builder{Country: "KR"}.Build())
+	x.Equal(codes.InvalidArgument, status.Code(err), "a billing account is an account's")
+}
+
+// roster says an account is gone: each link it pays by ends at the end of
+// its period, and what was offered to it is withdrawn. Said back before then,
+// it goes on paying from where it would have stopped. Asked again once
+// roster has nobody by an erased one, what says who they were is replaced --
+// the business it billed is kept -- and their mark is settled.
+func TestRosterSaysAnAccountIsGone(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a, b := levyantest.Account(), levyantest.Account()
+	ba := w.account(a, "KR")
+	ws, other := levyantest.Tenant(), levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	_, err = w.payers().Arrive(w.ctx, w.p, other, b, on(1, 3))
+	x.NoError(err)
+	_, err = w.payers().Offer(w.ctx, w.p, other, a)
+	x.NoError(err)
+
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a, Erased: on(1, 15)}))
+	st := w.state(ws)
+	x.Equal(a, payer(st.Current), "until the end of the period")
+	x.Equal(on(2, 1), st.Current.DateEnd.UTC())
+	x.Equal(int32(levyan.LinkEnded_LINK_ENDED_ERASED), st.Current.Ended)
+	x.Nil(w.state(other).Offer, "withdrawn")
+
+	// Said twice, as every process says it.
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a, Erased: on(1, 15)}))
+	n, err := w.S.Ent.Link.Query().Where(entlink.Payer(a.Uuid())).Count(w.ctx)
+	x.NoError(err)
+	x.Equal(1, n)
+
+	// Back, before the period ends: it pays on from where it stopped.
+	w.At(on(1, 20))
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a}))
+	st = w.state(ws)
+	x.Equal(a, payer(st.Next))
+	x.Equal(on(2, 1), st.Next.DateStart.UTC())
+	x.Equal(int32(levyan.LinkBegan_LINK_BEGAN_RESUMED), st.Next.Began)
+	x.Equal(ba.Uuid(), st.Next.BillingAccountId)
+
+	// Suspended now, and erased: settled once roster has nobody by them.
+	w.At(on(2, 10))
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a, Disabled: on(2, 10)}))
+	x.Equal(on(3, 1), w.state(ws).Current.DateEnd.UTC())
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a, Erased: on(2, 11)}))
+
+	r := &roster{gone: map[pdid.Id]bool{}}
+	x.NoError(w.payers().Settle(w.ctx, r))
+	v, err := w.S.Ent.BillingAccount.Get(w.ctx, ba.Uuid())
+	x.NoError(err)
+	x.Nil(v.DateForgotten, "roster still has them")
+	x.Equal("김수민", v.Recipient)
+
+	r.gone[a] = true
+	x.NoError(w.payers().Settle(w.ctx, r))
+	v, err = w.S.Ent.BillingAccount.Get(w.ctx, ba.Uuid())
+	x.NoError(err)
+	x.NotNil(v.DateForgotten)
+	x.Empty(v.Name)
+	x.Empty(v.Recipient)
+	x.Empty(v.Email)
+	x.Empty(v.Address)
+	x.Equal("123-45-67890", v.Business.GetRegistration(), "the business it billed is kept")
+	x.Equal("주식회사 예시", v.Business.GetName())
+	x.Empty(v.Business.GetRepresentative())
+	x.Empty(v.Business.GetEmail())
+
+	// Settled, and nothing brings it back.
+	x.NoError(w.payers().Heard(w.ctx, standing.Standing{Holder: a}))
+	x.Nil(w.state(ws).Next)
+}
+
+// What the stream missed is found by asking about everybody: an account
+// roster has nobody by is marked as erased.
+func TestWhatTheStreamMissedIsFound(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a, b := levyantest.Account(), levyantest.Account()
+	ws := levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	w.account(b, "KR")
+
+	r := &roster{gone: map[pdid.Id]bool{a: true}}
+	x.NoError(w.payers().Reconcile(w.ctx, r))
+	x.ElementsMatch([]pdid.Id{a, b}, r.asked)
+	st := w.state(ws)
+	x.Equal(int32(levyan.LinkEnded_LINK_ENDED_ERASED), st.Current.Ended)
+	x.Equal(on(2, 1), st.Current.DateEnd.UTC())
+
+	r = &roster{gone: map[pdid.Id]bool{}, fail: errors.New("roster is away")}
+	x.Error(w.payers().Reconcile(w.ctx, r))
+}
+
+// roster is a roster that has nobody by the accounts in `gone`.
+type roster struct {
+	gone  map[pdid.Id]bool
+	fail  error
+	asked []pdid.Id
+}
+
+func (r *roster) Settle(ctx context.Context, marked []pdid.Id, gone func(context.Context, pdid.Id) error, back func(context.Context, standing.Standing) error) error {
+	for _, v := range marked {
+		if r.gone[v] {
+			if err := gone(ctx, v); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *roster) Reconcile(ctx context.Context, accounts []pdid.Id, marked func(pdid.Id) bool) (*standing.Reconciled, error) {
+	if r.fail != nil {
+		return nil, r.fail
+	}
+	out := &standing.Reconciled{}
+	for _, v := range accounts {
+		r.asked = append(r.asked, v)
+		if r.gone[v] && !marked(v) {
+			out.Gone = append(out.Gone, v)
+		}
+	}
+	return out, nil
+}

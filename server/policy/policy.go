@@ -13,10 +13,11 @@
 //   - An **operator** does not call here at all. Products, keys, meters and
 //     price versions are written through `levyan-admin serve`, a binary of
 //     its own on an address of its own, which this one does not link.
-//   - A **payer** -- an account paying for a workspace, at roster -- will call
-//     as the account, in no tenant, once payday says how an account calls
-//     (payday#184). Until then nothing here is theirs, and a frame of any
-//     other kind is refused everything.
+//   - A **payer** -- an account of roster's paying for a workspace -- calls as
+//     the account, in no tenant (payday's account frame), relayed by a
+//     product with its key (`server/relay`): `levyan.v1.PayerService` and
+//     nothing else, each served as the schema's method of its name, which is
+//     what payday holds such a call to.
 //
 // The generated methods of the entities are in nobody's column. A product
 // reads its price book through `levyan.v1` (`server/api`), which answers in
@@ -46,6 +47,10 @@ const (
 
 	// Product is a product calling with its service key.
 	Product
+
+	// Payer is an account calling as itself, relayed by a product with its
+	// key (`server/relay`).
+	Payer
 )
 
 // Table is every method somebody may call, by the name gRPC knows it by, and
@@ -77,6 +82,16 @@ func init() {
 	// What its workspaces are granted, which it keeps a copy of: payday's
 	// contract, its stream and its list (`server/api`, #7).
 	allow(Product, "payday.GrantService", "Watch", "List")
+
+	// Who pays for its workspaces: one made, an account gone from one, an
+	// account asked to pay, and who pays (#4).
+	allow(Product, "levyan.v1.WorkspaceService", "Arrive", "Leave", "Offer", "GetPayer")
+
+	// And an account's own, relayed by a product for one of its users: its
+	// billing accounts, the offers made to it and the workspaces it pays for.
+	allow(Payer, "levyan.v1.PayerService",
+		"ListBillingAccounts", "CreateBillingAccount", "UpdateBillingAccount",
+		"ListOffers", "Accept", "Decline", "ListLinks", "Use", "Stop")
 }
 
 // Policy is the table, asked.
@@ -85,9 +100,12 @@ type Policy struct{}
 var _ gate.Policy = Policy{}
 
 // Of is what kind of caller a call is from, by the row its frame was resolved
-// from.
+// from: a product's key, or an account a product's key relays a call for.
 func Of(c gate.Call) Caller {
 	if _, ok := c.Row.(*levyan.ServiceKey); ok {
+		if c.AsAccount {
+			return Payer
+		}
 		return Product
 	}
 

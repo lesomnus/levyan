@@ -13,6 +13,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
+	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entmeter "github.com/lesomnus/levyan/internal/ent/meter"
 	entperiod "github.com/lesomnus/levyan/internal/ent/period"
 	entpoint "github.com/lesomnus/levyan/internal/ent/point"
@@ -34,6 +35,10 @@ import (
 // request: a product's own call is about that product and no other.
 type Rater struct {
 	Db *ent.Client
+
+	// Free is how many of each payer's workspaces of a product have their
+	// allowances (`payers.free`): [DefaultFree] for the deployment's own.
+	Free int
 }
 
 // Book is a product's price book: its meters, by their keys, and every
@@ -75,11 +80,25 @@ func (r Rater) Book(ctx context.Context, product uuid.UUID) (Book, error) {
 	return out, nil
 }
 
-// Since is when the ledger first says anything of workspace `ws`: its
-// earliest reading or point, which is when it began to be a customer as far as
-// levyan can tell -- until billing accounts and the product's lifecycle say
-// it (#4, #14). False when it says nothing.
+// Since is when workspace `ws` began to be a customer: when its first payer
+// began paying for it, which is when the product says it was made (#4) --
+// whoever pays for it since, it is the customer it was. For a workspace no
+// product said was made, it is when the ledger first says anything of it:
+// its earliest reading or point. False when nothing says.
 func (r Rater) Since(ctx context.Context, product, ws uuid.UUID) (time.Time, bool, error) {
+	ls, err := r.Db.Link.Query().
+		Where(entlink.TenantId(product), entlink.WorkspaceId(ws)).
+		Order(ent.Asc(entlink.FieldDateStart)).
+		All(ctx)
+	if err != nil {
+		return time.Time{}, false, err
+	}
+	for _, l := range ls {
+		if !empty(l) {
+			return ledger.Moment(l.DateStart), true, nil
+		}
+	}
+
 	var (
 		at time.Time
 		ok bool
@@ -247,8 +266,11 @@ func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p ratin
 		}
 
 		book := b.Versions
-		if !t.Priced() {
+		switch {
+		case !t.Priced():
 			book = nil
+		case t.FirstUnit:
+			book = fromFirst(book)
 		}
 		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, since)
 		if err != nil {
@@ -330,6 +352,9 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 				of = s
 			}
 		}
+		// What the period was billed by: the channel and the currency its
+		// statement was, and from the first unit when it was. A period with
+		// no statement is rated by its payer then, on this statement's terms.
 		terms := t
 		if of != nil {
 			c, err := Channel(of.Channel)
@@ -340,6 +365,13 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 				skipped = append(skipped, pr)
 				continue
 			}
+			terms.FirstUnit = of.FirstUnit
+		} else {
+			who, err := r.PayerOf(ctx, product, ws, rating.Period{Start: ledger.Moment(pr.DateStart), End: ledger.Moment(pr.DateEnd)})
+			if err != nil {
+				return nil, nil, err
+			}
+			terms.FirstUnit = who.FirstUnit
 		}
 
 		billed, err := billedFor(sts, pr)

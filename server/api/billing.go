@@ -41,6 +41,9 @@ type Billing struct {
 	// clock, which says which period is open.
 	Db  *ent.Client
 	Now func() time.Time
+
+	// Free is how many of a payer's workspaces have their allowances.
+	Free int
 }
 
 func (b Billing) GetUsage(ctx context.Context, req *levyanv1.GetUsageRequest) (*levyanv1.GetUsageResponse, error) {
@@ -74,9 +77,13 @@ func (b Billing) GetUsage(ctx context.Context, req *levyanv1.GetUsageRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	r := billing.Rater{Db: b.Db}
+	r := billing.Rater{Db: b.Db, Free: b.Free}
 	book, err := r.Book(ctx, product.Id)
 	if err != nil {
+		return nil, err
+	}
+	// On the terms of who pays for the workspace over the period.
+	if terms, _, err = r.TermsFor(ctx, product.Id, w.Id, p, terms); err != nil {
 		return nil, err
 	}
 	st, err := billing.Estimate(ctx, r, book, product.Id, w.Id, p, terms)

@@ -53,7 +53,13 @@ type Closer struct {
 	// Grace is how long after a period ends it waits for what comes late
 	// before the loop closes it.
 	Grace time.Duration
+
+	// Free is how many of each payer's workspaces of a product have their
+	// allowances ([Rater.Free]).
+	Free int
 }
+
+func (c Closer) rater(db *ent.Client) Rater { return Rater{Db: db, Free: c.Free} }
 
 func (c Closer) now() time.Time {
 	if c.Now == nil {
@@ -206,7 +212,7 @@ func (c Closer) close(ctx context.Context, product *ent.Tenant, p rating.Period,
 		return row, nil
 	}
 
-	b, err := Rater{Db: c.db()}.Book(ctx, product.Id)
+	b, err := c.rater(c.db()).Book(ctx, product.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +301,13 @@ func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Per
 		return err
 	}
 
-	st, err := Write(ctx, Rater{Db: db}, b, product.Id, w.Id, p, t)
+	// On the terms of who paid for the workspace over the period.
+	r := c.rater(db)
+	t, who, err := r.TermsFor(ctx, product.Id, w.Id, p, t)
+	if err != nil {
+		return err
+	}
+	st, err := Write(ctx, r, b, product.Id, w.Id, p, t)
 	if err != nil {
 		return err
 	}
@@ -303,7 +315,7 @@ func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Per
 		return nil
 	}
 
-	if _, err := s.Statement().Add(ctx, levyan.StatementAddRequest_builder{
+	req := levyan.StatementAddRequest_builder{
 		Tenant:    levyan.TenantRef_builder{Id: product.Id[:]}.Build(),
 		Workspace: levyan.WorkspaceRef_builder{Id: w.Id[:]}.Build(),
 		Period:    levyan.PeriodRef_builder{Id: row.Id[:]}.Build(),
@@ -315,7 +327,15 @@ func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Per
 		Total:     st.Total,
 		Exact:     fraction(st.Exact),
 		Rating:    rating.Version,
-	}.Build()); err != nil {
+		FirstUnit: t.FirstUnit,
+	}.Build()
+	if who.Link != nil {
+		req.SetPayer(who.Link.Payer[:])
+	}
+	if who.Account != nil {
+		req.SetBillingAccount(levyan.BillingAccountRef_builder{Id: who.Account.Id[:]}.Build())
+	}
+	if _, err := s.Statement().Add(ctx, req); err != nil {
 		return err
 	}
 

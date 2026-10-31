@@ -239,6 +239,16 @@ admin price check loft                   # 내역의 채널과 통화에 가격�
 
 가격이 없어서 0원이 된 내역 줄은 그 구간을 말하고(`unpriced`), 기간을 닫을 때 로그에 남는다. 어디에도 가격이 없는 미터는 팔지 않는 것이라 말하지 않는다.
 
+**계좌이체.** 기관은 세금계산서를 받고 이체로 낸다(`bank_kr`). 결제 계정은 계약을 맺은 뒤 운영자가 연다. 청구서는 확정할 때 번호, 세금(10%), 기한(30일)을 받고, 세금계산서는 발행 대행으로 나간다. 어느 대행을 쓸지는 아직 정하지 않았고, 그래서 아직 이 채널을 설정할 수 없다(`invoices.bank_kr`, `docs/design.md` 15장).
+
+```sh
+admin price add --channel bank_kr --currency KRW --included 100 --unit-price 50 --effective 2027-01-01 --yes loft loft.assets.active
+admin billing-account add --channel bank_kr --owner <roster 계정 id> --name 본부 \
+  --registration <사업자등록번호 또는 고유번호> --business-name <상호> --tax-email <세금계산서 받을 곳> --yes
+admin invoice paid --amount 55000 --date 2027-02-05 --reference '<입금자명>' --yes <invoice id>
+admin invoice credit --reason refund --amount 10000 --reference '<돌려보낸 이체>' --date 2027-02-10 --yes <invoice id>
+```
+
 ## 배포
 
 이미지는 `ghcr.io/lesomnus/levyan:edge`이고, `main`에서만 올라간다. 두 바이너리가 다 들어 있다. 기본 엔트리포인트는 `levyan serve`이고, 운영자의 문은 `--entrypoint /usr/local/bin/levyan-admin`으로 띄운다.

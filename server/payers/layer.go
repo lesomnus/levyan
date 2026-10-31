@@ -15,21 +15,34 @@ import (
 // Layer is what a billing account and a link may be, said of every write of
 // one, on both stacks (`cmd.Build`): an account's billing account says whose
 // it is and the country it is billed in, and its channel and currency are
-// what that country says, whatever a request says; a link says who pays and
-// from when.
+// what [Layer.Channels] says of that country, whatever a request says; a link
+// says who pays and from when.
 type Layer struct {
 	levyan.Overlay
+
+	// Channels is what a billing account is billed through, by its country:
+	// asked as one is made, and never of one made already.
+	Channels Channels
 }
 
-// NewLayer is the layer over `next`.
-func NewLayer(next levyan.Server) Layer { return Layer{Overlay: levyan.NewOverlay(next)} }
+// NewLayer is the layer over `next`, billing accounts through `channels` --
+// [DefaultChannels] when nil.
+func NewLayer(next levyan.Server, channels Channels) Layer {
+	if channels == nil {
+		channels = DefaultChannels()
+	}
+
+	return Layer{Overlay: levyan.NewOverlay(next), Channels: channels}
+}
 
 // Build makes a builder of this layer so that it can be stacked.
-func Build() levyan.Builder { return builder{} }
+func Build(channels Channels) levyan.Builder { return builder{channels} }
 
-type builder struct{}
+type builder struct{ channels Channels }
 
-func (builder) Build(next levyan.Server) (levyan.Server, error) { return NewLayer(next), nil }
+func (b builder) Build(next levyan.Server) (levyan.Server, error) {
+	return NewLayer(next, b.channels), nil
+}
 
 // WithDriver is this layer over the stack put on `drv`.
 func (s Layer) WithDriver(drv dialect.Driver) (levyan.Server, error) {
@@ -38,7 +51,7 @@ func (s Layer) WithDriver(drv dialect.Driver) (levyan.Server, error) {
 		return nil, err
 	}
 
-	return NewLayer(next), nil
+	return NewLayer(next, s.Channels), nil
 }
 
 var (
@@ -47,24 +60,24 @@ var (
 )
 
 func (s Layer) BillingAccount() levyan.BillingAccountServiceServer {
-	return bare.BillingAccountWithAddRule(s.Next().BillingAccount(), admitBillingAccount)
+	return bare.BillingAccountWithAddRule(s.Next().BillingAccount(), s.admitBillingAccount)
 }
 
-func admitBillingAccount(ctx context.Context, req *levyan.BillingAccountAddRequest) (*levyan.BillingAccountAddRequest, error) {
+func (s Layer) admitBillingAccount(ctx context.Context, req *levyan.BillingAccountAddRequest) (*levyan.BillingAccountAddRequest, error) {
 	if len(req.GetOwner()) != 16 {
 		return nil, pderr.Invalidf("owner", "a billing account is an account's, at roster")
 	}
-	channel, currency, err := ChannelOf(req.GetCountry())
+	billed, err := s.Channels.Of(req.GetCountry())
 	if err != nil {
-		return nil, pderr.Invalidf("country", "%q is not ISO 3166-1 alpha-2, in capitals: KR", req.GetCountry())
+		return nil, err
 	}
 	if req.HasDateForgotten() {
 		return nil, pderr.Invalidf("date_forgotten", "a billing account is made with what says who it is billed to")
 	}
 
 	req = proto.CloneOf(req)
-	req.SetChannel(channel)
-	req.SetCurrency(currency)
+	req.SetChannel(billed.Channel.String())
+	req.SetCurrency(billed.Currency)
 
 	return req, nil
 }

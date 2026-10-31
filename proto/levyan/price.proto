@@ -180,12 +180,12 @@ message Price {
 enum Channel {
   CHANNEL_UNSPECIFIED = 0;
 
-  // A merchant of record, for customers abroad: it is the seller, and is told
-  // what each closed period came to.
+  // A merchant of record: it is the seller, and is told what each closed
+  // period came to.
   CHANNEL_MOR = 1;
 
-  // A Korean payment gateway, for customers in Korea: levyan is the seller,
-  // and charges the card itself.
+  // A Korean payment gateway: levyan is the seller, and charges the card
+  // itself.
   CHANNEL_PG_KR = 2;
 }
 

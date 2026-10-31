@@ -173,6 +173,14 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		}
 	}
 
+	// What a billing account is billed through, by its country, is read
+	// before anything is opened: a map that bills through nothing stops the
+	// deployment rather than its first payer.
+	channels, err := c.Payers.ChannelsOf()
+	if err != nil {
+		return nil, fmt.Errorf("payers.channels: %w", err)
+	}
+
 	db, dialect, err := c.Db.Open(ctx)
 	if err != nil {
 		return nil, err
@@ -245,7 +253,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// already let the caller name; `pd.Gate` is outermost, so nothing behind
 	// it asks again. A key's verifier is cleared on the way out of both
 	// (`pd.Secret`), so that nothing answers with it.
-	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(), pd.GateBuild())
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -256,7 +264,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// book and of grants on it, since an operator's price is held to them as
 	// a product's would be. It still keeps the trail: going around the wall
 	// is not going around the record of having done so.
-	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build())
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels))
 	if err != nil {
 		db.Close()
 		return nil, err

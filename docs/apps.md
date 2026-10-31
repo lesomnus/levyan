@@ -123,6 +123,7 @@ bas, err := payers.ListBillingAccounts(ctx, &levyanv1.ListBillingAccountsRequest
 
 - 부를 수 있는 것: 결제 계정 목록·만들기·고치기, 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`). 그 밖의 메서드는 거부된다.
 - 받아들이기, `Use`, `Stop`은 지금 기간의 끝에서 바뀐다.
+- **결제 계정의 채널과 통화는 levyan이 정한다.** 앱은 나라만 보낸다. 그 나라를 어느 채널과 통화로 파는지는 levyan 배포의 설정이고(`payers.channels`, 국내는 기본이 MoR과 원이다), 만든 뒤에는 바뀌지 않는다. 화면에는 `CreateBillingAccount`와 `ListBillingAccounts`가 답한 `channel`과 `currency`를 그대로 보여 준다. 나라에서 통화를 짐작하지 않는다.
 - **믿음.** 앱이 계정을 보증한다. levyan은 그 계정의 지금 상태를 roster에 묻고, 정지되거나 지워진 계정은 거부한다(PermissionDenied). roster에 물을 수 없으면 Unavailable이니 다시 보낸다. levyan에 roster가 설정되지 않았으면 FailedPrecondition이다.
 - 제안과 연결은 그 호출을 보낸 제품의 것만 보인다. 결제 계정은 제품과 상관없이 그 계정의 것이다.
 

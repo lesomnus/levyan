@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/internal/ent"
 	entgrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
@@ -292,33 +293,85 @@ func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
 }
 
 // A billing account is in a country, which says the channel it is sold
-// through and the currency it is billed in, whatever a request says.
+// through and the currency it is billed in -- as the deployment sells that
+// country when the account is made, whatever a request says. By default
+// that is the merchant of record, in won in Korea and in US dollars
+// elsewhere.
 func TestABillingAccountIsBilledAsItsCountryIs(t *testing.T) {
 	w := setup(t)
 	x := pdtest.NewX(t)
 
 	a := levyantest.Account()
-	kr := w.account(a, "KR")
-	us := w.account(a, "US")
-	v, err := w.S.Ent.BillingAccount.Get(w.ctx, kr.Uuid())
-	x.NoError(err)
-	x.Equal(levyan.Channel_CHANNEL_PG_KR.String(), v.Channel)
-	x.Equal("KRW", v.Currency)
-	v, err = w.S.Ent.BillingAccount.Get(w.ctx, us.Uuid())
-	x.NoError(err)
-	x.Equal(levyan.Channel_CHANNEL_MOR.String(), v.Channel)
-	x.Equal("USD", v.Currency)
+	for country, want := range map[string]payers.Billed{
+		"KR": {Channel: levyan.Channel_CHANNEL_MOR, Currency: "KRW"},
+		"US": {Channel: levyan.Channel_CHANNEL_MOR, Currency: "USD"},
+	} {
+		v, err := w.S.Ent.BillingAccount.Get(w.ctx, w.account(a, country).Uuid())
+		x.NoError(err)
+		x.Equal(want.Channel.String(), v.Channel, country)
+		x.Equal(want.Currency, v.Currency, country)
+	}
 
-	_, err = w.S.Ungated.BillingAccount().Add(w.ctx, levyan.BillingAccountAddRequest_builder{
-		Owner: a.Bytes(), Country: "KR", Channel: levyan.Channel_CHANNEL_MOR.String(), Currency: "USD",
+	v, err := w.S.Ungated.BillingAccount().Add(w.ctx, levyan.BillingAccountAddRequest_builder{
+		Owner: a.Bytes(), Country: "KR", Channel: levyan.Channel_CHANNEL_PG_KR.String(), Currency: "USD",
 	}.Build())
 	x.NoError(err)
+	x.Equal(levyan.Channel_CHANNEL_MOR.String(), v.GetChannel(), "whatever the request says")
+	x.Equal("KRW", v.GetCurrency())
 	for _, c := range []string{"kr", "KOR", ""} {
 		_, err := w.payers().Create(w.ctx, a, levyan.BillingAccount_builder{Country: c}.Build())
 		x.Equal(codes.InvalidArgument, status.Code(err), "%q", c)
 	}
 	_, err = w.S.Ungated.BillingAccount().Add(w.ctx, levyan.BillingAccountAddRequest_builder{Country: "KR"}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "a billing account is an account's")
+}
+
+// What a deployment sells each country through is its own to say
+// (`payers.channels`), over the defaults key by key; and a billing account
+// keeps what was said as it was made, whatever the deployment comes to say.
+func TestABillingAccountKeepsWhatItWasMadeOn(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+
+	a := levyantest.Account()
+	before := w.account(a, "KR")
+
+	// The deployment comes up again selling Korea through the gateway, and
+	// Japan in yen.
+	s := w.Again(func(c *cmd.Config) {
+		c.Payers.Channels = cmd.ChannelsConfig{
+			"KR": {Channel: "PG_KR", Currency: "KRW"},
+			"JP": {Channel: "mor", Currency: "JPY"},
+		}
+	})
+	for country, want := range map[string]payers.Billed{
+		"KR": {Channel: levyan.Channel_CHANNEL_PG_KR, Currency: "KRW"},
+		"JP": {Channel: levyan.Channel_CHANNEL_MOR, Currency: "JPY"},
+		"US": {Channel: levyan.Channel_CHANNEL_MOR, Currency: "USD"},
+	} {
+		v, err := s.Payers.Create(w.ctx, a, levyan.BillingAccount_builder{Country: country, Recipient: "김수민"}.Build())
+		x.NoError(err)
+		x.Equal(want.Channel.String(), v.GetChannel(), country)
+		x.Equal(want.Currency, v.GetCurrency(), country)
+	}
+
+	v, err := s.Ent.BillingAccount.Get(w.ctx, before.Uuid())
+	x.NoError(err)
+	x.Equal(levyan.Channel_CHANNEL_MOR.String(), v.Channel, "made before, it stays on what it was made on")
+	x.Equal("KRW", v.Currency)
+
+	// A map is what it says of every country it names, or of `default`.
+	cs := payers.Channels{"KR": {Channel: levyan.Channel_CHANNEL_PG_KR, Currency: "KRW"}}
+	_, err = cs.Of("US")
+	x.Equal(codes.FailedPrecondition, status.Code(err), "nothing sells there")
+	for name, bad := range map[string]payers.Channels{
+		"a country in lower case": {"kr": {Channel: levyan.Channel_CHANNEL_MOR, Currency: "KRW"}},
+		"no channel":              {"KR": {Currency: "KRW"}},
+		"a currency mistyped":     {"KR": {Channel: levyan.Channel_CHANNEL_MOR, Currency: "KWR"}},
+	} {
+		x.Error(payers.DefaultChannels().With(bad).Check(), name)
+	}
+	x.NoError(payers.DefaultChannels().Check())
 }
 
 // roster says an account is gone: each link it pays by ends at the end of

@@ -10,6 +10,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/internal/ent"
 	entstatement "github.com/lesomnus/levyan/internal/ent/statement"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
@@ -22,7 +23,7 @@ import (
 // having what their prices include.
 
 // abroad is setup's loft with its active assets priced on the merchant of
-// record too, in cents: one each past 100.
+// record too: in won, 40 each past 100, and in cents, one each past 100.
 func abroad(t *testing.T) world {
 	w := setup(t)
 	assets, err := w.S.Ent.Meter.Query().All(context.Background())
@@ -31,16 +32,18 @@ func abroad(t *testing.T) world {
 		if m.Key != "loft.assets.active" {
 			continue
 		}
-		_, err := w.S.Ungated.Price().Add(context.Background(), levyan.PriceAddRequest_builder{
-			Tenant:        levyantest.Ref(w.loft),
-			Meter:         levyan.MeterRef_builder{Id: m.Id[:]}.Build(),
-			Channel:       levyan.Channel_CHANNEL_MOR,
-			Currency:      "USD",
-			Included:      100,
-			UnitPrice:     1,
-			DateEffective: timestamppb.New(on(1, 1)),
-		}.Build())
-		w.X.NoError(err)
+		for currency, unit := range map[string]int64{"KRW": 40, "USD": 1} {
+			_, err := w.S.Ungated.Price().Add(context.Background(), levyan.PriceAddRequest_builder{
+				Tenant:        levyantest.Ref(w.loft),
+				Meter:         levyan.MeterRef_builder{Id: m.Id[:]}.Build(),
+				Channel:       levyan.Channel_CHANNEL_MOR,
+				Currency:      currency,
+				Included:      100,
+				UnitPrice:     unit,
+				DateEffective: timestamppb.New(on(1, 1)),
+			}.Build())
+			w.X.NoError(err)
+		}
 	}
 	return w
 }
@@ -51,10 +54,15 @@ func (w world) product() pdid.Id {
 	return p
 }
 
-// billing is a billing account of `owner`'s in `country`.
-func (w world) billing(owner pdid.Id, country string) pdid.Id {
+// billing is a billing account of `owner`'s in `country`, made through `s`
+// -- or this world's server when none.
+func (w world) billing(owner pdid.Id, country string, s ...*cmd.Server) pdid.Id {
 	w.t.Helper()
-	v, err := w.S.Payers.Create(context.Background(), owner, levyan.BillingAccount_builder{Country: country, Recipient: "수민"}.Build())
+	on := w.S
+	if len(s) > 0 {
+		on = s[0]
+	}
+	v, err := on.Payers.Create(context.Background(), owner, levyan.BillingAccount_builder{Country: country, Recipient: "수민"}.Build())
 	w.X.NoError(err)
 	id, err := pdid.From(v.GetId())
 	w.X.NoError(err)
@@ -79,9 +87,9 @@ func (w world) row(ws pdid.Id, start time.Time) *ent.Statement {
 }
 
 // A statement is priced on the channel and in the currency of the billing
-// account its workspace's payer paid with: a Korean one on the gateway in
-// won, one abroad on the merchant of record in cents -- and on the product's
-// own for a payer with none, or no payer.
+// account its workspace's payer paid with: a Korean one on the merchant of
+// record in won, one abroad in cents -- and on the product's own, the
+// gateway in won, for a payer with none, or no payer.
 func TestAStatementIsPricedOnItsPayersBillingAccount(t *testing.T) {
 	w := abroad(t)
 	x := w.X
@@ -102,9 +110,9 @@ func TestAStatementIsPricedOnItsPayersBillingAccount(t *testing.T) {
 	w.close(on(2, 10))
 
 	sa := w.statement(a, on(1, 1))
-	x.Equal(levyanv1.Channel_CHANNEL_PG_KR, sa.GetChannel())
+	x.Equal(levyanv1.Channel_CHANNEL_MOR, sa.GetChannel())
 	x.Equal("KRW", sa.GetCurrency())
-	x.Equal(int64(5000), sa.GetTotal(), "100 past what is included, at 50 won")
+	x.Equal(int64(4000), sa.GetTotal(), "100 past what is included, at 40 won")
 	x.Equal(kr.Uuid(), *w.row(a, on(1, 1)).Payer)
 	x.Equal(krb.Uuid(), w.row(a, on(1, 1)).BillingAccountId)
 
@@ -125,8 +133,8 @@ func TestAStatementIsPricedOnItsPayersBillingAccount(t *testing.T) {
 }
 
 // A payer changed at a period's end bills each period to its own: January
-// to the one who accepted nothing, on its gateway in won; February to the
-// one who accepted in January, abroad.
+// to the one who accepted nothing, in won; February to the one who accepted
+// in January, abroad.
 func TestAPayerChangedBillsEachPeriodToItsOwn(t *testing.T) {
 	w := abroad(t)
 	x := w.X
@@ -151,13 +159,47 @@ func TestAPayerChangedBillsEachPeriodToItsOwn(t *testing.T) {
 	w.close(on(3, 10))
 
 	jan, feb := w.statement(ws, on(1, 1)), w.statement(ws, on(2, 1))
-	x.Equal(levyanv1.Channel_CHANNEL_PG_KR, jan.GetChannel())
-	x.Equal(int64(5000), jan.GetTotal())
+	x.Equal(levyanv1.Channel_CHANNEL_MOR, jan.GetChannel())
+	x.Equal("KRW", jan.GetCurrency())
+	x.Equal(int64(4000), jan.GetTotal())
 	x.Equal(kr.Uuid(), *w.row(ws, on(1, 1)).Payer)
 	x.Equal(levyanv1.Channel_CHANNEL_MOR, feb.GetChannel())
 	x.Equal("USD", feb.GetCurrency())
 	x.Equal(int64(100), feb.GetTotal())
 	x.Equal(us.Uuid(), *w.row(ws, on(2, 1)).Payer)
+}
+
+// A deployment that comes to sell Korea through the gateway moves no billing
+// account made before: a workspace paid for with one made on the merchant of
+// record is billed there still, and one paid for with one made after on the
+// gateway -- whichever server closes the period.
+func TestAMapChangedLaterMovesNoBillingAccount(t *testing.T) {
+	w := abroad(t)
+	x := w.X
+
+	before, after := levyantest.Account(), levyantest.Account()
+	w.billing(before, "KR")
+	gateway := w.Again(func(c *cmd.Config) {
+		c.Payers.Channels = cmd.ChannelsConfig{"KR": {Channel: "PG_KR", Currency: "KRW"}}
+	})
+	w.billing(after, "KR", gateway)
+	a, b := levyantest.Tenant(), levyantest.Tenant()
+
+	w.At(on(1, 1))
+	w.arrive(a, before, on(1, 1))
+	w.arrive(b, after, on(1, 1))
+
+	w.At(on(2, 10))
+	for _, ws := range []pdid.Id{a, b} {
+		w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(2, 1), 200)
+	}
+	w.close(on(2, 10))
+
+	sa, sb := w.statement(a, on(1, 1)), w.statement(b, on(1, 1))
+	x.Equal(levyanv1.Channel_CHANNEL_MOR, sa.GetChannel(), "made before")
+	x.Equal(int64(4000), sa.GetTotal())
+	x.Equal(levyanv1.Channel_CHANNEL_PG_KR, sb.GetChannel(), "made after")
+	x.Equal(int64(5000), sb.GetTotal())
 }
 
 // Each payer's first three workspaces of a product have what their prices

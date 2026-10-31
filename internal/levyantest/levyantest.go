@@ -64,6 +64,27 @@ func New(t *testing.T, with ...func(*cmd.Config)) *World {
 	return &World{X: x, C: c, S: s, t: t}
 }
 
+// Again is this levyan come up again on the same database, as a deployment
+// restarted with other configuration is: `with` has a say over a copy of its
+// configuration -- replacing what it changes rather than writing into what
+// the copy shares -- and the server keeps this one's clock and roster.
+func (w *World) Again(with ...func(*cmd.Config)) *cmd.Server {
+	w.t.Helper()
+
+	c := w.C
+	for _, f := range with {
+		f(&c)
+	}
+
+	s, err := cmd.Build(w.t.Context(), c)
+	w.X.NoError(err)
+	w.t.Cleanup(func() { s.Close() })
+	s.Clock = func() time.Time { return w.S.Clock() }
+	s.Standing = w.S.Standing
+
+	return s
+}
+
 // Standing is roster's word on accounts, as a test says it: good for every
 // account but those Refuse has been told of.
 type Standing struct {

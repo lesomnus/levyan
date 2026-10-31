@@ -13,13 +13,19 @@
 package cmd
 
 import (
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/lesomnus/xli/cfg"
 
 	"github.com/lesomnus/payday/config"
 
+	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/keyring"
+	"github.com/lesomnus/levyan/server/payers"
 )
 
 // Name is what this app is called, and it is the only place it is written.
@@ -134,6 +140,78 @@ type PayersConfig struct {
 	// Reconcile is how often roster is asked about every account levyan
 	// bills, for what its stream missed: a day when unset.
 	Reconcile time.Duration `yaml:"reconcile"`
+
+	// Channels is what a billing account is billed through, by the country
+	// it is in -- ISO 3166-1 alpha-2, in capitals -- and `default` for every
+	// country no other key names. A key left out is as the defaults say: the
+	// merchant of record everywhere, in won in KR and in US dollars
+	// elsewhere ([payers.DefaultChannels]).
+	//
+	// It is asked as a billing account is made, and never again of it:
+	// changing it moves no billing account made before.
+	Channels ChannelsConfig `yaml:"channels"`
+}
+
+// ChannelsConfig is what a billing account in each country is billed
+// through, by the country.
+type ChannelsConfig map[string]ChannelConfig
+
+// ChannelConfig is what a billing account in a country is billed through.
+type ChannelConfig struct {
+	// Channel is what it is sold on: MOR, the merchant of record, or PG_KR,
+	// the Korean payment gateway.
+	Channel string `yaml:"channel"`
+
+	// Currency is what it is billed in, as ISO 4217 writes it: KRW.
+	Currency string `yaml:"currency"`
+}
+
+// Validate refuses channels that would bill a billing account through
+// nothing, as the configuration is loaded.
+func (c ChannelsConfig) Validate() error {
+	_, err := c.Over(payers.DefaultChannels())
+
+	return err
+}
+
+// ChannelsOf is [PayersConfig.Channels] over its defaults.
+func (c PayersConfig) ChannelsOf() (payers.Channels, error) {
+	return c.Channels.Over(payers.DefaultChannels())
+}
+
+// Over is `base` with what these say in its place, country by country.
+func (c ChannelsConfig) Over(base payers.Channels) (payers.Channels, error) {
+	over := payers.Channels{}
+	for _, k := range slices.Sorted(maps.Keys(c)) {
+		v := c[k]
+		name := strings.TrimPrefix(strings.ToUpper(strings.TrimSpace(v.Channel)), "CHANNEL_")
+		ch, ok := levyan.Channel_value["CHANNEL_"+name]
+		if !ok || ch == 0 {
+			return nil, fmt.Errorf("%s: channel: %q is none of %s", k, v.Channel, strings.Join(channelNames(), ", "))
+		}
+		over[k] = payers.Billed{Channel: levyan.Channel(ch), Currency: v.Currency}
+	}
+
+	out := base.With(over)
+	if err := out.Check(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// channelNames is the channels a billing account may be billed through, as
+// [ChannelConfig.Channel] writes them.
+func channelNames() []string {
+	out := []string{}
+	for v, name := range levyan.Channel_name {
+		if v != 0 {
+			out = append(out, strings.TrimPrefix(name, "CHANNEL_"))
+		}
+	}
+	slices.Sort(out)
+
+	return out
 }
 
 // FreeOf is [PayersConfig.Free], or its default.

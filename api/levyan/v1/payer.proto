@@ -36,7 +36,8 @@ service PayerService {
   rpc ListBillingAccounts(ListBillingAccountsRequest) returns (ListBillingAccountsResponse);
 
   // CreateBillingAccount makes one: in a country, which says the channel it
-  // is sold through and the currency it is billed in, and never changes.
+  // is sold through and the currency it is billed in -- what the deployment
+  // sells that country through as it is made -- and never changes.
   rpc CreateBillingAccount(CreateBillingAccountRequest) returns (CreateBillingAccountResponse);
 
   // UpdateBillingAccount says again who receives what one is billed, and the
@@ -78,9 +79,9 @@ message CreateBillingAccountRequest {
   // What the account calls it: "회사용".
   string name = 1;
 
-  // ISO 3166-1 alpha-2: KR. A billing account in KR is sold through the
-  // Korean PG and billed in won; one anywhere else through the merchant of
-  // record, in US dollars.
+  // ISO 3166-1 alpha-2: KR. What a billing account in each country is sold
+  // through and billed in is the deployment's to say: by default the
+  // merchant of record, in won in KR and in US dollars anywhere else.
   string country = 2;
 
   Recipient recipient = 3;
@@ -170,8 +171,8 @@ message BillingAccount {
   string id = 1;
   string name = 2;
 
-  // The country it is billed in, and what that says: the channel it is sold
-  // through and the currency it is billed in.
+  // The country it is billed in, and what the deployment sold that country
+  // through when it was made: the channel and the currency.
   string country = 3;
   Channel channel = 4;
   string currency = 5;

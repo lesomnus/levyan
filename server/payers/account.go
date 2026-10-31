@@ -2,7 +2,6 @@ package payers
 
 import (
 	"context"
-	"regexp"
 	"time"
 	"uuid"
 
@@ -265,37 +264,14 @@ func (p Payers) Stop(ctx context.Context, product, account, key pdid.Id) (*levya
 	return out, err
 }
 
-// country is a country as ISO 3166-1 alpha-2 writes one.
-var country = regexp.MustCompile(`^[A-Z]{2}$`)
-
-// ChannelOf is the channel a billing account in `country` is sold through,
-// by its name, and the currency it is billed in: the Korean PG in won for
-// KR, and the merchant of record in US dollars for every other (#4).
-func ChannelOf(c string) (string, string, error) {
-	if !country.MatchString(c) {
-		return "", "", status.Errorf(codes.InvalidArgument, "country: %q is not ISO 3166-1 alpha-2, in capitals: KR", c)
-	}
-	if c == "KR" {
-		return levyan.Channel_CHANNEL_PG_KR.String(), "KRW", nil
-	}
-
-	return levyan.Channel_CHANNEL_MOR.String(), "USD", nil
-}
-
 // Create is a billing account of `account`'s made through the stack: in a
-// country, which says its channel and its currency.
+// country, which says its channel and its currency as the deployment sells
+// there now ([Layer]).
 func (p Payers) Create(ctx context.Context, account pdid.Id, v *levyan.BillingAccount) (*levyan.BillingAccount, error) {
-	channel, currency, err := ChannelOf(v.GetCountry())
-	if err != nil {
-		return nil, err
-	}
-
 	req := levyan.BillingAccountAddRequest_builder{
 		Name:      v.GetName(),
 		Owner:     account.Bytes(),
 		Country:   v.GetCountry(),
-		Channel:   channel,
-		Currency:  currency,
 		Recipient: v.GetRecipient(),
 		Email:     v.GetEmail(),
 		Address:   v.GetAddress(),

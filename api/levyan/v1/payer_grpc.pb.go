@@ -62,7 +62,8 @@ type PayerServiceClient interface {
 	// made them.
 	ListBillingAccounts(ctx context.Context, in *ListBillingAccountsRequest, opts ...grpc.CallOption) (*ListBillingAccountsResponse, error)
 	// CreateBillingAccount makes one: in a country, which says the channel it
-	// is sold through and the currency it is billed in, and never changes.
+	// is sold through and the currency it is billed in -- what the deployment
+	// sells that country through as it is made -- and never changes.
 	CreateBillingAccount(ctx context.Context, in *CreateBillingAccountRequest, opts ...grpc.CallOption) (*CreateBillingAccountResponse, error)
 	// UpdateBillingAccount says again who receives what one is billed, and the
 	// business it is billed to. What is left out stays as it is.
@@ -214,7 +215,8 @@ type PayerServiceServer interface {
 	// made them.
 	ListBillingAccounts(context.Context, *ListBillingAccountsRequest) (*ListBillingAccountsResponse, error)
 	// CreateBillingAccount makes one: in a country, which says the channel it
-	// is sold through and the currency it is billed in, and never changes.
+	// is sold through and the currency it is billed in -- what the deployment
+	// sells that country through as it is made -- and never changes.
 	CreateBillingAccount(context.Context, *CreateBillingAccountRequest) (*CreateBillingAccountResponse, error)
 	// UpdateBillingAccount says again who receives what one is billed, and the
 	// business it is billed to. What is left out stays as it is.

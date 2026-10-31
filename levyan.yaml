@@ -116,11 +116,22 @@ spin:
 # allowances, and how long a workspace may go with no payer before it is
 # restricted; how often an erased account is asked about again, and everybody.
 #
+# `channels` is what a billing account is billed through, by the country it
+# is in (ISO 3166-1 alpha-2, in capitals), and `default` for every country no
+# other key names: the channel, MOR or PG_KR, and the currency. A key left
+# out is as below. It is asked as a billing account is made and never again
+# of it, so changing it moves no billing account made before; and a
+# product's prices must be on each channel and currency it names, or what is
+# billed there comes to nothing.
+#
 # payers:
 #   free: 3
 #   grace: 720h
 #   settle: 1h
 #   reconcile: 24h
+#   channels:
+#     KR: {channel: MOR, currency: KRW}
+#     default: {channel: MOR, currency: USD}
 
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an

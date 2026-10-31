@@ -30,11 +30,11 @@ type Channel int32
 
 const (
 	Channel_CHANNEL_UNSPECIFIED Channel = 0
-	// A merchant of record, for customers abroad: it is the seller, and is told
-	// what each closed period came to.
+	// A merchant of record: it is the seller, and is told what each closed
+	// period came to.
 	Channel_CHANNEL_MOR Channel = 1
-	// A Korean payment gateway, for customers in Korea: levyan is the seller,
-	// and charges the card itself.
+	// A Korean payment gateway: levyan is the seller, and charges the card
+	// itself.
 	Channel_CHANNEL_PG_KR Channel = 2
 )
 

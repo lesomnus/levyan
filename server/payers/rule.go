@@ -21,7 +21,7 @@ import (
 // one it restricts: levyan has heard nothing of who should.
 //
 // The restriction is a grant that restricts when it is there, as every
-// restriction is (docs/design.md §12), so a gap in levyan lifts it rather than
+// restriction is (docs/design.md §13), so a gap in levyan lifts it rather than
 // stopping every workspace.
 type Payerless struct {
 	// Grace is how long a workspace may go with no payer: [DefaultGrace] when

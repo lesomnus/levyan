@@ -338,9 +338,9 @@ type CreateBillingAccountRequest_builder struct {
 
 	// What the account calls it: "회사용".
 	Name string
-	// ISO 3166-1 alpha-2: KR. A billing account in KR is sold through the
-	// Korean PG and billed in won; one anywhere else through the merchant of
-	// record, in US dollars.
+	// ISO 3166-1 alpha-2: KR. What a billing account in each country is sold
+	// through and billed in is the deployment's to say: by default the
+	// merchant of record, in won in KR and in US dollars anywhere else.
 	Country   string
 	Recipient *Recipient
 	// For a business, what its tax invoice names it by.
@@ -1535,8 +1535,8 @@ type BillingAccount_builder struct {
 
 	Id   string
 	Name string
-	// The country it is billed in, and what that says: the channel it is sold
-	// through and the currency it is billed in.
+	// The country it is billed in, and what the deployment sold that country
+	// through when it was made: the channel and the currency.
 	Country   string
 	Channel   Channel
 	Currency  string

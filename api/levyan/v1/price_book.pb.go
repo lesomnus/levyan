@@ -133,14 +133,16 @@ func (x Aggregation) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Channel is who a product is sold through.
+// Channel is who a product is sold through. Which one a billing account is
+// sold through is the deployment's to say, by its country
+// (`PayerService.CreateBillingAccount`).
 type Channel int32
 
 const (
 	Channel_CHANNEL_UNSPECIFIED Channel = 0
-	// A merchant of record, for customers abroad.
+	// A merchant of record.
 	Channel_CHANNEL_MOR Channel = 1
-	// A Korean payment gateway, for customers in Korea.
+	// A Korean payment gateway.
 	Channel_CHANNEL_PG_KR Channel = 2
 )
 

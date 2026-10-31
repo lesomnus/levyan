@@ -76,7 +76,7 @@ func TestAProductsUserAnswersAsItself(t *testing.T) {
 	}.Build())
 	x.NoError(err)
 	x.Equal("KR", ba.GetBillingAccount().GetCountry())
-	x.Equal(levyanv1.Channel_CHANNEL_PG_KR, ba.GetBillingAccount().GetChannel())
+	x.Equal(levyanv1.Channel_CHANNEL_MOR, ba.GetBillingAccount().GetChannel(), "Korea is on the merchant of record, in won, by default")
 	x.Equal("KRW", ba.GetBillingAccount().GetCurrency())
 
 	// What it wrote of its own, the trail says it wrote.

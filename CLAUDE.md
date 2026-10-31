@@ -422,6 +422,14 @@ the account's own); a `Link` says who pays for a workspace from when to when.
   asking again); `levyan.payers.reconcile` finds what the stream missed.
 - **A workspace with no payer** is restricted after `payers.grace` by the
   grants' rule `payers.grace` (`payers.Payerless`): `<product>.restricted` ON.
+- **What a billing account is billed through** -- channel and currency -- is
+  the deployment's map from its country (`payers.channels`, `payers.Channels`,
+  each key over the defaults: the merchant of record, KRW in KR and USD
+  elsewhere). It is asked once, as the account is made (`payers.Layer`), and
+  kept on the row: a map changed later moves no account, and moving one is a
+  channel switch at a period's end, not built yet. A product's prices must
+  be on every channel and currency the map bills in, or what is billed there
+  comes to nothing.
 
 ## Background work
 

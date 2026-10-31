@@ -25,17 +25,19 @@ const (
 
 // BillingAccount is what an account of roster's pays with: one card and one
 // invoice -- who receives it, and the business it is billed to -- in one
-// country, sold through the channel that country is sold through (#4). An
-// account may hold several (one for the company, one of its own), and a
-// workspace is paid for with one of them at a time (`Link`).
+// country, on the channel and in the currency the deployment sold that
+// country on when it was made (`payers.channels`, #4). An account may hold
+// several (one for the company, one of its own), and a workspace is paid for
+// with one of them at a time (`Link`).
 //
 // It is the account's, and no product's: global. What reads it is the
 // account's own calls (`levyan.v1.PayerService`), which read only the billing
 // accounts it owns (`pd.AccountReads`), and the deployment's work; the
 // generated methods are nobody's (`server/policy`).
 //
-// Its country, and so its channel and its currency, never change: billed
-// elsewhere is another billing account, and a workspace moves to it at a
+// Its country, its channel and its currency never change, not even when the
+// deployment comes to sell that country through another: billed elsewhere or
+// otherwise is another billing account, and a workspace moves to it at a
 // period's end, as any change of who pays does. The card itself is the
 // channel's to keep, and comes with the channel's adapter (#10, #12).
 //
@@ -312,10 +314,12 @@ type BillingAccount_builder struct {
 	Owner []byte
 	// The country it is billed in, ISO 3166-1 alpha-2 in capitals: KR.
 	Country string
-	// The channel that country is sold through, by its name -- `CHANNEL_PG_KR`
-	// for KR, `CHANNEL_MOR` for every other -- and the currency a statement on
-	// it is priced in. Both are the server's to say, from the country. A name
-	// and not the enum, for the reason `Tenant.channel` is one.
+	// The channel it is sold through, by its name (`CHANNEL_MOR`), and the
+	// currency a statement on it is priced in: what the deployment said of its
+	// country when it was made (`payers.channels`; by default the merchant of
+	// record, in won for KR and in US dollars for every other). Both are the
+	// server's to say. A name and not the enum, for the reason `Tenant.channel`
+	// is one.
 	Channel  string
 	Currency string
 	// Who receives what it is billed: a person's name, where it goes, and the

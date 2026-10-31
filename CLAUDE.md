@@ -322,11 +322,11 @@ names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
 ## The MoR channel (`internal/mor`)
 
 What levyan asks of a merchant of record it sells through (docs/design.md
-§12): the interface, `mor.Channel`, and one candidate's adapter,
-`internal/mor/paddle`. **Which MoR is the owner's decision and is not made**;
-Paddle is the candidate Claude picked, and Polar the alternative levyan#1
-names. Nothing but the wiring names `paddle`, and the fake
-(`internal/mor/paddle/paddletest`) is what tests use.
+§12): the interface, `mor.Channel`, and its adapter, `internal/mor/paddle`.
+**The MoR is Paddle** -- the owner's decision, 2026-10-31 (#12) -- and the
+owner has made no Paddle account yet, so there are no keys: the fake
+(`internal/mor/paddle/paddletest`) is what tests use, and `TestLive` waits.
+Nothing but the wiring (`cmd`) names `paddle`.
 
 - **levyan computes the amount.** A closed period's amount goes to the MoR as
   a one-time charge of the payer's subscription (`Charge`): an amount, never a
@@ -352,7 +352,51 @@ names. Nothing but the wiring names `paddle`, and the fake
 - **A webhook is a hint**: `Webhook` checks the signature and that it is
   fresh, and reads only what it names; `Recheck` asks the API. Keep it once by
   `Notice.ID`; order a transaction's answers by `Transaction.Progress`, a
-  subscription's by `Subscription.Updated`.
+  subscription's by `Subscription.Updated`. The MoR's own list of what it
+  noticed (`Notices`, Paddle's `GET /events`) is read into the same inbox, by
+  the same ids.
+- **Plans are by currency** (`paddle.Config.Plans`): a checkout is in its
+  billing account's currency, in the plan of it.
+
+## Subscriptions (`server/subscriptions`)
+
+A billing account on the MoR's channel is collected through a subscription
+the payer starts in the MoR's checkout (docs/design.md §12, "연결"):
+
+- **A checkout is completed only as levyan recorded it** (`Checkout`), for
+  the billing account it was begun for: `CompleteCheckout` takes levyan's id
+  of it, never the MoR's. A billing account has one open at a time -- begun
+  again, it is the same one while the MoR takes it (`mor.Start.Again`) -- and
+  one live subscription: a checkout of one that has a live one is refused
+  once the MoR is asked again, and a second subscription made all the same
+  is canceled at the MoR as levyan learns of it.
+- **The mirror** (`Subscription`) is written through the servers, of what
+  the MoR's API answers, and an answer older than the one it holds -- by the
+  MoR's `updated_at` -- changes nothing. How the payer pays, and whether a
+  payment waits for them, come of the newest transaction of it levyan was
+  told of (Paddle ids sort as made, then `Progress`). Of a card, keep its
+  brand and its last four digits, and nothing more; `method_last4` is
+  `personal`.
+- **A billing account's collection** (`BillingAccount.collection`,
+  `CollectionState`) is written beside its mirror, in the same transaction
+  holding the billing account's row, and only when it changes -- so each
+  change is on the trail. What a state that is not collectable leads to is
+  #11's; read it with `subscriptions.CollectionOf`.
+- **The inbox** (`Notice`) and its cursor (`NoticeCursor`) are written with
+  ent alone and are `trail: off`: a notice is a hint, and what it leads to is
+  asked of the MoR and written through the servers. The webhook endpoint
+  (`POST /webhooks/mor/<adapter>` on `server.http`) holds the inbox and the
+  channel's signature check and **never a server stack** -- it is the
+  public's to reach. It answers within `subscriptions.Answer`, with no
+  request of its own to the MoR; with no `mor.webhook_secret` it is not
+  served at all.
+- **The pull** reads past nothing newer than `subscriptions.Overlap`, so a
+  notice the MoR lists late is not passed over; the inbox keeps each once.
+- **Collecting an invoice is not built here.** It is an `invoices.Collector`
+  for the MoR (`server/invoices`, the next PR): it charges the subscription
+  of the billing account's live mirror (`subscriptions.CollectionOf`), and
+  may plug into `Taker.Transaction` for what the MoR answers of each
+  transaction a notice names.
 - **The API key and the webhook secret are `cfg.Secret`s**, sent in a header
   and never in a URL; no error of the adapter's carries either.
 
@@ -541,6 +585,10 @@ levyan's own:
   minutes, which is `mor.Settle`) invoices what the close wrote, decides
   drafts, issues a seller's documents and sends and asks about attempts,
   through `Ungated` as the deployment.
+- `levyan.mor.inbox` (`subscriptions.Takes`) takes the MoR's notices: every
+  five seconds, and at once when this process keeps a webhook; and
+  `levyan.mor.events` (`subscriptions.Pulls`, `mor.pull`) reads the MoR's
+  list of its events into the inbox. Neither runs when `mor` names no MoR.
 
 A pass of any of them that fails is logged and the next tries again. And
 payday's `payday.outbox` always runs: it is what streams a grant's change.
@@ -552,7 +600,14 @@ payday's `payday.outbox` always runs: it is what streams a grant's change.
 `${file:/run/…}` or `${env:…}`, never the value in a file somebody reads --
 and is printed by `config` as its reference. Never log a secret: not a service
 key, not an operator key (the admin log says the operator's name), not a payment
-key when those come.
+key (`mor.api_key`, `mor.webhook_secret`).
+
+A block is validated as it is loaded, and what is wrong of a part is said
+where it is written: give the part a type of its own with a `Validate`
+(`ChannelsConfig`, `MorKind`, `MorPlans`), since `cfg` places an error by its
+leaf. What is missing, or what the parts say of one another, the block's own
+`Validate` says. With no `mor` block there is no MoR, and nothing else
+changes.
 
 ## Running
 

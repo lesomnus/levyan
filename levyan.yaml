@@ -133,6 +133,36 @@ spin:
 #     KR: {channel: MOR, currency: KRW}
 #     default: {channel: MOR, currency: USD}
 
+# The merchant of record a billing account on its channel is collected
+# through (#12): Paddle. With no block there is none -- a checkout is refused,
+# no webhook is received and no event pulled -- and nothing else changes.
+#
+# The key and the webhook secret are secrets, so references to them and never
+# the values: the key one of the environment's (`pdl_sdbx_apikey_…` in the
+# sandbox), with the permissions to read and write transactions,
+# subscriptions and adjustments and to read notifications; the secret the
+# notification destination's, which signs the webhooks Paddle sends to
+# `POST /webhooks/mor/paddle` on the second listener (`server.http.addr`).
+# With no webhook secret, no webhook is received, and Paddle's list of its
+# events -- read every `pull` into the same inbox -- is all levyan hears.
+#
+# `plans` is the plan a checkout subscribes a billing account to, by the
+# currency it is billed in: a monthly price of nothing, every amount being
+# levyan's one-time charges. Every currency `payers.channels` bills on the
+# merchant of record needs one.
+#
+# mor:
+#   kind: paddle
+#   environment: sandbox
+#   api_key: "${file:/run/secrets/levyan/paddle-api-key}"
+#   webhook_secret: "${file:/run/secrets/levyan/paddle-webhook-secret}"
+#   client_token: "test_…"
+#   plans:
+#     KRW: "pri_…"
+#     USD: "pri_…"
+#   tolerance: 5s
+#   pull: 1m
+
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an
 # address the public reaches.

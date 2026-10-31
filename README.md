@@ -14,6 +14,7 @@ payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. �
 - **권한 부여.** 워크스페이스마다 Grant(키, 값, 유효 기간)를 주고, payday의 `GrantService`로 제품에게 스트림과 목록을 준다. 제품은 자기 DB에 사본을 두고 검사한다. 운영자는 손으로 주고 끝낸다. 끝이 없는 Grant는 7일 앞까지 유효하고 루프가 갱신한다.
 - **청구서와 결제 원장.** 기간이 닫히면 결제 계정마다 청구서 하나에 그 결제 계정이 낸 워크스페이스의 내역을 모은다. 채널이 받는 최소 금액보다 작으면 다음 기간으로 넘긴다. 확정한 청구서는 고치지 않고, 되돌리는 것은 정정 청구(정정, 환불, 취소)다. 돌려줄 것은 결제 계정의 크레딧이 되어 다음 청구서에서 먼저 쓴다. 돈을 움직이는 시도는 모두 결제 원장에 남고, 보내기 전에 기록한다. 응답이 오지 않은 시도는 채널에 물어본 뒤에만 다시 보낸다. 판매자 채널(levyan이 파는 채널)의 청구서는 법적 청구서라 번호를 매기고 세금을 따로 적는다.
 - **결제 계정과 지불자.** 지불자는 roster 계정이고 결제 계정으로 낸다. 워크스페이스는 만든 사람이 내고, 다른 계정이 받아들이면 다음 기간부터 그 계정이 낸다. 내역은 지불자의 결제 계정의 채널과 통화로 매기고(국내 결제 계정은 기본이 MoR과 원이다), 지불자마다 먼저 연결된 3개의 워크스페이스만 무료량을 받는다. 지불자 없이 30일이 지난 워크스페이스는 제한된다. 지불자의 호출은 앱이 사용자를 대신해서 보내고, levyan은 roster에 그 계정의 상태를 묻는다.
+- **MoR(Paddle)의 구독.** MoR 채널의 결제 계정은 지불자가 Paddle의 결제창에서 시작한 구독으로 수금한다. levyan은 결제창을 열고 끝내며, 구독의 사본을 Paddle API의 답으로만 만들고, 결제 계정이 지금 수금할 수 있는지(그리고 왜 아닌지)를 둔다. Paddle의 웹훅은 inbox에 담고, Paddle의 이벤트 목록도 같은 inbox로 끌어온다. 닫은 기간의 금액을 청구하는 것은 아직 없다(#9 다음).
 
 앱이 할 일은 [docs/apps.md](docs/apps.md)에 있다.
 
@@ -248,6 +249,30 @@ admin billing-account add --channel bank_kr --owner <roster 계정 id> --name �
 admin invoice paid --amount 55000 --date 2027-02-05 --reference '<입금자명>' --yes <invoice id>
 admin invoice credit --reason refund --amount 10000 --reference '<돌려보낸 이체>' --date 2027-02-10 --yes <invoice id>
 ```
+
+### MoR (Paddle)
+
+MoR 채널의 결제 계정은 Paddle의 구독으로 수금한다. 설정에 `mor` 블록이 있어야 한다. 없으면 MoR은 없는 것이다. 결제창(`StartCheckout`, `CompleteCheckout`)은 FailedPrecondition이고, 웹훅도 이벤트 끌어오기도 돌지 않는다. 그 밖에는 바뀌지 않는다.
+
+```yaml
+mor:
+  kind: paddle
+  environment: sandbox                                # 또는 live. 키도 API도 따로다
+  api_key: "${file:/run/secrets/levyan/paddle-api-key}"            # pdl_sdbx_apikey_… / pdl_live_apikey_…
+  webhook_secret: "${file:/run/secrets/levyan/paddle-webhook-secret}" # pdl_ntfset_…. 없으면 웹훅을 받지 않는다
+  client_token: test_…                                # 페이지가 결제창을 여는 공개 토큰
+  plans:                                              # 통화마다 0원 월 플랜(pri_…)
+    KRW: pri_…
+    USD: pri_…
+  # tolerance: 5s                                     # 웹훅 서명 시각의 허용 오차
+  # pull: 1m                                          # Paddle의 이벤트 목록을 읽는 주기
+```
+
+- **키.** API 키에는 transactions, subscriptions, adjustments의 읽기·쓰기와 notifications의 읽기(이벤트 목록, `notification.read`) 권한이 있어야 한다. 키와 웹훅 비밀은 파일로 마운트하고 `${file:…}`로 가리킨다. `levyan config`는 참조만 출력한다.
+- **플랜.** `payers.channels`가 MoR로 파는 통화마다 플랜이 있어야 한다. 기본값이면 KRW와 USD다. 없으면 levyan은 뜨지 않는다.
+- **웹훅.** 두 번째 리스너(`server.http.addr`)의 `POST /webhooks/mor/paddle`이다. Paddle의 알림 대상(notification destination)을 이 주소로 만들고 `transaction.*`, `subscription.*`, `adjustment.*` 이벤트를 고른다. 그 대상의 비밀이 `webhook_secret`이다. 서명이 맞지 않으면 400, levyan이 담지 못하면 503이고 Paddle이 다시 보낸다.
+- **이벤트 끌어오기.** levyan은 Paddle의 이벤트 목록(`GET /events`)을 1분마다 읽어 같은 inbox에 담는다(같은 이벤트는 한 번). 그래서 웹훅이 닿지 않는 배포(인터넷에서 닿지 않는 스테이징)도 Paddle의 소식을 받는다. 웹훅 비밀을 적지 않으면 웹훅 없이 이것만 한다.
+- **루프**: `levyan.mor.inbox`(inbox를 처리한다)와 `levyan.mor.events`(이벤트를 읽는다). 한 프로세스에서만 돈다.
 
 ## 배포
 

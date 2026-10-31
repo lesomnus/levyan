@@ -950,3 +950,67 @@ func TestACheckoutStartsFromWhatItCanBe(t *testing.T) {
 func TestAnErrorFromBeneathIsUnknown(t *testing.T) {
 	require.Equal(t, mor.Unknown, mor.KindOf(errors.New("a reset connection")))
 }
+
+// Every transaction Paddle has is read a page at a time, the oldest first,
+// with its adjustments: of every subscription or of one, and changed since a
+// time or ever -- what reconciliation holds the ledger to.
+func TestTransactionsAreReadPageByPage(t *testing.T) {
+	srv, ch := setup(t)
+	ctx := t.Context()
+	srv.PageSize = 2
+
+	s1 := subscribe(t, srv, ch)
+	t1, err := ch.Charge(ctx, now(s1, "lv-0001", 500))
+	require.NoError(t, err)
+	srv.Advance(time.Hour)
+	since := srv.Now()
+	s2 := subscribe(t, srv, ch)
+	t2, err := ch.Charge(ctx, now(s2, "lv-0002", 700))
+	require.NoError(t, err)
+	adj, err := ch.Refund(ctx, mor.Refund{Transaction: t2.ID, All: true, Reason: "환불", Key: "lv-0003"})
+	require.NoError(t, err)
+
+	all := func(l mor.List) []mor.Transaction {
+		t.Helper()
+		out := []mor.Transaction{}
+		for pages := 0; ; pages++ {
+			require.Less(t, pages, 10)
+			got, err := ch.Transactions(ctx, l)
+			require.NoError(t, err)
+			require.LessOrEqual(t, len(got.Transactions), 2)
+			out = append(out, got.Transactions...)
+			if !got.More {
+				return out
+			}
+			require.NotEmpty(t, got.Last)
+			l.After = got.Last
+		}
+	}
+	ids := func(ts []mor.Transaction) []string {
+		out := []string{}
+		for _, t := range ts {
+			out = append(out, t.ID)
+		}
+		return out
+	}
+
+	everything := all(mor.List{})
+	require.Len(t, everything, 4, "two checkouts and two charges")
+	require.Equal(t, t1.ID, everything[1].ID, "the oldest first")
+	require.Equal(t, []string{everything[2].ID, t2.ID}, ids(all(mor.List{Subscription: s2.ID})))
+	require.Equal(t, []string{everything[2].ID, t2.ID}, ids(all(mor.List{Since: since})), "changed since")
+
+	got := all(mor.List{Subscription: s2.ID})[1]
+	a, ok := got.Adjustment("lv-0003")
+	require.True(t, ok, "with its adjustments")
+	require.Equal(t, adj.ID, a.ID)
+	require.Equal(t, usd(700), a.Asked, "in the terms it was asked in")
+	l, ok := got.Line("lv-0002")
+	require.True(t, ok)
+	require.Equal(t, usd(700), l.Amount)
+
+	_, err = ch.Transactions(ctx, mor.List{Subscription: "sub_nonsense"})
+	require.Equal(t, mor.Invalid, mor.KindOf(err))
+	_, err = ch.Transactions(ctx, mor.List{After: "../events"})
+	require.Equal(t, mor.Invalid, mor.KindOf(err))
+}

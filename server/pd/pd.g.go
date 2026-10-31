@@ -25,6 +25,7 @@ import (
 	entCredit "github.com/lesomnus/levyan/internal/ent/credit"
 	entCreditNote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	entDeparture "github.com/lesomnus/levyan/internal/ent/departure"
+	entFinding "github.com/lesomnus/levyan/internal/ent/finding"
 	entGrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entHolder "github.com/lesomnus/levyan/internal/ent/holder"
 	entInvoice "github.com/lesomnus/levyan/internal/ent/invoice"
@@ -129,6 +130,7 @@ const (
 	CreditDomain         pdid.Domain = 27  // "credit"
 	CreditNoteDomain     pdid.Domain = 25  // "credit-note"
 	DepartureDomain      pdid.Domain = 22  // "departure"
+	FindingDomain        pdid.Domain = 45  // "finding"
 	GrantDomain          pdid.Domain = 18  // "grant"
 	HolderDomain         pdid.Domain = 2   // "holder"
 	InvoiceDomain        pdid.Domain = 23  // "invoice"
@@ -165,6 +167,7 @@ func init() {
 	pdid.Register("levyan.Credit", CreditDomain, "credit")
 	pdid.Register("levyan.CreditNote", CreditNoteDomain, "credit-note")
 	pdid.Register("levyan.Departure", DepartureDomain, "departure")
+	pdid.Register("levyan.Finding", FindingDomain, "finding")
 	pdid.Register("levyan.Grant", GrantDomain, "grant")
 	pdid.Register("levyan.Holder", HolderDomain, "holder")
 	pdid.Register("levyan.Invoice", InvoiceDomain, "invoice")
@@ -205,6 +208,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.Credit":         CreditDomain,
 	"levyan.CreditNote":     CreditNoteDomain,
 	"levyan.Departure":      DepartureDomain,
+	"levyan.Finding":        FindingDomain,
 	"levyan.Grant":          GrantDomain,
 	"levyan.Holder":         HolderDomain,
 	"levyan.Invoice":        InvoiceDomain,
@@ -259,6 +263,9 @@ var IndexRenames = []rename.Index{
 	{Table: "creditnote", From: "creditnote_tenant_id_date_created_id", To: "creditnote_page"},
 	{Table: "creditnote", From: "creditnote_invoice_id_date_created", To: "creditnote_invoice"},
 	{Table: "creditnote", From: "creditnote_billing_account_id_date_created", To: "creditnote_billing"},
+	{Table: "finding", From: "finding_kind_subject", To: "finding_once"},
+	{Table: "finding", From: "finding_state_date_created", To: "finding_state"},
+	{Table: "finding", From: "finding_product_id_date_created", To: "finding_product"},
 	{Table: "grant", From: "grant_tenant_id_date_created_id", To: "grant_page"},
 	{Table: "grant", From: "grant_workspace_id_date_created_id", To: "grant_workspace"},
 	{Table: "grant", From: "grant_renews_valid_until", To: "grant_renewal"},
@@ -492,6 +499,19 @@ func (wall) DepartureScope(ctx context.Context) (predicate.Departure, error) {
 		}
 
 		return r.Departure(ctx, a)
+	}
+
+	return nil, nil
+}
+
+// FindingScope: declared `global`, so it is not behind the wall at all.
+func (wall) FindingScope(ctx context.Context) (predicate.Finding, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Finding == nil {
+			return nothing[predicate.Finding](), nil
+		}
+
+		return r.Finding(ctx, a)
 	}
 
 	return nil, nil
@@ -990,6 +1010,11 @@ func (x grouped) CreditNoteScope(ctx context.Context) (predicate.CreditNote, err
 
 // DepartureScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) DepartureScope(ctx context.Context) (predicate.Departure, error) {
+	return nil, nil
+}
+
+// FindingScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) FindingScope(ctx context.Context) (predicate.Finding, error) {
 	return nil, nil
 }
 
@@ -2559,6 +2584,35 @@ func (s sinkDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequ
 	seen.Forget(s.store.Db.Driver(), "Departure", req.GetRef())
 
 	return s.DepartureServiceServer.Patch(ctx, req)
+}
+
+type sinkFinding struct {
+	levyan.FindingServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Finding() levyan.FindingServiceServer {
+	return sinkFinding{s.Server.Finding(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkFinding) Apply(ctx context.Context, req *levyan.FindingApplyRequest) (*levyan.Finding, error) {
+	seen.Forget(s.store.Db.Driver(), "Finding", req.GetRef())
+
+	return s.FindingServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkFinding.Apply].
+func (s sinkFinding) Patch(ctx context.Context, req *levyan.FindingPatchRequest) (*levyan.Finding, error) {
+	seen.Forget(s.store.Db.Driver(), "Finding", req.GetRef())
+
+	return s.FindingServiceServer.Patch(ctx, req)
 }
 
 type sinkGrant struct {
@@ -9695,6 +9749,96 @@ func (s accountsDeparture) Apply(ctx context.Context, req *levyan.DepartureApply
 	return s.DepartureServiceServer.Apply(ctx, req)
 }
 
+func (s Gate) Operator() levyan.OperatorServiceServer {
+	return accountsOperator{s.Next().Operator()}
+}
+
+// accountsOperator is OperatorService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsOperator struct{ levyan.OperatorServiceServer }
+
+func (s accountsOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Add(ctx, req)
+}
+
+func (s accountsOperator) Get(ctx context.Context, req *levyan.OperatorGetRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Get(ctx, req)
+}
+
+func (s accountsOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Patch(ctx, req)
+}
+
+func (s accountsOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Apply(ctx, req)
+}
+
+func (s accountsOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Erase(ctx, req)
+}
+
+func (s Gate) Finding() levyan.FindingServiceServer {
+	return accountsFinding{s.Next().Finding()}
+}
+
+// accountsFinding is FindingService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsFinding struct{ levyan.FindingServiceServer }
+
+func (s accountsFinding) Add(ctx context.Context, req *levyan.FindingAddRequest) (*levyan.Finding, error) {
+	if err := gate.AsAccount(ctx, levyan.FindingService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.FindingServiceServer.Add(ctx, req)
+}
+
+func (s accountsFinding) Get(ctx context.Context, req *levyan.FindingGetRequest) (*levyan.Finding, error) {
+	if err := gate.AsAccount(ctx, levyan.FindingService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.FindingServiceServer.Get(ctx, req)
+}
+
+func (s accountsFinding) Patch(ctx context.Context, req *levyan.FindingPatchRequest) (*levyan.Finding, error) {
+	if err := gate.AsAccount(ctx, levyan.FindingService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.FindingServiceServer.Patch(ctx, req)
+}
+
+func (s accountsFinding) Apply(ctx context.Context, req *levyan.FindingApplyRequest) (*levyan.Finding, error) {
+	if err := gate.AsAccount(ctx, levyan.FindingService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.FindingServiceServer.Apply(ctx, req)
+}
+
 // accountsWorkspace is WorkspaceService as the gate serves it to a call an account
 // makes as itself: refused every method but the ones the schema marks the
 // account's own. See [gate.AsAccount].
@@ -9986,55 +10130,6 @@ func (s accountsMeter) List(ctx context.Context, req *levyan.MeterListRequest) (
 	}
 
 	return s.MeterServiceServer.List(ctx, req)
-}
-
-func (s Gate) Operator() levyan.OperatorServiceServer {
-	return accountsOperator{s.Next().Operator()}
-}
-
-// accountsOperator is OperatorService as the gate serves it to a call an account
-// makes as itself: refused every method but the ones the schema marks the
-// account's own. See [gate.AsAccount].
-type accountsOperator struct{ levyan.OperatorServiceServer }
-
-func (s accountsOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
-	if err := gate.AsAccount(ctx, levyan.OperatorService_Add_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.OperatorServiceServer.Add(ctx, req)
-}
-
-func (s accountsOperator) Get(ctx context.Context, req *levyan.OperatorGetRequest) (*levyan.Operator, error) {
-	if err := gate.AsAccount(ctx, levyan.OperatorService_Get_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.OperatorServiceServer.Get(ctx, req)
-}
-
-func (s accountsOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
-	if err := gate.AsAccount(ctx, levyan.OperatorService_Patch_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.OperatorServiceServer.Patch(ctx, req)
-}
-
-func (s accountsOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
-	if err := gate.AsAccount(ctx, levyan.OperatorService_Apply_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.OperatorServiceServer.Apply(ctx, req)
-}
-
-func (s accountsOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
-	if err := gate.AsAccount(ctx, levyan.OperatorService_Erase_FullMethodName, AccountMethod); err != nil {
-		return nil, err
-	}
-
-	return s.OperatorServiceServer.Erase(ctx, req)
 }
 
 func (s Gate) Access() levyan.AccessServiceServer {
@@ -10729,6 +10824,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedCreditNote.md, describedCreditNote.secret, describedCreditNote.personal
 	case DepartureDomain:
 		return describedDeparture.md, describedDeparture.secret, describedDeparture.personal
+	case FindingDomain:
+		return describedFinding.md, describedFinding.secret, describedFinding.personal
 	case GrantDomain:
 		return describedGrant.md, describedGrant.secret, describedGrant.personal
 	case HolderDomain:
@@ -10828,6 +10925,9 @@ var (
 	describedDeparture = describe((*levyan.Departure)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedFinding = describe((*levyan.Finding)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{24})
 	describedGrant = describe((*levyan.Grant)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -10929,6 +11029,7 @@ func added(by string) bool {
 		levyan.CreditService_Add_FullMethodName,
 		levyan.CreditNoteService_Add_FullMethodName,
 		levyan.DepartureService_Add_FullMethodName,
+		levyan.FindingService_Add_FullMethodName,
 		levyan.GrantService_Add_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
 		levyan.InvoiceService_Add_FullMethodName,
@@ -11606,6 +11707,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsCreditNote(ctx, s.Db, entCreditNote.IdEQ(uuid.UUID(key)))
 	case DepartureDomain:
 		vs, err = rowsDeparture(ctx, s.Db, entDeparture.IdEQ(uuid.UUID(key)))
+	case FindingDomain:
+		vs, err = rowsFinding(ctx, s.Db, entFinding.IdEQ(uuid.UUID(key)))
 	case GrantDomain:
 		vs, err = rowsGrant(ctx, s.Db, entGrant.IdEQ(uuid.UUID(key)))
 	case HolderDomain:
@@ -11794,7 +11897,7 @@ func (v *keptTrail) write(ctx context.Context) error {
 // row's seal covers (payday#115).
 func isSealed(key pdid.Id) bool {
 	switch key.Domain() {
-	case BillingAccountDomain, CreditNoteDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain, SubscriptionDomain:
+	case BillingAccountDomain, CreditNoteDomain, FindingDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain, SubscriptionDomain:
 		return true
 	}
 
@@ -12029,6 +12132,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 	if err := audit.CheckKind(ctx, d, checkedDeparture(db), archived, &out); err != nil {
 		return out, fmt.Errorf("departure: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedFinding(db), archived, &out); err != nil {
+		return out, fmt.Errorf("finding: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedGrant(db), archived, &out); err != nil {
 		return out, fmt.Errorf("grant: %w", err)
@@ -12323,6 +12429,58 @@ func checkedDeparture(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsDeparture(ctx, db, entDeparture.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedFinding is what a check of the rows reads of the finding kind.
+func checkedFinding(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Finding) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsFinding(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: FindingDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entFinding.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entFinding.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, FindingDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsFinding(ctx, db, entFinding.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -13386,6 +13544,26 @@ func rowsDeparture(ctx context.Context, db *ent.Client, ps ...predicate.Departur
 	return out, nil
 }
 
+// rowsFinding is the rows `ps` says of the finding kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsFinding(ctx context.Context, db *ent.Client, ps ...predicate.Finding) ([]audit.Live, error) {
+	q := db.Finding.Query().Where(ps...)
+	bare.FindingSelectInit(q, nil)
+
+	vs, err := q.Order(entFinding.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // rowsGrant is the rows `ps` says of the grant kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -14057,6 +14235,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 				rows, err = rowsCreditNote(ctx, db, entCreditNote.IdIn(uuids(page)...))
 			case DepartureDomain:
 				rows, err = rowsDeparture(ctx, db, entDeparture.IdIn(uuids(page)...))
+			case FindingDomain:
+				rows, err = rowsFinding(ctx, db, entFinding.IdIn(uuids(page)...))
 			case GrantDomain:
 				rows, err = rowsGrant(ctx, db, entGrant.IdIn(uuids(page)...))
 			case HolderDomain:
@@ -14221,6 +14401,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 			rows, err = rowsCreditNote(ctx, s.db, entCreditNote.IdIn(uuids(ids)...))
 		case DepartureDomain:
 			rows, err = rowsDeparture(ctx, s.db, entDeparture.IdIn(uuids(ids)...))
+		case FindingDomain:
+			rows, err = rowsFinding(ctx, s.db, entFinding.IdIn(uuids(ids)...))
 		case GrantDomain:
 			rows, err = rowsGrant(ctx, s.db, entGrant.IdIn(uuids(ids)...))
 		case HolderDomain:
@@ -14829,6 +15011,69 @@ func (s interceptDeparture) Apply(ctx context.Context, req *levyan.DepartureAppl
 		levyan.DepartureService_Apply_FullMethodName, req, s.DepartureServiceServer.Apply)
 }
 
+func (s Intercept) Operator() levyan.OperatorServiceServer {
+	return interceptOperator{s, s.Next().Operator()}
+}
+
+type interceptOperator struct {
+	Intercept
+	levyan.OperatorServiceServer
+}
+
+func (s interceptOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Add_FullMethodName, req, s.OperatorServiceServer.Add)
+}
+
+func (s interceptOperator) Get(ctx context.Context, req *levyan.OperatorGetRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Get_FullMethodName, req, s.OperatorServiceServer.Get)
+}
+
+func (s interceptOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Patch_FullMethodName, req, s.OperatorServiceServer.Patch)
+}
+
+func (s interceptOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Apply_FullMethodName, req, s.OperatorServiceServer.Apply)
+}
+
+func (s interceptOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
+		levyan.OperatorService_Erase_FullMethodName, req, s.OperatorServiceServer.Erase)
+}
+
+func (s Intercept) Finding() levyan.FindingServiceServer {
+	return interceptFinding{s, s.Next().Finding()}
+}
+
+type interceptFinding struct {
+	Intercept
+	levyan.FindingServiceServer
+}
+
+func (s interceptFinding) Add(ctx context.Context, req *levyan.FindingAddRequest) (*levyan.Finding, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.FindingServiceServer,
+		levyan.FindingService_Add_FullMethodName, req, s.FindingServiceServer.Add)
+}
+
+func (s interceptFinding) Get(ctx context.Context, req *levyan.FindingGetRequest) (*levyan.Finding, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.FindingServiceServer,
+		levyan.FindingService_Get_FullMethodName, req, s.FindingServiceServer.Get)
+}
+
+func (s interceptFinding) Patch(ctx context.Context, req *levyan.FindingPatchRequest) (*levyan.Finding, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.FindingServiceServer,
+		levyan.FindingService_Patch_FullMethodName, req, s.FindingServiceServer.Patch)
+}
+
+func (s interceptFinding) Apply(ctx context.Context, req *levyan.FindingApplyRequest) (*levyan.Finding, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.FindingServiceServer,
+		levyan.FindingService_Apply_FullMethodName, req, s.FindingServiceServer.Apply)
+}
+
 func (s Intercept) Workspace() levyan.WorkspaceServiceServer {
 	return interceptWorkspace{s, s.Next().Workspace()}
 }
@@ -15050,40 +15295,6 @@ func (s interceptMeter) Apply(ctx context.Context, req *levyan.MeterApplyRequest
 func (s interceptMeter) List(ctx context.Context, req *levyan.MeterListRequest) (*levyan.MeterListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.MeterServiceServer,
 		levyan.MeterService_List_FullMethodName, req, s.MeterServiceServer.List)
-}
-
-func (s Intercept) Operator() levyan.OperatorServiceServer {
-	return interceptOperator{s, s.Next().Operator()}
-}
-
-type interceptOperator struct {
-	Intercept
-	levyan.OperatorServiceServer
-}
-
-func (s interceptOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
-		levyan.OperatorService_Add_FullMethodName, req, s.OperatorServiceServer.Add)
-}
-
-func (s interceptOperator) Get(ctx context.Context, req *levyan.OperatorGetRequest) (*levyan.Operator, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
-		levyan.OperatorService_Get_FullMethodName, req, s.OperatorServiceServer.Get)
-}
-
-func (s interceptOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
-		levyan.OperatorService_Patch_FullMethodName, req, s.OperatorServiceServer.Patch)
-}
-
-func (s interceptOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
-		levyan.OperatorService_Apply_FullMethodName, req, s.OperatorServiceServer.Apply)
-}
-
-func (s interceptOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
-	return grpcx.RunUnary(ctx, s.unary, s.OperatorServiceServer,
-		levyan.OperatorService_Erase_FullMethodName, req, s.OperatorServiceServer.Erase)
 }
 
 func (s Intercept) Access() levyan.AccessServiceServer {
@@ -16626,6 +16837,7 @@ type Reads struct {
 	Credit         func(ctx context.Context, account pdid.Id) (predicate.Credit, error)
 	CreditNote     func(ctx context.Context, account pdid.Id) (predicate.CreditNote, error)
 	Departure      func(ctx context.Context, account pdid.Id) (predicate.Departure, error)
+	Finding        func(ctx context.Context, account pdid.Id) (predicate.Finding, error)
 	Grant          func(ctx context.Context, account pdid.Id) (predicate.Grant, error)
 	Holder         func(ctx context.Context, account pdid.Id) (predicate.Holder, error)
 	Invoice        func(ctx context.Context, account pdid.Id) (predicate.Invoice, error)
@@ -16755,6 +16967,18 @@ func init() {
 			},
 		}
 		r := (&levyan.CreditNoteRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
+	{
+		md := (&levyan.Finding{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(24),
+			},
+		}
+		r := (&levyan.FindingRef{}).ProtoReflect().Descriptor()
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
 	{
@@ -17080,6 +17304,9 @@ func (accessRecorder) Snapshots(method string) bare.SnapshotOptions {
 		levyan.CreditNoteService_Add_FullMethodName,
 		levyan.CreditNoteService_Patch_FullMethodName,
 		levyan.CreditNoteService_Apply_FullMethodName,
+		levyan.FindingService_Add_FullMethodName,
+		levyan.FindingService_Patch_FullMethodName,
+		levyan.FindingService_Apply_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
 		levyan.HolderService_Patch_FullMethodName,
 		levyan.HolderService_Apply_FullMethodName,
@@ -17467,6 +17694,24 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.DeparturePatchRequest{}
 	case levyan.DepartureService_Apply_FullMethodName:
 		v = &levyan.DepartureApplyRequest{}
+	case levyan.OperatorService_Add_FullMethodName:
+		v = &levyan.OperatorAddRequest{}
+	case levyan.OperatorService_Get_FullMethodName:
+		v = &levyan.OperatorGetRequest{}
+	case levyan.OperatorService_Patch_FullMethodName:
+		v = &levyan.OperatorPatchRequest{}
+	case levyan.OperatorService_Apply_FullMethodName:
+		v = &levyan.OperatorApplyRequest{}
+	case levyan.OperatorService_Erase_FullMethodName:
+		v = &levyan.OperatorRef{}
+	case levyan.FindingService_Add_FullMethodName:
+		v = &levyan.FindingAddRequest{}
+	case levyan.FindingService_Get_FullMethodName:
+		v = &levyan.FindingGetRequest{}
+	case levyan.FindingService_Patch_FullMethodName:
+		v = &levyan.FindingPatchRequest{}
+	case levyan.FindingService_Apply_FullMethodName:
+		v = &levyan.FindingApplyRequest{}
 	case levyan.WorkspaceService_Add_FullMethodName:
 		v = &levyan.WorkspaceAddRequest{}
 	case levyan.WorkspaceService_Get_FullMethodName:
@@ -17531,16 +17776,6 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.MeterApplyRequest{}
 	case levyan.MeterService_List_FullMethodName:
 		v = &levyan.MeterListRequest{}
-	case levyan.OperatorService_Add_FullMethodName:
-		v = &levyan.OperatorAddRequest{}
-	case levyan.OperatorService_Get_FullMethodName:
-		v = &levyan.OperatorGetRequest{}
-	case levyan.OperatorService_Patch_FullMethodName:
-		v = &levyan.OperatorPatchRequest{}
-	case levyan.OperatorService_Apply_FullMethodName:
-		v = &levyan.OperatorApplyRequest{}
-	case levyan.OperatorService_Erase_FullMethodName:
-		v = &levyan.OperatorRef{}
 	case levyan.HolderService_Add_FullMethodName:
 		v = &levyan.HolderAddRequest{}
 	case levyan.HolderService_Get_FullMethodName:
@@ -17723,6 +17958,24 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Departure().Patch(ctx, v.(*levyan.DeparturePatchRequest))
 	case levyan.DepartureService_Apply_FullMethodName:
 		res, err = s.Departure().Apply(ctx, v.(*levyan.DepartureApplyRequest))
+	case levyan.OperatorService_Add_FullMethodName:
+		res, err = s.Operator().Add(ctx, v.(*levyan.OperatorAddRequest))
+	case levyan.OperatorService_Get_FullMethodName:
+		res, err = s.Operator().Get(ctx, v.(*levyan.OperatorGetRequest))
+	case levyan.OperatorService_Patch_FullMethodName:
+		res, err = s.Operator().Patch(ctx, v.(*levyan.OperatorPatchRequest))
+	case levyan.OperatorService_Apply_FullMethodName:
+		res, err = s.Operator().Apply(ctx, v.(*levyan.OperatorApplyRequest))
+	case levyan.OperatorService_Erase_FullMethodName:
+		res, err = s.Operator().Erase(ctx, v.(*levyan.OperatorRef))
+	case levyan.FindingService_Add_FullMethodName:
+		res, err = s.Finding().Add(ctx, v.(*levyan.FindingAddRequest))
+	case levyan.FindingService_Get_FullMethodName:
+		res, err = s.Finding().Get(ctx, v.(*levyan.FindingGetRequest))
+	case levyan.FindingService_Patch_FullMethodName:
+		res, err = s.Finding().Patch(ctx, v.(*levyan.FindingPatchRequest))
+	case levyan.FindingService_Apply_FullMethodName:
+		res, err = s.Finding().Apply(ctx, v.(*levyan.FindingApplyRequest))
 	case levyan.WorkspaceService_Add_FullMethodName:
 		res, err = s.Workspace().Add(ctx, v.(*levyan.WorkspaceAddRequest))
 	case levyan.WorkspaceService_Get_FullMethodName:
@@ -17787,16 +18040,6 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Meter().Apply(ctx, v.(*levyan.MeterApplyRequest))
 	case levyan.MeterService_List_FullMethodName:
 		res, err = s.Meter().List(ctx, v.(*levyan.MeterListRequest))
-	case levyan.OperatorService_Add_FullMethodName:
-		res, err = s.Operator().Add(ctx, v.(*levyan.OperatorAddRequest))
-	case levyan.OperatorService_Get_FullMethodName:
-		res, err = s.Operator().Get(ctx, v.(*levyan.OperatorGetRequest))
-	case levyan.OperatorService_Patch_FullMethodName:
-		res, err = s.Operator().Patch(ctx, v.(*levyan.OperatorPatchRequest))
-	case levyan.OperatorService_Apply_FullMethodName:
-		res, err = s.Operator().Apply(ctx, v.(*levyan.OperatorApplyRequest))
-	case levyan.OperatorService_Erase_FullMethodName:
-		res, err = s.Operator().Erase(ctx, v.(*levyan.OperatorRef))
 	case levyan.HolderService_Add_FullMethodName:
 		res, err = s.Holder().Add(ctx, v.(*levyan.HolderAddRequest))
 	case levyan.HolderService_Get_FullMethodName:
@@ -17898,6 +18141,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Credit{},
 		&levyan.CreditNote{},
 		&levyan.Departure{},
+		&levyan.Finding{},
 		&levyan.Grant{},
 		&levyan.Holder{},
 		&levyan.Invoice{},
@@ -18216,6 +18460,52 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.Departure.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Finding:
+			ctx, err := read.Allow(ctx, levyan.FindingService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.FindingNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entFinding.Table, []resourcesql.Column{
+				{Number: 1, Name: entFinding.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 8, Name: entFinding.ProductColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 9, Name: entFinding.FieldKind, Type: 9, Nullable: false, Key: 0},
+				{Number: 10, Name: entFinding.FieldSubject, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entFinding.FieldSeverity, Type: 14, Nullable: false, Key: 0},
+				{Number: 12, Name: entFinding.FieldState, Type: 14, Nullable: false, Key: 0},
+				{Number: 16, Name: entFinding.FieldSummary, Type: 9, Nullable: false, Key: 0},
+				{Number: 17, Name: entFinding.FieldFacts, Type: 9, Nullable: false, Key: 0},
+				{Number: 19, Name: entFinding.FieldAmount, Type: 3, Nullable: false, Key: 0},
+				{Number: 20, Name: entFinding.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 21, Name: entFinding.FieldCorrection, Type: 14, Nullable: false, Key: 0},
+				{Number: 22, Name: entFinding.FieldDateResolved, Type: 65, Nullable: true, Key: 0},
+				{Number: 23, Name: entFinding.FieldResolution, Type: 9, Nullable: false, Key: 0},
+				{Number: 24, Name: entFinding.FieldReason, Type: 9, Nullable: false, Key: 0},
+				{Number: 25, Name: entFinding.FieldDateAccepted, Type: 65, Nullable: true, Key: 0},
+				{Number: 26, Name: entFinding.AcceptedByColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 13, Name: entFinding.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entFinding.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entFinding.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Finding.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -18576,6 +18866,8 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				{Number: 26, Name: entPaymentAttempt.FieldRecorded, Type: 8, Nullable: false, Key: 0},
 				{Number: 27, Name: entPaymentAttempt.FieldReference, Type: 9, Nullable: false, Key: 0},
 				{Number: 28, Name: entPaymentAttempt.FieldDateTwice, Type: 65, Nullable: true, Key: 0},
+				{Number: 29, Name: entPaymentAttempt.FieldExtraOf, Type: 9, Nullable: false, Key: 0},
+				{Number: 30, Name: entPaymentAttempt.FieldRefunds, Type: 9, Nullable: false, Key: 0},
 				{Number: 13, Name: entPaymentAttempt.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
 				{Number: 14, Name: entPaymentAttempt.FieldDateErased, Type: 65, Nullable: true, Key: 0},
 				{Number: 15, Name: entPaymentAttempt.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
@@ -19076,6 +19368,12 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.DepartureService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.FindingService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.FindingService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.FindingService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.GrantService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.GrantService_Patch_FullMethodName:
@@ -19208,7 +19506,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace", "levyan.WorkspaceEvent":
+	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Finding", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace", "levyan.WorkspaceEvent":
 	default:
 		return nil
 	}

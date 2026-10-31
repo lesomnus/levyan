@@ -41,6 +41,20 @@ type CreditNote func(*sql.Selector)
 // Departure is the predicate function for departure builders.
 type Departure func(*sql.Selector)
 
+// Finding is the predicate function for finding builders.
+type Finding func(*sql.Selector)
+
+// FindingOrErr calls the predicate only if the error is not nit.
+func FindingOrErr(p Finding, err error) Finding {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Grant is the predicate function for grant builders.
 type Grant func(*sql.Selector)
 

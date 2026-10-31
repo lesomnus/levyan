@@ -44,6 +44,8 @@ type PaymentAttemptAddRequest struct {
 	xxx_hidden_Recorded      bool                   `protobuf:"varint,26,opt,name=recorded"`
 	xxx_hidden_Reference     string                 `protobuf:"bytes,27,opt,name=reference"`
 	xxx_hidden_DateTwice     *timestamppb.Timestamp `protobuf:"bytes,28,opt,name=date_twice,json=dateTwice"`
+	xxx_hidden_ExtraOf       *string                `protobuf:"bytes,29,opt,name=extra_of,json=extraOf"`
+	xxx_hidden_Refunds       *string                `protobuf:"bytes,30,opt,name=refunds"`
 	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
@@ -216,6 +218,26 @@ func (x *PaymentAttemptAddRequest) GetDateTwice() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *PaymentAttemptAddRequest) GetExtraOf() string {
+	if x != nil {
+		if x.xxx_hidden_ExtraOf != nil {
+			return *x.xxx_hidden_ExtraOf
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PaymentAttemptAddRequest) GetRefunds() string {
+	if x != nil {
+		if x.xxx_hidden_Refunds != nil {
+			return *x.xxx_hidden_Refunds
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *PaymentAttemptAddRequest) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateCreated
@@ -228,7 +250,7 @@ func (x *PaymentAttemptAddRequest) SetId(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 23)
 }
 
 func (x *PaymentAttemptAddRequest) SetTenant(v *TenantRef) {
@@ -307,6 +329,16 @@ func (x *PaymentAttemptAddRequest) SetDateTwice(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateTwice = v
 }
 
+func (x *PaymentAttemptAddRequest) SetExtraOf(v string) {
+	x.xxx_hidden_ExtraOf = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 23)
+}
+
+func (x *PaymentAttemptAddRequest) SetRefunds(v string) {
+	x.xxx_hidden_Refunds = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 23)
+}
+
 func (x *PaymentAttemptAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
 }
@@ -374,6 +406,20 @@ func (x *PaymentAttemptAddRequest) HasDateTwice() bool {
 	return x.xxx_hidden_DateTwice != nil
 }
 
+func (x *PaymentAttemptAddRequest) HasExtraOf() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 20)
+}
+
+func (x *PaymentAttemptAddRequest) HasRefunds() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 21)
+}
+
 func (x *PaymentAttemptAddRequest) HasDateCreated() bool {
 	if x == nil {
 		return false
@@ -418,6 +464,16 @@ func (x *PaymentAttemptAddRequest) ClearDateTwice() {
 	x.xxx_hidden_DateTwice = nil
 }
 
+func (x *PaymentAttemptAddRequest) ClearExtraOf() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 20)
+	x.xxx_hidden_ExtraOf = nil
+}
+
+func (x *PaymentAttemptAddRequest) ClearRefunds() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
+	x.xxx_hidden_Refunds = nil
+}
+
 func (x *PaymentAttemptAddRequest) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
@@ -445,6 +501,8 @@ type PaymentAttemptAddRequest_builder struct {
 	Recorded      bool
 	Reference     string
 	DateTwice     *timestamppb.Timestamp
+	ExtraOf       *string
+	Refunds       *string
 	DateCreated   *timestamppb.Timestamp
 }
 
@@ -453,7 +511,7 @@ func (b0 PaymentAttemptAddRequest_builder) Build() *PaymentAttemptAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 23)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Tenant = b.Tenant
@@ -475,6 +533,14 @@ func (b0 PaymentAttemptAddRequest_builder) Build() *PaymentAttemptAddRequest {
 	x.xxx_hidden_Recorded = b.Recorded
 	x.xxx_hidden_Reference = b.Reference
 	x.xxx_hidden_DateTwice = b.DateTwice
+	if b.ExtraOf != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 23)
+		x.xxx_hidden_ExtraOf = b.ExtraOf
+	}
+	if b.Refunds != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 23)
+		x.xxx_hidden_Refunds = b.Refunds
+	}
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
@@ -842,6 +908,8 @@ type PaymentAttemptSelect struct {
 	xxx_hidden_Recorded      bool                   `protobuf:"varint,26,opt,name=recorded"`
 	xxx_hidden_Reference     bool                   `protobuf:"varint,27,opt,name=reference"`
 	xxx_hidden_DateTwice     bool                   `protobuf:"varint,28,opt,name=date_twice,json=dateTwice"`
+	xxx_hidden_ExtraOf       bool                   `protobuf:"varint,29,opt,name=extra_of,json=extraOf"`
+	xxx_hidden_Refunds       bool                   `protobuf:"varint,30,opt,name=refunds"`
 	xxx_hidden_DateUpdated   bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateErased    bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated   bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
@@ -1016,6 +1084,20 @@ func (x *PaymentAttemptSelect) GetDateTwice() bool {
 	return false
 }
 
+func (x *PaymentAttemptSelect) GetExtraOf() bool {
+	if x != nil {
+		return x.xxx_hidden_ExtraOf
+	}
+	return false
+}
+
+func (x *PaymentAttemptSelect) GetRefunds() bool {
+	if x != nil {
+		return x.xxx_hidden_Refunds
+	}
+	return false
+}
+
 func (x *PaymentAttemptSelect) GetDateUpdated() bool {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -1039,7 +1121,7 @@ func (x *PaymentAttemptSelect) GetDateCreated() bool {
 
 func (x *PaymentAttemptSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 25)
 }
 
 func (x *PaymentAttemptSelect) SetTenant(v *TenantSelect) {
@@ -1056,97 +1138,107 @@ func (x *PaymentAttemptSelect) SetCreditNote(v *CreditNoteSelect) {
 
 func (x *PaymentAttemptSelect) SetKind(v bool) {
 	x.xxx_hidden_Kind = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 25)
 }
 
 func (x *PaymentAttemptSelect) SetAttemptKey(v bool) {
 	x.xxx_hidden_AttemptKey = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 25)
 }
 
 func (x *PaymentAttemptSelect) SetChannel(v bool) {
 	x.xxx_hidden_Channel = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 25)
 }
 
 func (x *PaymentAttemptSelect) SetCurrency(v bool) {
 	x.xxx_hidden_Currency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 25)
 }
 
 func (x *PaymentAttemptSelect) SetAmount(v bool) {
 	x.xxx_hidden_Amount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 25)
 }
 
 func (x *PaymentAttemptSelect) SetState(v bool) {
 	x.xxx_hidden_State = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 25)
 }
 
 func (x *PaymentAttemptSelect) SetSends(v bool) {
 	x.xxx_hidden_Sends = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDateSent(v bool) {
 	x.xxx_hidden_DateSent = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 25)
 }
 
 func (x *PaymentAttemptSelect) SetFailure(v bool) {
 	x.xxx_hidden_Failure = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 25)
 }
 
 func (x *PaymentAttemptSelect) SetChannelRef(v bool) {
 	x.xxx_hidden_ChannelRef = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 25)
 }
 
 func (x *PaymentAttemptSelect) SetChannelNumber(v bool) {
 	x.xxx_hidden_ChannelNumber = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDateResolved(v bool) {
 	x.xxx_hidden_DateResolved = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDatePaid(v bool) {
 	x.xxx_hidden_DatePaid = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 25)
 }
 
 func (x *PaymentAttemptSelect) SetRecorded(v bool) {
 	x.xxx_hidden_Recorded = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 25)
 }
 
 func (x *PaymentAttemptSelect) SetReference(v bool) {
 	x.xxx_hidden_Reference = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDateTwice(v bool) {
 	x.xxx_hidden_DateTwice = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 25)
+}
+
+func (x *PaymentAttemptSelect) SetExtraOf(v bool) {
+	x.xxx_hidden_ExtraOf = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 25)
+}
+
+func (x *PaymentAttemptSelect) SetRefunds(v bool) {
+	x.xxx_hidden_Refunds = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDateUpdated(v bool) {
 	x.xxx_hidden_DateUpdated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 25)
 }
 
 func (x *PaymentAttemptSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 23)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 25)
 }
 
 func (x *PaymentAttemptSelect) HasAll() bool {
@@ -1289,25 +1381,39 @@ func (x *PaymentAttemptSelect) HasDateTwice() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 19)
 }
 
-func (x *PaymentAttemptSelect) HasDateUpdated() bool {
+func (x *PaymentAttemptSelect) HasExtraOf() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 20)
 }
 
-func (x *PaymentAttemptSelect) HasDateErased() bool {
+func (x *PaymentAttemptSelect) HasRefunds() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 21)
 }
 
-func (x *PaymentAttemptSelect) HasDateCreated() bool {
+func (x *PaymentAttemptSelect) HasDateUpdated() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 22)
+}
+
+func (x *PaymentAttemptSelect) HasDateErased() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 23)
+}
+
+func (x *PaymentAttemptSelect) HasDateCreated() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 24)
 }
 
 func (x *PaymentAttemptSelect) ClearAll() {
@@ -1407,18 +1513,28 @@ func (x *PaymentAttemptSelect) ClearDateTwice() {
 	x.xxx_hidden_DateTwice = false
 }
 
-func (x *PaymentAttemptSelect) ClearDateUpdated() {
+func (x *PaymentAttemptSelect) ClearExtraOf() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 20)
+	x.xxx_hidden_ExtraOf = false
+}
+
+func (x *PaymentAttemptSelect) ClearRefunds() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
+	x.xxx_hidden_Refunds = false
+}
+
+func (x *PaymentAttemptSelect) ClearDateUpdated() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 22)
 	x.xxx_hidden_DateUpdated = false
 }
 
 func (x *PaymentAttemptSelect) ClearDateErased() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 23)
 	x.xxx_hidden_DateErased = false
 }
 
 func (x *PaymentAttemptSelect) ClearDateCreated() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 22)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 24)
 	x.xxx_hidden_DateCreated = false
 }
 
@@ -1445,6 +1561,8 @@ type PaymentAttemptSelect_builder struct {
 	Recorded      *bool
 	Reference     *bool
 	DateTwice     *bool
+	ExtraOf       *bool
+	Refunds       *bool
 	DateUpdated   *bool
 	DateErased    *bool
 	DateCreated   *bool
@@ -1455,86 +1573,94 @@ func (b0 PaymentAttemptSelect_builder) Build() *PaymentAttemptSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 25)
 		x.xxx_hidden_All = *b.All
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_CreditNote = b.CreditNote
 	if b.Kind != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 25)
 		x.xxx_hidden_Kind = *b.Kind
 	}
 	if b.AttemptKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 25)
 		x.xxx_hidden_AttemptKey = *b.AttemptKey
 	}
 	if b.Channel != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 25)
 		x.xxx_hidden_Channel = *b.Channel
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 25)
 		x.xxx_hidden_Currency = *b.Currency
 	}
 	if b.Amount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 25)
 		x.xxx_hidden_Amount = *b.Amount
 	}
 	if b.State != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 25)
 		x.xxx_hidden_State = *b.State
 	}
 	if b.Sends != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 25)
 		x.xxx_hidden_Sends = *b.Sends
 	}
 	if b.DateSent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 25)
 		x.xxx_hidden_DateSent = *b.DateSent
 	}
 	if b.Failure != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 25)
 		x.xxx_hidden_Failure = *b.Failure
 	}
 	if b.ChannelRef != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 25)
 		x.xxx_hidden_ChannelRef = *b.ChannelRef
 	}
 	if b.ChannelNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 25)
 		x.xxx_hidden_ChannelNumber = *b.ChannelNumber
 	}
 	if b.DateResolved != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 25)
 		x.xxx_hidden_DateResolved = *b.DateResolved
 	}
 	if b.DatePaid != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 25)
 		x.xxx_hidden_DatePaid = *b.DatePaid
 	}
 	if b.Recorded != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 25)
 		x.xxx_hidden_Recorded = *b.Recorded
 	}
 	if b.Reference != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 25)
 		x.xxx_hidden_Reference = *b.Reference
 	}
 	if b.DateTwice != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 25)
 		x.xxx_hidden_DateTwice = *b.DateTwice
 	}
+	if b.ExtraOf != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 25)
+		x.xxx_hidden_ExtraOf = *b.ExtraOf
+	}
+	if b.Refunds != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 25)
+		x.xxx_hidden_Refunds = *b.Refunds
+	}
 	if b.DateUpdated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 25)
 		x.xxx_hidden_DateUpdated = *b.DateUpdated
 	}
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 25)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 23)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 25)
 		x.xxx_hidden_DateCreated = *b.DateCreated
 	}
 	return m0
@@ -2484,7 +2610,7 @@ var File_levyan_payment_attempt_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\"levyan/payment_attempt_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1elevyan/credit_note_svc.g.proto\x1a\x1alevyan/invoice_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x1clevyan/payment_attempt.proto\x1a\x11patch/patch.proto\"\xc3\a\n" +
+	"\"levyan/payment_attempt_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1elevyan/credit_note_svc.g.proto\x1a\x1alevyan/invoice_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x1clevyan/payment_attempt.proto\x1a\x11patch/patch.proto\"\xf8\a\n" +
 	"\x18PaymentAttemptAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x12,\n" +
@@ -2510,7 +2636,9 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\brecorded\x18\x1a \x01(\bB\x05\xaa\x01\x02\b\x02R\brecorded\x12#\n" +
 	"\treference\x18\x1b \x01(\tB\x05\xaa\x01\x02\b\x02R\treference\x129\n" +
 	"\n" +
-	"date_twice\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampR\tdateTwice\x12=\n" +
+	"date_twice\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampR\tdateTwice\x12\x19\n" +
+	"\bextra_of\x18\x1d \x01(\tR\aextraOf\x12\x18\n" +
+	"\arefunds\x18\x1e \x01(\tR\arefunds\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"}\n" +
 	"\x18PaymentAttemptGetRequest\x12+\n" +
 	"\x03ref\x18\x01 \x01(\v2\x19.levyan.PaymentAttemptRefR\x03ref\x124\n" +
@@ -2521,7 +2649,7 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\x03key\":\n" +
 	"\x17PaymentAttemptRefByOnce\x12\x1f\n" +
 	"\vattempt_key\x18\v \x01(\tR\n" +
-	"attemptKey\"\xf2\x05\n" +
+	"attemptKey\"\xa7\x06\n" +
 	"\x14PaymentAttemptSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x12/\n" +
@@ -2547,7 +2675,9 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\brecorded\x18\x1a \x01(\bR\brecorded\x12\x1c\n" +
 	"\treference\x18\x1b \x01(\bR\treference\x12\x1d\n" +
 	"\n" +
-	"date_twice\x18\x1c \x01(\bR\tdateTwice\x12!\n" +
+	"date_twice\x18\x1c \x01(\bR\tdateTwice\x12\x19\n" +
+	"\bextra_of\x18\x1d \x01(\bR\aextraOf\x12\x18\n" +
+	"\arefunds\x18\x1e \x01(\bR\arefunds\x12!\n" +
 	"\fdate_updated\x18\r \x01(\bR\vdateUpdated\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
 	"dateErased\x12!\n" +

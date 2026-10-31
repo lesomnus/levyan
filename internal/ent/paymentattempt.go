@@ -54,6 +54,10 @@ type PaymentAttempt struct {
 	Reference string `json:"reference,omitempty"`
 	// DateTwice holds the value of the "date_twice" field.
 	DateTwice *time.Time `json:"date_twice,omitempty"`
+	// ExtraOf holds the value of the "extra_of" field.
+	ExtraOf string `json:"extra_of,omitempty"`
+	// Refunds holds the value of the "refunds" field.
+	Refunds string `json:"refunds,omitempty"`
 	// DateUpdated holds the value of the "date_updated" field.
 	DateUpdated time.Time `json:"date_updated,omitempty"`
 	// DateErased holds the value of the "date_erased" field.
@@ -127,7 +131,7 @@ func (*PaymentAttempt) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case paymentattempt.FieldKind, paymentattempt.FieldAmount, paymentattempt.FieldState, paymentattempt.FieldSends:
 			values[i] = new(sql.NullInt64)
-		case paymentattempt.FieldAttemptKey, paymentattempt.FieldChannel, paymentattempt.FieldCurrency, paymentattempt.FieldChannelRef, paymentattempt.FieldChannelNumber, paymentattempt.FieldReference:
+		case paymentattempt.FieldAttemptKey, paymentattempt.FieldChannel, paymentattempt.FieldCurrency, paymentattempt.FieldChannelRef, paymentattempt.FieldChannelNumber, paymentattempt.FieldReference, paymentattempt.FieldExtraOf, paymentattempt.FieldRefunds:
 			values[i] = new(sql.NullString)
 		case paymentattempt.FieldDateSent, paymentattempt.FieldDateResolved, paymentattempt.FieldDatePaid, paymentattempt.FieldDateTwice, paymentattempt.FieldDateUpdated, paymentattempt.FieldDateErased, paymentattempt.FieldDateCreated:
 			values[i] = new(sql.NullTime)
@@ -257,6 +261,18 @@ func (_m *PaymentAttempt) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DateTwice = new(time.Time)
 				*_m.DateTwice = value.Time
+			}
+		case paymentattempt.FieldExtraOf:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field extra_of", values[i])
+			} else if value.Valid {
+				_m.ExtraOf = value.String
+			}
+		case paymentattempt.FieldRefunds:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field refunds", values[i])
+			} else if value.Valid {
+				_m.Refunds = value.String
 			}
 		case paymentattempt.FieldDateUpdated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -401,6 +417,12 @@ func (_m *PaymentAttempt) String() string {
 		builder.WriteString("date_twice=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("extra_of=")
+	builder.WriteString(_m.ExtraOf)
+	builder.WriteString(", ")
+	builder.WriteString("refunds=")
+	builder.WriteString(_m.Refunds)
 	builder.WriteString(", ")
 	builder.WriteString("date_updated=")
 	builder.WriteString(_m.DateUpdated.Format(time.ANSIC))

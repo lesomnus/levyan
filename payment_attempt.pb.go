@@ -30,7 +30,8 @@ const (
 	AttemptKind_ATTEMPT_KIND_UNSPECIFIED AttemptKind = 0
 	// A charge of what an invoice has due.
 	AttemptKind_ATTEMPT_KIND_CHARGE AttemptKind = 1
-	// A refund of what a credit note gives back.
+	// A refund of what a credit note gives back, or of what a key was charged
+	// past what the ledger accounts for (`PaymentAttempt.extra_of`).
 	AttemptKind_ATTEMPT_KIND_REFUND AttemptKind = 2
 )
 
@@ -291,6 +292,8 @@ type PaymentAttempt struct {
 	xxx_hidden_Recorded      bool                   `protobuf:"varint,26,opt,name=recorded"`
 	xxx_hidden_Reference     string                 `protobuf:"bytes,27,opt,name=reference"`
 	xxx_hidden_DateTwice     *timestamppb.Timestamp `protobuf:"bytes,28,opt,name=date_twice,json=dateTwice"`
+	xxx_hidden_ExtraOf       string                 `protobuf:"bytes,29,opt,name=extra_of,json=extraOf"`
+	xxx_hidden_Refunds       string                 `protobuf:"bytes,30,opt,name=refunds"`
 	xxx_hidden_DateUpdated   *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateErased    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
@@ -463,6 +466,20 @@ func (x *PaymentAttempt) GetDateTwice() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *PaymentAttempt) GetExtraOf() string {
+	if x != nil {
+		return x.xxx_hidden_ExtraOf
+	}
+	return ""
+}
+
+func (x *PaymentAttempt) GetRefunds() string {
+	if x != nil {
+		return x.xxx_hidden_Refunds
+	}
+	return ""
+}
+
 func (x *PaymentAttempt) GetDateUpdated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -565,6 +582,14 @@ func (x *PaymentAttempt) SetReference(v string) {
 
 func (x *PaymentAttempt) SetDateTwice(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateTwice = v
+}
+
+func (x *PaymentAttempt) SetExtraOf(v string) {
+	x.xxx_hidden_ExtraOf = v
+}
+
+func (x *PaymentAttempt) SetRefunds(v string) {
+	x.xxx_hidden_Refunds = v
 }
 
 func (x *PaymentAttempt) SetDateUpdated(v *timestamppb.Timestamp) {
@@ -708,7 +733,8 @@ type PaymentAttempt_builder struct {
 	Tenant *Tenant
 	// The invoice it moves money for.
 	Invoice *Invoice
-	// For a refund, the credit note it gives back for.
+	// For a refund, the credit note it gives back for: none for one that gives
+	// back what a key was charged twice (`extra_of`).
 	CreditNote *CreditNote
 	Kind       AttemptKind
 	// What keeps it once at the channel: a gateway's order, a merchant of
@@ -747,7 +773,16 @@ type PaymentAttempt_builder struct {
 	// reconciliation (#13) reads, to give back what the attempt did not settle
 	// by. Unset while the channel holds it as the ledger does. The one thing
 	// that may still be written of an attempt once it has ended.
-	DateTwice   *timestamppb.Timestamp
+	DateTwice *timestamppb.Timestamp
+	// For a refund of a payment the ledger does not account for -- what a key
+	// was charged past the payment its attempt settled by (`date_twice`) --
+	// the key of that charge's attempt, and the channel's id of the payment it
+	// gives back from: an operator's correction (`levyan-admin reconcile
+	// refund`), which no credit note says, since nothing of the invoice is
+	// given back. Empty for every other attempt, whose refund gives back from
+	// the payment its invoice's charge settled by.
+	ExtraOf     string
+	Refunds     string
 	DateUpdated *timestamppb.Timestamp
 	// Never stamped: there is no Erase.
 	DateErased  *timestamppb.Timestamp
@@ -778,6 +813,8 @@ func (b0 PaymentAttempt_builder) Build() *PaymentAttempt {
 	x.xxx_hidden_Recorded = b.Recorded
 	x.xxx_hidden_Reference = b.Reference
 	x.xxx_hidden_DateTwice = b.DateTwice
+	x.xxx_hidden_ExtraOf = b.ExtraOf
+	x.xxx_hidden_Refunds = b.Refunds
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -891,7 +928,7 @@ var File_levyan_payment_attempt_proto protoreflect.FileDescriptor
 
 const file_levyan_payment_attempt_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/payment_attempt.proto\x12\x06levyan\x1a\x18levyan/credit_note.proto\x1a\x14levyan/invoice.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xae\v\n" +
+	"\x1clevyan/payment_attempt.proto\x12\x06levyan\x1a\x18levyan/credit_note.proto\x1a\x14levyan/invoice.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x85\f\n" +
 	"\x0ePaymentAttempt\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x121\n" +
@@ -917,7 +954,9 @@ const file_levyan_payment_attempt_proto_rawDesc = "" +
 	"\brecorded\x18\x1a \x01(\bB\x06\xea\x82\x16\x02@\x01R\brecorded\x12*\n" +
 	"\treference\x18\x1b \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x01R\treference\x12A\n" +
 	"\n" +
-	"date_twice\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\tdateTwice\x12F\n" +
+	"date_twice\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\tdateTwice\x12*\n" +
+	"\bextra_of\x18\x1d \x01(\tB\x0f\xea\x82\x16\x05@\x01\x82\x01\x00\xaa\xc1\x16\x02\x18\x00R\aextraOf\x12)\n" +
+	"\arefunds\x18\x1e \x01(\tB\x0f\xea\x82\x16\x05@\x01\x82\x01\x00\xaa\xc1\x16\x02\x18\x00R\arefunds\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +

@@ -97,6 +97,11 @@ type Config struct {
 	// decline and one for a workspace with no payer.
 	Dunning DunningConfig `yaml:"dunning"`
 
+	// Reconcile is how often what levyan keeps is held to what its channels
+	// answer and to itself (#13), and how long each state may be left
+	// before it is a finding.
+	Reconcile ReconcileConfig `yaml:"reconcile"`
+
 	// Mor is the merchant of record a billing account on its channel is
 	// collected through (#12): Paddle. With no block, none is configured --
 	// a checkout is refused, nothing is received from or pulled of a
@@ -104,6 +109,67 @@ type Config struct {
 	// changes. Named, its channel is collected from `invoices.mor.live_from`
 	// on, which is then required.
 	Mor *MorConfig `yaml:"mor"`
+}
+
+// ReconcileConfig is how the loop `levyan.reconcile` holds what levyan keeps
+// to what its channels answer, and to itself (#13): how often, how far back
+// the merchant of record's transactions are read, and how long each state
+// may be left before it is a finding. Every one has a default.
+type ReconcileConfig struct {
+	// Every is how often a pass is made: a day when unset.
+	Every time.Duration `yaml:"every"`
+
+	// Window is how far back the merchant of record's transactions are read,
+	// by when they last changed: a week when unset. What was billed in it is
+	// held to the ledger, and what a finding open names is held to it again
+	// wherever it is.
+	Window time.Duration `yaml:"window"`
+
+	// Stale is how long each state may be left.
+	Stale StaleConfig `yaml:"stale"`
+}
+
+// StaleConfig is how long each state may be left before it is a finding.
+type StaleConfig struct {
+	// Unknown is how long after it was last sent an attempt may be requested
+	// or unknown: an hour when unset. Pending is how long it may be pending,
+	// the channel holding it -- a refund waits for the merchant's approval
+	// for days: 72h when unset.
+	Unknown time.Duration `yaml:"unknown"`
+	Pending time.Duration `yaml:"pending"`
+
+	// Period is how long after its end and its grace a period may be left
+	// unclosed; Draft, how long after its last period closed a draft may be
+	// left undecided; Statement, how long a statement with a billing account
+	// may be on no invoice: a day each when unset.
+	Period    time.Duration `yaml:"period"`
+	Draft     time.Duration `yaml:"draft"`
+	Statement time.Duration `yaml:"statement"`
+
+	// Notice is how long a notice of the merchant's may wait to be taken: an
+	// hour when unset. Mirror is how long a live subscription's mirror may go
+	// unchecked with the merchant before a pass asks again: a week when
+	// unset.
+	Notice time.Duration `yaml:"notice"`
+	Mirror time.Duration `yaml:"mirror"`
+}
+
+// Validate refuses a duration of less than nothing, where it is written.
+func (c ReconcileConfig) Validate() error {
+	for _, v := range []struct {
+		name string
+		d    time.Duration
+	}{
+		{"every", c.Every}, {"window", c.Window},
+		{"stale.unknown", c.Stale.Unknown}, {"stale.pending", c.Stale.Pending}, {"stale.period", c.Stale.Period},
+		{"stale.draft", c.Stale.Draft}, {"stale.statement", c.Stale.Statement}, {"stale.notice", c.Stale.Notice}, {"stale.mirror", c.Stale.Mirror},
+	} {
+		if v.d < 0 {
+			return fmt.Errorf("%s: less than nothing", v.name)
+		}
+	}
+
+	return nil
 }
 
 // InvoicesConfig is what billing accounts are asked to pay, and how often

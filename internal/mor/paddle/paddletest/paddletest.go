@@ -1077,9 +1077,17 @@ func (s *Server) listTransactions(r *http.Request, _ []byte) (int, any) {
 		per = n
 	}
 	subs := q.Get("subscription_id")
+	var since time.Time
+	if v := q.Get("updated_at[GTE]"); v != "" {
+		t, err := time.Parse(time.RFC3339Nano, v)
+		if err != nil {
+			return http.StatusBadRequest, no("invalid_field", "updated_at: an RFC 3339 time")
+		}
+		since = t
+	}
 	var ts []*txn
 	for _, t := range s.txns {
-		if !s.seen(t.hidden) || (subs != "" && t.sub != subs) {
+		if !s.seen(t.hidden) || (subs != "" && t.sub != subs) || t.updated.Before(since) {
 			continue
 		}
 		ts = append(ts, t)

@@ -397,6 +397,69 @@ var (
 			},
 		},
 	}
+	// FindingColumns holds the columns for the "finding" table.
+	FindingColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "subject", Type: field.TypeString},
+		{Name: "severity", Type: field.TypeInt32},
+		{Name: "state", Type: field.TypeInt32},
+		{Name: "summary", Type: field.TypeString},
+		{Name: "facts", Type: field.TypeString},
+		{Name: "rows", Type: field.TypeJson, Nullable: true},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "correction", Type: field.TypeInt32},
+		{Name: "date_resolved", Type: field.TypeTime, Nullable: true},
+		{Name: "resolution", Type: field.TypeString},
+		{Name: "reason", Type: field.TypeString},
+		{Name: "date_accepted", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "product_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "accepted_by_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// FindingTable holds the schema information for the "finding" table.
+	FindingTable = &schema.Table{
+		Name:       "finding",
+		Columns:    FindingColumns,
+		PrimaryKey: []*schema.Column{FindingColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "finding_tenant_product",
+				Columns:    []*schema.Column{FindingColumns[18]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "finding_operator_accepted_by",
+				Columns:    []*schema.Column{FindingColumns[19]},
+				RefColumns: []*schema.Column{OperatorColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "finding_once",
+				Unique:  true,
+				Columns: []*schema.Column{FindingColumns[1], FindingColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "finding_state",
+				Unique:  false,
+				Columns: []*schema.Column{FindingColumns[4], FindingColumns[17]},
+			},
+			{
+				Name:    "finding_product",
+				Unique:  false,
+				Columns: []*schema.Column{FindingColumns[18], FindingColumns[17]},
+			},
+		},
+	}
 	// GrantColumns holds the columns for the "grant" table.
 	GrantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -989,6 +1052,8 @@ var (
 		{Name: "recorded", Type: field.TypeBool},
 		{Name: "reference", Type: field.TypeString},
 		{Name: "date_twice", Type: field.TypeTime, Nullable: true},
+		{Name: "extra_of", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "refunds", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
@@ -1004,19 +1069,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "paymentattempt_tenant_tenant",
-				Columns:    []*schema.Column{PaymentattemptColumns[20]},
+				Columns:    []*schema.Column{PaymentattemptColumns[22]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "paymentattempt_invoice_invoice",
-				Columns:    []*schema.Column{PaymentattemptColumns[21]},
+				Columns:    []*schema.Column{PaymentattemptColumns[23]},
 				RefColumns: []*schema.Column{InvoiceColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "paymentattempt_creditnote_credit_note",
-				Columns:    []*schema.Column{PaymentattemptColumns[22]},
+				Columns:    []*schema.Column{PaymentattemptColumns[24]},
 				RefColumns: []*schema.Column{CreditnoteColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1025,17 +1090,17 @@ var (
 			{
 				Name:    "paymentattempt_page",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentattemptColumns[20], PaymentattemptColumns[19], PaymentattemptColumns[0]},
+				Columns: []*schema.Column{PaymentattemptColumns[22], PaymentattemptColumns[21], PaymentattemptColumns[0]},
 			},
 			{
 				Name:    "paymentattempt_invoice",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentattemptColumns[21], PaymentattemptColumns[19]},
+				Columns: []*schema.Column{PaymentattemptColumns[23], PaymentattemptColumns[21]},
 			},
 			{
 				Name:    "paymentattempt_state",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentattemptColumns[6], PaymentattemptColumns[19]},
+				Columns: []*schema.Column{PaymentattemptColumns[6], PaymentattemptColumns[21]},
 			},
 			{
 				Name:    "paymentattempt_once",
@@ -1635,6 +1700,7 @@ var (
 		CreditTable,
 		CreditnoteTable,
 		DepartureTable,
+		FindingTable,
 		GrantTable,
 		HolderTable,
 		InvoiceTable,
@@ -1696,6 +1762,11 @@ func init() {
 	}
 	DepartureTable.Annotation = &entsql.Annotation{
 		Table: "departure",
+	}
+	FindingTable.ForeignKeys[0].RefTable = TenantTable
+	FindingTable.ForeignKeys[1].RefTable = OperatorTable
+	FindingTable.Annotation = &entsql.Annotation{
+		Table: "finding",
 	}
 	GrantTable.ForeignKeys[0].RefTable = TenantTable
 	GrantTable.ForeignKeys[1].RefTable = WorkspaceTable

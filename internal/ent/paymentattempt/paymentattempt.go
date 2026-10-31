@@ -46,6 +46,10 @@ const (
 	FieldReference = "reference"
 	// FieldDateTwice holds the string denoting the date_twice field in the database.
 	FieldDateTwice = "date_twice"
+	// FieldExtraOf holds the string denoting the extra_of field in the database.
+	FieldExtraOf = "extra_of"
+	// FieldRefunds holds the string denoting the refunds field in the database.
+	FieldRefunds = "refunds"
 	// FieldDateUpdated holds the string denoting the date_updated field in the database.
 	FieldDateUpdated = "date_updated"
 	// FieldDateErased holds the string denoting the date_erased field in the database.
@@ -108,6 +112,8 @@ var Columns = []string{
 	FieldRecorded,
 	FieldReference,
 	FieldDateTwice,
+	FieldExtraOf,
+	FieldRefunds,
 	FieldDateUpdated,
 	FieldDateErased,
 	FieldDateCreated,
@@ -127,6 +133,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultExtraOf holds the default value on creation for the "extra_of" field.
+	DefaultExtraOf string
+	// DefaultRefunds holds the default value on creation for the "refunds" field.
+	DefaultRefunds string
 	// ValueScanner of all PaymentAttempt fields.
 	ValueScanner struct {
 		Failure field.TypeValueScanner[*levyan.AttemptFailure]
@@ -214,6 +224,16 @@ func ByReference(opts ...sql.OrderTermOption) OrderOption {
 // ByDateTwice orders the results by the date_twice field.
 func ByDateTwice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDateTwice, opts...).ToFunc()
+}
+
+// ByExtraOf orders the results by the extra_of field.
+func ByExtraOf(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExtraOf, opts...).ToFunc()
+}
+
+// ByRefunds orders the results by the refunds field.
+func ByRefunds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRefunds, opts...).ToFunc()
 }
 
 // ByDateUpdated orders the results by the date_updated field.

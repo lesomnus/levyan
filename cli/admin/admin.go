@@ -50,7 +50,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 	version := pdcmd.NewCmdVersion()
 	product, key, meter, price, gap := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice(), newCmdGap()
 	period, statement, grant := newCmdPeriod(), newCmdStatement(), newCmdGrant()
-	invoice, account := newCmdInvoice(), newCmdBillingAccount()
+	invoice, account, reconcile := newCmdInvoice(), newCmdBillingAccount(), newCmdReconcile()
 
 	return &xli.Command{
 		Name:  "levyan-admin",
@@ -76,11 +76,12 @@ func Cmd(c *cmd.Config) *xli.Command {
 			grant,
 			invoice,
 			account,
+			reconcile,
 		},
 
 		// What asks the entry point reads none of a deployment's
 		// configuration: an operator runs it from their own machine.
-		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant, invoice, account), xli.RequireSubcommand()),
+		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant, invoice, account, reconcile), xli.RequireSubcommand()),
 	}
 }
 

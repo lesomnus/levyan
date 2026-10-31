@@ -179,6 +179,14 @@ type Channel interface {
 	// adjustment of it.
 	Transaction(ctx context.Context, id string) (Transaction, error)
 
+	// Transactions is a page of what the MoR has billed, as it has it now,
+	// with every adjustment of each: the oldest first, of every
+	// subscription or of one, changed since a time or ever ([List]). It is
+	// what reconciliation (#13) holds the ledger to -- every charge the
+	// ledger says succeeded, and every transaction that carries one of
+	// levyan's keys -- beside what it asks of a key and of an id.
+	Transactions(ctx context.Context, l List) (Transactions, error)
+
 	// Refund asks the MoR to give back some or all of a paid transaction,
 	// and answers the [Adjustment] it is: [Requested] until the MoR approves
 	// it, which may be days, or [Approved]. A refund whose key the MoR has is
@@ -211,6 +219,33 @@ type Channel interface {
 	// is found: a notice read here is the one its webhook delivers, by the
 	// same [Notice.ID], and is no more believed.
 	Notices(ctx context.Context, r Read) (Notices, error)
+}
+
+// List is which of an MoR's transactions [Channel.Transactions] reads.
+type List struct {
+	// Subscription is the MoR's id of the subscription they are of: empty
+	// for every transaction of the MoR's, levyan's and any other's.
+	Subscription string
+
+	// Since is the earliest of their last changes, by the MoR's clock: zero
+	// for every one, however long ago it last changed.
+	Since time.Time
+
+	// After is the last of the page before ([Transactions.Last]): empty for
+	// the first page.
+	After string
+}
+
+// Transactions is a page of an MoR's transactions, oldest first, and whether
+// there are more after it.
+type Transactions struct {
+	Transactions []Transaction
+
+	// Last is the ID of the last transaction of the page, which the next
+	// page begins after.
+	Last string
+
+	More bool
 }
 
 // Read is where a read of an MoR's notices begins: after the notice After
@@ -766,6 +801,13 @@ type Adjustment struct {
 
 	// Amount is what it gives back, tax included.
 	Amount money.Amount
+
+	// Asked is what it gives back in the terms of [Refund.Amount], which are
+	// those of [Charge.Amount]: before the MoR's tax where the channel's
+	// amounts are, with it where they are not -- what a refund levyan asks
+	// for of an amount is asked for, and what reconciliation (#13) holds a
+	// refund the ledger says succeeded to.
+	Asked money.Amount
 
 	// Reason is why, as it was asked, and Key the key it was asked under:
 	// "" for one levyan did not ask for -- a chargeback, or a refund made in

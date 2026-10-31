@@ -105,6 +105,18 @@ func (f DepartureFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DepartureMutation", m)
 }
 
+// The FindingFunc type is an adapter to allow the use of ordinary
+// function as Finding mutator.
+type FindingFunc func(context.Context, *ent.FindingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FindingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FindingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FindingMutation", m)
+}
+
 // The GrantFunc type is an adapter to allow the use of ordinary
 // function as Grant mutator.
 type GrantFunc func(context.Context, *ent.GrantMutation) (ent.Value, error)

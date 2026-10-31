@@ -1,0 +1,331 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/operator.proto";
+import "levyan/payday/tenant.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Finding is one thing reconciliation found drifted (#13, docs/design.md
+// §15, "대조와 경보"): levyan's own records against what a channel answers
+// -- a charge the ledger says succeeded that the merchant of record has no
+// completed transaction of, a key it charged twice -- or levyan's records
+// against one another -- an invoice whose paid amount is not what its
+// attempts add up to, a grant a rule no longer wants -- or a state left
+// where it should have moved on: a period not closed, an attempt nobody
+// knows the outcome of, a notice not taken.
+//
+// Events are assumed to go missing, to come twice and to come out of order
+// (levyan#1, "정합성 원칙"); what does is put right by the loops that ask the
+// channel again. Reconciliation is the backstop that finds what they did
+// not, and says it to an operator: it changes no money itself. A pass of it
+// (`levyan.reconcile`) may only ask a channel again, through the paths that
+// ask it anyway; what a finding asks for is an operator's correction, through
+// the operator's entry point, on the trail as theirs.
+//
+// A finding is kept once of what it is about (`kind` and `subject`): written
+// when a pass first finds it, changed when what it says changes, resolved
+// when a pass no longer finds it -- and opened again if one finds it again.
+// One an operator accepts stays accepted while it says what it said when
+// they accepted it.
+//
+// The deployment's own, and an operator's to read: global, no product's
+// and no payer's, and in no policy's table. Written through the servers, so
+// the trail says what each pass found and who accepted what.
+message Finding {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is of, when it is of one: none for what is no product's
+  // -- a merchant of record's notice, a subscription, a transaction of a key
+  // nobody knows.
+  Tenant product = 8 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // What drifted, and what of: the row it is about, as its kind names it
+  // (`PaymentAttempt/<id>`, `paddle.transaction/txn_…`,
+  // `loft/loft.assets.active`). The two keep it once. The kind is a
+  // `FindingKind` by its name (`FINDING_KIND_TWICE`) and not the enum, as a
+  // product's channel is: protobuf-orm's lookup by a unique index does not
+  // take an enum's value.
+  string kind = 9 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string subject = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  FindingSeverity severity = 11;
+  FindingState state = 12;
+
+  // What it says, in a sentence an operator reads, and the same as a pass
+  // compares it with what the next finds: what changed is a finding
+  // changed, and an accepted one that says something else is open again.
+  // Neither names a person, or holds anything of one: ids, amounts, times.
+  string summary = 16 [(payday.field) = {personal: false}];
+  string facts = 17 [(payday.field) = {personal: false}];
+
+  // The rows it is about: levyan's, by entity and id, and a channel's, by
+  // the channel's own ids.
+  FindingRows rows = 18 [(payday.field) = {personal: false}];
+
+  // How much of what money it is about, when it is about money: what a key
+  // was charged past what the ledger accounts for, what an invoice's paid
+  // amount is off by. Zero for a finding about something else.
+  int64 amount = 19;
+  string currency = 20 [(payday.field) = {personal: false}];
+
+  // What an operator does about it.
+  FindingCorrection correction = 21;
+
+  // When a pass no longer found it, and how that came about, in words: no
+  // longer so, or put right by asking the channel again. Unset while it is
+  // open or accepted.
+  google.protobuf.Timestamp date_resolved = 22 [(orm.field) = {nullable: true}];
+  string resolution = 23 [(payday.field) = {personal: false}];
+
+  // Accepted by an operator, as it is: why, in their words, when, and who.
+  // Cleared when it is open again.
+  string reason = 24 [(payday.field) = {personal: true}];
+  google.protobuf.Timestamp date_accepted = 25 [(orm.field) = {nullable: true}];
+  Operator accepted_by = 26 [(orm.edge) = {nullable: true}];
+
+  // Stamped with every change.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase. What drifted, and what was done about
+  // it, is the deployment's record.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When a pass first found it.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        // One of what it is about, ever: found again, it is this one.
+        name: "once"
+        refs: [
+          {
+            name: "kind"
+            number: 9
+          },
+          {
+            name: "subject"
+            number: 10
+          }
+        ]
+        unique: true
+      },
+      {
+        // What an operator lists: what is open, the oldest first.
+        name: "state"
+        refs: [
+          {
+            name: "state"
+            number: 12
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      },
+      {
+        name: "product"
+        refs: [
+          {
+            name: "product"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 45
+    global: {}
+  };
+}
+
+// FindingRows is the rows a finding is about.
+message FindingRows {
+  repeated FindingRow rows = 1;
+}
+
+// FindingRow is one row a finding is about: levyan's, by its entity's name
+// and its id -- `PaymentAttempt` and the attempt's -- or a channel's, by the
+// channel's name of the kind and its own id: `paddle.transaction` and
+// txn_….
+message FindingRow {
+  string entity = 1;
+  string ref = 2;
+}
+
+// FindingKind is what drifted. Each is said by one check, at one severity
+// (`server/reconcile`).
+enum FindingKind {
+  FINDING_KIND_UNSPECIFIED = 0;
+
+  // A charge the ledger says succeeded, which the merchant of record has no
+  // completed transaction of with its key and its amount.
+  FINDING_KIND_CHARGE_UNMATCHED = 1;
+
+  // A paid transaction of the merchant of record's that carries a key of
+  // levyan's no attempt has: money taken that the ledger has no record of.
+  FINDING_KIND_KEY_UNKNOWN = 2;
+
+  // A key the merchant of record charged more than the ledger accounts for
+  // (`PaymentAttempt.date_twice`, or found): the rest is to give back.
+  FINDING_KIND_TWICE = 3;
+
+  // An attempt left requested, unknown or pending for longer than it should
+  // be.
+  FINDING_KIND_ATTEMPT_STALE = 4;
+
+  // A refund the ledger says succeeded, which the merchant of record has no
+  // approved refund of with its key and its amount.
+  FINDING_KIND_REFUND_UNMATCHED = 5;
+
+  // Money the merchant of record gave back, or took back, of a charge of
+  // levyan's that the ledger has no refund of: a refund made in its own
+  // pages, a chargeback, a refund of a key no attempt has.
+  FINDING_KIND_ADJUSTMENT_UNKNOWN = 6;
+
+  // An invoice whose paid amount is not what its succeeded charges add up
+  // to, or whose credit applied is not what its credit took.
+  FINDING_KIND_INVOICE_PAID_DIFFERS = 7;
+
+  // An open invoice with nothing left to pay, or a paid one with some.
+  FINDING_KIND_INVOICE_STATE_DIFFERS = 8;
+
+  // A credit balance that is less than nothing, or a movement of credit
+  // that is not what the invoice or the credit note it comes of says.
+  FINDING_KIND_CREDIT_DIFFERS = 9;
+
+  // What a credit note gives back that no refund of it gave back: the
+  // channel would not make it.
+  FINDING_KIND_REFUND_NOT_MADE = 10;
+
+  // A statement with a billing account on no invoice -- or on more than
+  // one.
+  FINDING_KIND_STATEMENT_UNINVOICED = 11;
+
+  // An invoice whose lines are not what their statements are, or whose
+  // subtotal is not what its lines add up to.
+  FINDING_KIND_LINES_DIFFER = 12;
+
+  // A grant a rule wants a workspace to have, which it has none of.
+  FINDING_KIND_GRANT_MISSING = 13;
+
+  // A grant in force that nothing wants: of a rule that no longer wants it,
+  // of a rule there is no longer, or of a workspace destroyed.
+  FINDING_KIND_GRANT_LEFT = 14;
+
+  // A period not closed long after its end and its grace.
+  FINDING_KIND_PERIOD_UNCLOSED = 15;
+
+  // A draft that should have been decided and was not.
+  FINDING_KIND_DRAFT_STALE = 16;
+
+  // A notice of the merchant of record's not taken for longer than it
+  // should be.
+  FINDING_KIND_NOTICE_STUCK = 17;
+
+  // A mirror of a subscription not checked with the merchant of record for
+  // longer than it should be, or found behind it.
+  FINDING_KIND_MIRROR_STALE = 18;
+
+  // A product's workspaces that have gone without a reading of a stock
+  // meter for longer than a reading holds: what is billed of them is short.
+  FINDING_KIND_READINGS_MISSING = 19;
+
+  // A check that could not be made: what it would have found is not known.
+  FINDING_KIND_CHECK_FAILED = 20;
+
+  // An invoice collected by more than one charge, or collected once it was
+  // no longer owed -- voided, written off: what more than was left was
+  // collected is the billing account's credit, and the payer was charged
+  // it.
+  FINDING_KIND_OVERCOLLECTED = 21;
+}
+
+// FindingSeverity is how much a finding asks of an operator.
+enum FindingSeverity {
+  FINDING_SEVERITY_UNSPECIFIED = 0;
+
+  // Something left where it should have moved on, which may yet move on by
+  // itself.
+  FINDING_SEVERITY_WARNING = 1;
+
+  // Records that disagree, which an operator puts right or accepts.
+  FINDING_SEVERITY_ERROR = 2;
+
+  // Money a payer gave that levyan does not account for: what is to give
+  // back.
+  FINDING_SEVERITY_CRITICAL = 3;
+}
+
+// FindingState is where a finding is.
+enum FindingState {
+  FINDING_STATE_UNSPECIFIED = 0;
+
+  // Found, by the last pass that looked.
+  FINDING_STATE_OPEN = 1;
+
+  // Found, and accepted by an operator as it is.
+  FINDING_STATE_ACCEPTED = 2;
+
+  // No longer found.
+  FINDING_STATE_RESOLVED = 3;
+}
+
+// FindingCorrection is what an operator does about a finding, through the
+// operator's entry point (`levyan-admin reconcile …`).
+enum FindingCorrection {
+  FINDING_CORRECTION_UNSPECIFIED = 0;
+
+  // Find out what happened, put it right where it happened, and accept it
+  // with a reason.
+  FINDING_CORRECTION_INVESTIGATE = 1;
+
+  // Give back what a key was charged past what the ledger accounts for
+  // (`reconcile refund`), or accept it.
+  FINDING_CORRECTION_REFUND = 2;
+
+  // Settle the attempt from what the channel answers (`reconcile settle`).
+  FINDING_CORRECTION_SETTLE = 3;
+
+  // Run the rule again for the product (`reconcile rule`).
+  FINDING_CORRECTION_RULE = 4;
+
+  // Close the period (`period close`).
+  FINDING_CORRECTION_CLOSE = 5;
+
+  // Nothing: a pass asks the channel again, and the next finds it put right
+  // or says why not.
+  FINDING_CORRECTION_REASK = 6;
+}

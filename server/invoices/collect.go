@@ -235,6 +235,12 @@ func (v Invoices) attemptOf(ctx context.Context, db *ent.Client, a *ent.PaymentA
 	if a.DateSent != nil {
 		out.Sent = ledger.Moment(*a.DateSent)
 	}
+	if a.Kind == int32(levyan.AttemptKind_ATTEMPT_KIND_REFUND) && a.ExtraOf != "" {
+		// What a key was charged past what the ledger accounts for, given
+		// back of the payment that was: reconciliation's (#13).
+		out.Refunds, out.Charge, out.Reason = a.Refunds, a.ExtraOf, "중복 청구 환불"
+		return out, nil
+	}
 	if a.Kind == int32(levyan.AttemptKind_ATTEMPT_KIND_REFUND) {
 		paid, err := db.PaymentAttempt.Query().
 			Where(
@@ -246,7 +252,7 @@ func (v Invoices) attemptOf(ctx context.Context, db *ent.Client, a *ent.PaymentA
 			First(ctx)
 		switch {
 		case err == nil:
-			out.Refunds = paid.ChannelRef
+			out.Refunds, out.Charge = paid.ChannelRef, paid.AttemptKey
 		case !ent.IsNotFound(err):
 			return Attempt{}, err
 		}

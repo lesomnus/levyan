@@ -130,7 +130,7 @@ spin:
 # auth:
 #   roster:
 #     addr: "roster:50051"
-#     key: "${file:/run/secrets/levyan-roster}"
+#     key: "${file:/run/secrets/levyan-roster/key}"
 #     directory: loft
 
 # Who pays: how many of each payer's workspaces of a product have their
@@ -197,8 +197,8 @@ spin:
 # mor:
 #   kind: paddle
 #   environment: sandbox
-#   api_key: "${file:/run/secrets/levyan/paddle-api-key}"
-#   webhook_secret: "${file:/run/secrets/levyan/paddle-webhook-secret}"
+#   api_key: "${file:/run/secrets/levyan-paddle/api_key}"
+#   webhook_secret: "${file:/run/secrets/levyan-paddle/webhook_secret}"
 #   client_token: "test_…"
 #   plans:
 #     KRW: "pri_…"

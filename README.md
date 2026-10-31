@@ -210,9 +210,9 @@ levyan은 그 계정이 roster에서 좋은 상태인지 매번 묻는다. 그�
 ```yaml
 auth:
   roster:
-    addr: "roster:50051"                      # roster의 data plane
-    key: "${file:/run/secrets/levyan-roster}" # rk_… (directory와 함께) 또는 rt_…
-    directory: loft                           # rk_일 때, 계정이 있는 roster tenant
+    addr: "roster:50051"                          # roster의 data plane
+    key: "${file:/run/secrets/levyan-roster/key}" # rk_… (directory와 함께) 또는 rt_…
+    directory: loft                               # rk_일 때, 계정이 있는 roster tenant
 payers:
   free: 3        # 지불자마다 무료량을 받는 워크스페이스 수
   channels:      # 결제 계정의 나라마다 채널과 통화. 적지 않은 키는 이 기본값이다
@@ -274,8 +274,8 @@ MoR 채널의 결제 계정은 Paddle의 구독으로 수금한다. 설정에 `m
 mor:
   kind: paddle
   environment: sandbox                                # 또는 live. 키도 API도 따로다
-  api_key: "${file:/run/secrets/levyan/paddle-api-key}"            # pdl_sdbx_apikey_… / pdl_live_apikey_…
-  webhook_secret: "${file:/run/secrets/levyan/paddle-webhook-secret}" # pdl_ntfset_…. 없으면 웹훅을 받지 않는다
+  api_key: "${file:/run/secrets/levyan-paddle/api_key}"            # pdl_sdbx_apikey_… / pdl_live_apikey_…
+  webhook_secret: "${file:/run/secrets/levyan-paddle/webhook_secret}" # pdl_ntfset_…. 없으면 웹훅을 받지 않는다
   client_token: test_…                                # 페이지가 결제창을 여는 공개 토큰
   plans:                                              # 통화마다 0원 월 플랜(pri_…)
     KRW: pri_…

@@ -76,7 +76,19 @@ func TestLive(t *testing.T) {
 	})
 	require.NoError(t, err)
 	ctx := t.Context()
-	made := func(prefix string) string { return prefix + "_" + strings.ToLower(rand.Text()) }
+	// An identifier of Paddle's shape that names nothing: a prefix and a ULID,
+	// in Crockford's base32 and beginning 0 to 7. Paddle checks the shape
+	// before it looks one up, and answers one of another alphabet -- the
+	// standard base32 rand.Text writes -- as invalid, not as not found.
+	made := func(prefix string) string {
+		const crockford = "0123456789abcdefghjkmnpqrstvwxyz"
+		b := make([]byte, 24)
+		_, _ = rand.Read(b)
+		for i := range b {
+			b[i] = crockford[b[i]&31]
+		}
+		return prefix + "_01" + string(b)
+	}
 	key2 := func() string { return "lv-live-" + rand.Text() }
 
 	t.Run("a transaction Paddle has nothing of is not found", func(t *testing.T) {

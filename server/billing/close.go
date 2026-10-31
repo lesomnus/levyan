@@ -129,6 +129,21 @@ func (c Closer) Close(ctx context.Context, product *ent.Tenant, through time.Tim
 	}
 }
 
+// Next is the period of `product` to close next, and false when there is none
+// yet or the product is priced nothing ([ErrUnpriced]): what reconciliation
+// (#13) holds the loop that closes periods to.
+func (c Closer) Next(ctx context.Context, product *ent.Tenant) (rating.Period, bool, error) {
+	terms, err := TermsOf(product)
+	if err != nil {
+		return rating.Period{}, false, err
+	}
+	if !terms.Priced() {
+		return rating.Period{}, false, nil
+	}
+
+	return c.next(ctx, product.Id, terms)
+}
+
 // next is the period of `product` to close next, and false when there is none
 // yet: one begun and not finished, the one after the last closed, or the month
 // its ledger begins in.

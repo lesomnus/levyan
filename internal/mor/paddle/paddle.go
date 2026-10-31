@@ -2,12 +2,11 @@
 // merchant of record, a subscription started in Paddle's checkout, and each
 // closed period's amount handed to Paddle as a one-time charge of it.
 //
-// **It is a candidate.** Which MoR levyan sells through is the owner's
-// decision and has not been made (levyan#12); Paddle is the candidate this
-// adapter was built for, and Polar the alternative levyan#1 names. The adapter
-// is here so that it can be tried against Paddle's sandbox and so that what
-// the rest of levyan asks of an MoR is written down -- not because the choice
-// is made. Nothing outside the wiring names this package.
+// Which MoR levyan sells through is the owner's decision, and it is Paddle
+// (2026-10-31, levyan#12): this adapter, built as a candidate (#21) before
+// the choice was made, is the MoR channel's. It is still to be tried against
+// Paddle's sandbox, whose keys the owner has not made yet (TestLive).
+// Nothing outside the wiring names this package.
 //
 // # What it relies on
 //
@@ -115,14 +114,55 @@
 //   - The sandbox moves no money and takes test cards only: 4242 4242 4242
 //     4242, 4000 0000 0000 0002 declined, 4000 0027 6000 3184 paid once and
 //     declined after (https://developer.paddle.com/sdks/sandbox).
+//   - GET /events is "the event stream": the events of the last 90 days,
+//     each {event_id, event_type, occurred_at, data} as a webhook carries
+//     it, at most 200 a page (50 by default), id[DESC] by default and
+//     id[ASC] asked for, after a cursor that is an event's id, from and to
+//     bounding when they happened; the key needs notification.read
+//     (https://developer.paddle.com/api-reference/events/list-events). An id
+//     sorts as its entity's creation does
+//     (https://developer.paddle.com/api-reference/about/paddle-ids), so
+//     id[ASC] after the last id read is what came since, which a stored
+//     cursor reads on from
+//     (https://developer.paddle.com/api-reference/about/pagination). The
+//     adapter reads that list into the same notices a webhook is read into.
+//   - A transaction's payments are its attempts to collect it, newest first,
+//     each with a status -- action_required: "The customer must complete an
+//     action to proceed, typically 3DS" -- and method_details: its type
+//     (card, south_korea_local_card, kakao_pay, naver_pay, payco,
+//     samsung_pay, apple_pay, paypal, …), and for a card card.type (its
+//     brand) and card.last4, for a Korean card south_korea_local_card.type
+//     (its company: hyundai, shinhan, …) and its last4
+//     (https://developer.paddle.com/api-reference/transactions/get-transaction).
+//     The adapter keeps of a method its type, brand or company, and last
+//     four digits, and nothing more of a card: not its expiry, not who
+//     holds it.
+//   - A transaction is created ready -- the checkout's first screen
+//     skipped -- only with a customer_id and an address_id, an address
+//     being a customer's, and a customer an email
+//     (https://developer.paddle.com/api-reference/transactions/create-transaction,
+//     https://developer.paddle.com/build/checkout/prefill-checkout-properties).
+//     A checkout here carries neither, so that levyan sends Paddle nothing
+//     of who the payer is: the payer gives it in Paddle's window, where a
+//     page may prefill an email it has with the billing account's country
+//     (Paddle.Checkout.open's customer.address.countryCode, which is never
+//     taken alone). Korean cards, KakaoPay and NaverPay are shown only "for
+//     items priced in South Korean Won" and "where the customer address is
+//     in South Korea"
+//     (https://developer.paddle.com/concepts/payment-methods/korean/local-cobranded-cards,
+//     https://developer.paddle.com/changelog/2025/improved-korean-payment-methods),
+//     and a checkout's currency is its billing account's.
 package paddle
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -186,10 +226,11 @@ type Config struct {
 	// its keys, and its checkout.
 	Sandbox bool `yaml:"sandbox"`
 
-	// Plan is the catalog price a checkout subscribes the payer to (pri_…):
-	// a recurring price, of nothing when every amount is levyan's one-time
-	// charges. It is needed only to start a checkout.
-	Plan string `yaml:"plan"`
+	// Plans is the catalog price a checkout subscribes the payer to (pri_…),
+	// by the currency of the checkout: a recurring price, of nothing when
+	// every amount is levyan's one-time charges. A checkout in a currency
+	// with no plan is refused; it is needed only to start a checkout.
+	Plans map[string]string `yaml:"plans"`
 
 	// TaxMode is whether Paddle's tax is added to an amount levyan charges,
 	// "external" (the default), or is in it, "internal": the tax_mode of the
@@ -262,8 +303,8 @@ func New(c Config) (*Channel, error) {
 	case strings.HasPrefix(t, "test_") && !c.Sandbox, strings.HasPrefix(t, "live_") && c.Sandbox:
 		return nil, errors.New("paddle: the client token and the channel are of different environments")
 	}
-	if c.Plan != "" && !idOK("pri", c.Plan) {
-		return nil, fmt.Errorf("paddle: %q is no price", c.Plan)
+	if err := CheckPlans(c.Plans); err != nil {
+		return nil, fmt.Errorf("paddle: plans: %w", err)
 	}
 	switch c.TaxMode {
 	case "":
@@ -314,6 +355,20 @@ func New(c Config) (*Channel, error) {
 	return &Channel{c: c, url: strings.TrimSuffix(u, "/"), client: client, now: now}, nil
 }
 
+// CheckPlans is nil for plans a [Config] takes: each a catalog price of
+// Paddle's (pri_…), by a currency levyan prices in.
+func CheckPlans(plans map[string]string) error {
+	for _, cur := range slices.Sorted(maps.Keys(plans)) {
+		if err := money.Check(cur); err != nil {
+			return err
+		}
+		if p := plans[cur]; !idOK("pri", p) {
+			return fmt.Errorf("the plan in %s, %q, is no price of Paddle's (pri_…)", cur, p)
+		}
+	}
+	return nil
+}
+
 // keyEnv is which environment an API key is of, by its prefix
 // (https://developer.paddle.com/api-reference/about/authentication): "live",
 // "sdbx", or "" for a key of neither -- a legacy key says nothing of it.
@@ -332,42 +387,67 @@ func invalid(op, why string) *mor.Error {
 	return &mor.Error{Op: op, Kind: mor.Invalid, Err: errors.New(why)}
 }
 
-// StartCheckout makes the transaction a checkout is: the plan, for the
-// billing account, in its custom_data -- which Paddle copies to the
-// subscription -- so that the page opens a checkout levyan made, and not one
-// it made up. The page opens it with Paddle.js, or sends the payer to its
-// URL.
+// StartCheckout makes the transaction a checkout is: the plan of its
+// currency, for the billing account, in its custom_data -- which Paddle
+// copies to the subscription -- so that the page opens a checkout levyan
+// made, and not one it made up. The page opens it with Paddle.js, or sends
+// the payer to its URL.
 //
-// A checkout started again is another transaction, of which the payer
-// finishes one or none: starting one charges nothing.
+// A checkout begun again ([mor.Start.Again]) is the same transaction while it
+// is a draft or ready, and a new one once Paddle has canceled it; one paid
+// meanwhile is [mor.ErrFinished]. Otherwise a checkout started again is
+// another transaction, of which the payer finishes one or none: starting one
+// charges nothing.
 func (c *Channel) StartCheckout(ctx context.Context, s mor.Start) (mor.Checkout, error) {
 	const op = "checkout"
+	plan := c.c.Plans[s.Currency]
 	switch {
 	case c.c.ClientToken == "":
 		return mor.Checkout{}, invalid(op, "no client token, which the checkout is opened with")
-	case c.c.Plan == "":
-		return mor.Checkout{}, invalid(op, "no plan, which the checkout subscribes the payer to")
 	case !keyOK(s.Account):
 		return mor.Checkout{}, invalid(op, "the account is 1 to 64 of letters, digits, '-', '_', '.', ':' or '='")
 	case s.Customer != "" && !idOK("ctm", s.Customer):
 		return mor.Checkout{}, invalid(op, "the customer is no customer of Paddle's")
-	case s.Currency != "" && money.Check(s.Currency) != nil:
-		return mor.Checkout{}, invalid(op, "a currency levyan does not price in: "+s.Currency)
+	case money.Check(s.Currency) != nil:
+		return mor.Checkout{}, invalid(op, "a checkout is in a currency levyan prices in, which says its plan: not "+strconv.Quote(s.Currency))
+	case plan == "":
+		return mor.Checkout{}, invalid(op, "no plan in "+s.Currency+", which the checkout would subscribe the payer to")
 	}
 	if u, err := url.Parse(s.Success); err != nil || !u.IsAbs() || (u.Scheme != "https" && u.Scheme != "http") {
 		return mor.Checkout{}, invalid(op, "the checkout sends the payer back to an absolute URL")
 	}
 
+	if a := s.Again; a != nil {
+		switch {
+		case !idOK("txn", a.ID):
+			return mor.Checkout{}, invalid(op, "the checkout begun again is no transaction of Paddle's")
+		case a.Account != s.Account:
+			return mor.Checkout{}, invalid(op, "the checkout begun again is another account's")
+		}
+		var t transaction
+		if _, err := c.call(ctx, op, http.MethodGet, "/transactions/"+a.ID, nil, nil, &t); err != nil {
+			return mor.Checkout{}, err
+		}
+		if t.custom(accountField) != s.Account {
+			return mor.Checkout{}, invalid(op, "the transaction is no checkout of the account's")
+		}
+		switch t.Status {
+		case "draft", "ready":
+			return c.checkout(t, s), nil
+		case "paid", "completed":
+			return mor.Checkout{}, &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrFinished}
+		}
+		// Paddle takes it no longer: another, below.
+	}
+
 	in := map[string]any{
-		"items":           []map[string]any{{"price_id": c.c.Plan, "quantity": 1}},
+		"items":           []map[string]any{{"price_id": plan, "quantity": 1}},
 		"collection_mode": "automatic",
+		"currency_code":   s.Currency,
 		"custom_data":     map[string]string{accountField: s.Account},
 	}
 	if s.Customer != "" {
 		in["customer_id"] = s.Customer
-	}
-	if s.Currency != "" {
-		in["currency_code"] = s.Currency
 	}
 	var t transaction
 	if _, err := c.call(ctx, op, http.MethodPost, "/transactions", nil, in, &t); err != nil {
@@ -376,7 +456,11 @@ func (c *Channel) StartCheckout(ctx context.Context, s mor.Start) (mor.Checkout,
 	if !idOK("txn", t.ID) {
 		return mor.Checkout{}, &mor.Error{Op: op, Kind: mor.Unknown, Err: errors.New("the answer names no transaction")}
 	}
+	return c.checkout(t, s), nil
+}
 
+// checkout is what a page opens transaction t with, for the start s.
+func (c *Channel) checkout(t transaction, s mor.Start) mor.Checkout {
 	env := "production"
 	if c.c.Sandbox {
 		env = "sandbox"
@@ -389,11 +473,13 @@ func (c *Channel) StartCheckout(ctx context.Context, s mor.Start) (mor.Checkout,
 			"transactionId": t.ID,
 			"successUrl":    s.Success,
 		},
+		Environment: env,
+		Token:       c.c.ClientToken,
 	}
 	if t.Checkout != nil && t.Checkout.URL != nil {
 		w.URL = *t.Checkout.URL
 	}
-	return mor.Checkout{ID: t.ID, Account: s.Account, Window: w}, nil
+	return mor.Checkout{ID: t.ID, Account: s.Account, Window: w}
 }
 
 // CompleteCheckout asks the checkout's transaction, and the subscription it
@@ -434,6 +520,11 @@ func (c *Channel) CompleteCheckout(ctx context.Context, co mor.Checkout) (mor.Su
 	case co.Account:
 	default:
 		return mor.Subscription{}, invalid(op, "the subscription is another account's")
+	}
+	// What the checkout was paid with is how the subscription is paid,
+	// until a payment of it says otherwise.
+	if p := t.latest(); p != nil {
+		s.Method = p.method()
 	}
 	return s, nil
 }

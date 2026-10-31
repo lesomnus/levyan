@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -24,9 +25,13 @@ import (
 //	                             with a live key it fails before it sends
 //	                             anything.
 //	PADDLE_SANDBOX_CLIENT_TOKEN  test_…, and
-//	PADDLE_SANDBOX_PLAN          pri_…, a recurring price of the account: the test
-//	                             starts a checkout and logs its URL, to finish
-//	                             by hand with a test card.
+//	PADDLE_SANDBOX_PLAN          pri_…, a recurring price of the account, in
+//	PADDLE_SANDBOX_CURRENCY      (USD when unset): the test starts a checkout
+//	                             and logs its URL, to finish by hand with a
+//	                             test card. In KRW, with South Korea picked on
+//	                             the checkout's first screen, it is where
+//	                             Korean cards, KakaoPay and NaverPay are to be
+//	                             seen (docs/design.md §16, 61).
 //	PADDLE_SANDBOX_SUBSCRIPTION  sub_…, one such a checkout started: the test
 //	                             charges it now and for the next period, asks
 //	                             both, and refunds part of the first.
@@ -55,10 +60,18 @@ func TestLive(t *testing.T) {
 	}
 	require.True(t, strings.HasPrefix(key, "pdl_sdbx_"), "PADDLE_SANDBOX_API_KEY is no sandbox key: the live test charges nothing real, and is never given a live key")
 
+	currency := os.Getenv("PADDLE_SANDBOX_CURRENCY")
+	if currency == "" {
+		currency = "USD"
+	}
+	plans := map[string]string{}
+	if p := os.Getenv("PADDLE_SANDBOX_PLAN"); p != "" {
+		plans[currency] = p
+	}
 	ch, err := paddle.New(paddle.Config{
 		APIKey:      paddletest.Secret("${env:PADDLE_SANDBOX_API_KEY}"),
 		ClientToken: os.Getenv("PADDLE_SANDBOX_CLIENT_TOKEN"),
-		Plan:        os.Getenv("PADDLE_SANDBOX_PLAN"),
+		Plans:       plans,
 		Sandbox:     true,
 	})
 	require.NoError(t, err)
@@ -80,13 +93,25 @@ func TestLive(t *testing.T) {
 
 	if os.Getenv("PADDLE_SANDBOX_CLIENT_TOKEN") != "" && os.Getenv("PADDLE_SANDBOX_PLAN") != "" {
 		t.Run("a checkout is started, to finish by hand", func(t *testing.T) {
-			co, err := ch.StartCheckout(ctx, mor.Start{Account: "lv-live-" + rand.Text(), Success: "https://example.com/subscribed"})
+			co, err := ch.StartCheckout(ctx, mor.Start{Account: "lv-live-" + rand.Text(), Currency: currency, Success: "https://example.com/subscribed"})
 			require.NoError(t, err)
 			_, err = ch.CompleteCheckout(ctx, co)
 			require.ErrorIs(t, err, mor.ErrOpen)
 			t.Logf("checkout %s: %s -- pay with a test card, then run with PADDLE_SANDBOX_SUBSCRIPTION", co.ID, co.Window.URL)
 		})
 	}
+
+	t.Run("the event stream is read, oldest first", func(t *testing.T) {
+		got, err := ch.Notices(ctx, mor.Read{Since: time.Now().Add(-24 * time.Hour)})
+		if mor.KindOf(err) == mor.Auth {
+			t.Skipf("the key may not read the event stream (notification.read): %v", err)
+		}
+		require.NoError(t, err)
+		t.Logf("%d notices in the last day, more: %v, last %s", len(got.Notices), got.More, got.Last)
+		for i := 1; i < len(got.Notices); i++ {
+			require.Less(t, got.Notices[i-1].ID, got.Notices[i].ID)
+		}
+	})
 
 	id := os.Getenv("PADDLE_SANDBOX_SUBSCRIPTION")
 	if id == "" {

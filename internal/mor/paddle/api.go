@@ -301,12 +301,7 @@ type transaction struct {
 		Totals    totals     `json:"totals"`
 		LineItems []lineItem `json:"line_items"`
 	} `json:"details"`
-	Payments []struct {
-		Status     string  `json:"status"`
-		ErrorCode  *string `json:"error_code"`
-		CapturedAt *string `json:"captured_at"`
-		CreatedAt  string  `json:"created_at"`
-	} `json:"payments"`
+	Payments []payment `json:"payments"`
 	Checkout *struct {
 		URL *string `json:"url"`
 	} `json:"checkout"`
@@ -314,6 +309,55 @@ type transaction struct {
 }
 
 func (t transaction) custom(field string) string { return t.CustomData.get(field) }
+
+// payment is one of a transaction's attempts to collect it
+// (https://developer.paddle.com/api-reference/transactions/get-transaction,
+// payments), of the fields read: of its method, the kind, and of a card no
+// more than its brand -- or a Korean card's company -- and its last four
+// digits.
+type payment struct {
+	Status        string  `json:"status"`
+	ErrorCode     *string `json:"error_code"`
+	CapturedAt    *string `json:"captured_at"`
+	CreatedAt     string  `json:"created_at"`
+	MethodDetails *struct {
+		Type string `json:"type"`
+		Card *struct {
+			Type  string `json:"type"`
+			Last4 string `json:"last4"`
+		} `json:"card"`
+		SouthKoreaLocalCard *struct {
+			Type  string `json:"type"`
+			Last4 string `json:"last4"`
+		} `json:"south_korea_local_card"`
+	} `json:"method_details"`
+}
+
+// latest is the newest of t's attempts to collect it, which Paddle lists
+// first: nil for none.
+func (t transaction) latest() *payment {
+	if len(t.Payments) == 0 {
+		return nil
+	}
+	return &t.Payments[0]
+}
+
+// method is what p was attempted with, and nil when Paddle says nothing of
+// it.
+func (p payment) method() *mor.Method {
+	d := p.MethodDetails
+	if d == nil || d.Type == "" {
+		return nil
+	}
+	m := &mor.Method{Type: d.Type}
+	switch {
+	case d.Card != nil:
+		m.Brand, m.Last4 = d.Card.Type, d.Card.Last4
+	case d.SouthKoreaLocalCard != nil:
+		m.Brand, m.Last4 = d.SouthKoreaLocalCard.Type, d.SouthKoreaLocalCard.Last4
+	}
+	return m
+}
 
 // statuses is what each of Paddle's transaction statuses is
 // (https://developer.paddle.com/api-reference/transactions/get-transaction,
@@ -404,6 +448,13 @@ func (t transaction) read(taxMode string) (mor.Transaction, error) {
 		}
 	case t.Status == "past_due" && latest != nil:
 		v.Failure = &mor.Failure{Kind: paymentKind(*latest), Code: *latest}
+	}
+	if p := t.latest(); p != nil {
+		v.Method = p.method()
+		// A payment the payer has yet to approve -- in their card company's
+		// app, by their bank's check -- is one Paddle cannot collect
+		// without them.
+		v.Awaiting = s == mor.Pending && p.Status == "action_required"
 	}
 
 	for _, a := range t.Adjustments {

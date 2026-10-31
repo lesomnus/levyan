@@ -24,7 +24,7 @@ func usd(n int64) money.Amount { return money.Amount{Minor: n, Currency: "USD"} 
 
 const account = "acct-0001"
 
-var start = mor.Start{Account: account, Success: "https://pay.example.com/subscribed"}
+var start = mor.Start{Account: account, Currency: "USD", Success: "https://pay.example.com/subscribed"}
 
 func setup(t *testing.T) (*paddletest.Server, *paddle.Channel) {
 	t.Helper()
@@ -69,6 +69,8 @@ func TestACheckoutStartsASubscriptionForItsAccount(t *testing.T) {
 		"transactionId": co.ID,
 		"successUrl":    start.Success,
 	}, co.Window.Values)
+	require.Equal(t, "sandbox", co.Window.Environment)
+	require.Equal(t, srv.ClientToken, co.Window.Token)
 	require.Equal(t, srv.URL+"/pay?_ptxn="+co.ID, co.Window.URL, "the payment link, for a page that sends the payer to Paddle")
 
 	_, err = ch.CompleteCheckout(ctx, co)
@@ -87,12 +89,16 @@ func TestACheckoutStartsASubscriptionForItsAccount(t *testing.T) {
 	require.False(t, s.Next.IsZero())
 	require.Equal(t, s.Period.End, s.Next)
 
+	require.Equal(t, &mor.Method{Type: "card", Brand: "visa", Last4: "4242"}, s.Method, "what the checkout was paid with, and no more of the card")
+
 	again, err := ch.CompleteCheckout(ctx, co)
 	require.NoError(t, err)
 	require.Equal(t, s, again, "the payer reloading the page is the same subscription")
 
 	got, err := ch.Subscription(ctx, s.ID)
 	require.NoError(t, err)
+	require.Nil(t, got.Method, "a subscription says nothing of how it is paid")
+	got.Method = s.Method
 	require.Equal(t, s, got)
 }
 
@@ -110,7 +116,7 @@ func TestACheckoutIsCompletedOnlyForItsOwnAccount(t *testing.T) {
 	_, err = ch.CompleteCheckout(ctx, other)
 	require.Equal(t, mor.Invalid, mor.KindOf(err))
 
-	theirs, err := ch.StartCheckout(ctx, mor.Start{Account: "acct-0002", Success: start.Success})
+	theirs, err := ch.StartCheckout(ctx, mor.Start{Account: "acct-0002", Currency: "USD", Success: start.Success})
 	require.NoError(t, err)
 	mixed := co
 	mixed.ID = theirs.ID
@@ -883,7 +889,8 @@ func TestNewRefusesAChannelThatCannotWork(t *testing.T) {
 		"a sandbox key live":            func(c *paddle.Config) { c.Sandbox = false },
 		"a key in the page":             func(c *paddle.Config) { c.ClientToken = srv.APIKey },
 		"a live token in the sandbox":   func(c *paddle.Config) { c.ClientToken = "live_" + strings.Repeat("0", 27) },
-		"a plan that is no price":       func(c *paddle.Config) { c.Plan = "pro_" + strings.Repeat("0", 26) },
+		"a plan that is no price":       func(c *paddle.Config) { c.Plans = map[string]string{"USD": "pro_" + strings.Repeat("0", 26)} },
+		"a plan in no currency":         func(c *paddle.Config) { c.Plans = map[string]string{"XAU": srv.Plans["USD"]} },
 		"a tax mode of Paddle's own":    func(c *paddle.Config) { c.TaxMode = "account_setting" },
 		"a tax category Paddle has not": func(c *paddle.Config) { c.TaxCategory = "groceries" },
 		"a negative tolerance":          func(c *paddle.Config) { c.Tolerance = -time.Second },
@@ -899,7 +906,7 @@ func TestNewRefusesAChannelThatCannotWork(t *testing.T) {
 	}
 
 	c := srv.Config()
-	c.ClientToken, c.Plan = "", ""
+	c.ClientToken, c.Plans = "", nil
 	ch, err := paddle.New(c)
 	require.NoError(t, err, "a channel that only charges needs no client token and no plan")
 	_, err = ch.StartCheckout(t.Context(), start)
@@ -910,27 +917,30 @@ func TestNewRefusesAChannelThatCannotWork(t *testing.T) {
 func TestACheckoutStartsFromWhatItCanBe(t *testing.T) {
 	srv, ch := setup(t)
 	for _, s := range []mor.Start{
-		{Success: start.Success},                                  // no account
-		{Account: "acct 0001", Success: start.Success},            // not an account levyan writes
-		{Account: account, Success: "/subscribed"},                // not absolute
-		{Account: account, Success: "javascript:alert(1)"},        // not a page
-		{Account: account, Success: start.Success, Customer: "c"}, // not Paddle's
-		{Account: account, Success: start.Success, Currency: "XAU"},
+		{Currency: "USD", Success: start.Success},                                  // no account
+		{Account: "acct 0001", Currency: "USD", Success: start.Success},            // not an account levyan writes
+		{Account: account, Currency: "USD", Success: "/subscribed"},                // not absolute
+		{Account: account, Currency: "USD", Success: "javascript:alert(1)"},        // not a page
+		{Account: account, Currency: "USD", Success: start.Success, Customer: "c"}, // not Paddle's
+		{Account: account, Success: start.Success, Currency: "XAU"},                // not priced in
+		{Account: account, Success: start.Success},                                 // in no currency, which says the plan
+		{Account: account, Success: start.Success, Currency: "EUR"},                // with no plan
+		{Account: account, Currency: "USD", Success: start.Success, Again: &mor.Checkout{ID: "txn_1", Account: account}},
 	} {
 		_, err := ch.StartCheckout(t.Context(), s)
 		require.Equal(t, mor.Invalid, mor.KindOf(err), "%+v", s)
 	}
 	require.Zero(t, srv.Requests(paddletest.Checkout))
 
-	co, err := ch.StartCheckout(t.Context(), mor.Start{Account: account, Success: start.Success, Currency: "EUR"})
+	co, err := ch.StartCheckout(t.Context(), mor.Start{Account: account, Success: start.Success, Currency: "KRW"})
 	require.NoError(t, err)
 	require.NoError(t, srv.Pay(co))
 	s, err := ch.CompleteCheckout(t.Context(), co)
 	require.NoError(t, err)
-	require.Equal(t, "EUR", s.Currency, "billed in what the checkout asked")
+	require.Equal(t, "KRW", s.Currency, "billed in what the checkout asked, by the plan of that currency")
 
 	_, err = ch.Charge(t.Context(), now(s, "stmt-0001", 15_000))
-	require.Equal(t, mor.Invalid, mor.KindOf(err), "a charge in dollars of a subscription in euros")
+	require.Equal(t, mor.Invalid, mor.KindOf(err), "a charge in dollars of a subscription in won")
 }
 
 // An error from beneath the channel -- one that is no mor.Error -- says

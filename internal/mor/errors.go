@@ -89,6 +89,11 @@ var (
 	// subscription the MoR has not made yet. [NotFound].
 	ErrOpen = errors.New("mor: the checkout has started no subscription yet")
 
+	// ErrFinished is a checkout begun again ([Start.Again]) that the payer
+	// has finished meanwhile: complete it, rather than begin another.
+	// [Invalid].
+	ErrFinished = errors.New("mor: the checkout was finished: complete it")
+
 	// ErrTooSoon is a charge or a refund last sent less than [Settle] ago,
 	// which a look cannot yet say was not made: nothing is sent. [Unknown].
 	ErrTooSoon = errors.New("mor: sent too recently to say it was not made")

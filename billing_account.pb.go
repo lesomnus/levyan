@@ -448,6 +448,10 @@ type BillingAccount_builder struct {
 	// bank transfers -- whose collection is no subscription's, and on the
 	// MoR's until a subscription is first mirrored, which is read as no
 	// subscription since it was made.
+	//
+	// A column added to a table that has rows: defaulted, so that a billing
+	// account made before it is unspecified, as one on the MoR's channel with
+	// no subscription mirrored is.
 	Collection     CollectionState
 	DateCollection *timestamppb.Timestamp
 	DateUpdated    *timestamppb.Timestamp
@@ -632,7 +636,7 @@ var File_levyan_billing_account_proto protoreflect.FileDescriptor
 
 const file_levyan_billing_account_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/billing_account.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xd4\a\n" +
+	"\x1clevyan/billing_account.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xdd\a\n" +
 	"\x0eBillingAccount\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12\x1a\n" +
 	"\x04name\x18\x05 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\x04name\x12$\n" +
@@ -645,9 +649,9 @@ const file_levyan_billing_account_proto_rawDesc = "" +
 	"\x05email\x18\x10 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\x05email\x12 \n" +
 	"\aaddress\x18\x11 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\aaddress\x12A\n" +
 	"\bbusiness\x18\x12 \x01(\v2\x17.levyan.BillingBusinessB\f\xea\x82\x16\x028\x01\xaa\xc1\x16\x02\x18\x01R\bbusiness\x12I\n" +
-	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\rdateForgotten\x127\n" +
+	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\rdateForgotten\x12@\n" +
 	"\n" +
-	"collection\x18\x14 \x01(\x0e2\x17.levyan.CollectionStateR\n" +
+	"collection\x18\x14 \x01(\x0e2\x17.levyan.CollectionStateB\a\xea\x82\x16\x03\x82\x01\x00R\n" +
 	"collection\x12K\n" +
 	"\x0fdate_collection\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\x0edateCollection\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +

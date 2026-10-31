@@ -720,6 +720,16 @@ func CollectionLTE(v int32) predicate.BillingAccount {
 	return predicate.BillingAccount(sql.FieldLTE(FieldCollection, v))
 }
 
+// CollectionIsNil applies the IsNil predicate on the "collection" field.
+func CollectionIsNil() predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldIsNull(FieldCollection))
+}
+
+// CollectionNotNil applies the NotNil predicate on the "collection" field.
+func CollectionNotNil() predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldNotNull(FieldCollection))
+}
+
 // DateCollectionEQ applies the EQ predicate on the "date_collection" field.
 func DateCollectionEQ(v time.Time) predicate.BillingAccount {
 	return predicate.BillingAccount(sql.FieldEQ(FieldDateCollection, v))

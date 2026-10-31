@@ -98,6 +98,14 @@ func (_c *BillingAccountCreate) SetCollection(v int32) *BillingAccountCreate {
 	return _c
 }
 
+// SetNillableCollection sets the "collection" field if the given value is not nil.
+func (_c *BillingAccountCreate) SetNillableCollection(v *int32) *BillingAccountCreate {
+	if v != nil {
+		_c.SetCollection(*v)
+	}
+	return _c
+}
+
 // SetDateCollection sets the "date_collection" field.
 func (_c *BillingAccountCreate) SetDateCollection(v time.Time) *BillingAccountCreate {
 	_c.mutation.SetDateCollection(v)
@@ -159,6 +167,7 @@ func (_c *BillingAccountCreate) Mutation() *BillingAccountMutation {
 
 // Save creates the BillingAccount in the database.
 func (_c *BillingAccountCreate) Save(ctx context.Context) (*BillingAccount, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -181,6 +190,16 @@ func (_c *BillingAccountCreate) Exec(ctx context.Context) error {
 func (_c *BillingAccountCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_c *BillingAccountCreate) defaults() {
+	if _, ok := _c.mutation.Collection(); !ok {
+		if _, ok := _c.mutation.FieldExpr(billingaccount.FieldCollection); !ok {
+			v := billingaccount.DefaultCollection
+			_c.mutation.SetCollection(v)
+		}
 	}
 }
 
@@ -212,9 +231,6 @@ func (_c *BillingAccountCreate) check() error {
 	}
 	if _, ok := _c.mutation.Address(); !ok {
 		return &ValidationError{Name: "address", err: errors.New(`ent: missing required field "BillingAccount.address"`)}
-	}
-	if _, ok := _c.mutation.Collection(); !ok {
-		return &ValidationError{Name: "collection", err: errors.New(`ent: missing required field "BillingAccount.collection"`)}
 	}
 	if _, ok := _c.mutation.DateUpdated(); !ok {
 		return &ValidationError{Name: "date_updated", err: errors.New(`ent: missing required field "BillingAccount.date_updated"`)}
@@ -387,6 +403,7 @@ func (_c *BillingAccountCreateBulk) Save(ctx context.Context) ([]*BillingAccount
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*BillingAccountMutation)
 				if !ok {

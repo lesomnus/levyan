@@ -148,7 +148,9 @@ func (x *BillingAccountAddRequest) GetDateForgotten() *timestamppb.Timestamp {
 
 func (x *BillingAccountAddRequest) GetCollection() CollectionState {
 	if x != nil {
-		return x.xxx_hidden_Collection
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 11) {
+			return x.xxx_hidden_Collection
+		}
 	}
 	return CollectionState_COLLECTION_STATE_UNSPECIFIED
 }
@@ -220,6 +222,7 @@ func (x *BillingAccountAddRequest) SetDateForgotten(v *timestamppb.Timestamp) {
 
 func (x *BillingAccountAddRequest) SetCollection(v CollectionState) {
 	x.xxx_hidden_Collection = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
 }
 
 func (x *BillingAccountAddRequest) SetDateCollection(v *timestamppb.Timestamp) {
@@ -251,6 +254,13 @@ func (x *BillingAccountAddRequest) HasDateForgotten() bool {
 	return x.xxx_hidden_DateForgotten != nil
 }
 
+func (x *BillingAccountAddRequest) HasCollection() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
 func (x *BillingAccountAddRequest) HasDateCollection() bool {
 	if x == nil {
 		return false
@@ -278,6 +288,11 @@ func (x *BillingAccountAddRequest) ClearDateForgotten() {
 	x.xxx_hidden_DateForgotten = nil
 }
 
+func (x *BillingAccountAddRequest) ClearCollection() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_Collection = CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
 func (x *BillingAccountAddRequest) ClearDateCollection() {
 	x.xxx_hidden_DateCollection = nil
 }
@@ -300,7 +315,7 @@ type BillingAccountAddRequest_builder struct {
 	Address        string
 	Business       *BillingBusiness
 	DateForgotten  *timestamppb.Timestamp
-	Collection     CollectionState
+	Collection     *CollectionState
 	DateCollection *timestamppb.Timestamp
 	DateCreated    *timestamppb.Timestamp
 }
@@ -323,7 +338,10 @@ func (b0 BillingAccountAddRequest_builder) Build() *BillingAccountAddRequest {
 	x.xxx_hidden_Address = b.Address
 	x.xxx_hidden_Business = b.Business
 	x.xxx_hidden_DateForgotten = b.DateForgotten
-	x.xxx_hidden_Collection = b.Collection
+	if b.Collection != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
+		x.xxx_hidden_Collection = *b.Collection
+	}
 	x.xxx_hidden_DateCollection = b.DateCollection
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
@@ -1945,7 +1963,7 @@ var File_levyan_billing_account_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_billing_account_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\"levyan/billing_account_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1clevyan/billing_account.proto\x1a\x11patch/patch.proto\"\xe6\x04\n" +
+	"\"levyan/billing_account_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1clevyan/billing_account.proto\x1a\x11patch/patch.proto\"\xdf\x04\n" +
 	"\x18BillingAccountAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12\x19\n" +
 	"\x04name\x18\x05 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04name\x12\x1b\n" +
@@ -1958,9 +1976,9 @@ const file_levyan_billing_account_svc_g_proto_rawDesc = "" +
 	"\x05email\x18\x10 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05email\x12\x1f\n" +
 	"\aaddress\x18\x11 \x01(\tB\x05\xaa\x01\x02\b\x02R\aaddress\x123\n" +
 	"\bbusiness\x18\x12 \x01(\v2\x17.levyan.BillingBusinessR\bbusiness\x12A\n" +
-	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\rdateForgotten\x12>\n" +
+	"\x0edate_forgotten\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\rdateForgotten\x127\n" +
 	"\n" +
-	"collection\x18\x14 \x01(\x0e2\x17.levyan.CollectionStateB\x05\xaa\x01\x02\b\x02R\n" +
+	"collection\x18\x14 \x01(\x0e2\x17.levyan.CollectionStateR\n" +
 	"collection\x12C\n" +
 	"\x0fdate_collection\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampR\x0edateCollection\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"}\n" +

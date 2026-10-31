@@ -39,6 +39,10 @@ func init() {
 	// billingaccountDescBusiness is the schema descriptor for business field.
 	billingaccountDescBusiness := billingaccountFields[9].Descriptor()
 	billingaccount.ValueScanner.Business = billingaccountDescBusiness.ValueScanner.(field.TypeValueScanner[*levyan.BillingBusiness])
+	// billingaccountDescCollection is the schema descriptor for collection field.
+	billingaccountDescCollection := billingaccountFields[11].Descriptor()
+	// billingaccount.DefaultCollection holds the default value on creation for the collection field.
+	billingaccount.DefaultCollection = billingaccountDescCollection.Default.(int32)
 	invoiceFields := schema.Invoice{}.Fields()
 	_ = invoiceFields
 	// invoiceDescBillTo is the schema descriptor for bill_to field.

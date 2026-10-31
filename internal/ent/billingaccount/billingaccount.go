@@ -78,6 +78,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultCollection holds the default value on creation for the "collection" field.
+	DefaultCollection int32
 	// ValueScanner of all BillingAccount fields.
 	ValueScanner struct {
 		Business field.TypeValueScanner[*levyan.BillingBusiness]

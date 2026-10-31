@@ -165,7 +165,7 @@ var (
 		{Name: "address", Type: field.TypeString},
 		{Name: "business", Type: field.TypeJson, Nullable: true},
 		{Name: "date_forgotten", Type: field.TypeTime, Nullable: true},
-		{Name: "collection", Type: field.TypeInt32},
+		{Name: "collection", Type: field.TypeInt32, Nullable: true, Default: 0},
 		{Name: "date_collection", Type: field.TypeTime, Nullable: true},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},

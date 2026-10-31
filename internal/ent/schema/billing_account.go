@@ -39,7 +39,9 @@ func (BillingAccount) Fields() []ent.Field {
 		field.Time("date_forgotten").
 			Nillable().
 			Optional(),
-		field.Int32("collection"),
+		field.Int32("collection").
+			Optional().
+			Default(0),
 		field.Time("date_collection").
 			Nillable().
 			Optional(),

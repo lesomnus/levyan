@@ -137,7 +137,11 @@ func (st BillingAccountServiceServer) create(ctx context.Context, req *levyan.Bi
 	if req.HasDateForgotten() {
 		q.SetDateForgotten(req.GetDateForgotten().AsTime())
 	}
-	q.SetCollection(int32(req.GetCollection()))
+	if req.HasCollection() {
+		q.SetCollection(int32(req.GetCollection()))
+	} else {
+		q.SetCollection(0)
+	}
 	if req.HasDateCollection() {
 		q.SetDateCollection(req.GetDateCollection().AsTime())
 	}

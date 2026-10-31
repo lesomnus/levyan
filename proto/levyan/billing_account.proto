@@ -94,7 +94,11 @@ message BillingAccount {
   // bank transfers -- whose collection is no subscription's, and on the
   // MoR's until a subscription is first mirrored, which is read as no
   // subscription since it was made.
-  CollectionState collection = 20;
+  //
+  // A column added to a table that has rows: defaulted, so that a billing
+  // account made before it is unspecified, as one on the MoR's channel with
+  // no subscription mirrored is.
+  CollectionState collection = 20 [(orm.field) = {default: ""}];
   google.protobuf.Timestamp date_collection = 21 [(orm.field) = {nullable: true}];
 
   google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];

@@ -32,7 +32,7 @@ message BillingAccountAddRequest {
   string address = 17 [features.field_presence = IMPLICIT];
   BillingBusiness business = 18;
   google.protobuf.Timestamp date_forgotten = 19;
-  CollectionState collection = 20 [features.field_presence = IMPLICIT];
+  CollectionState collection = 20;
   google.protobuf.Timestamp date_collection = 21;
   google.protobuf.Timestamp date_created = 15;
 }

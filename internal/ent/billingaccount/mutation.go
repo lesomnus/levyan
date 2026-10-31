@@ -289,6 +289,7 @@ func (m *Mutation) ResetDateForgotten() {
 func (m *Mutation) SetCollection(i int32) {
 	m.collection = &i
 	m.addcollection = nil
+	delete(m.clearedFields, FieldCollection)
 	delete(m.exprs, FieldCollection)
 }
 
@@ -319,10 +320,25 @@ func (m *Mutation) AddedCollection() (r int32, exists bool) {
 	return *v, true
 }
 
+// ClearCollection clears the value of the "collection" field.
+func (m *Mutation) ClearCollection() {
+	m.collection = nil
+	m.addcollection = nil
+	delete(m.exprs, FieldCollection)
+	m.clearedFields[FieldCollection] = struct{}{}
+}
+
+// CollectionCleared returns if the "collection" field was cleared in this mutation.
+func (m *Mutation) CollectionCleared() bool {
+	_, ok := m.clearedFields[FieldCollection]
+	return ok
+}
+
 // ResetCollection resets all changes to the "collection" field.
 func (m *Mutation) ResetCollection() {
 	m.collection = nil
 	m.addcollection = nil
+	delete(m.clearedFields, FieldCollection)
 	delete(m.exprs, FieldCollection)
 }
 
@@ -898,6 +914,9 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldDateForgotten) {
 		fields = append(fields, FieldDateForgotten)
 	}
+	if m.FieldCleared(FieldCollection) {
+		fields = append(fields, FieldCollection)
+	}
 	if m.FieldCleared(FieldDateCollection) {
 		fields = append(fields, FieldDateCollection)
 	}
@@ -926,6 +945,9 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldDateForgotten:
 		m.ClearDateForgotten()
+		return nil
+	case FieldCollection:
+		m.ClearCollection()
 		return nil
 	case FieldDateCollection:
 		m.ClearDateCollection()

@@ -86,6 +86,11 @@ func DateCreated(v time.Time) predicate.Holder {
 	return predicate.Holder(sql.FieldEQ(FieldDateCreated, v))
 }
 
+// Account applies equality check predicate on the "account" field. It's identical to AccountEQ.
+func Account(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldEQ(FieldAccount, v))
+}
+
 // TenantId applies equality check predicate on the "tenant_id" field. It's identical to TenantIdEQ.
 func TenantId(v uuid.UUID) predicate.Holder {
 	return predicate.Holder(sql.FieldEQ(FieldTenantId, v))
@@ -434,6 +439,56 @@ func DateCreatedIsNil() predicate.Holder {
 // DateCreatedNotNil applies the NotNil predicate on the "date_created" field.
 func DateCreatedNotNil() predicate.Holder {
 	return predicate.Holder(sql.FieldNotNull(FieldDateCreated))
+}
+
+// AccountEQ applies the EQ predicate on the "account" field.
+func AccountEQ(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldEQ(FieldAccount, v))
+}
+
+// AccountNEQ applies the NEQ predicate on the "account" field.
+func AccountNEQ(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldNEQ(FieldAccount, v))
+}
+
+// AccountIn applies the In predicate on the "account" field.
+func AccountIn(vs ...uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldIn(FieldAccount, vs...))
+}
+
+// AccountNotIn applies the NotIn predicate on the "account" field.
+func AccountNotIn(vs ...uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldNotIn(FieldAccount, vs...))
+}
+
+// AccountGT applies the GT predicate on the "account" field.
+func AccountGT(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldGT(FieldAccount, v))
+}
+
+// AccountGTE applies the GTE predicate on the "account" field.
+func AccountGTE(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldGTE(FieldAccount, v))
+}
+
+// AccountLT applies the LT predicate on the "account" field.
+func AccountLT(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldLT(FieldAccount, v))
+}
+
+// AccountLTE applies the LTE predicate on the "account" field.
+func AccountLTE(v uuid.UUID) predicate.Holder {
+	return predicate.Holder(sql.FieldLTE(FieldAccount, v))
+}
+
+// AccountIsNil applies the IsNil predicate on the "account" field.
+func AccountIsNil() predicate.Holder {
+	return predicate.Holder(sql.FieldIsNull(FieldAccount))
+}
+
+// AccountNotNil applies the NotNil predicate on the "account" field.
+func AccountNotNil() predicate.Holder {
+	return predicate.Holder(sql.FieldNotNull(FieldAccount))
 }
 
 // TenantIdEQ applies the EQ predicate on the "tenant_id" field.

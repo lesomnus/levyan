@@ -1,0 +1,95 @@
+edition = "2023";
+
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Departure is what levyan wrote down of an account roster said was gone --
+// suspended, or erased -- and acts on later (#4): roster's `standing` calls it
+// a mark. On hearing it, each link the account pays by ends at the end of its
+// period, and once roster has nobody by an erased account at all, what levyan
+// holds that says who they were is replaced.
+//
+// It is a copy of roster's word, which roster may take back -- `restore`
+// writes past roster's servers and is never heard on its stream -- so it is
+// acted on only after roster is asked again (`standing.Accounts.Settle`), and
+// taken back when roster has the account again before then.
+//
+// One of each account, global: an account is no product's.
+message Departure {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The account: roster's, by its identifier.
+  bytes account = 8 [
+    (orm.field) = {
+      type: TYPE_UUID
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+
+  // What roster said, and when it was last heard saying it.
+  DepartureReason reason = 9;
+  google.protobuf.Timestamp date_heard = 10 [(orm.field) = {default: ""}];
+
+  // When roster was asked again and had nobody by the account, and what
+  // levyan held of them was replaced; unset until then.
+  google.protobuf.Timestamp date_settled = 11 [(orm.field) = {nullable: true}];
+
+  // When roster had the account again, and the mark was taken back; unset
+  // while it stands.
+  google.protobuf.Timestamp date_back = 12 [(orm.field) = {nullable: true}];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "account"
+        refs: [
+          {
+            name: "account"
+            number: 8
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 22
+    global: {}
+  };
+}
+
+// DepartureReason is what roster said of an account.
+enum DepartureReason {
+  DEPARTURE_REASON_UNSPECIFIED = 0;
+
+  // Suspended: it may not sign in, and is not served.
+  DEPARTURE_REASON_SUSPENDED = 1;
+
+  // Erased: gone, unless roster restores it within its grace.
+  DEPARTURE_REASON_ERASED = 2;
+}

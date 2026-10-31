@@ -1,0 +1,141 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Offer is a product asking an account to pay for one of its workspaces
+// (#4): what an owner of the workspace asked for, in the product's word, and
+// the account's to answer. A new payer pays only once they accept, and from
+// the end of the period it is accepted in (`Link`).
+//
+// One of a workspace is open at a time: offering it to somebody else withdraws
+// the one before. Answered once, and kept as it was answered.
+message Offer {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product whose workspace it is.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it would have the account pay for.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The account it is made to: roster's, by its identifier.
+  bytes account = 8 [
+    (orm.field) = {
+      type: TYPE_UUID
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+
+  // How it was answered, and when; unspecified while it is open.
+  OfferAnswer answer = 9;
+  google.protobuf.Timestamp date_answered = 10 [(orm.field) = {nullable: true}];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was made.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // What an account was offered.
+        name: "account"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "account"
+            number: 8
+          },
+          {
+            name: "answer"
+            number: 9
+          }
+        ]
+      },
+      {
+        // What a workspace was offered to.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 21
+    tenanted: {
+      via: "tenant"
+      agrees: ["workspace.tenant"]
+    }
+  };
+}
+
+// OfferAnswer is how an offer was answered.
+enum OfferAnswer {
+  // Not yet: it is open.
+  OFFER_ANSWER_UNSPECIFIED = 0;
+
+  // The account pays for the workspace from the end of the period.
+  OFFER_ANSWER_ACCEPTED = 1;
+
+  // The account will not.
+  OFFER_ANSWER_DECLINED = 2;
+
+  // The product asked somebody else, or the account left the workspace.
+  OFFER_ANSWER_WITHDRAWN = 3;
+}

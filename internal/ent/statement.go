@@ -9,6 +9,7 @@ import (
 	"uuid"
 
 	"github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/ent/billingaccount"
 	"github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/statement"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
@@ -42,12 +43,18 @@ type Statement struct {
 	Exact string `json:"exact,omitempty"`
 	// Rating holds the value of the "rating" field.
 	Rating uint32 `json:"rating,omitempty"`
+	// Payer holds the value of the "payer" field.
+	Payer *uuid.UUID `json:"payer,omitempty"`
+	// FirstUnit holds the value of the "first_unit" field.
+	FirstUnit bool `json:"first_unit,omitempty"`
 	// TenantId holds the value of the "tenant_id" field.
 	TenantId uuid.UUID `json:"tenant_id,omitempty"`
 	// WorkspaceId holds the value of the "workspace_id" field.
 	WorkspaceId uuid.UUID `json:"workspace_id,omitempty"`
 	// PeriodId holds the value of the "period_id" field.
 	PeriodId uuid.UUID `json:"period_id,omitempty"`
+	// BillingAccountId holds the value of the "billing_account_id" field.
+	BillingAccountId uuid.UUID `json:"billing_account_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the StatementQuery when eager-loading is set.
 	Edges        StatementEdges `json:"edges"`
@@ -62,9 +69,11 @@ type StatementEdges struct {
 	Workspace *Workspace `json:"workspace,omitempty"`
 	// Period holds the value of the period edge.
 	Period *Period `json:"period,omitempty"`
+	// BillingAccount holds the value of the billing_account edge.
+	BillingAccount *BillingAccount `json:"billing_account,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // TenantOrErr returns the Tenant value or an error if the edge
@@ -100,17 +109,32 @@ func (e StatementEdges) PeriodOrErr() (*Period, error) {
 	return nil, &NotLoadedError{edge: "period"}
 }
 
+// BillingAccountOrErr returns the BillingAccount value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e StatementEdges) BillingAccountOrErr() (*BillingAccount, error) {
+	if e.BillingAccount != nil {
+		return e.BillingAccount, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: billingaccount.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_account"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Statement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case statement.FieldFirstUnit:
+			values[i] = new(sql.NullBool)
 		case statement.FieldTotal, statement.FieldRating:
 			values[i] = new(sql.NullInt64)
 		case statement.FieldChannel, statement.FieldCurrency, statement.FieldExact:
 			values[i] = new(sql.NullString)
 		case statement.FieldDateStart, statement.FieldDateEnd, statement.FieldDateErased, statement.FieldDateCreated:
 			values[i] = new(sql.NullTime)
+		case statement.FieldPayer, statement.FieldBillingAccountId:
+			values[i] = new(sql.Null[uuid.UUID])
 		case statement.FieldId, statement.FieldTenantId, statement.FieldWorkspaceId, statement.FieldPeriodId:
 			values[i] = new(uuid.UUID)
 		case statement.FieldLines:
@@ -197,6 +221,19 @@ func (_m *Statement) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Rating = uint32(value.Int64)
 			}
+		case statement.FieldPayer:
+			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
+				return fmt.Errorf("unexpected type %T for field payer", values[i])
+			} else if value.Valid {
+				_m.Payer = new(uuid.UUID)
+				*_m.Payer = value.V
+			}
+		case statement.FieldFirstUnit:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field first_unit", values[i])
+			} else if value.Valid {
+				_m.FirstUnit = value.Bool
+			}
 		case statement.FieldTenantId:
 			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field tenant_id", values[i])
@@ -214,6 +251,12 @@ func (_m *Statement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field period_id", values[i])
 			} else if value != nil {
 				_m.PeriodId = *value
+			}
+		case statement.FieldBillingAccountId:
+			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_account_id", values[i])
+			} else if value.Valid {
+				_m.BillingAccountId = value.V
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -241,6 +284,11 @@ func (_m *Statement) QueryWorkspace() *WorkspaceQuery {
 // QueryPeriod queries the "period" edge of the Statement entity.
 func (_m *Statement) QueryPeriod() *PeriodQuery {
 	return NewStatementClient(_m.config).QueryPeriod(_m)
+}
+
+// QueryBillingAccount queries the "billing_account" edge of the Statement entity.
+func (_m *Statement) QueryBillingAccount() *BillingAccountQuery {
+	return NewStatementClient(_m.config).QueryBillingAccount(_m)
 }
 
 // Update returns a builder for updating this Statement.
@@ -298,6 +346,14 @@ func (_m *Statement) String() string {
 	builder.WriteString("rating=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Rating))
 	builder.WriteString(", ")
+	if v := _m.Payer; v != nil {
+		builder.WriteString("payer=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("first_unit=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FirstUnit))
+	builder.WriteString(", ")
 	builder.WriteString("tenant_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TenantId))
 	builder.WriteString(", ")
@@ -306,6 +362,9 @@ func (_m *Statement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("period_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PeriodId))
+	builder.WriteString(", ")
+	builder.WriteString("billing_account_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BillingAccountId))
 	builder.WriteByte(')')
 	return builder.String()
 }

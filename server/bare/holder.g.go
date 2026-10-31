@@ -155,6 +155,13 @@ func (st HolderServiceServer) create(ctx context.Context, req *levyan.HolderAddR
 	} else {
 		q.SetDateCreated(st.now())
 	}
+	if req.HasAccount() {
+		if v, err := entuuid.FromBytes(req.GetAccount()); err != nil {
+			return nil, nil, status.Errorf(codes.InvalidArgument, "account: %s", err)
+		} else {
+			q.SetAccount(v)
+		}
+	}
 	return q, ds, nil
 }
 
@@ -303,6 +310,9 @@ func HolderSelectedFields(m *levyan.HolderSelect) []string {
 	if m.GetDateCreated() {
 		vs = append(vs, holder.FieldDateCreated)
 	}
+	if m.GetAccount() {
+		vs = append(vs, holder.FieldAccount)
+	}
 
 	return vs
 }
@@ -372,7 +382,7 @@ func HolderGetKey(ctx context.Context, db *ent.Client, ref *levyan.HolderRef) (u
 var holderOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_payday_holder_proto, "Holder")
 
 var holderPatchColumns = entpatch.Columns{
-	1: holder.FieldId, 2: holder.TenantColumn, 4: holder.FieldAlias, 5: holder.FieldName, 6: holder.FieldDesc, 7: holder.FieldLabels, 13: holder.FieldDateUpdated, 14: holder.FieldDateErased, 15: holder.FieldDateCreated}
+	1: holder.FieldId, 2: holder.TenantColumn, 4: holder.FieldAlias, 5: holder.FieldName, 6: holder.FieldDesc, 7: holder.FieldLabels, 13: holder.FieldDateUpdated, 14: holder.FieldDateErased, 15: holder.FieldDateCreated, 9: holder.FieldAccount}
 
 func (s HolderServiceServer) Apply(ctx context.Context, req *levyan.HolderApplyRequest) (*levyan.Holder, error) {
 	if !req.HasPatch() {

@@ -7,6 +7,7 @@ import (
 	context "context"
 	levyan "github.com/lesomnus/levyan"
 	ent "github.com/lesomnus/levyan/internal/ent"
+	billingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
 	period "github.com/lesomnus/levyan/internal/ent/period"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
 	statement "github.com/lesomnus/levyan/internal/ent/statement"
@@ -139,6 +140,20 @@ func (s StatementServiceServer) image(v *levyan.Statement) *levyan.Statement {
 			trim(m.Get(f).Message())
 		}
 	}
+	{
+		f := m.Descriptor().Fields().ByNumber(21)
+		if m.Has(f) {
+			trim := func(r protoreflect.Message) {
+				r.Range(func(f protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+					if f.Number() != 1 {
+						r.Clear(f)
+					}
+					return true
+				})
+			}
+			trim(m.Get(f).Message())
+		}
+	}
 	return out
 }
 
@@ -146,7 +161,7 @@ func (s StatementServiceServer) image(v *levyan.Statement) *levyan.Statement {
 // and what the answer says about its edges. Add and AddMany both write
 // with it, so that an item of an AddMany is the row an Add of it would be.
 func (st StatementServiceServer) create(ctx context.Context, req *levyan.StatementAddRequest) (*ent.StatementCreate, []func(v *levyan.Statement), error) {
-	ds := make([]func(v *levyan.Statement), 0, 3)
+	ds := make([]func(v *levyan.Statement), 0, 4)
 	q := st.Db.Statement.Create()
 	var k uuid.UUID
 	if req.HasId() {
@@ -208,6 +223,24 @@ func (st StatementServiceServer) create(ctx context.Context, req *levyan.Stateme
 	q.SetTotal(req.GetTotal())
 	q.SetExact(req.GetExact())
 	q.SetRating(req.GetRating())
+	if req.HasPayer() {
+		if v, err := entuuid.FromBytes(req.GetPayer()); err != nil {
+			return nil, nil, status.Errorf(codes.InvalidArgument, "payer: %s", err)
+		} else {
+			q.SetPayer(v)
+		}
+	}
+	if req.HasBillingAccount() {
+		if k, err := BillingAccountGetKey(ctx, st.Db, req.GetBillingAccount()); err != nil {
+			return nil, nil, err
+		} else {
+			q.SetBillingAccountId(k)
+			ds = append(ds, func(v *levyan.Statement) {
+				v.SetBillingAccount(levyan.BillingAccount_builder{Id: k[:]}.Build())
+			})
+		}
+	}
+	q.SetFirstUnit(req.GetFirstUnit())
 	return q, ds, nil
 }
 
@@ -365,6 +398,12 @@ func StatementSelectedFields(m *levyan.StatementSelect) []string {
 	if m.GetRating() {
 		vs = append(vs, statement.FieldRating)
 	}
+	if m.GetPayer() {
+		vs = append(vs, statement.FieldPayer)
+	}
+	if m.GetFirstUnit() {
+		vs = append(vs, statement.FieldFirstUnit)
+	}
 
 	return vs
 }
@@ -389,6 +428,12 @@ func StatementSelect(q *ent.StatementQuery, m *levyan.StatementSelect) {
 		q.WithPeriod(func(q *ent.PeriodQuery) {
 			q.Where(period.DateErasedIsNil())
 			PeriodSelect(q, m.GetPeriod())
+		})
+	}
+	if m.HasBillingAccount() {
+		q.WithBillingAccount(func(q *ent.BillingAccountQuery) {
+			q.Where(billingaccount.DateErasedIsNil())
+			BillingAccountSelect(q, m.GetBillingAccount())
 		})
 	}
 }

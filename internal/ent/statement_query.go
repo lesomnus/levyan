@@ -8,6 +8,7 @@ import (
 	"math"
 	"uuid"
 
+	"github.com/lesomnus/levyan/internal/ent/billingaccount"
 	"github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/predicate"
 	"github.com/lesomnus/levyan/internal/ent/statement"
@@ -22,14 +23,15 @@ import (
 // StatementQuery is the builder for querying Statement entities.
 type StatementQuery struct {
 	config
-	ctx           *QueryContext
-	order         []statement.OrderOption
-	inters        []Interceptor
-	predicates    []predicate.Statement
-	withTenant    *TenantQuery
-	withWorkspace *WorkspaceQuery
-	withPeriod    *PeriodQuery
-	modifiers     []func(*sql.Selector)
+	ctx                *QueryContext
+	order              []statement.OrderOption
+	inters             []Interceptor
+	predicates         []predicate.Statement
+	withTenant         *TenantQuery
+	withWorkspace      *WorkspaceQuery
+	withPeriod         *PeriodQuery
+	withBillingAccount *BillingAccountQuery
+	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -125,6 +127,28 @@ func (_q *StatementQuery) QueryPeriod() *PeriodQuery {
 			sqlgraph.From(statement.Table, statement.FieldId, selector),
 			sqlgraph.To(period.Table, period.FieldId),
 			sqlgraph.Edge(sqlgraph.M2O, false, statement.PeriodTable, statement.PeriodColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingAccount chains the current query on the "billing_account" edge.
+func (_q *StatementQuery) QueryBillingAccount() *BillingAccountQuery {
+	query := (&BillingAccountClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldId, selector),
+			sqlgraph.To(billingaccount.Table, billingaccount.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, statement.BillingAccountTable, statement.BillingAccountColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -319,14 +343,15 @@ func (_q *StatementQuery) Clone() *StatementQuery {
 		return nil
 	}
 	return &StatementQuery{
-		config:        _q.config,
-		ctx:           _q.ctx.Clone(),
-		order:         append([]statement.OrderOption{}, _q.order...),
-		inters:        append([]Interceptor{}, _q.inters...),
-		predicates:    append([]predicate.Statement{}, _q.predicates...),
-		withTenant:    _q.withTenant.Clone(),
-		withWorkspace: _q.withWorkspace.Clone(),
-		withPeriod:    _q.withPeriod.Clone(),
+		config:             _q.config,
+		ctx:                _q.ctx.Clone(),
+		order:              append([]statement.OrderOption{}, _q.order...),
+		inters:             append([]Interceptor{}, _q.inters...),
+		predicates:         append([]predicate.Statement{}, _q.predicates...),
+		withTenant:         _q.withTenant.Clone(),
+		withWorkspace:      _q.withWorkspace.Clone(),
+		withPeriod:         _q.withPeriod.Clone(),
+		withBillingAccount: _q.withBillingAccount.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -364,6 +389,17 @@ func (_q *StatementQuery) WithPeriod(opts ...func(*PeriodQuery)) *StatementQuery
 		opt(query)
 	}
 	_q.withPeriod = query
+	return _q
+}
+
+// WithBillingAccount tells the query-builder to eager-load the nodes that are connected to
+// the "billing_account" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *StatementQuery) WithBillingAccount(opts ...func(*BillingAccountQuery)) *StatementQuery {
+	query := (&BillingAccountClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingAccount = query
 	return _q
 }
 
@@ -445,10 +481,11 @@ func (_q *StatementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*St
 	var (
 		nodes       = []*Statement{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withTenant != nil,
 			_q.withWorkspace != nil,
 			_q.withPeriod != nil,
+			_q.withBillingAccount != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -487,6 +524,12 @@ func (_q *StatementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*St
 	if query := _q.withPeriod; query != nil {
 		if err := _q.loadPeriod(ctx, query, nodes, nil,
 			func(n *Statement, e *Period) { n.Edges.Period = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingAccount; query != nil {
+		if err := _q.loadBillingAccount(ctx, query, nodes, nil,
+			func(n *Statement, e *BillingAccount) { n.Edges.BillingAccount = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -580,6 +623,35 @@ func (_q *StatementQuery) loadPeriod(ctx context.Context, query *PeriodQuery, no
 	}
 	return nil
 }
+func (_q *StatementQuery) loadBillingAccount(ctx context.Context, query *BillingAccountQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *BillingAccount)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Statement)
+	for i := range nodes {
+		fk := nodes[i].BillingAccountId
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billingaccount.IdIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.Id]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "billing_account_id" returned %v`, n.Id)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *StatementQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -617,6 +689,9 @@ func (_q *StatementQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withPeriod != nil {
 			_spec.Node.AddColumnOnce(statement.FieldPeriodId)
+		}
+		if _q.withBillingAccount != nil {
+			_spec.Node.AddColumnOnce(statement.FieldBillingAccountId)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

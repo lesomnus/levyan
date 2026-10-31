@@ -20,9 +20,13 @@ import (
 	entAccess "github.com/lesomnus/levyan/internal/ent/access"
 	entArchived "github.com/lesomnus/levyan/internal/ent/archived"
 	entAudit "github.com/lesomnus/levyan/internal/ent/audit"
+	entBillingAccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
+	entDeparture "github.com/lesomnus/levyan/internal/ent/departure"
 	entGrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entHolder "github.com/lesomnus/levyan/internal/ent/holder"
+	entLink "github.com/lesomnus/levyan/internal/ent/link"
 	entMeter "github.com/lesomnus/levyan/internal/ent/meter"
+	entOffer "github.com/lesomnus/levyan/internal/ent/offer"
 	entOperator "github.com/lesomnus/levyan/internal/ent/operator"
 	entOutbox "github.com/lesomnus/levyan/internal/ent/outbox"
 	entOwed "github.com/lesomnus/levyan/internal/ent/owed"
@@ -40,7 +44,9 @@ import (
 	bare "github.com/lesomnus/levyan/server/bare"
 	log "github.com/lesomnus/otx/log"
 	access "github.com/lesomnus/payday/access"
+	account "github.com/lesomnus/payday/account"
 	audit "github.com/lesomnus/payday/audit"
+	auth "github.com/lesomnus/payday/auth"
 	batch "github.com/lesomnus/payday/batch"
 	frame "github.com/lesomnus/payday/frame"
 	gate "github.com/lesomnus/payday/gate"
@@ -62,6 +68,7 @@ import (
 	sql "github.com/protobuf-orm/ent/dialect/sql"
 	sqljson "github.com/protobuf-orm/ent/dialect/sql/sqljson"
 	sqlpage "github.com/protobuf-orm/ent/dialect/sql/sqlpage"
+	ormpatch "github.com/protobuf-orm/protobuf-orm/ormpatch"
 	enttx "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/enttx"
 	entuuid "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/entuuid"
 	grpc "google.golang.org/grpc"
@@ -104,34 +111,42 @@ func Check() error { return version.Same(Payday) }
 // trail says what kind of thing it was long after the row is gone. So a
 // number is chosen once and never given to something else.
 const (
-	AccessDomain     pdid.Domain = 6   // "access"
-	ArchivedDomain   pdid.Domain = 5   // "archived"
-	AuditDomain      pdid.Domain = 3   // "audit"
-	GrantDomain      pdid.Domain = 18  // "grant"
-	HolderDomain     pdid.Domain = 2   // "holder"
-	MeterDomain      pdid.Domain = 10  // "meter"
-	OperatorDomain   pdid.Domain = 8   // "operator"
-	OutboxDomain     pdid.Domain = 4   // "outbox"
-	OwedDomain       pdid.Domain = 254 // "owed"
-	PeriodDomain     pdid.Domain = 16  // "period"
-	PointDomain      pdid.Domain = 15  // "point"
-	PriceDomain      pdid.Domain = 11  // "price"
-	ReadingDomain    pdid.Domain = 13  // "reading"
-	RowSealDomain    pdid.Domain = 255 // "row-seal"
-	SeriesDomain     pdid.Domain = 14  // "series"
-	ServiceKeyDomain pdid.Domain = 9   // "service-key"
-	StatementDomain  pdid.Domain = 17  // "statement"
-	TenantDomain     pdid.Domain = 1   // "tenant"
-	WorkspaceDomain  pdid.Domain = 12  // "workspace"
+	AccessDomain         pdid.Domain = 6   // "access"
+	ArchivedDomain       pdid.Domain = 5   // "archived"
+	AuditDomain          pdid.Domain = 3   // "audit"
+	BillingAccountDomain pdid.Domain = 19  // "billing-account"
+	DepartureDomain      pdid.Domain = 22  // "departure"
+	GrantDomain          pdid.Domain = 18  // "grant"
+	HolderDomain         pdid.Domain = 2   // "holder"
+	LinkDomain           pdid.Domain = 20  // "link"
+	MeterDomain          pdid.Domain = 10  // "meter"
+	OfferDomain          pdid.Domain = 21  // "offer"
+	OperatorDomain       pdid.Domain = 8   // "operator"
+	OutboxDomain         pdid.Domain = 4   // "outbox"
+	OwedDomain           pdid.Domain = 254 // "owed"
+	PeriodDomain         pdid.Domain = 16  // "period"
+	PointDomain          pdid.Domain = 15  // "point"
+	PriceDomain          pdid.Domain = 11  // "price"
+	ReadingDomain        pdid.Domain = 13  // "reading"
+	RowSealDomain        pdid.Domain = 255 // "row-seal"
+	SeriesDomain         pdid.Domain = 14  // "series"
+	ServiceKeyDomain     pdid.Domain = 9   // "service-key"
+	StatementDomain      pdid.Domain = 17  // "statement"
+	TenantDomain         pdid.Domain = 1   // "tenant"
+	WorkspaceDomain      pdid.Domain = 12  // "workspace"
 )
 
 func init() {
 	pdid.Register("levyan.Access", AccessDomain, "access")
 	pdid.Register("levyan.Archived", ArchivedDomain, "archived")
 	pdid.Register("levyan.Audit", AuditDomain, "audit")
+	pdid.Register("levyan.BillingAccount", BillingAccountDomain, "billing-account")
+	pdid.Register("levyan.Departure", DepartureDomain, "departure")
 	pdid.Register("levyan.Grant", GrantDomain, "grant")
 	pdid.Register("levyan.Holder", HolderDomain, "holder")
+	pdid.Register("levyan.Link", LinkDomain, "link")
 	pdid.Register("levyan.Meter", MeterDomain, "meter")
+	pdid.Register("levyan.Offer", OfferDomain, "offer")
 	pdid.Register("levyan.Operator", OperatorDomain, "operator")
 	pdid.Register("levyan.Outbox", OutboxDomain, "outbox")
 	pdid.Register("levyan.Owed", OwedDomain, "owed")
@@ -152,25 +167,29 @@ func init() {
 // Domains is the domain of each entity by the full name of its message,
 // which is the name a [Minter] is asked about.
 var Domains = map[string]pdid.Domain{
-	"levyan.Access":     AccessDomain,
-	"levyan.Archived":   ArchivedDomain,
-	"levyan.Audit":      AuditDomain,
-	"levyan.Grant":      GrantDomain,
-	"levyan.Holder":     HolderDomain,
-	"levyan.Meter":      MeterDomain,
-	"levyan.Operator":   OperatorDomain,
-	"levyan.Outbox":     OutboxDomain,
-	"levyan.Owed":       OwedDomain,
-	"levyan.Period":     PeriodDomain,
-	"levyan.Point":      PointDomain,
-	"levyan.Price":      PriceDomain,
-	"levyan.Reading":    ReadingDomain,
-	"levyan.RowSeal":    RowSealDomain,
-	"levyan.Series":     SeriesDomain,
-	"levyan.ServiceKey": ServiceKeyDomain,
-	"levyan.Statement":  StatementDomain,
-	"levyan.Tenant":     TenantDomain,
-	"levyan.Workspace":  WorkspaceDomain,
+	"levyan.Access":         AccessDomain,
+	"levyan.Archived":       ArchivedDomain,
+	"levyan.Audit":          AuditDomain,
+	"levyan.BillingAccount": BillingAccountDomain,
+	"levyan.Departure":      DepartureDomain,
+	"levyan.Grant":          GrantDomain,
+	"levyan.Holder":         HolderDomain,
+	"levyan.Link":           LinkDomain,
+	"levyan.Meter":          MeterDomain,
+	"levyan.Offer":          OfferDomain,
+	"levyan.Operator":       OperatorDomain,
+	"levyan.Outbox":         OutboxDomain,
+	"levyan.Owed":           OwedDomain,
+	"levyan.Period":         PeriodDomain,
+	"levyan.Point":          PointDomain,
+	"levyan.Price":          PriceDomain,
+	"levyan.Reading":        ReadingDomain,
+	"levyan.RowSeal":        RowSealDomain,
+	"levyan.Series":         SeriesDomain,
+	"levyan.ServiceKey":     ServiceKeyDomain,
+	"levyan.Statement":      StatementDomain,
+	"levyan.Tenant":         TenantDomain,
+	"levyan.Workspace":      WorkspaceDomain,
 }
 
 // IndexRenames are the indexes this schema names, by what an earlier build
@@ -191,14 +210,23 @@ var IndexRenames = []rename.Index{
 	{Table: "audit", From: "audit_tenant_id_domain_date_created", To: "audit_by_tenant_domain"},
 	{Table: "audit", From: "audit_actor_id_date_created", To: "audit_by_actor"},
 	{Table: "audit", From: "audit_date_created_id", To: "audit_by_time"},
+	{Table: "billingaccount", From: "billingaccount_date_created_id", To: "billingaccount_page"},
+	{Table: "billingaccount", From: "billingaccount_owner_date_created_id", To: "billingaccount_owner"},
 	{Table: "grant", From: "grant_tenant_id_date_created_id", To: "grant_page"},
 	{Table: "grant", From: "grant_workspace_id_date_created_id", To: "grant_workspace"},
 	{Table: "grant", From: "grant_renews_valid_until", To: "grant_renewal"},
 	{Table: "grant", From: "grant_tenant_id_rule_key", To: "grant_rule"},
 	{Table: "holder", From: "holder_alias_tenant_id", To: "holder_slug"},
 	{Table: "holder", From: "holder_tenant_id_date_created_id", To: "holder_page"},
+	{Table: "holder", From: "holder_account_tenant_id", To: "holder_by_account"},
+	{Table: "link", From: "link_tenant_id_date_created_id", To: "link_page"},
+	{Table: "link", From: "link_workspace_id_date_start", To: "link_workspace"},
+	{Table: "link", From: "link_tenant_id_payer_date_start", To: "link_payer"},
 	{Table: "meter", From: "meter_tenant_id_date_created_id", To: "meter_page"},
 	{Table: "meter", From: "meter_key_tenant_id", To: "meter_keyed"},
+	{Table: "offer", From: "offer_tenant_id_date_created_id", To: "offer_page"},
+	{Table: "offer", From: "offer_tenant_id_account_answer", To: "offer_account"},
+	{Table: "offer", From: "offer_workspace_id_date_created_id", To: "offer_workspace"},
 	{Table: "operator", From: "operator_alias", To: "operator_slug"},
 	{Table: "outbox", From: "outbox_id", To: "outbox_queue"},
 	{Table: "owed", From: "owed_date_created_id", To: "owed_owed"},
@@ -282,8 +310,12 @@ func nothing[P ~func(*sql.Selector)]() P {
 
 // AccessScope: a row is readable by every tenant it names -- tenant_id, actor_tenant_id -- which is the trail.
 func (wall) AccessScope(ctx context.Context) (predicate.Access, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Access](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Access == nil {
+			return nothing[predicate.Access](), nil
+		}
+
+		return r.Access(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -296,8 +328,12 @@ func (wall) AccessScope(ctx context.Context) (predicate.Access, error) {
 
 // ArchivedScope: declared `global`, so it is not behind the wall at all.
 func (wall) ArchivedScope(ctx context.Context) (predicate.Archived, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Archived](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Archived == nil {
+			return nothing[predicate.Archived](), nil
+		}
+
+		return r.Archived(ctx, a)
 	}
 
 	return nil, nil
@@ -305,8 +341,12 @@ func (wall) ArchivedScope(ctx context.Context) (predicate.Archived, error) {
 
 // AuditScope: a row is readable by every tenant it names -- tenant_id, actor_tenant_id, counterpart_tenant_id -- which is the trail.
 func (wall) AuditScope(ctx context.Context) (predicate.Audit, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Audit](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Audit == nil {
+			return nothing[predicate.Audit](), nil
+		}
+
+		return r.Audit(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -317,10 +357,40 @@ func (wall) AuditScope(ctx context.Context) (predicate.Audit, error) {
 	return entAudit.Or(entAudit.TenantIdIn(vs...), entAudit.ActorTenantIdIn(vs...), entAudit.CounterpartTenantIdIn(vs...)), nil
 }
 
+// BillingAccountScope: declared `global`, so it is not behind the wall at all.
+func (wall) BillingAccountScope(ctx context.Context) (predicate.BillingAccount, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.BillingAccount == nil {
+			return nothing[predicate.BillingAccount](), nil
+		}
+
+		return r.BillingAccount(ctx, a)
+	}
+
+	return nil, nil
+}
+
+// DepartureScope: declared `global`, so it is not behind the wall at all.
+func (wall) DepartureScope(ctx context.Context) (predicate.Departure, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Departure == nil {
+			return nothing[predicate.Departure](), nil
+		}
+
+		return r.Departure(ctx, a)
+	}
+
+	return nil, nil
+}
+
 // GrantScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) GrantScope(ctx context.Context) (predicate.Grant, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Grant](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Grant == nil {
+			return nothing[predicate.Grant](), nil
+		}
+
+		return r.Grant(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -333,8 +403,12 @@ func (wall) GrantScope(ctx context.Context) (predicate.Grant, error) {
 
 // HolderScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) HolderScope(ctx context.Context) (predicate.Holder, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Holder](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Holder == nil {
+			return nothing[predicate.Holder](), nil
+		}
+
+		return r.Holder(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -345,10 +419,32 @@ func (wall) HolderScope(ctx context.Context) (predicate.Holder, error) {
 	return entHolder.TenantIdIn(vs...), nil
 }
 
+// LinkScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) LinkScope(ctx context.Context) (predicate.Link, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Link == nil {
+			return nothing[predicate.Link](), nil
+		}
+
+		return r.Link(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entLink.TenantIdIn(vs...), nil
+}
+
 // MeterScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) MeterScope(ctx context.Context) (predicate.Meter, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Meter](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Meter == nil {
+			return nothing[predicate.Meter](), nil
+		}
+
+		return r.Meter(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -359,10 +455,32 @@ func (wall) MeterScope(ctx context.Context) (predicate.Meter, error) {
 	return entMeter.TenantIdIn(vs...), nil
 }
 
+// OfferScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) OfferScope(ctx context.Context) (predicate.Offer, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Offer == nil {
+			return nothing[predicate.Offer](), nil
+		}
+
+		return r.Offer(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entOffer.TenantIdIn(vs...), nil
+}
+
 // OperatorScope: declared `global`, so it is not behind the wall at all.
 func (wall) OperatorScope(ctx context.Context) (predicate.Operator, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Operator](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Operator == nil {
+			return nothing[predicate.Operator](), nil
+		}
+
+		return r.Operator(ctx, a)
 	}
 
 	return nil, nil
@@ -370,8 +488,12 @@ func (wall) OperatorScope(ctx context.Context) (predicate.Operator, error) {
 
 // OutboxScope: declared `global`, so it is not behind the wall at all.
 func (wall) OutboxScope(ctx context.Context) (predicate.Outbox, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Outbox](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Outbox == nil {
+			return nothing[predicate.Outbox](), nil
+		}
+
+		return r.Outbox(ctx, a)
 	}
 
 	return nil, nil
@@ -379,8 +501,12 @@ func (wall) OutboxScope(ctx context.Context) (predicate.Outbox, error) {
 
 // OwedScope: declared `global`, so it is not behind the wall at all.
 func (wall) OwedScope(ctx context.Context) (predicate.Owed, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Owed](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Owed == nil {
+			return nothing[predicate.Owed](), nil
+		}
+
+		return r.Owed(ctx, a)
 	}
 
 	return nil, nil
@@ -388,8 +514,12 @@ func (wall) OwedScope(ctx context.Context) (predicate.Owed, error) {
 
 // PeriodScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) PeriodScope(ctx context.Context) (predicate.Period, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Period](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Period == nil {
+			return nothing[predicate.Period](), nil
+		}
+
+		return r.Period(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -402,8 +532,12 @@ func (wall) PeriodScope(ctx context.Context) (predicate.Period, error) {
 
 // PointScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) PointScope(ctx context.Context) (predicate.Point, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Point](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Point == nil {
+			return nothing[predicate.Point](), nil
+		}
+
+		return r.Point(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -416,8 +550,12 @@ func (wall) PointScope(ctx context.Context) (predicate.Point, error) {
 
 // PriceScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) PriceScope(ctx context.Context) (predicate.Price, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Price](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Price == nil {
+			return nothing[predicate.Price](), nil
+		}
+
+		return r.Price(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -430,8 +568,12 @@ func (wall) PriceScope(ctx context.Context) (predicate.Price, error) {
 
 // ReadingScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) ReadingScope(ctx context.Context) (predicate.Reading, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Reading](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Reading == nil {
+			return nothing[predicate.Reading](), nil
+		}
+
+		return r.Reading(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -444,8 +586,12 @@ func (wall) ReadingScope(ctx context.Context) (predicate.Reading, error) {
 
 // RowSealScope: a row belongs to the tenant its "tenant_id" names, which it holds without an edge.
 func (wall) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.RowSeal](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.RowSeal == nil {
+			return nothing[predicate.RowSeal](), nil
+		}
+
+		return r.RowSeal(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -458,8 +604,12 @@ func (wall) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
 
 // SeriesScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) SeriesScope(ctx context.Context) (predicate.Series, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Series](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Series == nil {
+			return nothing[predicate.Series](), nil
+		}
+
+		return r.Series(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -472,8 +622,12 @@ func (wall) SeriesScope(ctx context.Context) (predicate.Series, error) {
 
 // ServiceKeyScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.ServiceKey](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.ServiceKey == nil {
+			return nothing[predicate.ServiceKey](), nil
+		}
+
+		return r.ServiceKey(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -486,8 +640,12 @@ func (wall) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
 
 // StatementScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) StatementScope(ctx context.Context) (predicate.Statement, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Statement](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Statement == nil {
+			return nothing[predicate.Statement](), nil
+		}
+
+		return r.Statement(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -500,8 +658,12 @@ func (wall) StatementScope(ctx context.Context) (predicate.Statement, error) {
 
 // TenantScope: a tenant is inside itself, which is what a tenant being a wall comes down to.
 func (wall) TenantScope(ctx context.Context) (predicate.Tenant, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Tenant](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Tenant == nil {
+			return nothing[predicate.Tenant](), nil
+		}
+
+		return r.Tenant(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -514,8 +676,12 @@ func (wall) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 
 // WorkspaceScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) WorkspaceScope(ctx context.Context) (predicate.Workspace, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Workspace](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Workspace == nil {
+			return nothing[predicate.Workspace](), nil
+		}
+
+		return r.Workspace(ctx, a)
 	}
 
 	vs, all, err := frame.Narrow(ctx)
@@ -577,10 +743,24 @@ func (x grouped) AuditScope(ctx context.Context) (predicate.Audit, error) {
 	return nil, nil
 }
 
+// BillingAccountScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) BillingAccountScope(ctx context.Context) (predicate.BillingAccount, error) {
+	return nil, nil
+}
+
+// DepartureScope: in no set -- it declared no field 3, so this narrows nothing.
+func (x grouped) DepartureScope(ctx context.Context) (predicate.Departure, error) {
+	return nil, nil
+}
+
 // GrantScope: in the Workspace its "workspace" names.
 func (x grouped) GrantScope(ctx context.Context) (predicate.Grant, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Grant](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Grant == nil {
+			return nothing[predicate.Grant](), nil
+		}
+
+		return r.Grant(ctx, a)
 	}
 
 	vs, all, err := frame.NarrowSet(ctx, x.of)
@@ -596,9 +776,45 @@ func (x grouped) HolderScope(ctx context.Context) (predicate.Holder, error) {
 	return nil, nil
 }
 
+// LinkScope: in the Workspace its "workspace" names.
+func (x grouped) LinkScope(ctx context.Context) (predicate.Link, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Link == nil {
+			return nothing[predicate.Link](), nil
+		}
+
+		return r.Link(ctx, a)
+	}
+
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entLink.WorkspaceIdIn(vs...), nil
+}
+
 // MeterScope: in no set -- it declared no field 3, so this narrows nothing.
 func (x grouped) MeterScope(ctx context.Context) (predicate.Meter, error) {
 	return nil, nil
+}
+
+// OfferScope: in the Workspace its "workspace" names.
+func (x grouped) OfferScope(ctx context.Context) (predicate.Offer, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Offer == nil {
+			return nothing[predicate.Offer](), nil
+		}
+
+		return r.Offer(ctx, a)
+	}
+
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entOffer.WorkspaceIdIn(vs...), nil
 }
 
 // OperatorScope: in no set -- it declared no field 3, so this narrows nothing.
@@ -623,8 +839,12 @@ func (x grouped) PeriodScope(ctx context.Context) (predicate.Period, error) {
 
 // PointScope: in the Workspace its "workspace" names.
 func (x grouped) PointScope(ctx context.Context) (predicate.Point, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Point](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Point == nil {
+			return nothing[predicate.Point](), nil
+		}
+
+		return r.Point(ctx, a)
 	}
 
 	vs, all, err := frame.NarrowSet(ctx, x.of)
@@ -642,8 +862,12 @@ func (x grouped) PriceScope(ctx context.Context) (predicate.Price, error) {
 
 // ReadingScope: in the Workspace its "workspace" names.
 func (x grouped) ReadingScope(ctx context.Context) (predicate.Reading, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Reading](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Reading == nil {
+			return nothing[predicate.Reading](), nil
+		}
+
+		return r.Reading(ctx, a)
 	}
 
 	vs, all, err := frame.NarrowSet(ctx, x.of)
@@ -661,8 +885,12 @@ func (x grouped) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
 
 // SeriesScope: in the Workspace its "workspace" names.
 func (x grouped) SeriesScope(ctx context.Context) (predicate.Series, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Series](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Series == nil {
+			return nothing[predicate.Series](), nil
+		}
+
+		return r.Series(ctx, a)
 	}
 
 	vs, all, err := frame.NarrowSet(ctx, x.of)
@@ -680,8 +908,12 @@ func (x grouped) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, err
 
 // StatementScope: in the Workspace its "workspace" names.
 func (x grouped) StatementScope(ctx context.Context) (predicate.Statement, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Statement](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Statement == nil {
+			return nothing[predicate.Statement](), nil
+		}
+
+		return r.Statement(ctx, a)
 	}
 
 	vs, all, err := frame.NarrowSet(ctx, x.of)
@@ -699,8 +931,12 @@ func (x grouped) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 
 // WorkspaceScope: it is the set, so the sets a caller may see are the rows they may see.
 func (x grouped) WorkspaceScope(ctx context.Context) (predicate.Workspace, error) {
-	if _, ok := frame.AccountOf(ctx); ok {
-		return nothing[predicate.Workspace](), nil
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Workspace == nil {
+			return nothing[predicate.Workspace](), nil
+		}
+
+		return r.Workspace(ctx, a)
 	}
 
 	vs, all, err := frame.NarrowSet(ctx, x.of)
@@ -1225,6 +1461,233 @@ func filterAudit(f *levyan.AuditFilter) (predicate.Audit, error) {
 	}
 
 	return entAudit.And(ps...), nil
+}
+
+type sinkBillingAccount struct {
+	levyan.BillingAccountServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) BillingAccount() levyan.BillingAccountServiceServer {
+	return sinkBillingAccount{s.Server.BillingAccount(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkBillingAccount) Apply(ctx context.Context, req *levyan.BillingAccountApplyRequest) (*levyan.BillingAccount, error) {
+	seen.Forget(s.store.Db.Driver(), "BillingAccount", req.GetRef())
+
+	return s.BillingAccountServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkBillingAccount.Apply].
+func (s sinkBillingAccount) Patch(ctx context.Context, req *levyan.BillingAccountPatchRequest) (*levyan.BillingAccount, error) {
+	seen.Forget(s.store.Db.Driver(), "BillingAccount", req.GetRef())
+
+	return s.BillingAccountServiceServer.Patch(ctx, req)
+}
+
+// orderBillingAccount is how BillingAccounts come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderBillingAccount = []sqlpage.Order{
+	{Column: entBillingAccount.FieldDateCreated, Desc: false},
+	{Column: entBillingAccount.FieldId, Desc: false},
+}
+
+func afterBillingAccount(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextBillingAccount(last *ent.BillingAccount, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByBillingAccount is an order as ent orders a query by it.
+func orderByBillingAccount(by []sqlpage.Order) []entBillingAccount.OrderOption {
+	out := make([]entBillingAccount.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// BillingAccountPageSize is what a request that did not say gets, and
+	// BillingAccountPageLimit is the most it gets however loudly it asks.
+	BillingAccountPageSize  = 50
+	BillingAccountPageLimit = 200
+
+	// BillingAccountFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	BillingAccountFilterLimit = 32
+)
+
+// List answers with the BillingAccounts that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkBillingAccount) List(ctx context.Context, req *levyan.BillingAccountListRequest) (*levyan.BillingAccountListResponse, error) {
+	q := s.store.Db.BillingAccount.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.BillingAccountNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > BillingAccountFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), BillingAccountFilterLimit)
+		}
+
+		ps := make([]predicate.BillingAccount, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterBillingAccount(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entBillingAccount.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderBillingAccount, afterBillingAccount, nextBillingAccount, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), BillingAccountPageSize, BillingAccountPageLimit)
+	us, err := q.Order(orderByBillingAccount(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.BillingAccount, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.BillingAccountListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterBillingAccount turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterBillingAccount(f *levyan.BillingAccountFilter) (predicate.BillingAccount, error) {
+	ps := make([]predicate.BillingAccount, 0, 1)
+	if f.HasRef() {
+		p, err := bare.BillingAccountPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasOwner() {
+		k, err := entuuid.FromBytes(f.GetOwner())
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "owner: %s", err)
+		}
+
+		ps = append(ps, entBillingAccount.OwnerEQ(k))
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entBillingAccount.And(ps...), nil
+}
+
+type sinkDeparture struct {
+	levyan.DepartureServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Departure() levyan.DepartureServiceServer {
+	return sinkDeparture{s.Server.Departure(), s.Server.Store, s.w, s.namer, s.joined}
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
+	seen.Forget(s.store.Db.Driver(), "Departure", req.GetRef())
+
+	return s.DepartureServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkDeparture.Apply].
+func (s sinkDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
+	seen.Forget(s.store.Db.Driver(), "Departure", req.GetRef())
+
+	return s.DepartureServiceServer.Patch(ctx, req)
 }
 
 type sinkGrant struct {
@@ -2060,6 +2523,180 @@ func (s sinkHolder) watchHolderKeys(
 	return ks, nil
 }
 
+type sinkLink struct {
+	levyan.LinkServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Link() levyan.LinkServiceServer {
+	v := sinkLink{s.Server.Link(), s.Server.Store, s.w, s.namer, s.joined}
+	v.LinkServiceServer = bare.LinkWithAddRule(v.LinkServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Link writes: it
+// refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Link].
+func (s sinkLink) admit(ctx context.Context, req *levyan.LinkAddRequest) (*levyan.LinkAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkLink) Apply(ctx context.Context, req *levyan.LinkApplyRequest) (*levyan.Link, error) {
+	seen.Forget(s.store.Db.Driver(), "Link", req.GetRef())
+
+	return s.LinkServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkLink.Apply].
+func (s sinkLink) Patch(ctx context.Context, req *levyan.LinkPatchRequest) (*levyan.Link, error) {
+	seen.Forget(s.store.Db.Driver(), "Link", req.GetRef())
+
+	return s.LinkServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkLink) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkLink) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtOfferTenant is the tenant "offer.tenant" arrives at.
+func (s sinkLink) tenantAtOfferTenant(ctx context.Context, ref *levyan.OfferRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("offer", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Offer", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.OfferPick(ref)
+		if err != nil {
+			return nil, pderr.At("offer", err)
+		}
+
+		k, err := s.store.Db.Offer.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("offer", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkLink) tenancy(ctx context.Context, req *levyan.LinkAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	if req.HasOffer() {
+		got, err := s.tenantAtOfferTenant(ctx, req.GetOffer())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("offer",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
 type sinkMeter struct {
 	levyan.MeterServiceServer
 	store  bare.Store
@@ -2248,6 +2885,138 @@ func filterMeter(f *levyan.MeterFilter) (predicate.Meter, error) {
 	}
 
 	return entMeter.And(ps...), nil
+}
+
+type sinkOffer struct {
+	levyan.OfferServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Offer() levyan.OfferServiceServer {
+	v := sinkOffer{s.Server.Offer(), s.Server.Store, s.w, s.namer, s.joined}
+	v.OfferServiceServer = bare.OfferWithAddRule(v.OfferServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Offer writes: it
+// refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Offer].
+func (s sinkOffer) admit(ctx context.Context, req *levyan.OfferAddRequest) (*levyan.OfferAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkOffer) Apply(ctx context.Context, req *levyan.OfferApplyRequest) (*levyan.Offer, error) {
+	seen.Forget(s.store.Db.Driver(), "Offer", req.GetRef())
+
+	return s.OfferServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkOffer.Apply].
+func (s sinkOffer) Patch(ctx context.Context, req *levyan.OfferPatchRequest) (*levyan.Offer, error) {
+	seen.Forget(s.store.Db.Driver(), "Offer", req.GetRef())
+
+	return s.OfferServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkOffer) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkOffer) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkOffer) tenancy(ctx context.Context, req *levyan.OfferAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
 }
 
 type sinkOperator struct {
@@ -5020,7 +5789,7 @@ type gateTenant struct {
 func (s Gate) Tenant() levyan.TenantServiceServer {
 	v := gateTenant{s, s.Next().Tenant()}
 	v.TenantServiceServer = bare.TenantWithAddRule(v.TenantServiceServer, v.admit)
-	return v
+	return accountsTenant{v}
 }
 
 // admit refuses every row: no tenant is served by an Add, nor by an
@@ -5044,7 +5813,7 @@ type gateHolder struct {
 func (s Gate) Holder() levyan.HolderServiceServer {
 	v := gateHolder{s, s.Next().Holder()}
 	v.HolderServiceServer = bare.HolderWithAddRule(v.HolderServiceServer, v.admit)
-	return v
+	return accountsHolder{v}
 }
 
 // admit is the one thing about a holder this layer still says, and it is here
@@ -5075,6 +5844,10 @@ func (s gateHolder) admit(ctx context.Context, req *levyan.HolderAddRequest) (*l
 		return nil, err
 	}
 
+	if req.HasAccount() {
+		return nil, pderr.Invalidf("account", "is the account this membership is of, and is written by the deployment through the server it holds, never by a request")
+	}
+
 	if err := seen.Visible(ctx, s.Gate.drv, "Tenant", req.GetTenant(), func() error {
 		_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
 			Ref: req.GetTenant(),
@@ -5091,6 +5864,60 @@ func (s gateHolder) admit(ctx context.Context, req *levyan.HolderAddRequest) (*l
 	return req, nil
 }
 
+// Patch refuses an edge moved onto a row this caller cannot see.
+//
+// The wall narrows the row being written and says nothing about what the
+// write points **at**. An edge is a read -- a `Select` walks it -- so one
+// moved out of the caller's scope is a way through the wall one hop later,
+// exactly as it would have been at `Add`.
+//
+// And a request that moves which account a holder is a membership of,
+// which is what a call is resolved by: taking over another account's
+// membership is one Patch away otherwise.
+func (s gateHolder) Patch(ctx context.Context, req *levyan.HolderPatchRequest) (*levyan.Holder, error) {
+	if req.HasAccount() || req.GetAccountNull() {
+		return nil, pderr.Invalidf("account", "is the account this membership is of, and is written by the deployment through the server it holds, never by a request")
+	}
+
+	return s.HolderServiceServer.Patch(ctx, req)
+}
+
+// Apply refuses a document that moves an edge onto a row this caller cannot
+// see, as Patch refuses a request that does.
+//
+// A document names the row an edge points at by its key, and the server
+// behind writes that key into the column as it is -- compiling a document
+// reads nothing. So the read Patch is asked is asked here of the key the
+// document lands in the column, compiled the way the server behind will.
+func (s gateHolder) Apply(ctx context.Context, req *levyan.HolderApplyRequest) (*levyan.Holder, error) {
+	if !req.HasPatch() {
+		// Nothing written, and the server behind refuses it in its own words.
+		return s.HolderServiceServer.Apply(ctx, req)
+	}
+
+	plan, err := ormpatch.Compile(gateHolderEntity, req.GetPatch())
+	if err != nil {
+		// Refused here rather than passed on, in the codes the server behind
+		// gives the same document: one this layer cannot read is one it can
+		// say nothing about.
+		if errors.Is(err, ormpatch.ErrUnsupported) {
+			return nil, status.Errorf(codes.Unimplemented, "%s", err)
+		}
+
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+	}
+
+	if _, ok := plan.WriteTo(9); ok {
+		return nil, pderr.Invalidf("account", "is the account this membership is of, and is written by the deployment through the server it holds, never by a request")
+	}
+
+	return s.HolderServiceServer.Apply(ctx, req)
+}
+
+// gateHolderEntity is what a Holder document is compiled against: the entity
+// parsed from the file that declares it, as the server behind parses it.
+var gateHolderEntity = ormpatch.MustEntityOf((*levyan.Holder)(nil).ProtoReflect().Descriptor().ParentFile(), "Holder")
+
 type gateGrant struct {
 	Gate
 	levyan.GrantServiceServer
@@ -5099,7 +5926,7 @@ type gateGrant struct {
 func (s Gate) Grant() levyan.GrantServiceServer {
 	v := gateGrant{s, s.Next().Grant()}
 	v.GrantServiceServer = bare.GrantWithAddRule(v.GrantServiceServer, v.admit)
-	return v
+	return accountsGrant{v}
 }
 
 // admit refuses a Grant put into a Tenant this caller cannot see.
@@ -5150,6 +5977,80 @@ func (s gateGrant) admit(ctx context.Context, req *levyan.GrantAddRequest) (*lev
 	return req, nil
 }
 
+type gateLink struct {
+	Gate
+	levyan.LinkServiceServer
+}
+
+func (s Gate) Link() levyan.LinkServiceServer {
+	v := gateLink{s, s.Next().Link()}
+	v.LinkServiceServer = bare.LinkWithAddRule(v.LinkServiceServer, v.admit)
+	return accountsLink{v}
+}
+
+// admit refuses a Link put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Link].
+func (s gateLink) admit(ctx context.Context, req *levyan.LinkAddRequest) (*levyan.LinkAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetOffer(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Offer", ref, func() error {
+			_, err := s.Gate.Next().Offer().Get(ctx, levyan.OfferGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Offer")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 type gateMeter struct {
 	Gate
 	levyan.MeterServiceServer
@@ -5158,7 +6059,7 @@ type gateMeter struct {
 func (s Gate) Meter() levyan.MeterServiceServer {
 	v := gateMeter{s, s.Next().Meter()}
 	v.MeterServiceServer = bare.MeterWithAddRule(v.MeterServiceServer, v.admit)
-	return v
+	return accountsMeter{v}
 }
 
 // admit refuses a Meter put into a Tenant this caller cannot see.
@@ -5194,6 +6095,65 @@ func (s gateMeter) admit(ctx context.Context, req *levyan.MeterAddRequest) (*lev
 	return req, nil
 }
 
+type gateOffer struct {
+	Gate
+	levyan.OfferServiceServer
+}
+
+func (s Gate) Offer() levyan.OfferServiceServer {
+	v := gateOffer{s, s.Next().Offer()}
+	v.OfferServiceServer = bare.OfferWithAddRule(v.OfferServiceServer, v.admit)
+	return accountsOffer{v}
+}
+
+// admit refuses a Offer put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Offer].
+func (s gateOffer) admit(ctx context.Context, req *levyan.OfferAddRequest) (*levyan.OfferAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 type gatePeriod struct {
 	Gate
 	levyan.PeriodServiceServer
@@ -5202,7 +6162,7 @@ type gatePeriod struct {
 func (s Gate) Period() levyan.PeriodServiceServer {
 	v := gatePeriod{s, s.Next().Period()}
 	v.PeriodServiceServer = bare.PeriodWithAddRule(v.PeriodServiceServer, v.admit)
-	return v
+	return accountsPeriod{v}
 }
 
 // admit refuses a Period put into a Tenant this caller cannot see.
@@ -5246,7 +6206,7 @@ type gatePoint struct {
 func (s Gate) Point() levyan.PointServiceServer {
 	v := gatePoint{s, s.Next().Point()}
 	v.PointServiceServer = bare.PointWithAddRule(v.PointServiceServer, v.admit)
-	return v
+	return accountsPoint{v}
 }
 
 // admit refuses a Point put into a Tenant this caller cannot see.
@@ -5320,7 +6280,7 @@ type gatePrice struct {
 func (s Gate) Price() levyan.PriceServiceServer {
 	v := gatePrice{s, s.Next().Price()}
 	v.PriceServiceServer = bare.PriceWithAddRule(v.PriceServiceServer, v.admit)
-	return v
+	return accountsPrice{v}
 }
 
 // admit refuses a Price put into a Tenant this caller cannot see.
@@ -5379,7 +6339,7 @@ type gateReading struct {
 func (s Gate) Reading() levyan.ReadingServiceServer {
 	v := gateReading{s, s.Next().Reading()}
 	v.ReadingServiceServer = bare.ReadingWithAddRule(v.ReadingServiceServer, v.admit)
-	return v
+	return accountsReading{v}
 }
 
 // admit refuses a Reading put into a Tenant this caller cannot see.
@@ -5453,7 +6413,7 @@ type gateSeries struct {
 func (s Gate) Series() levyan.SeriesServiceServer {
 	v := gateSeries{s, s.Next().Series()}
 	v.SeriesServiceServer = bare.SeriesWithAddRule(v.SeriesServiceServer, v.admit)
-	return v
+	return accountsSeries{v}
 }
 
 // admit refuses a Series put into a Tenant this caller cannot see.
@@ -5527,7 +6487,7 @@ type gateServiceKey struct {
 func (s Gate) ServiceKey() levyan.ServiceKeyServiceServer {
 	v := gateServiceKey{s, s.Next().ServiceKey()}
 	v.ServiceKeyServiceServer = bare.ServiceKeyWithAddRule(v.ServiceKeyServiceServer, v.admit)
-	return v
+	return accountsServiceKey{v}
 }
 
 // admit refuses a ServiceKey put into a Tenant this caller cannot see.
@@ -5571,7 +6531,7 @@ type gateStatement struct {
 func (s Gate) Statement() levyan.StatementServiceServer {
 	v := gateStatement{s, s.Next().Statement()}
 	v.StatementServiceServer = bare.StatementWithAddRule(v.StatementServiceServer, v.admit)
-	return v
+	return accountsStatement{v}
 }
 
 // admit refuses a Statement put into a Tenant this caller cannot see.
@@ -5645,7 +6605,7 @@ type gateWorkspace struct {
 func (s Gate) Workspace() levyan.WorkspaceServiceServer {
 	v := gateWorkspace{s, s.Next().Workspace()}
 	v.WorkspaceServiceServer = bare.WorkspaceWithAddRule(v.WorkspaceServiceServer, v.admit)
-	return v
+	return accountsWorkspace{v}
 }
 
 // admit refuses a Workspace put into a Tenant this caller cannot see.
@@ -5679,6 +6639,835 @@ func (s gateWorkspace) admit(ctx context.Context, req *levyan.WorkspaceAddReques
 	}
 
 	return req, nil
+}
+
+func (s Gate) BillingAccount() levyan.BillingAccountServiceServer {
+	return accountsBillingAccount{s.Next().BillingAccount()}
+}
+
+// accountsBillingAccount is BillingAccountService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsBillingAccount struct {
+	levyan.BillingAccountServiceServer
+}
+
+func (s accountsBillingAccount) Add(ctx context.Context, req *levyan.BillingAccountAddRequest) (*levyan.BillingAccount, error) {
+	if err := gate.AsAccount(ctx, levyan.BillingAccountService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.BillingAccountServiceServer.Add(ctx, req)
+}
+
+func (s accountsBillingAccount) Get(ctx context.Context, req *levyan.BillingAccountGetRequest) (*levyan.BillingAccount, error) {
+	if err := gate.AsAccount(ctx, levyan.BillingAccountService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.BillingAccountServiceServer.Get(ctx, req)
+}
+
+func (s accountsBillingAccount) Patch(ctx context.Context, req *levyan.BillingAccountPatchRequest) (*levyan.BillingAccount, error) {
+	if err := gate.AsAccount(ctx, levyan.BillingAccountService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.BillingAccountServiceServer.Patch(ctx, req)
+}
+
+func (s accountsBillingAccount) Apply(ctx context.Context, req *levyan.BillingAccountApplyRequest) (*levyan.BillingAccount, error) {
+	if err := gate.AsAccount(ctx, levyan.BillingAccountService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.BillingAccountServiceServer.Apply(ctx, req)
+}
+
+func (s accountsBillingAccount) List(ctx context.Context, req *levyan.BillingAccountListRequest) (*levyan.BillingAccountListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.BillingAccountService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.BillingAccountServiceServer.List(ctx, req)
+}
+
+func (s Gate) Departure() levyan.DepartureServiceServer {
+	return accountsDeparture{s.Next().Departure()}
+}
+
+// accountsDeparture is DepartureService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsDeparture struct{ levyan.DepartureServiceServer }
+
+func (s accountsDeparture) Add(ctx context.Context, req *levyan.DepartureAddRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Add(ctx, req)
+}
+
+func (s accountsDeparture) Get(ctx context.Context, req *levyan.DepartureGetRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Get(ctx, req)
+}
+
+func (s accountsDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Patch(ctx, req)
+}
+
+func (s accountsDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
+	if err := gate.AsAccount(ctx, levyan.DepartureService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.DepartureServiceServer.Apply(ctx, req)
+}
+
+// accountsTenant is TenantService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsTenant struct{ levyan.TenantServiceServer }
+
+func (s accountsTenant) Add(ctx context.Context, req *levyan.TenantAddRequest) (*levyan.Tenant, error) {
+	if err := gate.AsAccount(ctx, levyan.TenantService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.Add(ctx, req)
+}
+
+func (s accountsTenant) Get(ctx context.Context, req *levyan.TenantGetRequest) (*levyan.Tenant, error) {
+	if err := gate.AsAccount(ctx, levyan.TenantService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.Get(ctx, req)
+}
+
+func (s accountsTenant) Patch(ctx context.Context, req *levyan.TenantPatchRequest) (*levyan.Tenant, error) {
+	if err := gate.AsAccount(ctx, levyan.TenantService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.Patch(ctx, req)
+}
+
+func (s accountsTenant) Apply(ctx context.Context, req *levyan.TenantApplyRequest) (*levyan.Tenant, error) {
+	if err := gate.AsAccount(ctx, levyan.TenantService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.Apply(ctx, req)
+}
+
+func (s accountsTenant) Erase(ctx context.Context, req *levyan.TenantRef) (*levyan.TenantEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.TenantService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.Erase(ctx, req)
+}
+
+func (s accountsTenant) List(ctx context.Context, req *levyan.TenantListRequest) (*levyan.TenantListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.TenantService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.TenantServiceServer.List(ctx, req)
+}
+
+// accountsWorkspace is WorkspaceService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsWorkspace struct{ levyan.WorkspaceServiceServer }
+
+func (s accountsWorkspace) Add(ctx context.Context, req *levyan.WorkspaceAddRequest) (*levyan.Workspace, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceServiceServer.Add(ctx, req)
+}
+
+func (s accountsWorkspace) Get(ctx context.Context, req *levyan.WorkspaceGetRequest) (*levyan.Workspace, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceServiceServer.Get(ctx, req)
+}
+
+func (s accountsWorkspace) Patch(ctx context.Context, req *levyan.WorkspacePatchRequest) (*levyan.Workspace, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceServiceServer.Patch(ctx, req)
+}
+
+func (s accountsWorkspace) Apply(ctx context.Context, req *levyan.WorkspaceApplyRequest) (*levyan.Workspace, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceServiceServer.Apply(ctx, req)
+}
+
+func (s accountsWorkspace) List(ctx context.Context, req *levyan.WorkspaceListRequest) (*levyan.WorkspaceListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceServiceServer.List(ctx, req)
+}
+
+// accountsGrant is GrantService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsGrant struct{ levyan.GrantServiceServer }
+
+func (s accountsGrant) Add(ctx context.Context, req *levyan.GrantAddRequest) (*levyan.Grant, error) {
+	if err := gate.AsAccount(ctx, levyan.GrantService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.GrantServiceServer.Add(ctx, req)
+}
+
+func (s accountsGrant) Get(ctx context.Context, req *levyan.GrantGetRequest) (*levyan.Grant, error) {
+	if err := gate.AsAccount(ctx, levyan.GrantService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.GrantServiceServer.Get(ctx, req)
+}
+
+func (s accountsGrant) Patch(ctx context.Context, req *levyan.GrantPatchRequest) (*levyan.Grant, error) {
+	if err := gate.AsAccount(ctx, levyan.GrantService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.GrantServiceServer.Patch(ctx, req)
+}
+
+func (s accountsGrant) Apply(ctx context.Context, req *levyan.GrantApplyRequest) (*levyan.Grant, error) {
+	if err := gate.AsAccount(ctx, levyan.GrantService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.GrantServiceServer.Apply(ctx, req)
+}
+
+func (s accountsGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levyan.GrantEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.GrantService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.GrantServiceServer.Erase(ctx, req)
+}
+
+func (s accountsGrant) List(ctx context.Context, req *levyan.GrantListRequest) (*levyan.GrantListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.GrantService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.GrantServiceServer.List(ctx, req)
+}
+
+// accountsOffer is OfferService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsOffer struct{ levyan.OfferServiceServer }
+
+func (s accountsOffer) Add(ctx context.Context, req *levyan.OfferAddRequest) (*levyan.Offer, error) {
+	if err := gate.AsAccount(ctx, levyan.OfferService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OfferServiceServer.Add(ctx, req)
+}
+
+func (s accountsOffer) Get(ctx context.Context, req *levyan.OfferGetRequest) (*levyan.Offer, error) {
+	if err := gate.AsAccount(ctx, levyan.OfferService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OfferServiceServer.Get(ctx, req)
+}
+
+func (s accountsOffer) Patch(ctx context.Context, req *levyan.OfferPatchRequest) (*levyan.Offer, error) {
+	if err := gate.AsAccount(ctx, levyan.OfferService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OfferServiceServer.Patch(ctx, req)
+}
+
+func (s accountsOffer) Apply(ctx context.Context, req *levyan.OfferApplyRequest) (*levyan.Offer, error) {
+	if err := gate.AsAccount(ctx, levyan.OfferService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OfferServiceServer.Apply(ctx, req)
+}
+
+// accountsLink is LinkService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsLink struct{ levyan.LinkServiceServer }
+
+func (s accountsLink) Add(ctx context.Context, req *levyan.LinkAddRequest) (*levyan.Link, error) {
+	if err := gate.AsAccount(ctx, levyan.LinkService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.LinkServiceServer.Add(ctx, req)
+}
+
+func (s accountsLink) Get(ctx context.Context, req *levyan.LinkGetRequest) (*levyan.Link, error) {
+	if err := gate.AsAccount(ctx, levyan.LinkService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.LinkServiceServer.Get(ctx, req)
+}
+
+func (s accountsLink) Patch(ctx context.Context, req *levyan.LinkPatchRequest) (*levyan.Link, error) {
+	if err := gate.AsAccount(ctx, levyan.LinkService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.LinkServiceServer.Patch(ctx, req)
+}
+
+func (s accountsLink) Apply(ctx context.Context, req *levyan.LinkApplyRequest) (*levyan.Link, error) {
+	if err := gate.AsAccount(ctx, levyan.LinkService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.LinkServiceServer.Apply(ctx, req)
+}
+
+// accountsMeter is MeterService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsMeter struct{ levyan.MeterServiceServer }
+
+func (s accountsMeter) Add(ctx context.Context, req *levyan.MeterAddRequest) (*levyan.Meter, error) {
+	if err := gate.AsAccount(ctx, levyan.MeterService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.MeterServiceServer.Add(ctx, req)
+}
+
+func (s accountsMeter) Get(ctx context.Context, req *levyan.MeterGetRequest) (*levyan.Meter, error) {
+	if err := gate.AsAccount(ctx, levyan.MeterService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.MeterServiceServer.Get(ctx, req)
+}
+
+func (s accountsMeter) Patch(ctx context.Context, req *levyan.MeterPatchRequest) (*levyan.Meter, error) {
+	if err := gate.AsAccount(ctx, levyan.MeterService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.MeterServiceServer.Patch(ctx, req)
+}
+
+func (s accountsMeter) Apply(ctx context.Context, req *levyan.MeterApplyRequest) (*levyan.Meter, error) {
+	if err := gate.AsAccount(ctx, levyan.MeterService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.MeterServiceServer.Apply(ctx, req)
+}
+
+func (s accountsMeter) List(ctx context.Context, req *levyan.MeterListRequest) (*levyan.MeterListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.MeterService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.MeterServiceServer.List(ctx, req)
+}
+
+func (s Gate) Operator() levyan.OperatorServiceServer {
+	return accountsOperator{s.Next().Operator()}
+}
+
+// accountsOperator is OperatorService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsOperator struct{ levyan.OperatorServiceServer }
+
+func (s accountsOperator) Add(ctx context.Context, req *levyan.OperatorAddRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Add(ctx, req)
+}
+
+func (s accountsOperator) Get(ctx context.Context, req *levyan.OperatorGetRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Get(ctx, req)
+}
+
+func (s accountsOperator) Patch(ctx context.Context, req *levyan.OperatorPatchRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Patch(ctx, req)
+}
+
+func (s accountsOperator) Apply(ctx context.Context, req *levyan.OperatorApplyRequest) (*levyan.Operator, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Apply(ctx, req)
+}
+
+func (s accountsOperator) Erase(ctx context.Context, req *levyan.OperatorRef) (*levyan.OperatorEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.OperatorService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.OperatorServiceServer.Erase(ctx, req)
+}
+
+func (s Gate) Access() levyan.AccessServiceServer {
+	return accountsAccess{s.Next().Access()}
+}
+
+// accountsAccess is AccessService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsAccess struct{ levyan.AccessServiceServer }
+
+func (s accountsAccess) Get(ctx context.Context, req *levyan.AccessGetRequest) (*levyan.Access, error) {
+	if err := gate.AsAccount(ctx, levyan.AccessService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AccessServiceServer.Get(ctx, req)
+}
+
+func (s accountsAccess) List(ctx context.Context, req *levyan.AccessListRequest) (*levyan.AccessListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.AccessService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AccessServiceServer.List(ctx, req)
+}
+
+func (s Gate) Audit() levyan.AuditServiceServer {
+	return accountsAudit{s.Next().Audit()}
+}
+
+// accountsAudit is AuditService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsAudit struct{ levyan.AuditServiceServer }
+
+func (s accountsAudit) Add(ctx context.Context, req *levyan.AuditAddRequest) (*levyan.Audit, error) {
+	if err := gate.AsAccount(ctx, levyan.AuditService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AuditServiceServer.Add(ctx, req)
+}
+
+func (s accountsAudit) Get(ctx context.Context, req *levyan.AuditGetRequest) (*levyan.Audit, error) {
+	if err := gate.AsAccount(ctx, levyan.AuditService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AuditServiceServer.Get(ctx, req)
+}
+
+func (s accountsAudit) Patch(ctx context.Context, req *levyan.AuditPatchRequest) (*levyan.Audit, error) {
+	if err := gate.AsAccount(ctx, levyan.AuditService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AuditServiceServer.Patch(ctx, req)
+}
+
+func (s accountsAudit) Apply(ctx context.Context, req *levyan.AuditApplyRequest) (*levyan.Audit, error) {
+	if err := gate.AsAccount(ctx, levyan.AuditService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AuditServiceServer.Apply(ctx, req)
+}
+
+func (s accountsAudit) Erase(ctx context.Context, req *levyan.AuditRef) (*levyan.AuditEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.AuditService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AuditServiceServer.Erase(ctx, req)
+}
+
+func (s accountsAudit) List(ctx context.Context, req *levyan.AuditListRequest) (*levyan.AuditListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.AuditService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.AuditServiceServer.List(ctx, req)
+}
+
+// accountsHolder is HolderService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsHolder struct{ levyan.HolderServiceServer }
+
+func (s accountsHolder) Add(ctx context.Context, req *levyan.HolderAddRequest) (*levyan.Holder, error) {
+	if err := gate.AsAccount(ctx, levyan.HolderService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.HolderServiceServer.Add(ctx, req)
+}
+
+func (s accountsHolder) Get(ctx context.Context, req *levyan.HolderGetRequest) (*levyan.Holder, error) {
+	if err := gate.AsAccount(ctx, levyan.HolderService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.HolderServiceServer.Get(ctx, req)
+}
+
+func (s accountsHolder) Patch(ctx context.Context, req *levyan.HolderPatchRequest) (*levyan.Holder, error) {
+	if err := gate.AsAccount(ctx, levyan.HolderService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.HolderServiceServer.Patch(ctx, req)
+}
+
+func (s accountsHolder) Apply(ctx context.Context, req *levyan.HolderApplyRequest) (*levyan.Holder, error) {
+	if err := gate.AsAccount(ctx, levyan.HolderService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.HolderServiceServer.Apply(ctx, req)
+}
+
+func (s accountsHolder) Erase(ctx context.Context, req *levyan.HolderRef) (*levyan.HolderEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.HolderService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.HolderServiceServer.Erase(ctx, req)
+}
+
+func (s accountsHolder) List(ctx context.Context, req *levyan.HolderListRequest) (*levyan.HolderListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.HolderService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.HolderServiceServer.List(ctx, req)
+}
+
+func (s accountsHolder) Watch(req *levyan.HolderWatchRequest, out grpc.ServerStreamingServer[levyan.HolderWatchResponse]) error {
+	if err := gate.AsAccount(out.Context(), levyan.HolderService_Watch_FullMethodName, AccountMethod); err != nil {
+		return err
+	}
+
+	return s.HolderServiceServer.Watch(req, out)
+}
+
+// accountsPeriod is PeriodService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsPeriod struct{ levyan.PeriodServiceServer }
+
+func (s accountsPeriod) Add(ctx context.Context, req *levyan.PeriodAddRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Add(ctx, req)
+}
+
+func (s accountsPeriod) Get(ctx context.Context, req *levyan.PeriodGetRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Get(ctx, req)
+}
+
+func (s accountsPeriod) Patch(ctx context.Context, req *levyan.PeriodPatchRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Patch(ctx, req)
+}
+
+func (s accountsPeriod) Apply(ctx context.Context, req *levyan.PeriodApplyRequest) (*levyan.Period, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.Apply(ctx, req)
+}
+
+func (s accountsPeriod) List(ctx context.Context, req *levyan.PeriodListRequest) (*levyan.PeriodListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PeriodService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PeriodServiceServer.List(ctx, req)
+}
+
+// accountsSeries is SeriesService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsSeries struct{ levyan.SeriesServiceServer }
+
+func (s accountsSeries) Add(ctx context.Context, req *levyan.SeriesAddRequest) (*levyan.Series, error) {
+	if err := gate.AsAccount(ctx, levyan.SeriesService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SeriesServiceServer.Add(ctx, req)
+}
+
+func (s accountsSeries) Get(ctx context.Context, req *levyan.SeriesGetRequest) (*levyan.Series, error) {
+	if err := gate.AsAccount(ctx, levyan.SeriesService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SeriesServiceServer.Get(ctx, req)
+}
+
+func (s accountsSeries) Patch(ctx context.Context, req *levyan.SeriesPatchRequest) (*levyan.Series, error) {
+	if err := gate.AsAccount(ctx, levyan.SeriesService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SeriesServiceServer.Patch(ctx, req)
+}
+
+func (s accountsSeries) Apply(ctx context.Context, req *levyan.SeriesApplyRequest) (*levyan.Series, error) {
+	if err := gate.AsAccount(ctx, levyan.SeriesService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SeriesServiceServer.Apply(ctx, req)
+}
+
+func (s accountsSeries) List(ctx context.Context, req *levyan.SeriesListRequest) (*levyan.SeriesListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.SeriesService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.SeriesServiceServer.List(ctx, req)
+}
+
+// accountsPoint is PointService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsPoint struct{ levyan.PointServiceServer }
+
+func (s accountsPoint) Add(ctx context.Context, req *levyan.PointAddRequest) (*levyan.Point, error) {
+	if err := gate.AsAccount(ctx, levyan.PointService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PointServiceServer.Add(ctx, req)
+}
+
+func (s accountsPoint) AddMany(ctx context.Context, req *levyan.PointAddManyRequest) (*levyan.PointAddManyResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PointService_AddMany_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PointServiceServer.AddMany(ctx, req)
+}
+
+func (s accountsPoint) Get(ctx context.Context, req *levyan.PointGetRequest) (*levyan.Point, error) {
+	if err := gate.AsAccount(ctx, levyan.PointService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PointServiceServer.Get(ctx, req)
+}
+
+func (s accountsPoint) List(ctx context.Context, req *levyan.PointListRequest) (*levyan.PointListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PointService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PointServiceServer.List(ctx, req)
+}
+
+// accountsPrice is PriceService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsPrice struct{ levyan.PriceServiceServer }
+
+func (s accountsPrice) Add(ctx context.Context, req *levyan.PriceAddRequest) (*levyan.Price, error) {
+	if err := gate.AsAccount(ctx, levyan.PriceService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PriceServiceServer.Add(ctx, req)
+}
+
+func (s accountsPrice) Get(ctx context.Context, req *levyan.PriceGetRequest) (*levyan.Price, error) {
+	if err := gate.AsAccount(ctx, levyan.PriceService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PriceServiceServer.Get(ctx, req)
+}
+
+func (s accountsPrice) List(ctx context.Context, req *levyan.PriceListRequest) (*levyan.PriceListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PriceService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PriceServiceServer.List(ctx, req)
+}
+
+// accountsReading is ReadingService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsReading struct{ levyan.ReadingServiceServer }
+
+func (s accountsReading) Add(ctx context.Context, req *levyan.ReadingAddRequest) (*levyan.Reading, error) {
+	if err := gate.AsAccount(ctx, levyan.ReadingService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ReadingServiceServer.Add(ctx, req)
+}
+
+func (s accountsReading) AddMany(ctx context.Context, req *levyan.ReadingAddManyRequest) (*levyan.ReadingAddManyResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.ReadingService_AddMany_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ReadingServiceServer.AddMany(ctx, req)
+}
+
+func (s accountsReading) Get(ctx context.Context, req *levyan.ReadingGetRequest) (*levyan.Reading, error) {
+	if err := gate.AsAccount(ctx, levyan.ReadingService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ReadingServiceServer.Get(ctx, req)
+}
+
+func (s accountsReading) List(ctx context.Context, req *levyan.ReadingListRequest) (*levyan.ReadingListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.ReadingService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ReadingServiceServer.List(ctx, req)
+}
+
+// accountsServiceKey is ServiceKeyService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsServiceKey struct{ levyan.ServiceKeyServiceServer }
+
+func (s accountsServiceKey) Add(ctx context.Context, req *levyan.ServiceKeyAddRequest) (*levyan.ServiceKey, error) {
+	if err := gate.AsAccount(ctx, levyan.ServiceKeyService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ServiceKeyServiceServer.Add(ctx, req)
+}
+
+func (s accountsServiceKey) Get(ctx context.Context, req *levyan.ServiceKeyGetRequest) (*levyan.ServiceKey, error) {
+	if err := gate.AsAccount(ctx, levyan.ServiceKeyService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ServiceKeyServiceServer.Get(ctx, req)
+}
+
+func (s accountsServiceKey) Patch(ctx context.Context, req *levyan.ServiceKeyPatchRequest) (*levyan.ServiceKey, error) {
+	if err := gate.AsAccount(ctx, levyan.ServiceKeyService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ServiceKeyServiceServer.Patch(ctx, req)
+}
+
+func (s accountsServiceKey) Apply(ctx context.Context, req *levyan.ServiceKeyApplyRequest) (*levyan.ServiceKey, error) {
+	if err := gate.AsAccount(ctx, levyan.ServiceKeyService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ServiceKeyServiceServer.Apply(ctx, req)
+}
+
+func (s accountsServiceKey) Erase(ctx context.Context, req *levyan.ServiceKeyRef) (*levyan.ServiceKeyEraseResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.ServiceKeyService_Erase_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ServiceKeyServiceServer.Erase(ctx, req)
+}
+
+func (s accountsServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.ServiceKeyService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.ServiceKeyServiceServer.List(ctx, req)
+}
+
+// accountsStatement is StatementService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsStatement struct{ levyan.StatementServiceServer }
+
+func (s accountsStatement) Add(ctx context.Context, req *levyan.StatementAddRequest) (*levyan.Statement, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.Add(ctx, req)
+}
+
+func (s accountsStatement) Get(ctx context.Context, req *levyan.StatementGetRequest) (*levyan.Statement, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.Get(ctx, req)
+}
+
+func (s accountsStatement) List(ctx context.Context, req *levyan.StatementListRequest) (*levyan.StatementListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.StatementService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.StatementServiceServer.List(ctx, req)
 }
 
 // Audit is the layer that refuses a trail row written by hand.
@@ -5949,12 +7738,20 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedArchived.md, describedArchived.secret, describedArchived.personal
 	case AuditDomain:
 		return describedAudit.md, describedAudit.secret, describedAudit.personal
+	case BillingAccountDomain:
+		return describedBillingAccount.md, describedBillingAccount.secret, describedBillingAccount.personal
+	case DepartureDomain:
+		return describedDeparture.md, describedDeparture.secret, describedDeparture.personal
 	case GrantDomain:
 		return describedGrant.md, describedGrant.secret, describedGrant.personal
 	case HolderDomain:
 		return describedHolder.md, describedHolder.secret, describedHolder.personal
+	case LinkDomain:
+		return describedLink.md, describedLink.secret, describedLink.personal
 	case MeterDomain:
 		return describedMeter.md, describedMeter.secret, describedMeter.personal
+	case OfferDomain:
+		return describedOffer.md, describedOffer.secret, describedOffer.personal
 	case OperatorDomain:
 		return describedOperator.md, describedOperator.secret, describedOperator.personal
 	case OutboxDomain:
@@ -6015,13 +7812,25 @@ var (
 	describedAudit = describe((*levyan.Audit)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedBillingAccount = describe((*levyan.BillingAccount)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{5, 12, 16, 17, 18})
+	describedDeparture = describe((*levyan.Departure)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 	describedGrant = describe((*levyan.Grant)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedHolder = describe((*levyan.Holder)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{4, 5, 6, 7})
+	describedLink = describe((*levyan.Link)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 	describedMeter = describe((*levyan.Meter)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
+	describedOffer = describe((*levyan.Offer)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
 	describedOperator = describe((*levyan.Operator)(nil),
@@ -6084,9 +7893,13 @@ func hidden(key pdid.Id, p *patchpb.Patch) *patchpb.Patch {
 func added(by string) bool {
 	switch by {
 	case levyan.AuditService_Add_FullMethodName,
+		levyan.BillingAccountService_Add_FullMethodName,
+		levyan.DepartureService_Add_FullMethodName,
 		levyan.GrantService_Add_FullMethodName,
 		levyan.HolderService_Add_FullMethodName,
+		levyan.LinkService_Add_FullMethodName,
 		levyan.MeterService_Add_FullMethodName,
+		levyan.OfferService_Add_FullMethodName,
 		levyan.OperatorService_Add_FullMethodName,
 		levyan.PeriodService_Add_FullMethodName,
 		levyan.PointService_Add_FullMethodName,
@@ -6222,8 +8035,62 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 
 		return k, b, nil
 
+	case LinkDomain:
+		row, ok := image.(*levyan.Link)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
 	case MeterDomain:
 		row, ok := image.(*levyan.Meter)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
+	case OfferDomain:
+		row, ok := image.(*levyan.Offer)
 		if !ok {
 			return uuid.Nil(), []byte{}, nil
 		}
@@ -6513,12 +8380,20 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 	var vs []audit.Live
 	var err error
 	switch key.Domain() {
+	case BillingAccountDomain:
+		vs, err = rowsBillingAccount(ctx, s.Db, entBillingAccount.IdEQ(uuid.UUID(key)))
+	case DepartureDomain:
+		vs, err = rowsDeparture(ctx, s.Db, entDeparture.IdEQ(uuid.UUID(key)))
 	case GrantDomain:
 		vs, err = rowsGrant(ctx, s.Db, entGrant.IdEQ(uuid.UUID(key)))
 	case HolderDomain:
 		vs, err = rowsHolder(ctx, s.Db, entHolder.IdEQ(uuid.UUID(key)))
+	case LinkDomain:
+		vs, err = rowsLink(ctx, s.Db, entLink.IdEQ(uuid.UUID(key)))
 	case MeterDomain:
 		vs, err = rowsMeter(ctx, s.Db, entMeter.IdEQ(uuid.UUID(key)))
+	case OfferDomain:
+		vs, err = rowsOffer(ctx, s.Db, entOffer.IdEQ(uuid.UUID(key)))
 	case OperatorDomain:
 		vs, err = rowsOperator(ctx, s.Db, entOperator.IdEQ(uuid.UUID(key)))
 	case PeriodDomain:
@@ -6683,7 +8558,7 @@ func (v *keptTrail) write(ctx context.Context) error {
 // row's seal covers (payday#115).
 func isSealed(key pdid.Id) bool {
 	switch key.Domain() {
-	case HolderDomain, OperatorDomain:
+	case BillingAccountDomain, HolderDomain, OperatorDomain:
 		return true
 	}
 
@@ -6901,14 +8776,26 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 
 	out := audit.Rows{Skipped: []audit.Skipped{}}
+	if err := audit.CheckKind(ctx, d, checkedBillingAccount(db), archived, &out); err != nil {
+		return out, fmt.Errorf("billing-account: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedDeparture(db), archived, &out); err != nil {
+		return out, fmt.Errorf("departure: %w", err)
+	}
 	if err := audit.CheckKind(ctx, d, checkedGrant(db), archived, &out); err != nil {
 		return out, fmt.Errorf("grant: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedHolder(db), archived, &out); err != nil {
 		return out, fmt.Errorf("holder: %w", err)
 	}
+	if err := audit.CheckKind(ctx, d, checkedLink(db), archived, &out); err != nil {
+		return out, fmt.Errorf("link: %w", err)
+	}
 	if err := audit.CheckKind(ctx, d, checkedMeter(db), archived, &out); err != nil {
 		return out, fmt.Errorf("meter: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedOffer(db), archived, &out); err != nil {
+		return out, fmt.Errorf("offer: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedOperator(db), archived, &out); err != nil {
 		return out, fmt.Errorf("operator: %w", err)
@@ -6942,6 +8829,104 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 
 	return out, nil
+}
+
+// checkedBillingAccount is what a check of the rows reads of the billing-account kind.
+func checkedBillingAccount(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.BillingAccount) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsBillingAccount(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: BillingAccountDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entBillingAccount.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entBillingAccount.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, BillingAccountDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsBillingAccount(ctx, db, entBillingAccount.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedDeparture is what a check of the rows reads of the departure kind.
+func checkedDeparture(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Departure) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsDeparture(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: DepartureDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entDeparture.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entDeparture.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, DepartureDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsDeparture(ctx, db, entDeparture.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
 }
 
 // checkedGrant is what a check of the rows reads of the grant kind.
@@ -7042,6 +9027,52 @@ func checkedHolder(db *ent.Client) audit.Kind {
 	}
 }
 
+// checkedLink is what a check of the rows reads of the link kind.
+func checkedLink(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Link) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsLink(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: LinkDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entLink.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entLink.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, LinkDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsLink(ctx, db, entLink.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
 // checkedMeter is what a check of the rows reads of the meter kind.
 func checkedMeter(db *ent.Client) audit.Kind {
 	read := func(ctx context.Context, ps ...predicate.Meter) (audit.Page, error) {
@@ -7075,6 +9106,52 @@ func checkedMeter(db *ent.Client) audit.Kind {
 			var out map[pdid.Id]*audit.Recorded
 			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
 				rows, err := rowsMeter(ctx, db, entMeter.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
+// checkedOffer is what a check of the rows reads of the offer kind.
+func checkedOffer(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Offer) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsOffer(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: OfferDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entOffer.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entOffer.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, OfferDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsOffer(ctx, db, entOffer.IdIn(uuids(ids)...))
 				if err != nil {
 					return err
 				}
@@ -7554,6 +9631,46 @@ func checkedWorkspace(db *ent.Client) audit.Kind {
 	}
 }
 
+// rowsBillingAccount is the rows `ps` says of the billing-account kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsBillingAccount(ctx context.Context, db *ent.Client, ps ...predicate.BillingAccount) ([]audit.Live, error) {
+	q := db.BillingAccount.Query().Where(ps...)
+	bare.BillingAccountSelectInit(q, nil)
+
+	vs, err := q.Order(entBillingAccount.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsDeparture is the rows `ps` says of the departure kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsDeparture(ctx context.Context, db *ent.Client, ps ...predicate.Departure) ([]audit.Live, error) {
+	q := db.Departure.Query().Where(ps...)
+	bare.DepartureSelectInit(q, nil)
+
+	vs, err := q.Order(entDeparture.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // rowsGrant is the rows `ps` says of the grant kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -7594,6 +9711,26 @@ func rowsHolder(ctx context.Context, db *ent.Client, ps ...predicate.Holder) ([]
 	return out, nil
 }
 
+// rowsLink is the rows `ps` says of the link kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsLink(ctx context.Context, db *ent.Client, ps ...predicate.Link) ([]audit.Live, error) {
+	q := db.Link.Query().Where(ps...)
+	bare.LinkSelectInit(q, nil)
+
+	vs, err := q.Order(entLink.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // rowsMeter is the rows `ps` says of the meter kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -7602,6 +9739,26 @@ func rowsMeter(ctx context.Context, db *ent.Client, ps ...predicate.Meter) ([]au
 	bare.MeterSelectInit(q, nil)
 
 	vs, err := q.Order(entMeter.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
+// rowsOffer is the rows `ps` says of the offer kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsOffer(ctx context.Context, db *ent.Client, ps ...predicate.Offer) ([]audit.Live, error) {
+	q := db.Offer.Query().Where(ps...)
+	bare.OfferSelectInit(q, nil)
+
+	vs, err := q.Order(entOffer.ById()).Limit(audit.RowsPage).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -8037,12 +10194,20 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 		for page := range slices.Chunk(byKind[d], audit.RowsPage) {
 			var rows []audit.Live
 			switch d {
+			case BillingAccountDomain:
+				rows, err = rowsBillingAccount(ctx, db, entBillingAccount.IdIn(uuids(page)...))
+			case DepartureDomain:
+				rows, err = rowsDeparture(ctx, db, entDeparture.IdIn(uuids(page)...))
 			case GrantDomain:
 				rows, err = rowsGrant(ctx, db, entGrant.IdIn(uuids(page)...))
 			case HolderDomain:
 				rows, err = rowsHolder(ctx, db, entHolder.IdIn(uuids(page)...))
+			case LinkDomain:
+				rows, err = rowsLink(ctx, db, entLink.IdIn(uuids(page)...))
 			case MeterDomain:
 				rows, err = rowsMeter(ctx, db, entMeter.IdIn(uuids(page)...))
+			case OfferDomain:
+				rows, err = rowsOffer(ctx, db, entOffer.IdIn(uuids(page)...))
 			case OperatorDomain:
 				rows, err = rowsOperator(ctx, db, entOperator.IdIn(uuids(page)...))
 			case PeriodDomain:
@@ -8177,12 +10342,20 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 		var rows []audit.Live
 		var err error
 		switch d {
+		case BillingAccountDomain:
+			rows, err = rowsBillingAccount(ctx, s.db, entBillingAccount.IdIn(uuids(ids)...))
+		case DepartureDomain:
+			rows, err = rowsDeparture(ctx, s.db, entDeparture.IdIn(uuids(ids)...))
 		case GrantDomain:
 			rows, err = rowsGrant(ctx, s.db, entGrant.IdIn(uuids(ids)...))
 		case HolderDomain:
 			rows, err = rowsHolder(ctx, s.db, entHolder.IdIn(uuids(ids)...))
+		case LinkDomain:
+			rows, err = rowsLink(ctx, s.db, entLink.IdIn(uuids(ids)...))
 		case MeterDomain:
 			rows, err = rowsMeter(ctx, s.db, entMeter.IdIn(uuids(ids)...))
+		case OfferDomain:
+			rows, err = rowsOffer(ctx, s.db, entOffer.IdIn(uuids(ids)...))
 		case OperatorDomain:
 			rows, err = rowsOperator(ctx, s.db, entOperator.IdIn(uuids(ids)...))
 		case PeriodDomain:
@@ -8480,6 +10653,69 @@ func (s Intercept) WithDriver(drv dialect.Driver) (levyan.Server, error) {
 	return Intercept{Overlay: levyan.NewOverlay(next), unary: s.unary, stream: s.stream}, nil
 }
 
+func (s Intercept) BillingAccount() levyan.BillingAccountServiceServer {
+	return interceptBillingAccount{s, s.Next().BillingAccount()}
+}
+
+type interceptBillingAccount struct {
+	Intercept
+	levyan.BillingAccountServiceServer
+}
+
+func (s interceptBillingAccount) Add(ctx context.Context, req *levyan.BillingAccountAddRequest) (*levyan.BillingAccount, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.BillingAccountServiceServer,
+		levyan.BillingAccountService_Add_FullMethodName, req, s.BillingAccountServiceServer.Add)
+}
+
+func (s interceptBillingAccount) Get(ctx context.Context, req *levyan.BillingAccountGetRequest) (*levyan.BillingAccount, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.BillingAccountServiceServer,
+		levyan.BillingAccountService_Get_FullMethodName, req, s.BillingAccountServiceServer.Get)
+}
+
+func (s interceptBillingAccount) Patch(ctx context.Context, req *levyan.BillingAccountPatchRequest) (*levyan.BillingAccount, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.BillingAccountServiceServer,
+		levyan.BillingAccountService_Patch_FullMethodName, req, s.BillingAccountServiceServer.Patch)
+}
+
+func (s interceptBillingAccount) Apply(ctx context.Context, req *levyan.BillingAccountApplyRequest) (*levyan.BillingAccount, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.BillingAccountServiceServer,
+		levyan.BillingAccountService_Apply_FullMethodName, req, s.BillingAccountServiceServer.Apply)
+}
+
+func (s interceptBillingAccount) List(ctx context.Context, req *levyan.BillingAccountListRequest) (*levyan.BillingAccountListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.BillingAccountServiceServer,
+		levyan.BillingAccountService_List_FullMethodName, req, s.BillingAccountServiceServer.List)
+}
+
+func (s Intercept) Departure() levyan.DepartureServiceServer {
+	return interceptDeparture{s, s.Next().Departure()}
+}
+
+type interceptDeparture struct {
+	Intercept
+	levyan.DepartureServiceServer
+}
+
+func (s interceptDeparture) Add(ctx context.Context, req *levyan.DepartureAddRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Add_FullMethodName, req, s.DepartureServiceServer.Add)
+}
+
+func (s interceptDeparture) Get(ctx context.Context, req *levyan.DepartureGetRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Get_FullMethodName, req, s.DepartureServiceServer.Get)
+}
+
+func (s interceptDeparture) Patch(ctx context.Context, req *levyan.DeparturePatchRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Patch_FullMethodName, req, s.DepartureServiceServer.Patch)
+}
+
+func (s interceptDeparture) Apply(ctx context.Context, req *levyan.DepartureApplyRequest) (*levyan.Departure, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.DepartureServiceServer,
+		levyan.DepartureService_Apply_FullMethodName, req, s.DepartureServiceServer.Apply)
+}
+
 func (s Intercept) Tenant() levyan.TenantServiceServer {
 	return interceptTenant{s, s.Next().Tenant()}
 }
@@ -8590,6 +10826,64 @@ func (s interceptGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levya
 func (s interceptGrant) List(ctx context.Context, req *levyan.GrantListRequest) (*levyan.GrantListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.GrantServiceServer,
 		levyan.GrantService_List_FullMethodName, req, s.GrantServiceServer.List)
+}
+
+func (s Intercept) Offer() levyan.OfferServiceServer {
+	return interceptOffer{s, s.Next().Offer()}
+}
+
+type interceptOffer struct {
+	Intercept
+	levyan.OfferServiceServer
+}
+
+func (s interceptOffer) Add(ctx context.Context, req *levyan.OfferAddRequest) (*levyan.Offer, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OfferServiceServer,
+		levyan.OfferService_Add_FullMethodName, req, s.OfferServiceServer.Add)
+}
+
+func (s interceptOffer) Get(ctx context.Context, req *levyan.OfferGetRequest) (*levyan.Offer, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OfferServiceServer,
+		levyan.OfferService_Get_FullMethodName, req, s.OfferServiceServer.Get)
+}
+
+func (s interceptOffer) Patch(ctx context.Context, req *levyan.OfferPatchRequest) (*levyan.Offer, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OfferServiceServer,
+		levyan.OfferService_Patch_FullMethodName, req, s.OfferServiceServer.Patch)
+}
+
+func (s interceptOffer) Apply(ctx context.Context, req *levyan.OfferApplyRequest) (*levyan.Offer, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.OfferServiceServer,
+		levyan.OfferService_Apply_FullMethodName, req, s.OfferServiceServer.Apply)
+}
+
+func (s Intercept) Link() levyan.LinkServiceServer {
+	return interceptLink{s, s.Next().Link()}
+}
+
+type interceptLink struct {
+	Intercept
+	levyan.LinkServiceServer
+}
+
+func (s interceptLink) Add(ctx context.Context, req *levyan.LinkAddRequest) (*levyan.Link, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.LinkServiceServer,
+		levyan.LinkService_Add_FullMethodName, req, s.LinkServiceServer.Add)
+}
+
+func (s interceptLink) Get(ctx context.Context, req *levyan.LinkGetRequest) (*levyan.Link, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.LinkServiceServer,
+		levyan.LinkService_Get_FullMethodName, req, s.LinkServiceServer.Get)
+}
+
+func (s interceptLink) Patch(ctx context.Context, req *levyan.LinkPatchRequest) (*levyan.Link, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.LinkServiceServer,
+		levyan.LinkService_Patch_FullMethodName, req, s.LinkServiceServer.Patch)
+}
+
+func (s interceptLink) Apply(ctx context.Context, req *levyan.LinkApplyRequest) (*levyan.Link, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.LinkServiceServer,
+		levyan.LinkService_Apply_FullMethodName, req, s.LinkServiceServer.Apply)
 }
 
 func (s Intercept) Meter() levyan.MeterServiceServer {
@@ -10078,6 +12372,189 @@ func TrailOf(fn func(*levyan.Audit) error) func(doc []byte) error {
 	}
 }
 
+// AccountMethods are the methods an account calls as itself, outside any
+// tenant (payday#184), by the names gRPC knows them by: the ones the schema
+// marks `(payday.method) = {account: {}}`.
+var AccountMethods = []string{
+	levyan.PayerService_ListBillingAccounts_FullMethodName,
+	levyan.PayerService_CreateBillingAccount_FullMethodName,
+	levyan.PayerService_UpdateBillingAccount_FullMethodName,
+	levyan.PayerService_ListOffers_FullMethodName,
+	levyan.PayerService_Accept_FullMethodName,
+	levyan.PayerService_Decline_FullMethodName,
+	levyan.PayerService_ListLinks_FullMethodName,
+	levyan.PayerService_Use_FullMethodName,
+	levyan.PayerService_Stop_FullMethodName,
+}
+
+var accountMethods = func() map[string]bool {
+	vs := make(map[string]bool, len(AccountMethods))
+	for _, v := range AccountMethods {
+		vs[v] = true
+	}
+
+	return vs
+}()
+
+// AccountMethod reports whether `method` is one of [AccountMethods]: what a
+// call an account makes as itself may be of (`frame.OfAccount`), and what
+// [Gate] holds every such call to.
+func AccountMethod(method string) bool { return accountMethods[method] }
+
+// HolderAccount is the account `v` is a membership of, as the holder carries
+// it in `account`, and false for one that names none -- or was read
+// without the field.
+func HolderAccount(v *levyan.Holder) (pdid.Id, bool) {
+	a, err := pdid.From(v.GetAccount())
+	if err != nil || a.IsZero() {
+		return pdid.Nil, false
+	}
+
+	return a, true
+}
+
+// Memberships answers an account's memberships out of `db`, past the wall:
+// the holders that name it in `account` and are still there, oldest
+// first. It is what [AccountResolver] resolves a call by -- working out who is
+// calling happens before there is anybody to be walled by -- and what an
+// app asks for the tenants an account is in.
+//
+// Hand it the deployment's own client and nothing a caller reaches: what it
+// answers is every tenant's.
+func Memberships(db *ent.Client) account.Memberships { return memberships{db} }
+
+type memberships struct{ db *ent.Client }
+
+func (m memberships) Of(ctx context.Context, of pdid.Id, in account.Selector, limit int) ([]account.Membership, error) {
+	if of.IsZero() {
+		// Nobody's: a holder that names no account is no account's membership.
+		return nil, nil
+	}
+
+	q := m.db.Holder.Query().Where(entHolder.Account(of.Uuid()))
+	q = q.Where(entHolder.DateErasedIsNil())
+	if !in.Id.IsZero() {
+		q = q.Where(entHolder.TenantId(in.Id.Uuid()))
+	}
+	if in.Alias != "" {
+		q = q.Where(entHolder.HasTenantWith(entTenant.Alias(in.Alias)))
+	}
+	q = q.Order(entHolder.ByDateCreated(), entHolder.ById())
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+
+	vs, err := q.Select(entHolder.FieldId, entHolder.FieldTenantId).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]account.Membership, len(vs))
+	for i, v := range vs {
+		out[i] = account.Membership{Holder: pdid.Id(v.Id), Tenant: pdid.Id(v.TenantId)}
+	}
+
+	return out, nil
+}
+
+// AccountResolver is the resolver of an app whose holders are memberships of
+// accounts, in front of the one it has: a credential `names` says is an
+// account's is served as its membership of the tenant the call names in
+// `header` -- by alias or identifier -- or its only one, and as the account
+// itself for [AccountMethods]; any other is `next`'s, which is also asked
+// about the membership a call was resolved to. See `account.Resolver`.
+//
+// `db` is the deployment's own client, past the wall, for the reason
+// [Memberships] gives.
+func AccountResolver(db *ent.Client, header string, names func(auth.Identity) bool, next auth.Resolver) account.Resolver {
+	return account.Resolver{
+		Header:      header,
+		Names:       names,
+		Methods:     AccountMethod,
+		Memberships: Memberships(db),
+		Next:        next,
+	}
+}
+
+// Reads is what a method an account calls as itself reads through the walled
+// servers (payday#184): for each entity it names, which of its rows the
+// account may see -- a predicate, as the wall's are, given the account -- and
+// of every entity it does not name, none. Global ones too: a row behind no
+// wall is not therefore the account's.
+//
+// A row read is read with whatever its edges point at, as under a tenant's
+// frame: declare the rows, and select of them what the method answers with.
+type Reads struct {
+	Access         func(ctx context.Context, account pdid.Id) (predicate.Access, error)
+	Archived       func(ctx context.Context, account pdid.Id) (predicate.Archived, error)
+	Audit          func(ctx context.Context, account pdid.Id) (predicate.Audit, error)
+	BillingAccount func(ctx context.Context, account pdid.Id) (predicate.BillingAccount, error)
+	Departure      func(ctx context.Context, account pdid.Id) (predicate.Departure, error)
+	Grant          func(ctx context.Context, account pdid.Id) (predicate.Grant, error)
+	Holder         func(ctx context.Context, account pdid.Id) (predicate.Holder, error)
+	Link           func(ctx context.Context, account pdid.Id) (predicate.Link, error)
+	Meter          func(ctx context.Context, account pdid.Id) (predicate.Meter, error)
+	Offer          func(ctx context.Context, account pdid.Id) (predicate.Offer, error)
+	Operator       func(ctx context.Context, account pdid.Id) (predicate.Operator, error)
+	Outbox         func(ctx context.Context, account pdid.Id) (predicate.Outbox, error)
+	Owed           func(ctx context.Context, account pdid.Id) (predicate.Owed, error)
+	Period         func(ctx context.Context, account pdid.Id) (predicate.Period, error)
+	Point          func(ctx context.Context, account pdid.Id) (predicate.Point, error)
+	Price          func(ctx context.Context, account pdid.Id) (predicate.Price, error)
+	Reading        func(ctx context.Context, account pdid.Id) (predicate.Reading, error)
+	RowSeal        func(ctx context.Context, account pdid.Id) (predicate.RowSeal, error)
+	Series         func(ctx context.Context, account pdid.Id) (predicate.Series, error)
+	ServiceKey     func(ctx context.Context, account pdid.Id) (predicate.ServiceKey, error)
+	Statement      func(ctx context.Context, account pdid.Id) (predicate.Statement, error)
+	Tenant         func(ctx context.Context, account pdid.Id) (predicate.Tenant, error)
+	Workspace      func(ctx context.Context, account pdid.Id) (predicate.Workspace, error)
+}
+
+// readsKey is where [AccountReads] keeps what it was told.
+type readsKey struct{}
+
+// AccountReads answers with `ctx` reading what `r` says, for the call an
+// account makes as itself to `method` -- which has to be one of
+// [AccountMethods]. It is the layer serving that method's to call, before it
+// reads, and what the wall reads for that call instead of a tenant:
+//
+//	ctx, err := pd.AccountReads(ctx, app.InvitationService_Accept_FullMethodName, pd.Reads{
+//		Invitation: func(ctx context.Context, account pdid.Id) (predicate.Invitation, error) {
+//			return invitation.Account(account.Uuid()), nil
+//		},
+//	})
+//
+// A method that reads nothing through the walled servers declares that too,
+// with an empty Reads: `pd doctor` reports a method an account calls as
+// itself that declares nothing, since without a declaration it reads
+// nothing and is very likely a method somebody forgot to finish.
+//
+// For a call served as a membership it changes nothing: that call reads
+// what its tenant's wall says.
+func AccountReads(ctx context.Context, method string, r Reads) (context.Context, error) {
+	if !AccountMethod(method) {
+		return ctx, status.Errorf(codes.Internal, "%s is no method an account calls as itself, and what such a call reads is said for the method it is", method)
+	}
+
+	return context.WithValue(ctx, readsKey{}, &r), nil
+}
+
+// accountReads is the account a call is framed as and what its layer said it
+// reads -- nothing, when it said nothing -- and false for any other call.
+func accountReads(ctx context.Context) (pdid.Id, *Reads, bool) {
+	a, ok := frame.AccountOf(ctx)
+	if !ok {
+		return pdid.Nil, nil, false
+	}
+
+	r, _ := ctx.Value(readsKey{}).(*Reads)
+	if r == nil {
+		r = &Reads{}
+	}
+
+	return a, r, true
+}
+
 // personal is what a message holding a field declared `personal` is to the
 // access record: its key, those fields, and how to read the tenant it is in.
 type personal struct {
@@ -10106,6 +12583,22 @@ var (
 )
 
 func init() {
+	{
+		md := (&levyan.BillingAccount{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(5),
+				fs.ByNumber(12),
+				fs.ByNumber(16),
+				fs.ByNumber(17),
+				fs.ByNumber(18),
+			},
+		}
+		r := (&levyan.BillingAccountRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
 	{
 		md := (&levyan.Holder{}).ProtoReflect().Descriptor()
 		fs := md.Fields()
@@ -10380,7 +12873,10 @@ type accessKept struct{ call *access.Call }
 // data left and erased, which are what say whose it was.
 func (accessRecorder) Snapshots(method string) bare.SnapshotOptions {
 	switch method {
-	case levyan.HolderService_Add_FullMethodName,
+	case levyan.BillingAccountService_Add_FullMethodName,
+		levyan.BillingAccountService_Patch_FullMethodName,
+		levyan.BillingAccountService_Apply_FullMethodName,
+		levyan.HolderService_Add_FullMethodName,
 		levyan.HolderService_Patch_FullMethodName,
 		levyan.HolderService_Apply_FullMethodName,
 		levyan.OperatorService_Add_FullMethodName,
@@ -10674,6 +13170,24 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 
 	var v proto.Message
 	switch m {
+	case levyan.BillingAccountService_Add_FullMethodName:
+		v = &levyan.BillingAccountAddRequest{}
+	case levyan.BillingAccountService_Get_FullMethodName:
+		v = &levyan.BillingAccountGetRequest{}
+	case levyan.BillingAccountService_Patch_FullMethodName:
+		v = &levyan.BillingAccountPatchRequest{}
+	case levyan.BillingAccountService_Apply_FullMethodName:
+		v = &levyan.BillingAccountApplyRequest{}
+	case levyan.BillingAccountService_List_FullMethodName:
+		v = &levyan.BillingAccountListRequest{}
+	case levyan.DepartureService_Add_FullMethodName:
+		v = &levyan.DepartureAddRequest{}
+	case levyan.DepartureService_Get_FullMethodName:
+		v = &levyan.DepartureGetRequest{}
+	case levyan.DepartureService_Patch_FullMethodName:
+		v = &levyan.DeparturePatchRequest{}
+	case levyan.DepartureService_Apply_FullMethodName:
+		v = &levyan.DepartureApplyRequest{}
 	case levyan.TenantService_Add_FullMethodName:
 		v = &levyan.TenantAddRequest{}
 	case levyan.TenantService_Get_FullMethodName:
@@ -10708,6 +13222,22 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.GrantRef{}
 	case levyan.GrantService_List_FullMethodName:
 		v = &levyan.GrantListRequest{}
+	case levyan.OfferService_Add_FullMethodName:
+		v = &levyan.OfferAddRequest{}
+	case levyan.OfferService_Get_FullMethodName:
+		v = &levyan.OfferGetRequest{}
+	case levyan.OfferService_Patch_FullMethodName:
+		v = &levyan.OfferPatchRequest{}
+	case levyan.OfferService_Apply_FullMethodName:
+		v = &levyan.OfferApplyRequest{}
+	case levyan.LinkService_Add_FullMethodName:
+		v = &levyan.LinkAddRequest{}
+	case levyan.LinkService_Get_FullMethodName:
+		v = &levyan.LinkGetRequest{}
+	case levyan.LinkService_Patch_FullMethodName:
+		v = &levyan.LinkPatchRequest{}
+	case levyan.LinkService_Apply_FullMethodName:
+		v = &levyan.LinkApplyRequest{}
 	case levyan.MeterService_Add_FullMethodName:
 		v = &levyan.MeterAddRequest{}
 	case levyan.MeterService_Get_FullMethodName:
@@ -10828,6 +13358,24 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		err error
 	)
 	switch m {
+	case levyan.BillingAccountService_Add_FullMethodName:
+		res, err = s.BillingAccount().Add(ctx, v.(*levyan.BillingAccountAddRequest))
+	case levyan.BillingAccountService_Get_FullMethodName:
+		res, err = s.BillingAccount().Get(ctx, v.(*levyan.BillingAccountGetRequest))
+	case levyan.BillingAccountService_Patch_FullMethodName:
+		res, err = s.BillingAccount().Patch(ctx, v.(*levyan.BillingAccountPatchRequest))
+	case levyan.BillingAccountService_Apply_FullMethodName:
+		res, err = s.BillingAccount().Apply(ctx, v.(*levyan.BillingAccountApplyRequest))
+	case levyan.BillingAccountService_List_FullMethodName:
+		res, err = s.BillingAccount().List(ctx, v.(*levyan.BillingAccountListRequest))
+	case levyan.DepartureService_Add_FullMethodName:
+		res, err = s.Departure().Add(ctx, v.(*levyan.DepartureAddRequest))
+	case levyan.DepartureService_Get_FullMethodName:
+		res, err = s.Departure().Get(ctx, v.(*levyan.DepartureGetRequest))
+	case levyan.DepartureService_Patch_FullMethodName:
+		res, err = s.Departure().Patch(ctx, v.(*levyan.DeparturePatchRequest))
+	case levyan.DepartureService_Apply_FullMethodName:
+		res, err = s.Departure().Apply(ctx, v.(*levyan.DepartureApplyRequest))
 	case levyan.TenantService_Add_FullMethodName:
 		res, err = s.Tenant().Add(ctx, v.(*levyan.TenantAddRequest))
 	case levyan.TenantService_Get_FullMethodName:
@@ -10862,6 +13410,22 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Grant().Erase(ctx, v.(*levyan.GrantRef))
 	case levyan.GrantService_List_FullMethodName:
 		res, err = s.Grant().List(ctx, v.(*levyan.GrantListRequest))
+	case levyan.OfferService_Add_FullMethodName:
+		res, err = s.Offer().Add(ctx, v.(*levyan.OfferAddRequest))
+	case levyan.OfferService_Get_FullMethodName:
+		res, err = s.Offer().Get(ctx, v.(*levyan.OfferGetRequest))
+	case levyan.OfferService_Patch_FullMethodName:
+		res, err = s.Offer().Patch(ctx, v.(*levyan.OfferPatchRequest))
+	case levyan.OfferService_Apply_FullMethodName:
+		res, err = s.Offer().Apply(ctx, v.(*levyan.OfferApplyRequest))
+	case levyan.LinkService_Add_FullMethodName:
+		res, err = s.Link().Add(ctx, v.(*levyan.LinkAddRequest))
+	case levyan.LinkService_Get_FullMethodName:
+		res, err = s.Link().Get(ctx, v.(*levyan.LinkGetRequest))
+	case levyan.LinkService_Patch_FullMethodName:
+		res, err = s.Link().Patch(ctx, v.(*levyan.LinkPatchRequest))
+	case levyan.LinkService_Apply_FullMethodName:
+		res, err = s.Link().Apply(ctx, v.(*levyan.LinkApplyRequest))
 	case levyan.MeterService_Add_FullMethodName:
 		res, err = s.Meter().Add(ctx, v.(*levyan.MeterAddRequest))
 	case levyan.MeterService_Get_FullMethodName:
@@ -10980,9 +13544,13 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Access{},
 		&levyan.Archived{},
 		&levyan.Audit{},
+		&levyan.BillingAccount{},
+		&levyan.Departure{},
 		&levyan.Grant{},
 		&levyan.Holder{},
+		&levyan.Link{},
 		&levyan.Meter{},
+		&levyan.Offer{},
 		&levyan.Operator{},
 		&levyan.Outbox{},
 		&levyan.Owed{},
@@ -11098,6 +13666,82 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.BillingAccount:
+			ctx, err := read.Allow(ctx, levyan.BillingAccountService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.BillingAccountNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entBillingAccount.Table, []resourcesql.Column{
+				{Number: 1, Name: entBillingAccount.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 5, Name: entBillingAccount.FieldName, Type: 9, Nullable: false, Key: 0},
+				{Number: 8, Name: entBillingAccount.FieldOwner, Type: 64, Nullable: false, Key: 0},
+				{Number: 9, Name: entBillingAccount.FieldCountry, Type: 9, Nullable: false, Key: 0},
+				{Number: 10, Name: entBillingAccount.FieldChannel, Type: 9, Nullable: false, Key: 0},
+				{Number: 11, Name: entBillingAccount.FieldCurrency, Type: 9, Nullable: false, Key: 0},
+				{Number: 12, Name: entBillingAccount.FieldRecipient, Type: 9, Nullable: false, Key: 0},
+				{Number: 16, Name: entBillingAccount.FieldEmail, Type: 9, Nullable: false, Key: 0},
+				{Number: 17, Name: entBillingAccount.FieldAddress, Type: 9, Nullable: false, Key: 0},
+				{Number: 19, Name: entBillingAccount.FieldDateForgotten, Type: 65, Nullable: true, Key: 0},
+				{Number: 13, Name: entBillingAccount.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entBillingAccount.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entBillingAccount.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.BillingAccount.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Departure:
+			ctx, err := read.Allow(ctx, levyan.DepartureService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.DepartureNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entDeparture.Table, []resourcesql.Column{
+				{Number: 1, Name: entDeparture.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 8, Name: entDeparture.FieldAccount, Type: 64, Nullable: false, Key: 0},
+				{Number: 9, Name: entDeparture.FieldReason, Type: 14, Nullable: false, Key: 0},
+				{Number: 10, Name: entDeparture.FieldDateHeard, Type: 65, Nullable: false, Key: 0},
+				{Number: 11, Name: entDeparture.FieldDateSettled, Type: 65, Nullable: true, Key: 0},
+				{Number: 12, Name: entDeparture.FieldDateBack, Type: 65, Nullable: true, Key: 0},
+				{Number: 13, Name: entDeparture.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entDeparture.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entDeparture.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Departure.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Grant:
 			ctx, err := read.Allow(ctx, levyan.GrantService_Get_FullMethodName, 1)
 			if err != nil {
@@ -11176,6 +13820,46 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.Link:
+			ctx, err := read.Allow(ctx, levyan.LinkService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.LinkNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entLink.Table, []resourcesql.Column{
+				{Number: 1, Name: entLink.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entLink.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entLink.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entLink.FieldPayer, Type: 64, Nullable: false, Key: 0},
+				{Number: 9, Name: entLink.BillingAccountColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 10, Name: entLink.FieldDateStart, Type: 65, Nullable: false, Key: 0},
+				{Number: 11, Name: entLink.FieldDateEnd, Type: 65, Nullable: true, Key: 0},
+				{Number: 12, Name: entLink.FieldBegan, Type: 14, Nullable: false, Key: 0},
+				{Number: 16, Name: entLink.FieldEnded, Type: 14, Nullable: false, Key: 0},
+				{Number: 17, Name: entLink.OfferColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 13, Name: entLink.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entLink.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entLink.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Link.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Meter:
 			ctx, err := read.Allow(ctx, levyan.MeterService_Get_FullMethodName, 1)
 			if err != nil {
@@ -11207,6 +13891,42 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			query := db.Meter.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
+		case *levyan.Offer:
+			ctx, err := read.Allow(ctx, levyan.OfferService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.OfferNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entOffer.Table, []resourcesql.Column{
+				{Number: 1, Name: entOffer.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entOffer.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entOffer.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entOffer.FieldAccount, Type: 64, Nullable: false, Key: 0},
+				{Number: 9, Name: entOffer.FieldAnswer, Type: 14, Nullable: false, Key: 0},
+				{Number: 10, Name: entOffer.FieldDateAnswered, Type: 65, Nullable: true, Key: 0},
+				{Number: 13, Name: entOffer.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entOffer.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entOffer.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Offer.Query()
 			if pred != nil {
 				query.Where(pred)
 			}
@@ -11491,6 +14211,8 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				{Number: 17, Name: entStatement.FieldTotal, Type: 3, Nullable: false, Key: 0},
 				{Number: 18, Name: entStatement.FieldExact, Type: 9, Nullable: false, Key: 0},
 				{Number: 19, Name: entStatement.FieldRating, Type: 13, Nullable: false, Key: 0},
+				{Number: 21, Name: entStatement.BillingAccountColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 22, Name: entStatement.FieldFirstUnit, Type: 8, Nullable: false, Key: 0},
 			}, v)
 			if err != nil {
 				return nil, err
@@ -11615,6 +14337,18 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.AuditService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.BillingAccountService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.BillingAccountService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.BillingAccountService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.DepartureService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.DepartureService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.DepartureService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.GrantService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.GrantService_Patch_FullMethodName:
@@ -11631,11 +14365,23 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.HolderService_Erase_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_DELETED
+	case levyan.LinkService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.LinkService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.LinkService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.MeterService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.MeterService_Patch_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.MeterService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.OfferService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.OfferService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.OfferService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.OperatorService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
@@ -11709,7 +14455,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.Grant", "levyan.Holder", "levyan.Meter", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
+	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Tenant", "levyan.Workspace":
 	default:
 		return nil
 	}

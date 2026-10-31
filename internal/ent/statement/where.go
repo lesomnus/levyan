@@ -101,6 +101,16 @@ func Rating(v uint32) predicate.Statement {
 	return predicate.Statement(sql.FieldEQ(FieldRating, v))
 }
 
+// Payer applies equality check predicate on the "payer" field. It's identical to PayerEQ.
+func Payer(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldPayer, v))
+}
+
+// FirstUnit applies equality check predicate on the "first_unit" field. It's identical to FirstUnitEQ.
+func FirstUnit(v bool) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldFirstUnit, v))
+}
+
 // TenantId applies equality check predicate on the "tenant_id" field. It's identical to TenantIdEQ.
 func TenantId(v uuid.UUID) predicate.Statement {
 	return predicate.Statement(sql.FieldEQ(FieldTenantId, v))
@@ -114,6 +124,11 @@ func WorkspaceId(v uuid.UUID) predicate.Statement {
 // PeriodId applies equality check predicate on the "period_id" field. It's identical to PeriodIdEQ.
 func PeriodId(v uuid.UUID) predicate.Statement {
 	return predicate.Statement(sql.FieldEQ(FieldPeriodId, v))
+}
+
+// BillingAccountId applies equality check predicate on the "billing_account_id" field. It's identical to BillingAccountIdEQ.
+func BillingAccountId(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldBillingAccountId, v))
 }
 
 // DateStartEQ applies the EQ predicate on the "date_start" field.
@@ -601,6 +616,66 @@ func RatingLTE(v uint32) predicate.Statement {
 	return predicate.Statement(sql.FieldLTE(FieldRating, v))
 }
 
+// PayerEQ applies the EQ predicate on the "payer" field.
+func PayerEQ(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldPayer, v))
+}
+
+// PayerNEQ applies the NEQ predicate on the "payer" field.
+func PayerNEQ(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldNEQ(FieldPayer, v))
+}
+
+// PayerIn applies the In predicate on the "payer" field.
+func PayerIn(vs ...uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldIn(FieldPayer, vs...))
+}
+
+// PayerNotIn applies the NotIn predicate on the "payer" field.
+func PayerNotIn(vs ...uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldNotIn(FieldPayer, vs...))
+}
+
+// PayerGT applies the GT predicate on the "payer" field.
+func PayerGT(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldGT(FieldPayer, v))
+}
+
+// PayerGTE applies the GTE predicate on the "payer" field.
+func PayerGTE(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldGTE(FieldPayer, v))
+}
+
+// PayerLT applies the LT predicate on the "payer" field.
+func PayerLT(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldLT(FieldPayer, v))
+}
+
+// PayerLTE applies the LTE predicate on the "payer" field.
+func PayerLTE(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldLTE(FieldPayer, v))
+}
+
+// PayerIsNil applies the IsNil predicate on the "payer" field.
+func PayerIsNil() predicate.Statement {
+	return predicate.Statement(sql.FieldIsNull(FieldPayer))
+}
+
+// PayerNotNil applies the NotNil predicate on the "payer" field.
+func PayerNotNil() predicate.Statement {
+	return predicate.Statement(sql.FieldNotNull(FieldPayer))
+}
+
+// FirstUnitEQ applies the EQ predicate on the "first_unit" field.
+func FirstUnitEQ(v bool) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldFirstUnit, v))
+}
+
+// FirstUnitNEQ applies the NEQ predicate on the "first_unit" field.
+func FirstUnitNEQ(v bool) predicate.Statement {
+	return predicate.Statement(sql.FieldNEQ(FieldFirstUnit, v))
+}
+
 // TenantIdEQ applies the EQ predicate on the "tenant_id" field.
 func TenantIdEQ(v uuid.UUID) predicate.Statement {
 	return predicate.Statement(sql.FieldEQ(FieldTenantId, v))
@@ -659,6 +734,36 @@ func PeriodIdIn(vs ...uuid.UUID) predicate.Statement {
 // PeriodIdNotIn applies the NotIn predicate on the "period_id" field.
 func PeriodIdNotIn(vs ...uuid.UUID) predicate.Statement {
 	return predicate.Statement(sql.FieldNotIn(FieldPeriodId, vs...))
+}
+
+// BillingAccountIdEQ applies the EQ predicate on the "billing_account_id" field.
+func BillingAccountIdEQ(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldBillingAccountId, v))
+}
+
+// BillingAccountIdNEQ applies the NEQ predicate on the "billing_account_id" field.
+func BillingAccountIdNEQ(v uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldNEQ(FieldBillingAccountId, v))
+}
+
+// BillingAccountIdIn applies the In predicate on the "billing_account_id" field.
+func BillingAccountIdIn(vs ...uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldIn(FieldBillingAccountId, vs...))
+}
+
+// BillingAccountIdNotIn applies the NotIn predicate on the "billing_account_id" field.
+func BillingAccountIdNotIn(vs ...uuid.UUID) predicate.Statement {
+	return predicate.Statement(sql.FieldNotIn(FieldBillingAccountId, vs...))
+}
+
+// BillingAccountIdIsNil applies the IsNil predicate on the "billing_account_id" field.
+func BillingAccountIdIsNil() predicate.Statement {
+	return predicate.Statement(sql.FieldIsNull(FieldBillingAccountId))
+}
+
+// BillingAccountIdNotNil applies the NotNil predicate on the "billing_account_id" field.
+func BillingAccountIdNotNil() predicate.Statement {
+	return predicate.Statement(sql.FieldNotNull(FieldBillingAccountId))
 }
 
 // HasTenant applies the HasEdge predicate on the "tenant" edge.
@@ -722,6 +827,29 @@ func HasPeriod() predicate.Statement {
 func HasPeriodWith(preds ...predicate.Period) predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := newPeriodStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingAccount applies the HasEdge predicate on the "billing_account" edge.
+func HasBillingAccount() predicate.Statement {
+	return predicate.Statement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, BillingAccountTable, BillingAccountColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingAccountWith applies the HasEdge predicate on the "billing_account" edge with a given conditions (other predicates).
+func HasBillingAccountWith(preds ...predicate.BillingAccount) predicate.Statement {
+	return predicate.Statement(func(s *sql.Selector) {
+		step := newBillingAccountStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

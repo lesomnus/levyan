@@ -1,0 +1,39 @@
+edition = "2023";
+
+package payday;
+
+// What levyan adds to payday's Holder: the account a holder is a membership
+// of (payday#184), which `option (payday.app) = {accounts: ...}` names
+// (`proto/levyan/payer.proto`).
+//
+// levyan has no holders that are anybody's membership -- a product calls with
+// its key, an operator through a door of its own, and a payer as itself in no
+// tenant -- so nothing writes it. It is here because payday frames a call an
+// account makes as itself by the declaration, and the declaration names a
+// field.
+message Holder {
+  // The account this holder is a membership of: one of roster's directory.
+  // Null on every holder levyan has.
+  bytes account = 9 [(orm.field) = {
+    type: TYPE_UUID
+    nullable: true
+  }];
+
+  option (orm.message) = {
+    indexes: [
+      {
+        name: "by_account"
+        refs: [
+          {
+            name: "account"
+            number: 9
+          },
+          {
+            name: "tenant"
+            number: 2
+          }
+        ]
+      }
+    ]
+  };
+}

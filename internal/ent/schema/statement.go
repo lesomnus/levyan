@@ -48,11 +48,20 @@ func (Statement) Fields() []ent.Field {
 			Immutable(),
 		field.Uint32("rating").
 			Immutable(),
+		field.Uuid("payer").
+			Nillable().
+			Immutable().
+			Optional(),
+		field.Bool("first_unit").
+			Immutable(),
 		field.Uuid("tenant_id").
 			Immutable(),
 		field.Uuid("workspace_id").
 			Immutable(),
 		field.Uuid("period_id").
+			Immutable(),
+		field.Uuid("billing_account_id").
+			Optional().
 			Immutable(),
 	}
 }
@@ -73,6 +82,10 @@ func (Statement) Edges() []ent.Edge {
 			Unique().
 			Field("period_id").
 			Required().
+			Immutable(),
+		edge.To("billing_account", BillingAccount.Type).
+			Unique().
+			Field("billing_account_id").
 			Immutable(),
 	}
 }

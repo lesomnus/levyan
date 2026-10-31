@@ -1,0 +1,258 @@
+edition = "2023";
+
+// Who pays for a product's workspaces: the accounts of roster's that do, the
+// billing accounts they pay with, and the offers that make somebody a payer.
+package levyan.v1;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/v1/price_book.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
+
+// PayerService is what a payer -- an account of roster's -- asks of levyan:
+// the billing accounts it pays with, the offers to pay for a workspace, and
+// the workspaces it pays for.
+//
+// # Who calls it
+//
+// A product, for one of its own users, as that user: the product's key, and
+// the account it signed the user in as in the `levyan-account` header, the
+// canonical text of the account's identifier at roster. The product vouches
+// for the account -- levyan has signed nobody in -- and levyan asks roster
+// whether the account is in good standing before it serves the call, and
+// refuses one that is not. A call is the account's: what it reads and writes
+// is its own billing accounts, and of the product that relays it, the offers
+// made to it and the workspaces it pays for. Which product relays it says
+// which product's workspaces are meant; a billing account is the account's in
+// every product.
+//
+// A product's key without `levyan-account` is the product, which is refused
+// every method here; and with it, the account, which is refused every method
+// but these.
+service PayerService {
+  // ListBillingAccounts is the account's billing accounts, in the order it
+  // made them.
+  rpc ListBillingAccounts(ListBillingAccountsRequest) returns (ListBillingAccountsResponse);
+
+  // CreateBillingAccount makes one: in a country, which says the channel it
+  // is sold through and the currency it is billed in -- what the deployment
+  // sells that country through as it is made -- and never changes.
+  rpc CreateBillingAccount(CreateBillingAccountRequest) returns (CreateBillingAccountResponse);
+
+  // UpdateBillingAccount says again who receives what one is billed, and the
+  // business it is billed to. What is left out stays as it is.
+  rpc UpdateBillingAccount(UpdateBillingAccountRequest) returns (UpdateBillingAccountResponse);
+
+  // ListOffers is the offers made to the account to pay for a workspace of
+  // the product's, not answered yet.
+  rpc ListOffers(ListOffersRequest) returns (ListOffersResponse);
+
+  // Accept accepts one: the account pays for the workspace, with the billing
+  // account it names or none yet, from the end of the period now open -- the
+  // payer before it pays until then.
+  rpc Accept(AcceptRequest) returns (AcceptResponse);
+
+  // Decline declines one.
+  rpc Decline(DeclineRequest) returns (DeclineResponse);
+
+  // ListLinks is the workspaces of the product's the account pays for, or
+  // will from the end of the period.
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+
+  // Use pays for a workspace the account pays for with another of its
+  // billing accounts, from the end of the period now open.
+  rpc Use(UseRequest) returns (UseResponse);
+
+  // Stop stops paying for a workspace, as the period now open ends: from
+  // then on it has no payer, unless somebody accepts first.
+  rpc Stop(StopRequest) returns (StopResponse);
+}
+
+message ListBillingAccountsRequest {}
+
+message ListBillingAccountsResponse {
+  repeated BillingAccount billing_accounts = 1;
+}
+
+message CreateBillingAccountRequest {
+  // What the account calls it: "회사용".
+  string name = 1;
+
+  // ISO 3166-1 alpha-2: KR. What a billing account in each country is sold
+  // through and billed in is the deployment's to say: by default the
+  // merchant of record, in won in KR and in US dollars anywhere else.
+  string country = 2;
+
+  Recipient recipient = 3;
+
+  // For a business, what its tax invoice names it by.
+  Business business = 4;
+}
+
+message CreateBillingAccountResponse {
+  BillingAccount billing_account = 1;
+}
+
+message UpdateBillingAccountRequest {
+  // The billing account, by its identifier.
+  string id = 1;
+
+  string name = 2 [features.field_presence = EXPLICIT];
+  Recipient recipient = 3;
+  Business business = 4;
+
+  // Clears what is said of a business: the account is billed as a person.
+  bool clear_business = 5;
+}
+
+message UpdateBillingAccountResponse {
+  BillingAccount billing_account = 1;
+}
+
+message ListOffersRequest {}
+
+message ListOffersResponse {
+  repeated Offer offers = 1;
+}
+
+message AcceptRequest {
+  // The offer, by its identifier.
+  string offer = 1;
+
+  // The billing account of the account's to pay with, by its identifier;
+  // empty is none yet, when what the workspace comes to is priced on the
+  // product's channel until one is used.
+  string billing_account = 2;
+}
+
+message AcceptResponse {
+  // The link the account pays by, from when it is in force.
+  Link link = 1;
+}
+
+message DeclineRequest {
+  string offer = 1;
+}
+
+message DeclineResponse {}
+
+message ListLinksRequest {}
+
+message ListLinksResponse {
+  repeated Link links = 1;
+}
+
+message UseRequest {
+  // The workspace: the canonical text of the identifier of the product's own
+  // payday tenant.
+  string workspace = 1;
+
+  // The billing account of the account's to pay with from the end of the
+  // period, by its identifier.
+  string billing_account = 2;
+}
+
+message UseResponse {
+  Link link = 1;
+}
+
+message StopRequest {
+  string workspace = 1;
+}
+
+message StopResponse {
+  // The link that ends, and when.
+  Link link = 1;
+}
+
+// BillingAccount is what an account pays with.
+message BillingAccount {
+  string id = 1;
+  string name = 2;
+
+  // The country it is billed in, and what the deployment sold that country
+  // through when it was made: the channel and the currency.
+  string country = 3;
+  Channel channel = 4;
+  string currency = 5;
+
+  Recipient recipient = 6;
+  Business business = 7;
+
+  google.protobuf.Timestamp created = 8;
+}
+
+// Recipient is who receives what a billing account is billed.
+message Recipient {
+  string name = 1;
+  string email = 2;
+  string address = 3;
+}
+
+// Business is the business a billing account is billed to: what a Korean tax
+// invoice names it by.
+message Business {
+  // Its registration number: 123-45-67890.
+  string registration = 1;
+  string name = 2;
+  string representative = 3;
+  string address = 4;
+
+  // What it does: its kind (업태) and its item (종목).
+  string kind = 5;
+  string item = 6;
+
+  // Where its tax invoices go.
+  string email = 7;
+}
+
+// Offer is a product asking an account to pay for one of its workspaces.
+message Offer {
+  string id = 1;
+
+  // The workspace, as the product names it.
+  string workspace = 2;
+
+  // The account it is made to.
+  string account = 3;
+
+  google.protobuf.Timestamp offered = 4;
+}
+
+// Link is an account paying for a workspace, from when to when.
+message Link {
+  string id = 1;
+  string workspace = 2;
+  string account = 3;
+
+  // The billing account it pays with; empty for none yet.
+  string billing_account = 4;
+
+  // In force from `start`, and until `end` when it says one.
+  google.protobuf.Timestamp start = 5;
+  google.protobuf.Timestamp end = 6;
+
+  LinkBegan began = 7;
+  LinkEnded ended = 8;
+}
+
+// LinkBegan is how a link began, value for value levyan's own.
+enum LinkBegan {
+  LINK_BEGAN_UNSPECIFIED = 0;
+  LINK_BEGAN_ARRIVED = 1;
+  LINK_BEGAN_ACCEPTED = 2;
+  LINK_BEGAN_USED = 3;
+  LINK_BEGAN_RESUMED = 4;
+}
+
+// LinkEnded is how a link ended, value for value levyan's own; unspecified
+// while it lasts.
+enum LinkEnded {
+  LINK_ENDED_UNSPECIFIED = 0;
+  LINK_ENDED_REPLACED = 1;
+  LINK_ENDED_STOPPED = 2;
+  LINK_ENDED_LEFT = 3;
+  LINK_ENDED_SUSPENDED = 4;
+  LINK_ENDED_ERASED = 5;
+}

@@ -10,6 +10,7 @@ package levyantest
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/pd"
+	"github.com/lesomnus/levyan/server/relay"
 )
 
 // World is a levyan, built and migrated.
@@ -55,7 +57,69 @@ func New(t *testing.T, with ...func(*cmd.Config)) *World {
 	t.Cleanup(func() { s.Close() })
 	x.NoError(cli.Migrate(t.Context(), s))
 
+	// roster, as a test has it: every account in good standing but those
+	// it is told otherwise of. Serve with it nil to have none configured.
+	s.Standing = &Standing{}
+
 	return &World{X: x, C: c, S: s, t: t}
+}
+
+// Again is this levyan come up again on the same database, as a deployment
+// restarted with other configuration is: `with` has a say over a copy of its
+// configuration -- replacing what it changes rather than writing into what
+// the copy shares -- and the server keeps this one's clock and roster.
+func (w *World) Again(with ...func(*cmd.Config)) *cmd.Server {
+	w.t.Helper()
+
+	c := w.C
+	for _, f := range with {
+		f(&c)
+	}
+
+	s, err := cmd.Build(w.t.Context(), c)
+	w.X.NoError(err)
+	w.t.Cleanup(func() { s.Close() })
+	s.Clock = func() time.Time { return w.S.Clock() }
+	s.Standing = w.S.Standing
+
+	return s
+}
+
+// Standing is roster's word on accounts, as a test says it: good for every
+// account but those Refuse has been told of.
+type Standing struct {
+	mu      sync.Mutex
+	refused map[pdid.Id]error
+}
+
+// Refuse has `account` answered with `err` -- `standing.ErrRefused`,
+// `standing.ErrUnreachable` -- or good again with nil.
+func (s *Standing) Refuse(account pdid.Id, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.refused == nil {
+		s.refused = map[pdid.Id]error{}
+	}
+	if err == nil {
+		delete(s.refused, account)
+		return
+	}
+	s.refused[account] = err
+}
+
+func (s *Standing) Held(_ context.Context, account pdid.Id, _ time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.refused[account]
+}
+
+// Account is an account of roster's, new.
+func Account() pdid.Id { return pdid.New(pd.HolderDomain) }
+
+// AsAccount is a context whose calls carry a product's key and the account
+// it relays them for, as a product's do for one of its users.
+func AsAccount(ctx context.Context, token string, account pdid.Id) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token, relay.Header, account.String())
 }
 
 // Serve is the public binary's server over a connection that never leaves

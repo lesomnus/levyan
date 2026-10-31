@@ -6,6 +6,7 @@ import (
 	"github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/audit"
+	"github.com/lesomnus/levyan/internal/ent/billingaccount"
 	"github.com/lesomnus/levyan/internal/ent/price"
 	"github.com/lesomnus/levyan/internal/ent/schema"
 	"github.com/lesomnus/levyan/internal/ent/statement"
@@ -30,6 +31,11 @@ func init() {
 	auditDescDomain := auditFields[11].Descriptor()
 	// audit.DefaultDomain holds the default value on creation for the domain field.
 	audit.DefaultDomain = auditDescDomain.Default.(uint32)
+	billingaccountFields := schema.BillingAccount{}.Fields()
+	_ = billingaccountFields
+	// billingaccountDescBusiness is the schema descriptor for business field.
+	billingaccountDescBusiness := billingaccountFields[9].Descriptor()
+	billingaccount.ValueScanner.Business = billingaccountDescBusiness.ValueScanner.(field.TypeValueScanner[*levyan.BillingBusiness])
 	priceFields := schema.Price{}.Fields()
 	_ = priceFields
 	// priceDescBands is the schema descriptor for bands field.

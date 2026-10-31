@@ -13,13 +13,19 @@
 package cmd
 
 import (
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/lesomnus/xli/cfg"
 
 	"github.com/lesomnus/payday/config"
 
+	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/keyring"
+	"github.com/lesomnus/levyan/server/payers"
 )
 
 // Name is what this app is called, and it is the only place it is written.
@@ -69,6 +75,175 @@ type Config struct {
 	// Named nowhere, there is no keyring, and nothing stores a billing key yet
 	// (#4); named wrong, the process is refused where it comes up.
 	BillingKeys keyring.Config `yaml:"billing_keys"`
+
+	// Auth is who levyan asks about the people it bills: roster.
+	Auth AuthConfig `yaml:"auth"`
+
+	// Payers is who pays for products' workspaces (#4).
+	Payers PayersConfig `yaml:"payers"`
+}
+
+// AuthConfig is who levyan asks about the people it bills.
+type AuthConfig struct {
+	// Roster is the roster whose accounts pay: asked whether an account a
+	// product relays a call for is in good standing, and heard saying when
+	// one is suspended or erased (roster's `standing`, its
+	// `docs/relying-app.md`).
+	Roster RosterConfig `yaml:"roster"`
+}
+
+// RosterConfig is the roster levyan asks, and who levyan is there.
+//
+// With no address, no account's standing can be asked, so levyan serves no
+// call an account makes ( `levyan.v1.PayerService`) -- it refuses them all
+// rather than serve one on nobody's word -- and hears nothing of roster.
+type RosterConfig struct {
+	// Addr is roster's data plane, as gRPC dials it: `roster:50051`.
+	Addr string `yaml:"addr"`
+
+	// Key is what levyan calls roster with, a secret (`${file:/run/…}`):
+	// a deployment key, `rk_…`, which every call names the directory beside
+	// (`roster-at`), or a tenant key, `rt_…`, of the directory itself (roster's
+	// `docs/apps.md`). Its role holds `standing.Methods`.
+	Key cfg.Secret `yaml:"key"`
+
+	// Directory is the roster tenant the accounts are in, by its alias: one
+	// for the whole deployment. Required with a deployment key; a tenant key
+	// is its own tenant's, and names none.
+	Directory string `yaml:"directory"`
+
+	// Insecure dials roster in plaintext, for a lab; CaFile pins the CA its
+	// certificate chains to, and empty is the system's.
+	Insecure bool   `yaml:"insecure"`
+	CaFile   string `yaml:"ca_file"`
+}
+
+// Configured says whether a roster is named at all.
+func (c RosterConfig) Configured() bool { return c.Addr != "" }
+
+// PayersConfig is who pays for products' workspaces (#4).
+type PayersConfig struct {
+	// Free is how many of each payer's workspaces of a product have the
+	// allowances their prices include: 3 when unset, as many as an account
+	// may own in loft (`app.workspaces.owned`). The others are rated from
+	// the first unit. Zero is written `0` and is none.
+	Free *int `yaml:"free"`
+
+	// Grace is how long a workspace may go with nobody paying for it before
+	// it is restricted: 30 days when unset.
+	Grace time.Duration `yaml:"grace"`
+
+	// Settle is how often what roster said of an erased account is asked
+	// again, and acted on once roster has nobody by them: an hour when unset.
+	Settle time.Duration `yaml:"settle"`
+
+	// Reconcile is how often roster is asked about every account levyan
+	// bills, for what its stream missed: a day when unset.
+	Reconcile time.Duration `yaml:"reconcile"`
+
+	// Channels is what a billing account is billed through, by the country
+	// it is in -- ISO 3166-1 alpha-2, in capitals -- and `default` for every
+	// country no other key names. A key left out is as the defaults say: the
+	// merchant of record everywhere, in won in KR and in US dollars
+	// elsewhere ([payers.DefaultChannels]).
+	//
+	// It is asked as a billing account is made, and never again of it:
+	// changing it moves no billing account made before.
+	Channels ChannelsConfig `yaml:"channels"`
+}
+
+// ChannelsConfig is what a billing account in each country is billed
+// through, by the country.
+type ChannelsConfig map[string]ChannelConfig
+
+// ChannelConfig is what a billing account in a country is billed through.
+type ChannelConfig struct {
+	// Channel is what it is sold on: MOR, the merchant of record, or PG_KR,
+	// the Korean payment gateway.
+	Channel string `yaml:"channel"`
+
+	// Currency is what it is billed in, as ISO 4217 writes it: KRW.
+	Currency string `yaml:"currency"`
+}
+
+// Validate refuses channels that would bill a billing account through
+// nothing, as the configuration is loaded.
+func (c ChannelsConfig) Validate() error {
+	_, err := c.Over(payers.DefaultChannels())
+
+	return err
+}
+
+// ChannelsOf is [PayersConfig.Channels] over its defaults.
+func (c PayersConfig) ChannelsOf() (payers.Channels, error) {
+	return c.Channels.Over(payers.DefaultChannels())
+}
+
+// Over is `base` with what these say in its place, country by country.
+func (c ChannelsConfig) Over(base payers.Channels) (payers.Channels, error) {
+	over := payers.Channels{}
+	for _, k := range slices.Sorted(maps.Keys(c)) {
+		v := c[k]
+		name := strings.TrimPrefix(strings.ToUpper(strings.TrimSpace(v.Channel)), "CHANNEL_")
+		ch, ok := levyan.Channel_value["CHANNEL_"+name]
+		if !ok || ch == 0 {
+			return nil, fmt.Errorf("%s: channel: %q is none of %s", k, v.Channel, strings.Join(channelNames(), ", "))
+		}
+		over[k] = payers.Billed{Channel: levyan.Channel(ch), Currency: v.Currency}
+	}
+
+	out := base.With(over)
+	if err := out.Check(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// channelNames is the channels a billing account may be billed through, as
+// [ChannelConfig.Channel] writes them.
+func channelNames() []string {
+	out := []string{}
+	for v, name := range levyan.Channel_name {
+		if v != 0 {
+			out = append(out, strings.TrimPrefix(name, "CHANNEL_"))
+		}
+	}
+	slices.Sort(out)
+
+	return out
+}
+
+// FreeOf is [PayersConfig.Free], or its default.
+func (c PayersConfig) FreeOf() int {
+	if c.Free == nil {
+		return 3
+	}
+	return max(*c.Free, 0)
+}
+
+// GraceOf is [PayersConfig.Grace], or its default.
+func (c PayersConfig) GraceOf() time.Duration {
+	if c.Grace <= 0 {
+		return 30 * 24 * time.Hour
+	}
+	return c.Grace
+}
+
+// SettleEvery is [PayersConfig.Settle], or its default.
+func (c PayersConfig) SettleEvery() time.Duration {
+	if c.Settle <= 0 {
+		return time.Hour
+	}
+	return c.Settle
+}
+
+// ReconcileEvery is [PayersConfig.Reconcile], or its default.
+func (c PayersConfig) ReconcileEvery() time.Duration {
+	if c.Reconcile <= 0 {
+		return 24 * time.Hour
+	}
+	return c.Reconcile
 }
 
 // GrantsConfig is how what levyan gives products' workspaces is kept

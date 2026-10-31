@@ -38,7 +38,7 @@ func TestTheTwoBinariesLinkNeitherDoorOfTheOther(t *testing.T) {
 	for _, pkg := range []string{m + "server/admin", m + "cli/admin"} {
 		x.NotContains(public, pkg, "levyan links %s", pkg)
 	}
-	for _, pkg := range []string{m + "cli", m + "server/api", m + "server/otlp", m + "server/policy", m + "api/levyan/v1"} {
+	for _, pkg := range []string{m + "cli", m + "server/api", m + "server/otlp", m + "server/policy", m + "server/relay", m + "api/levyan/v1"} {
 		x.NotContains(operator, pkg, "levyan-admin links %s", pkg)
 	}
 

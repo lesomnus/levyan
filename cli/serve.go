@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
+	"github.com/lesomnus/payday/account"
 	"github.com/lesomnus/payday/auth"
 	"github.com/lesomnus/payday/spin"
 	"github.com/lesomnus/payday/valid"
@@ -23,7 +24,9 @@ import (
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/otlp"
+	"github.com/lesomnus/levyan/server/pd"
 	"github.com/lesomnus/levyan/server/policy"
+	"github.com/lesomnus/levyan/server/relay"
 )
 
 // Front is the door `levyan serve` puts on what `cmd.Build` made: a product,
@@ -37,13 +40,32 @@ import (
 // A function rather than lines in the command so that a test serves exactly
 // this, over a connection, and asks it what a product is told.
 func Front(s *cmd.Server) {
-	s.Auth = auth.Bearer(keys.Store(s.Ungated, s.Clock))
-	s.Policy = policy.Policy{}
 	now := func() time.Time { return s.Clock() }
+
+	// A product by its key; and with `levyan-account`, an account it vouches
+	// for, held to what roster says of it now and framed as the account
+	// (`server/relay`).
+	s.Auth = relay.Handler(auth.Bearer(keys.Store(s.Ungated, s.Clock)))
+	byKey := keys.Resolver(s.Ungated, s.Clock)
+	s.Resolver = relay.Resolver{
+		Keys: byKey,
+		Accounts: account.Resolver{
+			Header:      "levyan-workspace",
+			Names:       relay.Relayed,
+			Methods:     api.Calls,
+			Memberships: pd.Memberships(s.Ent),
+			Next:        byKey,
+		},
+		Standing: s.Standing,
+		Now:      now,
+	}
+	s.Policy = policy.Policy{}
+
 	l := ledger.Ledger{S: s.Walled, Drv: s.Drv, Dialect: s.Dialect, Now: now}
+	p := s.Payers.On(s.Walled)
 	s.Register = append(s.Register,
 		func(g grpc.ServiceRegistrar) {
-			api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now, W: s.Watch})
+			api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now, W: s.Watch, P: p, Free: s.Free})
 		},
 		func(g grpc.ServiceRegistrar) { otlp.Register(g, l) },
 	)

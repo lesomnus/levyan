@@ -173,8 +173,9 @@ is refused. A new RPC is closed until it is added there. The kinds:
   (`opentelemetry.proto.collector.metrics.v1.MetricsService/Export`), and
   payday's `payday.GrantService` (`Watch`, `List`), what its workspaces are
   granted;
-- **payer** — not yet: an account, in no tenant, once payday says how an account
-  calls (payday#184);
+- **payer** — an account of roster's calling as itself, in no tenant (payday's
+  account frame), relayed by a product with its key and `levyan-account`
+  (`server/relay`): `levyan.v1.PayerService` and nothing else;
 - operators never call here.
 
 The generated entity services are nobody's. A product reads what it needs
@@ -384,6 +385,52 @@ decides (payday#185). levyan is the source; the contract is payday's
   kept while wanted, given again when the value changes, ended when no longer
   wanted, and never an operator's to end.
 
+## Payers
+
+Who pays for products' workspaces (`server/payers`, docs/design.md §14, #4).
+A payer is an account of roster's, paying with a `BillingAccount` (global,
+the account's own); a `Link` says who pays for a workspace from when to when.
+
+- **One payer a period.** A workspace's first payer is its creator (product's
+  `WorkspaceService/Arrive`). Every other change -- an offer accepted, `Use`,
+  `Stop` -- takes effect at the end of the period it is made in; only `Leave`
+  and roster's word end a link before then. So a period has one payer, and
+  is billed on its billing account's channel and currency
+  (`billing.Rater.PayerOf`, `TermsFor`).
+- **The free count is per product and per period**: of the workspaces a payer
+  paid for over the period, the first `payers.free` by when the payer first
+  linked each have their allowances; the rest are rated from the first unit
+  (`Terms.FirstUnit`, kept on the statement as `first_unit`). A workspace with
+  no payer keeps its allowances.
+- **An account's call** is a product's key plus `levyan-account`; it is held
+  to roster's word now (`payers.Standing`, roster's `standing.Accounts.Held`)
+  and refused while no roster is configured -- never served on nobody's
+  word. Its methods are the API's `PayerService`, each served as the schema's
+  declaration of the same name (`proto/levyan/payer.proto`, `batch.AsOp`),
+  which is what payday holds an account's call to; a test keeps the two
+  lists one. A new payer method is a method in both, and a call of
+  `pd.AccountReads` naming the schema's constant in its handler.
+- **What an account writes**: its billing accounts as itself (the trail names
+  it); in a product's tenant -- a link, an offer's answer -- as the
+  deployment within that product, through the walled stack, after reading
+  with ent that the account may.
+- **roster's word** (`levyan.roster-stream`, in every process): erased or
+  suspended ends the account's links at the period's end and is a mark
+  (`Departure`); good again takes the mark back and resumes. Personal data is
+  replaced only once roster, asked again, has nobody by the account
+  (`levyan.payers.settle`, roster's rule that a mark is acted on only after
+  asking again); `levyan.payers.reconcile` finds what the stream missed.
+- **A workspace with no payer** is restricted after `payers.grace` by the
+  grants' rule `payers.grace` (`payers.Payerless`): `<product>.restricted` ON.
+- **What a billing account is billed through** -- channel and currency -- is
+  the deployment's map from its country (`payers.channels`, `payers.Channels`,
+  each key over the defaults: the merchant of record, KRW in KR and USD
+  elsewhere). It is asked once, as the account is made (`payers.Layer`), and
+  kept on the row: a map changed later moves no account, and moving one is a
+  channel switch at a period's end, not built yet. A product's prices must
+  be on every channel and currency the map bills in, or what is billed there
+  comes to nothing.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -396,6 +443,9 @@ process's access writer.
 
 levyan's own:
 
+- `levyan.roster-stream` (roster's `standing.Accounts.Follower`, in every
+  process), `levyan.payers.settle` and `levyan.payers.reconcile`: roster's
+  word on the accounts that pay, when `auth.roster` names a roster.
 - `levyan.grants.renew` (`grants.Renewals`) gives what the rules want and ends
   what they no longer want, renews the grants that are due, and erases those
   over for `grants.Listed`, through `Ungated` as the deployment.

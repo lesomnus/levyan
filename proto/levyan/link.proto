@@ -1,0 +1,192 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "levyan/offer.proto";
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Link is who pays for a workspace of a product, from when to when: an
+// account of roster's, and the billing account it pays with (#4). A workspace
+// has one payer at a time, and is paid for by the link in force.
+//
+// Its first is its creator's, from when the product says the workspace was
+// made (`levyan.v1.WorkspaceService/Arrive`). Every change after it -- another
+// payer accepting, the payer using another billing account, the payer
+// stopping -- takes effect at the end of the period it is made in, so that a
+// period has one payer and is billed on one channel; only an account leaving
+// the workspace, or roster saying it is gone, ends a link before then. A
+// workspace whose links have all ended has no payer, and is restricted once
+// that has lasted `payers.grace` (`server/payers`).
+//
+// A link is never changed but for its end, which is said once.
+message Link {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product whose workspace it is.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it pays for: the set it is in.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The account that pays: roster's, by its identifier.
+  bytes payer = 8 [
+    (orm.field) = {
+      type: TYPE_UUID
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+
+  // The billing account it pays with, which is the payer's; unset while they
+  // have set none up, when a statement is priced on the product's channel.
+  BillingAccount billing_account = 9 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // When it is in force from, and until: never before the first, and from
+  // the second on no longer. Unset is a link that lasts.
+  google.protobuf.Timestamp date_start = 10 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+  google.protobuf.Timestamp date_end = 11 [(orm.field) = {nullable: true}];
+
+  // How it began, and how it ended.
+  LinkBegan began = 12 [(orm.field) = {immutable: true}];
+  LinkEnded ended = 16;
+
+  // The offer it was accepted from.
+  Offer offer = 17 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase. Who paid for a period is a record of
+  // what it was billed.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A workspace's payers, in the order they began.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "date_start"
+            number: 10
+          }
+        ]
+      },
+      {
+        // What an account pays for.
+        name: "payer"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "payer"
+            number: 8
+          },
+          {
+            name: "date_start"
+            number: 10
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 20
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "workspace.tenant",
+        "offer.tenant"
+      ]
+    }
+  };
+}
+
+// LinkBegan is how a link began.
+enum LinkBegan {
+  LINK_BEGAN_UNSPECIFIED = 0;
+
+  // The workspace was made: its creator pays.
+  LINK_BEGAN_ARRIVED = 1;
+
+  // Its payer accepted an offer.
+  LINK_BEGAN_ACCEPTED = 2;
+
+  // Its payer pays with another of their billing accounts.
+  LINK_BEGAN_USED = 3;
+
+  // Its payer is back: roster had them again, once it had said they were
+  // suspended or erased, and they go on paying as they did.
+  LINK_BEGAN_RESUMED = 4;
+}
+
+// LinkEnded is how a link ended; unspecified while it lasts.
+enum LinkEnded {
+  LINK_ENDED_UNSPECIFIED = 0;
+
+  // Another link took over, at the end of a period.
+  LINK_ENDED_REPLACED = 1;
+
+  // Its payer stopped paying, at the end of a period.
+  LINK_ENDED_STOPPED = 2;
+
+  // Its payer left the workspace, as the product says.
+  LINK_ENDED_LEFT = 3;
+
+  // roster said its payer was suspended, or erased: at the end of the
+  // period, unless roster takes it back before then.
+  LINK_ENDED_SUSPENDED = 4;
+  LINK_ENDED_ERASED = 5;
+}

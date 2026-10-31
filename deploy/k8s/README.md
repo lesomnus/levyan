@@ -75,7 +75,7 @@ kubectl exec deploy/levyan -c levyan-admin -- \
 
 처음 할 일은 이렇습니다.
 1. 제품을 만듭니다: `product add loft --name Loft --yes`
-2. 시간대·채널·통화를 정합니다: `product configure loft --zone Asia/Seoul --channel pg_kr --currency KRW --yes`
+2. 시간대·채널·통화를 정합니다: `product configure loft --zone Asia/Seoul --channel mor --currency KRW --yes` (국내 결제 계정의 기본인 MoR과 원. 가격도 그 채널과 통화로 둡니다)
 3. 키를 발급합니다: `key issue loft --alias … --yes`. 키는 마지막 줄에 **한 번만** 나옵니다. 바로 제품 쪽 Secret에 넣습니다.
 
 ## 새 버전

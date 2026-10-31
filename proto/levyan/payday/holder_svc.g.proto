@@ -43,6 +43,7 @@ message HolderAddRequest {
   string desc = 6 [features.field_presence = IMPLICIT];
   map<string, string> labels = 7;
   google.protobuf.Timestamp date_created = 15;
+  bytes account = 9;
 }
 
 message HolderGetRequest {
@@ -72,6 +73,7 @@ message HolderSelect {
   bool date_updated = 13;
   bool date_erased = 14;
   bool date_created = 15;
+  bool account = 9;
 }
 
 message HolderPatchRequest {
@@ -94,6 +96,12 @@ message HolderPatchRequest {
   // refused rather than assumed, because an unset field cannot be told
   // apart from a caller who never considered locking at all.
   bool date_updated_force = 27;
+  bytes account = 18;
+  // Clear account instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and account clears.
+  bool account_null = 19;
 }
 
 message HolderApplyRequest {

@@ -15,14 +15,37 @@ type Archived func(*sql.Selector)
 // Audit is the predicate function for audit builders.
 type Audit func(*sql.Selector)
 
+// BillingAccount is the predicate function for billingaccount builders.
+type BillingAccount func(*sql.Selector)
+
+// BillingAccountOrErr calls the predicate only if the error is not nit.
+func BillingAccountOrErr(p BillingAccount, err error) BillingAccount {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// Departure is the predicate function for departure builders.
+type Departure func(*sql.Selector)
+
 // Grant is the predicate function for grant builders.
 type Grant func(*sql.Selector)
 
 // Holder is the predicate function for holder builders.
 type Holder func(*sql.Selector)
 
+// Link is the predicate function for link builders.
+type Link func(*sql.Selector)
+
 // Meter is the predicate function for meter builders.
 type Meter func(*sql.Selector)
+
+// Offer is the predicate function for offer builders.
+type Offer func(*sql.Selector)
 
 // Operator is the predicate function for operator builders.
 type Operator func(*sql.Selector)

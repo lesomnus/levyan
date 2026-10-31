@@ -10,6 +10,7 @@ import (
 	"uuid"
 
 	"github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/ent/billingaccount"
 	"github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/statement"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
@@ -119,6 +120,26 @@ func (_c *StatementCreate) SetRating(v uint32) *StatementCreate {
 	return _c
 }
 
+// SetPayer sets the "payer" field.
+func (_c *StatementCreate) SetPayer(v uuid.UUID) *StatementCreate {
+	_c.mutation.SetPayer(v)
+	return _c
+}
+
+// SetNillablePayer sets the "payer" field if the given value is not nil.
+func (_c *StatementCreate) SetNillablePayer(v *uuid.UUID) *StatementCreate {
+	if v != nil {
+		_c.SetPayer(*v)
+	}
+	return _c
+}
+
+// SetFirstUnit sets the "first_unit" field.
+func (_c *StatementCreate) SetFirstUnit(v bool) *StatementCreate {
+	_c.mutation.SetFirstUnit(v)
+	return _c
+}
+
 // SetTenantId sets the "tenant_id" field.
 func (_c *StatementCreate) SetTenantId(v uuid.UUID) *StatementCreate {
 	_c.mutation.SetTenantId(v)
@@ -134,6 +155,20 @@ func (_c *StatementCreate) SetWorkspaceId(v uuid.UUID) *StatementCreate {
 // SetPeriodId sets the "period_id" field.
 func (_c *StatementCreate) SetPeriodId(v uuid.UUID) *StatementCreate {
 	_c.mutation.SetPeriodId(v)
+	return _c
+}
+
+// SetBillingAccountId sets the "billing_account_id" field.
+func (_c *StatementCreate) SetBillingAccountId(v uuid.UUID) *StatementCreate {
+	_c.mutation.SetBillingAccountId(v)
+	return _c
+}
+
+// SetNillableBillingAccountId sets the "billing_account_id" field if the given value is not nil.
+func (_c *StatementCreate) SetNillableBillingAccountId(v *uuid.UUID) *StatementCreate {
+	if v != nil {
+		_c.SetBillingAccountId(*v)
+	}
 	return _c
 }
 
@@ -156,6 +191,11 @@ func (_c *StatementCreate) SetWorkspace(v *Workspace) *StatementCreate {
 // SetPeriod sets the "period" edge to the Period entity.
 func (_c *StatementCreate) SetPeriod(v *Period) *StatementCreate {
 	return _c.SetPeriodId(v.Id)
+}
+
+// SetBillingAccount sets the "billing_account" edge to the BillingAccount entity.
+func (_c *StatementCreate) SetBillingAccount(v *BillingAccount) *StatementCreate {
+	return _c.SetBillingAccountId(v.Id)
 }
 
 // Mutation returns the StatementMutation object of the builder.
@@ -209,6 +249,9 @@ func (_c *StatementCreate) check() error {
 	}
 	if _, ok := _c.mutation.Rating(); !ok {
 		return &ValidationError{Name: "rating", err: errors.New(`ent: missing required field "Statement.rating"`)}
+	}
+	if _, ok := _c.mutation.FirstUnit(); !ok {
+		return &ValidationError{Name: "first_unit", err: errors.New(`ent: missing required field "Statement.first_unit"`)}
 	}
 	if _, ok := _c.mutation.TenantId(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Statement.tenant_id"`)}
@@ -329,6 +372,14 @@ func (_c *StatementCreate) createSpec() (*Statement, *sqlgraph.CreateSpec, error
 		_spec.SetField(statement.FieldRating, field.TypeUint32, value)
 		_node.Rating = value
 	}
+	if value, ok := _c.mutation.Payer(); ok {
+		_spec.SetField(statement.FieldPayer, field.TypeUuid, value)
+		_node.Payer = &value
+	}
+	if value, ok := _c.mutation.FirstUnit(); ok {
+		_spec.SetField(statement.FieldFirstUnit, field.TypeBool, value)
+		_node.FirstUnit = value
+	}
 	if nodes := _c.mutation.TenantIds(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -378,6 +429,23 @@ func (_c *StatementCreate) createSpec() (*Statement, *sqlgraph.CreateSpec, error
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.PeriodId = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingAccountIds(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   statement.BillingAccountTable,
+			Columns: []string{statement.BillingAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IdSpec: sqlgraph.NewFieldSpec(billingaccount.FieldId, field.TypeUuid),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.BillingAccountId = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil

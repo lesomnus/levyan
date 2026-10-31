@@ -22,24 +22,27 @@ const (
 )
 
 type StatementAddRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Period      *PeriodRef             `protobuf:"bytes,8,opt,name=period"`
-	xxx_hidden_DateStart   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_start,json=dateStart"`
-	xxx_hidden_DateEnd     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_end,json=dateEnd"`
-	xxx_hidden_Channel     string                 `protobuf:"bytes,11,opt,name=channel"`
-	xxx_hidden_Currency    string                 `protobuf:"bytes,12,opt,name=currency"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_Lines       *StatementLines        `protobuf:"bytes,16,opt,name=lines"`
-	xxx_hidden_Total       int64                  `protobuf:"varint,17,opt,name=total"`
-	xxx_hidden_Exact       string                 `protobuf:"bytes,18,opt,name=exact"`
-	xxx_hidden_Rating      uint32                 `protobuf:"varint,19,opt,name=rating"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id             []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant         *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace      *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Period         *PeriodRef             `protobuf:"bytes,8,opt,name=period"`
+	xxx_hidden_DateStart      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd        *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_end,json=dateEnd"`
+	xxx_hidden_Channel        string                 `protobuf:"bytes,11,opt,name=channel"`
+	xxx_hidden_Currency       string                 `protobuf:"bytes,12,opt,name=currency"`
+	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Lines          *StatementLines        `protobuf:"bytes,16,opt,name=lines"`
+	xxx_hidden_Total          int64                  `protobuf:"varint,17,opt,name=total"`
+	xxx_hidden_Exact          string                 `protobuf:"bytes,18,opt,name=exact"`
+	xxx_hidden_Rating         uint32                 `protobuf:"varint,19,opt,name=rating"`
+	xxx_hidden_Payer          []byte                 `protobuf:"bytes,20,opt,name=payer"`
+	xxx_hidden_BillingAccount *BillingAccountRef     `protobuf:"bytes,21,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_FirstUnit      bool                   `protobuf:"varint,22,opt,name=first_unit,json=firstUnit"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *StatementAddRequest) Reset() {
@@ -158,12 +161,33 @@ func (x *StatementAddRequest) GetRating() uint32 {
 	return 0
 }
 
+func (x *StatementAddRequest) GetPayer() []byte {
+	if x != nil {
+		return x.xxx_hidden_Payer
+	}
+	return nil
+}
+
+func (x *StatementAddRequest) GetBillingAccount() *BillingAccountRef {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return nil
+}
+
+func (x *StatementAddRequest) GetFirstUnit() bool {
+	if x != nil {
+		return x.xxx_hidden_FirstUnit
+	}
+	return false
+}
+
 func (x *StatementAddRequest) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 16)
 }
 
 func (x *StatementAddRequest) SetTenant(v *TenantRef) {
@@ -212,6 +236,22 @@ func (x *StatementAddRequest) SetExact(v string) {
 
 func (x *StatementAddRequest) SetRating(v uint32) {
 	x.xxx_hidden_Rating = v
+}
+
+func (x *StatementAddRequest) SetPayer(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Payer = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 16)
+}
+
+func (x *StatementAddRequest) SetBillingAccount(v *BillingAccountRef) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *StatementAddRequest) SetFirstUnit(v bool) {
+	x.xxx_hidden_FirstUnit = v
 }
 
 func (x *StatementAddRequest) HasId() bool {
@@ -270,6 +310,20 @@ func (x *StatementAddRequest) HasLines() bool {
 	return x.xxx_hidden_Lines != nil
 }
 
+func (x *StatementAddRequest) HasPayer() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
+func (x *StatementAddRequest) HasBillingAccount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BillingAccount != nil
+}
+
 func (x *StatementAddRequest) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -303,22 +357,34 @@ func (x *StatementAddRequest) ClearLines() {
 	x.xxx_hidden_Lines = nil
 }
 
+func (x *StatementAddRequest) ClearPayer() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_Payer = nil
+}
+
+func (x *StatementAddRequest) ClearBillingAccount() {
+	x.xxx_hidden_BillingAccount = nil
+}
+
 type StatementAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id          []byte
-	Tenant      *TenantRef
-	Workspace   *WorkspaceRef
-	Period      *PeriodRef
-	DateStart   *timestamppb.Timestamp
-	DateEnd     *timestamppb.Timestamp
-	Channel     string
-	Currency    string
-	DateCreated *timestamppb.Timestamp
-	Lines       *StatementLines
-	Total       int64
-	Exact       string
-	Rating      uint32
+	Id             []byte
+	Tenant         *TenantRef
+	Workspace      *WorkspaceRef
+	Period         *PeriodRef
+	DateStart      *timestamppb.Timestamp
+	DateEnd        *timestamppb.Timestamp
+	Channel        string
+	Currency       string
+	DateCreated    *timestamppb.Timestamp
+	Lines          *StatementLines
+	Total          int64
+	Exact          string
+	Rating         uint32
+	Payer          []byte
+	BillingAccount *BillingAccountRef
+	FirstUnit      bool
 }
 
 func (b0 StatementAddRequest_builder) Build() *StatementAddRequest {
@@ -326,7 +392,7 @@ func (b0 StatementAddRequest_builder) Build() *StatementAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 16)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Tenant = b.Tenant
@@ -341,6 +407,12 @@ func (b0 StatementAddRequest_builder) Build() *StatementAddRequest {
 	x.xxx_hidden_Total = b.Total
 	x.xxx_hidden_Exact = b.Exact
 	x.xxx_hidden_Rating = b.Rating
+	if b.Payer != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 16)
+		x.xxx_hidden_Payer = b.Payer
+	}
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_FirstUnit = b.FirstUnit
 	return m0
 }
 
@@ -726,25 +798,28 @@ func (b0 StatementRefByClosed_builder) Build() *StatementRefByClosed {
 }
 
 type StatementSelect struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_All         bool                   `protobuf:"varint,1,opt,name=all"`
-	xxx_hidden_Tenant      *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Period      *PeriodSelect          `protobuf:"bytes,8,opt,name=period"`
-	xxx_hidden_DateStart   bool                   `protobuf:"varint,9,opt,name=date_start,json=dateStart"`
-	xxx_hidden_DateEnd     bool                   `protobuf:"varint,10,opt,name=date_end,json=dateEnd"`
-	xxx_hidden_Channel     bool                   `protobuf:"varint,11,opt,name=channel"`
-	xxx_hidden_Currency    bool                   `protobuf:"varint,12,opt,name=currency"`
-	xxx_hidden_DateErased  bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_Lines       bool                   `protobuf:"varint,16,opt,name=lines"`
-	xxx_hidden_Total       bool                   `protobuf:"varint,17,opt,name=total"`
-	xxx_hidden_Exact       bool                   `protobuf:"varint,18,opt,name=exact"`
-	xxx_hidden_Rating      bool                   `protobuf:"varint,19,opt,name=rating"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_All            bool                   `protobuf:"varint,1,opt,name=all"`
+	xxx_hidden_Tenant         *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace      *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Period         *PeriodSelect          `protobuf:"bytes,8,opt,name=period"`
+	xxx_hidden_DateStart      bool                   `protobuf:"varint,9,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd        bool                   `protobuf:"varint,10,opt,name=date_end,json=dateEnd"`
+	xxx_hidden_Channel        bool                   `protobuf:"varint,11,opt,name=channel"`
+	xxx_hidden_Currency       bool                   `protobuf:"varint,12,opt,name=currency"`
+	xxx_hidden_DateErased     bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated    bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Lines          bool                   `protobuf:"varint,16,opt,name=lines"`
+	xxx_hidden_Total          bool                   `protobuf:"varint,17,opt,name=total"`
+	xxx_hidden_Exact          bool                   `protobuf:"varint,18,opt,name=exact"`
+	xxx_hidden_Rating         bool                   `protobuf:"varint,19,opt,name=rating"`
+	xxx_hidden_Payer          bool                   `protobuf:"varint,20,opt,name=payer"`
+	xxx_hidden_BillingAccount *BillingAccountSelect  `protobuf:"bytes,21,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_FirstUnit      bool                   `protobuf:"varint,22,opt,name=first_unit,json=firstUnit"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *StatementSelect) Reset() {
@@ -870,9 +945,30 @@ func (x *StatementSelect) GetRating() bool {
 	return false
 }
 
+func (x *StatementSelect) GetPayer() bool {
+	if x != nil {
+		return x.xxx_hidden_Payer
+	}
+	return false
+}
+
+func (x *StatementSelect) GetBillingAccount() *BillingAccountSelect {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return nil
+}
+
+func (x *StatementSelect) GetFirstUnit() bool {
+	if x != nil {
+		return x.xxx_hidden_FirstUnit
+	}
+	return false
+}
+
 func (x *StatementSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 17)
 }
 
 func (x *StatementSelect) SetTenant(v *TenantSelect) {
@@ -889,52 +985,66 @@ func (x *StatementSelect) SetPeriod(v *PeriodSelect) {
 
 func (x *StatementSelect) SetDateStart(v bool) {
 	x.xxx_hidden_DateStart = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 17)
 }
 
 func (x *StatementSelect) SetDateEnd(v bool) {
 	x.xxx_hidden_DateEnd = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 17)
 }
 
 func (x *StatementSelect) SetChannel(v bool) {
 	x.xxx_hidden_Channel = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 17)
 }
 
 func (x *StatementSelect) SetCurrency(v bool) {
 	x.xxx_hidden_Currency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 17)
 }
 
 func (x *StatementSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 17)
 }
 
 func (x *StatementSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 17)
 }
 
 func (x *StatementSelect) SetLines(v bool) {
 	x.xxx_hidden_Lines = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 17)
 }
 
 func (x *StatementSelect) SetTotal(v bool) {
 	x.xxx_hidden_Total = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 17)
 }
 
 func (x *StatementSelect) SetExact(v bool) {
 	x.xxx_hidden_Exact = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 17)
 }
 
 func (x *StatementSelect) SetRating(v bool) {
 	x.xxx_hidden_Rating = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 17)
+}
+
+func (x *StatementSelect) SetPayer(v bool) {
+	x.xxx_hidden_Payer = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 17)
+}
+
+func (x *StatementSelect) SetBillingAccount(v *BillingAccountSelect) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *StatementSelect) SetFirstUnit(v bool) {
+	x.xxx_hidden_FirstUnit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 17)
 }
 
 func (x *StatementSelect) HasAll() bool {
@@ -1035,6 +1145,27 @@ func (x *StatementSelect) HasRating() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
 }
 
+func (x *StatementSelect) HasPayer() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
+func (x *StatementSelect) HasBillingAccount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BillingAccount != nil
+}
+
+func (x *StatementSelect) HasFirstUnit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
+}
+
 func (x *StatementSelect) ClearAll() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_All = false
@@ -1102,23 +1233,40 @@ func (x *StatementSelect) ClearRating() {
 	x.xxx_hidden_Rating = false
 }
 
+func (x *StatementSelect) ClearPayer() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	x.xxx_hidden_Payer = false
+}
+
+func (x *StatementSelect) ClearBillingAccount() {
+	x.xxx_hidden_BillingAccount = nil
+}
+
+func (x *StatementSelect) ClearFirstUnit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
+	x.xxx_hidden_FirstUnit = false
+}
+
 type StatementSelect_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	All         *bool
-	Tenant      *TenantSelect
-	Workspace   *WorkspaceSelect
-	Period      *PeriodSelect
-	DateStart   *bool
-	DateEnd     *bool
-	Channel     *bool
-	Currency    *bool
-	DateErased  *bool
-	DateCreated *bool
-	Lines       *bool
-	Total       *bool
-	Exact       *bool
-	Rating      *bool
+	All            *bool
+	Tenant         *TenantSelect
+	Workspace      *WorkspaceSelect
+	Period         *PeriodSelect
+	DateStart      *bool
+	DateEnd        *bool
+	Channel        *bool
+	Currency       *bool
+	DateErased     *bool
+	DateCreated    *bool
+	Lines          *bool
+	Total          *bool
+	Exact          *bool
+	Rating         *bool
+	Payer          *bool
+	BillingAccount *BillingAccountSelect
+	FirstUnit      *bool
 }
 
 func (b0 StatementSelect_builder) Build() *StatementSelect {
@@ -1126,51 +1274,60 @@ func (b0 StatementSelect_builder) Build() *StatementSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 17)
 		x.xxx_hidden_All = *b.All
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Period = b.Period
 	if b.DateStart != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 17)
 		x.xxx_hidden_DateStart = *b.DateStart
 	}
 	if b.DateEnd != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 17)
 		x.xxx_hidden_DateEnd = *b.DateEnd
 	}
 	if b.Channel != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 17)
 		x.xxx_hidden_Channel = *b.Channel
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 17)
 		x.xxx_hidden_Currency = *b.Currency
 	}
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 17)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 17)
 		x.xxx_hidden_DateCreated = *b.DateCreated
 	}
 	if b.Lines != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 17)
 		x.xxx_hidden_Lines = *b.Lines
 	}
 	if b.Total != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 17)
 		x.xxx_hidden_Total = *b.Total
 	}
 	if b.Exact != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 17)
 		x.xxx_hidden_Exact = *b.Exact
 	}
 	if b.Rating != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 17)
 		x.xxx_hidden_Rating = *b.Rating
+	}
+	if b.Payer != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 17)
+		x.xxx_hidden_Payer = *b.Payer
+	}
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	if b.FirstUnit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 17)
+		x.xxx_hidden_FirstUnit = *b.FirstUnit
 	}
 	return m0
 }
@@ -1466,7 +1623,7 @@ var File_levyan_statement_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/statement_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x19levyan/period_svc.g.proto\x1a\x16levyan/statement.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xab\x04\n" +
+	"\x1clevyan/statement_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x19levyan/period_svc.g.proto\x1a\x16levyan/statement.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xab\x05\n" +
 	"\x13StatementAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
@@ -1482,7 +1639,11 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\x05lines\x18\x10 \x01(\v2\x16.levyan.StatementLinesR\x05lines\x12\x1b\n" +
 	"\x05total\x18\x11 \x01(\x03B\x05\xaa\x01\x02\b\x02R\x05total\x12\x1b\n" +
 	"\x05exact\x18\x12 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05exact\x12\x1d\n" +
-	"\x06rating\x18\x13 \x01(\rB\x05\xaa\x01\x02\b\x02R\x06rating\"n\n" +
+	"\x06rating\x18\x13 \x01(\rB\x05\xaa\x01\x02\b\x02R\x06rating\x12\x14\n" +
+	"\x05payer\x18\x14 \x01(\fR\x05payer\x12B\n" +
+	"\x0fbilling_account\x18\x15 \x01(\v2\x19.levyan.BillingAccountRefR\x0ebillingAccount\x12$\n" +
+	"\n" +
+	"first_unit\x18\x16 \x01(\bB\x05\xaa\x01\x02\b\x02R\tfirstUnit\"n\n" +
 	"\x13StatementGetRequest\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.StatementRefR\x03ref\x12/\n" +
 	"\x06select\x18\x02 \x01(\v2\x17.levyan.StatementSelectR\x06select\"_\n" +
@@ -1493,7 +1654,7 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\x14StatementRefByClosed\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12)\n" +
-	"\x06period\x18\b \x01(\v2\x11.levyan.PeriodRefR\x06period\"\xc4\x03\n" +
+	"\x06period\x18\b \x01(\v2\x11.levyan.PeriodRefR\x06period\"\xc0\x04\n" +
 	"\x0fStatementSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x125\n" +
@@ -1511,7 +1672,11 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\x05lines\x18\x10 \x01(\bR\x05lines\x12\x14\n" +
 	"\x05total\x18\x11 \x01(\bR\x05total\x12\x14\n" +
 	"\x05exact\x18\x12 \x01(\bR\x05exact\x12\x16\n" +
-	"\x06rating\x18\x13 \x01(\bR\x06rating\"\xa2\x01\n" +
+	"\x06rating\x18\x13 \x01(\bR\x06rating\x12\x14\n" +
+	"\x05payer\x18\x14 \x01(\bR\x05payer\x12E\n" +
+	"\x0fbilling_account\x18\x15 \x01(\v2\x1c.levyan.BillingAccountSelectR\x0ebillingAccount\x12\x1d\n" +
+	"\n" +
+	"first_unit\x18\x16 \x01(\bR\tfirstUnit\"\xa2\x01\n" +
 	"\x14StatementListRequest\x121\n" +
 	"\afilters\x18\x01 \x03(\v2\x17.levyan.StatementFilterR\afilters\x12\x19\n" +
 	"\x04size\x18\x02 \x01(\x05B\x05\xaa\x01\x02\b\x02R\x04size\x12\x1b\n" +
@@ -1543,10 +1708,12 @@ var file_levyan_statement_svc_g_proto_goTypes = []any{
 	(*PeriodRef)(nil),             // 10: levyan.PeriodRef
 	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
 	(*StatementLines)(nil),        // 12: levyan.StatementLines
-	(*TenantSelect)(nil),          // 13: levyan.TenantSelect
-	(*WorkspaceSelect)(nil),       // 14: levyan.WorkspaceSelect
-	(*PeriodSelect)(nil),          // 15: levyan.PeriodSelect
-	(*Statement)(nil),             // 16: levyan.Statement
+	(*BillingAccountRef)(nil),     // 13: levyan.BillingAccountRef
+	(*TenantSelect)(nil),          // 14: levyan.TenantSelect
+	(*WorkspaceSelect)(nil),       // 15: levyan.WorkspaceSelect
+	(*PeriodSelect)(nil),          // 16: levyan.PeriodSelect
+	(*BillingAccountSelect)(nil),  // 17: levyan.BillingAccountSelect
+	(*Statement)(nil),             // 18: levyan.Statement
 }
 var file_levyan_statement_svc_g_proto_depIdxs = []int32{
 	8,  // 0: levyan.StatementAddRequest.tenant:type_name -> levyan.TenantRef
@@ -1556,30 +1723,32 @@ var file_levyan_statement_svc_g_proto_depIdxs = []int32{
 	11, // 4: levyan.StatementAddRequest.date_end:type_name -> google.protobuf.Timestamp
 	11, // 5: levyan.StatementAddRequest.date_created:type_name -> google.protobuf.Timestamp
 	12, // 6: levyan.StatementAddRequest.lines:type_name -> levyan.StatementLines
-	2,  // 7: levyan.StatementGetRequest.ref:type_name -> levyan.StatementRef
-	4,  // 8: levyan.StatementGetRequest.select:type_name -> levyan.StatementSelect
-	3,  // 9: levyan.StatementRef.closed:type_name -> levyan.StatementRefByClosed
-	8,  // 10: levyan.StatementRefByClosed.tenant:type_name -> levyan.TenantRef
-	9,  // 11: levyan.StatementRefByClosed.workspace:type_name -> levyan.WorkspaceRef
-	10, // 12: levyan.StatementRefByClosed.period:type_name -> levyan.PeriodRef
-	13, // 13: levyan.StatementSelect.tenant:type_name -> levyan.TenantSelect
-	14, // 14: levyan.StatementSelect.workspace:type_name -> levyan.WorkspaceSelect
-	15, // 15: levyan.StatementSelect.period:type_name -> levyan.PeriodSelect
-	7,  // 16: levyan.StatementListRequest.filters:type_name -> levyan.StatementFilter
-	16, // 17: levyan.StatementListResponse.items:type_name -> levyan.Statement
-	2,  // 18: levyan.StatementFilter.ref:type_name -> levyan.StatementRef
-	9,  // 19: levyan.StatementFilter.workspace:type_name -> levyan.WorkspaceRef
-	0,  // 20: levyan.StatementService.Add:input_type -> levyan.StatementAddRequest
-	1,  // 21: levyan.StatementService.Get:input_type -> levyan.StatementGetRequest
-	5,  // 22: levyan.StatementService.List:input_type -> levyan.StatementListRequest
-	16, // 23: levyan.StatementService.Add:output_type -> levyan.Statement
-	16, // 24: levyan.StatementService.Get:output_type -> levyan.Statement
-	6,  // 25: levyan.StatementService.List:output_type -> levyan.StatementListResponse
-	23, // [23:26] is the sub-list for method output_type
-	20, // [20:23] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	13, // 7: levyan.StatementAddRequest.billing_account:type_name -> levyan.BillingAccountRef
+	2,  // 8: levyan.StatementGetRequest.ref:type_name -> levyan.StatementRef
+	4,  // 9: levyan.StatementGetRequest.select:type_name -> levyan.StatementSelect
+	3,  // 10: levyan.StatementRef.closed:type_name -> levyan.StatementRefByClosed
+	8,  // 11: levyan.StatementRefByClosed.tenant:type_name -> levyan.TenantRef
+	9,  // 12: levyan.StatementRefByClosed.workspace:type_name -> levyan.WorkspaceRef
+	10, // 13: levyan.StatementRefByClosed.period:type_name -> levyan.PeriodRef
+	14, // 14: levyan.StatementSelect.tenant:type_name -> levyan.TenantSelect
+	15, // 15: levyan.StatementSelect.workspace:type_name -> levyan.WorkspaceSelect
+	16, // 16: levyan.StatementSelect.period:type_name -> levyan.PeriodSelect
+	17, // 17: levyan.StatementSelect.billing_account:type_name -> levyan.BillingAccountSelect
+	7,  // 18: levyan.StatementListRequest.filters:type_name -> levyan.StatementFilter
+	18, // 19: levyan.StatementListResponse.items:type_name -> levyan.Statement
+	2,  // 20: levyan.StatementFilter.ref:type_name -> levyan.StatementRef
+	9,  // 21: levyan.StatementFilter.workspace:type_name -> levyan.WorkspaceRef
+	0,  // 22: levyan.StatementService.Add:input_type -> levyan.StatementAddRequest
+	1,  // 23: levyan.StatementService.Get:input_type -> levyan.StatementGetRequest
+	5,  // 24: levyan.StatementService.List:input_type -> levyan.StatementListRequest
+	18, // 25: levyan.StatementService.Add:output_type -> levyan.Statement
+	18, // 26: levyan.StatementService.Get:output_type -> levyan.Statement
+	6,  // 27: levyan.StatementService.List:output_type -> levyan.StatementListResponse
+	25, // [25:28] is the sub-list for method output_type
+	22, // [22:25] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_levyan_statement_svc_g_proto_init() }
@@ -1587,6 +1756,7 @@ func file_levyan_statement_svc_g_proto_init() {
 	if File_levyan_statement_svc_g_proto != nil {
 		return
 	}
+	file_levyan_billing_account_svc_g_proto_init()
 	file_levyan_payday_tenant_svc_g_proto_init()
 	file_levyan_period_svc_g_proto_init()
 	file_levyan_statement_proto_init()

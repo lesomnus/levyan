@@ -22,9 +22,11 @@ import (
 	"github.com/lesomnus/payday/grpcx"
 	"github.com/lesomnus/payday/pdpb"
 	"github.com/lesomnus/payday/resource"
+	"github.com/lesomnus/payday/spin"
 	"github.com/lesomnus/payday/trail"
 	"github.com/lesomnus/payday/watch"
 	"github.com/lesomnus/payday/web"
+	"github.com/lesomnus/roster/standing"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	levyan "github.com/lesomnus/levyan"
@@ -36,6 +38,7 @@ import (
 	"github.com/lesomnus/levyan/server/grants"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/ledger"
+	"github.com/lesomnus/levyan/server/payers"
 	"github.com/lesomnus/levyan/server/pd"
 )
 
@@ -88,6 +91,11 @@ type Server struct {
 	Auth   auth.Handler
 	Policy gate.Policy
 
+	// Resolver is the frame a credential [Server.Auth] read is served in:
+	// the door's too, and a product's key's (`keys.Resolver`) when it says
+	// nothing.
+	Resolver auth.Resolver
+
 	// Register is what else the binary serves beside the generated services,
 	// on the same server and behind the same chain: `levyan.v1`, for one.
 	Register []func(grpc.ServiceRegistrar)
@@ -119,6 +127,27 @@ type Server struct {
 	// deployment names none, which seals and opens nothing.
 	BillingKeys *keyring.Keyring
 
+	// Payers is who pays for products' workspaces, through the server with no
+	// wall: what roster says of an account is written down through it. A
+	// product's call and an account's are served through the walled stack
+	// ([payers.Payers.On]).
+	Payers payers.Payers
+
+	// Standing is what roster says of an account a product relays a call for
+	// (`auth.roster`): roster's `standing.Accounts`, and nil when no roster is
+	// named, which serves no account's call. A test sets one of its own.
+	Standing payers.Standing
+
+	// Roster is that roster, asked again and of everybody now and then by the
+	// loops; nil when none is named.
+	Roster *standing.Accounts
+
+	// Free is how many of each payer's workspaces of a product have their
+	// allowances (`payers.free`).
+	Free int
+
+	closeRoster func() error
+
 	// Spin is whatever this deployment has to run besides answering requests,
 	// each a loop with a name of its own (`spin.Called`), run under
 	// `spin.lease` by the serve command: in one process of the deployment, but
@@ -142,6 +171,14 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		if bk, err = c.BillingKeys.Open(); err != nil {
 			return nil, fmt.Errorf("billing_keys.%w", err)
 		}
+	}
+
+	// What a billing account is billed through, by its country, is read
+	// before anything is opened: a map that bills through nothing stops the
+	// deployment rather than its first payer.
+	channels, err := c.Payers.ChannelsOf()
+	if err != nil {
+		return nil, fmt.Errorf("payers.channels: %w", err)
 	}
 
 	db, dialect, err := c.Db.Open(ctx)
@@ -216,7 +253,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// already let the caller name; `pd.Gate` is outermost, so nothing behind
 	// it asks again. A key's verifier is cleared on the way out of both
 	// (`pd.Secret`), so that nothing answers with it.
-	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), pd.GateBuild())
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -227,7 +264,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// book and of grants on it, since an operator's price is held to them as
 	// a product's would be. It still keeps the trail: going around the wall
 	// is not going around the record of having done so.
-	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock))
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels))
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -249,7 +286,8 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// grace for what comes late (`levyan.periods.close`): a statement of each
 	// workspace, written through the server with no wall, since a period is
 	// closed for every workspace of a product and by no caller of it.
-	s.Closer = billing.Closer{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Periods.GraceAfter()}
+	s.Free = c.Payers.FreeOf()
+	s.Closer = billing.Closer{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Periods.GraceAfter(), Free: s.Free}
 	s.Spin = append(s.Spin, billing.ClosePeriods(s.Closer, c.Periods.CloseEvery()))
 
 	// The loop that keeps what products' workspaces are granted
@@ -259,6 +297,35 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// server with no wall, as the deployment.
 	s.Grants = grants.Grants{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Horizon: c.Grants.HorizonOf()}
 	s.Spin = append(s.Spin, grants.Renewals(&s.Grants, c.Grants.RenewEvery()))
+
+	// Who pays (#4): through the server with no wall for the deployment's
+	// own work, and a rule of the grants' -- a workspace nobody has paid for
+	// since `payers.grace` ago is restricted.
+	s.Payers = payers.Payers{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Payers.GraceOf()}
+	s.Grants.Rules = append(s.Grants.Rules, payers.Payerless{Grace: c.Payers.GraceOf()})
+
+	// roster, whose accounts pay: asked whether each account a product relays
+	// a call for is in good standing, and heard saying when one is suspended
+	// or erased. Its stream runs in every process, since what it hears drops
+	// what each process knows of an account (roster's `docs/relying-app.md`);
+	// asking again before acting on what it said, and asking about everybody
+	// now and then, in one.
+	accounts, closeRoster, err := Roster(ctx, c.Auth.Roster)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	s.closeRoster = closeRoster
+	if accounts != nil {
+		s.Roster, s.Standing = accounts, accounts
+		s.Spin = append(s.Spin,
+			spin.InEveryProcess(accounts.Follower(payers.StreamLoop, s.Payers.Heard)),
+			payers.Settles(&s.Payers, accounts, c.Payers.SettleEvery()),
+			payers.Reconciles(&s.Payers, accounts, c.Payers.ReconcileEvery()),
+		)
+	} else {
+		log.From(ctx).WarnContext(ctx, "roster: auth.roster names none, so no account's standing can be asked, and no call an account makes is served")
+	}
 
 	// The loop that looks for readings that should have come and have not
 	// (`levyan.readings.gaps`): a workspace that has been sending a stock
@@ -300,7 +367,14 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Close() error { return s.Db.Close() }
+func (s *Server) Close() error {
+	err := s.Db.Close()
+	if s.closeRoster != nil {
+		err = errors.Join(err, s.closeRoster())
+	}
+
+	return err
+}
 
 // Grpc builds the server every call arrives at, with the door the binary put
 // on it ([Server.Auth], [Server.Policy]).
@@ -319,7 +393,10 @@ func (s *Server) Grpc(ctx context.Context, c Config, opts ...grpc.ServerOption) 
 	// itself, in its product's tenant (`server/keys`). Read through the server
 	// with no wall, since working out who is calling happens before there is
 	// anybody to be walled by.
-	resolver := keys.Resolver(s.Ungated, s.Clock)
+	resolver := s.Resolver
+	if resolver == nil {
+		resolver = keys.Resolver(s.Ungated, s.Clock)
+	}
 
 	chain := grpcx.Serving(ctx, grpcx.WithDeadline(c.Server.CallTimeout())).
 		WithUnary(auth.InterceptorUnary(s.Auth, resolver, auth.PublicDefault)).

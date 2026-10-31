@@ -86,23 +86,26 @@ func (x LineKind) Number() protoreflect.EnumNumber {
 // currency's minor unit, and only the total is rounded, toward less, to a
 // whole one (`internal/rating`).
 type Statement struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Period      *Period                `protobuf:"bytes,8,opt,name=period"`
-	xxx_hidden_DateStart   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_start,json=dateStart"`
-	xxx_hidden_DateEnd     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_end,json=dateEnd"`
-	xxx_hidden_Channel     string                 `protobuf:"bytes,11,opt,name=channel"`
-	xxx_hidden_Currency    string                 `protobuf:"bytes,12,opt,name=currency"`
-	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_Lines       *StatementLines        `protobuf:"bytes,16,opt,name=lines"`
-	xxx_hidden_Total       int64                  `protobuf:"varint,17,opt,name=total"`
-	xxx_hidden_Exact       string                 `protobuf:"bytes,18,opt,name=exact"`
-	xxx_hidden_Rating      uint32                 `protobuf:"varint,19,opt,name=rating"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id             []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant         *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace      *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Period         *Period                `protobuf:"bytes,8,opt,name=period"`
+	xxx_hidden_DateStart      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd        *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_end,json=dateEnd"`
+	xxx_hidden_Channel        string                 `protobuf:"bytes,11,opt,name=channel"`
+	xxx_hidden_Currency       string                 `protobuf:"bytes,12,opt,name=currency"`
+	xxx_hidden_DateErased     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Lines          *StatementLines        `protobuf:"bytes,16,opt,name=lines"`
+	xxx_hidden_Total          int64                  `protobuf:"varint,17,opt,name=total"`
+	xxx_hidden_Exact          string                 `protobuf:"bytes,18,opt,name=exact"`
+	xxx_hidden_Rating         uint32                 `protobuf:"varint,19,opt,name=rating"`
+	xxx_hidden_Payer          []byte                 `protobuf:"bytes,20,opt,name=payer"`
+	xxx_hidden_BillingAccount *BillingAccount        `protobuf:"bytes,21,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_FirstUnit      bool                   `protobuf:"varint,22,opt,name=first_unit,json=firstUnit"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *Statement) Reset() {
@@ -228,6 +231,27 @@ func (x *Statement) GetRating() uint32 {
 	return 0
 }
 
+func (x *Statement) GetPayer() []byte {
+	if x != nil {
+		return x.xxx_hidden_Payer
+	}
+	return nil
+}
+
+func (x *Statement) GetBillingAccount() *BillingAccount {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return nil
+}
+
+func (x *Statement) GetFirstUnit() bool {
+	if x != nil {
+		return x.xxx_hidden_FirstUnit
+	}
+	return false
+}
+
 func (x *Statement) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -287,6 +311,21 @@ func (x *Statement) SetRating(v uint32) {
 	x.xxx_hidden_Rating = v
 }
 
+func (x *Statement) SetPayer(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Payer = v
+}
+
+func (x *Statement) SetBillingAccount(v *BillingAccount) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *Statement) SetFirstUnit(v bool) {
+	x.xxx_hidden_FirstUnit = v
+}
+
 func (x *Statement) HasTenant() bool {
 	if x == nil {
 		return false
@@ -343,6 +382,13 @@ func (x *Statement) HasLines() bool {
 	return x.xxx_hidden_Lines != nil
 }
 
+func (x *Statement) HasBillingAccount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BillingAccount != nil
+}
+
 func (x *Statement) ClearTenant() {
 	x.xxx_hidden_Tenant = nil
 }
@@ -375,6 +421,10 @@ func (x *Statement) ClearLines() {
 	x.xxx_hidden_Lines = nil
 }
 
+func (x *Statement) ClearBillingAccount() {
+	x.xxx_hidden_BillingAccount = nil
+}
+
 type Statement_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -389,9 +439,10 @@ type Statement_builder struct {
 	// them: what statements are listed in the order of.
 	DateStart *timestamppb.Timestamp
 	DateEnd   *timestamppb.Timestamp
-	// What it is priced on and in: the product's, until billing accounts say
-	// whose a workspace is (#4). The channel is a value of `Channel` by its
-	// name, as the product's is (see `Tenant.channel` for why a name).
+	// What it is priced on and in: the billing account the workspace was paid
+	// for with over the period, and the product's for a workspace with none
+	// (#4). The channel is a value of `Channel` by its name, as the product's
+	// is (see `Tenant.channel` for why a name).
 	Channel  string
 	Currency string
 	// Never stamped: there is no Erase.
@@ -407,6 +458,17 @@ type Statement_builder struct {
 	// The version of the rating that wrote it (`rating.Version`): what an
 	// amount here was worked out by.
 	Rating uint32
+	// Who paid for the workspace over the period, and with which billing
+	// account: the link in force through it, of which a period has one at most.
+	// Unset for a workspace with no payer, and on a statement written before
+	// payers were (#4).
+	Payer          []byte
+	BillingAccount *BillingAccount
+	// Rated from the first unit: what its prices include was not this
+	// workspace's, which is none of its payer's first `payers.free`. Unset on a
+	// workspace whose allowances its prices include -- every workspace with no
+	// payer, and every statement written before payers were counted (#4).
+	FirstUnit bool
 }
 
 func (b0 Statement_builder) Build() *Statement {
@@ -427,6 +489,9 @@ func (b0 Statement_builder) Build() *Statement {
 	x.xxx_hidden_Total = b.Total
 	x.xxx_hidden_Exact = b.Exact
 	x.xxx_hidden_Rating = b.Rating
+	x.xxx_hidden_Payer = b.Payer
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_FirstUnit = b.FirstUnit
 	return m0
 }
 
@@ -1074,7 +1139,7 @@ var File_levyan_statement_proto protoreflect.FileDescriptor
 
 const file_levyan_statement_proto_rawDesc = "" +
 	"\n" +
-	"\x16levyan/statement.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/period.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xcf\a\n" +
+	"\x16levyan/statement.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/period.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xe9\b\n" +
 	"\tStatement\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
@@ -1092,7 +1157,11 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x05lines\x18\x10 \x01(\v2\x16.levyan.StatementLinesB\x06\xea\x82\x16\x02@\x01R\x05lines\x12\x1c\n" +
 	"\x05total\x18\x11 \x01(\x03B\x06\xea\x82\x16\x02@\x01R\x05total\x12\"\n" +
 	"\x05exact\x18\x12 \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x00R\x05exact\x12\x1e\n" +
-	"\x06rating\x18\x13 \x01(\rB\x06\xea\x82\x16\x02@\x01R\x06rating:\x89\x02\xca\xfc\x15\xa1\x01\x12\f\x10\x01\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a*\x12\x04page\x1a\n" +
+	"\x06rating\x18\x13 \x01(\rB\x06\xea\x82\x16\x02@\x01R\x06rating\x12&\n" +
+	"\x05payer\x18\x14 \x01(\fB\x10\xea\x82\x16\x06\x10@8\x01@\x01\xaa\xc1\x16\x02\x18\x00R\x05payer\x12I\n" +
+	"\x0fbilling_account\x18\x15 \x01(\v2\x16.levyan.BillingAccountB\b\xf2\x82\x16\x048\x01@\x01R\x0ebillingAccount\x12%\n" +
+	"\n" +
+	"first_unit\x18\x16 \x01(\bB\x06\xea\x82\x16\x02@\x01R\tfirstUnit:\x89\x02\xca\xfc\x15\xa1\x01\x12\f\x10\x01\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a*\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x0e\n" +
 	"\n" +
@@ -1166,6 +1235,7 @@ var file_levyan_statement_proto_goTypes = []any{
 	(*Workspace)(nil),             // 7: levyan.Workspace
 	(*Period)(nil),                // 8: levyan.Period
 	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(*BillingAccount)(nil),        // 10: levyan.BillingAccount
 }
 var file_levyan_statement_proto_depIdxs = []int32{
 	6,  // 0: levyan.Statement.tenant:type_name -> levyan.Tenant
@@ -1176,19 +1246,20 @@ var file_levyan_statement_proto_depIdxs = []int32{
 	9,  // 5: levyan.Statement.date_erased:type_name -> google.protobuf.Timestamp
 	9,  // 6: levyan.Statement.date_created:type_name -> google.protobuf.Timestamp
 	2,  // 7: levyan.Statement.lines:type_name -> levyan.StatementLines
-	3,  // 8: levyan.StatementLines.lines:type_name -> levyan.StatementLine
-	0,  // 9: levyan.StatementLine.kind:type_name -> levyan.LineKind
-	9,  // 10: levyan.StatementLine.corrects_start:type_name -> google.protobuf.Timestamp
-	9,  // 11: levyan.StatementLine.corrects_end:type_name -> google.protobuf.Timestamp
-	4,  // 12: levyan.StatementLine.parts:type_name -> levyan.StatementPart
-	9,  // 13: levyan.StatementPart.from:type_name -> google.protobuf.Timestamp
-	9,  // 14: levyan.StatementPart.to:type_name -> google.protobuf.Timestamp
-	5,  // 15: levyan.StatementPart.bands:type_name -> levyan.StatementBand
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	10, // 8: levyan.Statement.billing_account:type_name -> levyan.BillingAccount
+	3,  // 9: levyan.StatementLines.lines:type_name -> levyan.StatementLine
+	0,  // 10: levyan.StatementLine.kind:type_name -> levyan.LineKind
+	9,  // 11: levyan.StatementLine.corrects_start:type_name -> google.protobuf.Timestamp
+	9,  // 12: levyan.StatementLine.corrects_end:type_name -> google.protobuf.Timestamp
+	4,  // 13: levyan.StatementLine.parts:type_name -> levyan.StatementPart
+	9,  // 14: levyan.StatementPart.from:type_name -> google.protobuf.Timestamp
+	9,  // 15: levyan.StatementPart.to:type_name -> google.protobuf.Timestamp
+	5,  // 16: levyan.StatementPart.bands:type_name -> levyan.StatementBand
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_levyan_statement_proto_init() }
@@ -1196,6 +1267,7 @@ func file_levyan_statement_proto_init() {
 	if File_levyan_statement_proto != nil {
 		return
 	}
+	file_levyan_billing_account_proto_init()
 	file_levyan_payday_tenant_proto_init()
 	file_levyan_period_proto_init()
 	file_levyan_workspace_proto_init()

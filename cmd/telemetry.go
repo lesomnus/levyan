@@ -3,6 +3,11 @@ package cmd
 import (
 	"context"
 
+	// The exporter a collector is reached with. mkot knows an exporter by the
+	// name a package registers, and without this one an `otel:` naming
+	// `otlp` is refused at start: what is left is the pretty exporter, and so
+	// stderr.
+	_ "github.com/lesomnus/mkot/otlp"
 	"github.com/lesomnus/payday/config"
 )
 

@@ -86,6 +86,63 @@ func (x InvoiceState) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// DeclineKind is which kind of decline a payer's method refused a charge as,
+// value for value levyan's own: what the policy table's row of it says
+// follows.
+type DeclineKind int32
+
+const (
+	// A refusal that says no more than that it is one, or a failure that is no
+	// decline.
+	DeclineKind_DECLINE_KIND_UNSPECIFIED DeclineKind = 0
+	// It may go through later on the same method.
+	DeclineKind_DECLINE_KIND_TEMPORARY DeclineKind = 1
+	// The method will not be charged as it is: another is needed -- none was
+	// given, its subscription was canceled, or a payment waits for the payer
+	// to act on it.
+	DeclineKind_DECLINE_KIND_REPLACE DeclineKind = 2
+	// Refused as suspected fraud, or blocked by a check of risk.
+	DeclineKind_DECLINE_KIND_FRAUD DeclineKind = 3
+)
+
+// Enum value maps for DeclineKind.
+var (
+	DeclineKind_name = map[int32]string{
+		0: "DECLINE_KIND_UNSPECIFIED",
+		1: "DECLINE_KIND_TEMPORARY",
+		2: "DECLINE_KIND_REPLACE",
+		3: "DECLINE_KIND_FRAUD",
+	}
+	DeclineKind_value = map[string]int32{
+		"DECLINE_KIND_UNSPECIFIED": 0,
+		"DECLINE_KIND_TEMPORARY":   1,
+		"DECLINE_KIND_REPLACE":     2,
+		"DECLINE_KIND_FRAUD":       3,
+	}
+)
+
+func (x DeclineKind) Enum() *DeclineKind {
+	p := new(DeclineKind)
+	*p = x
+	return p
+}
+
+func (x DeclineKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DeclineKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_levyan_v1_invoice_proto_enumTypes[1].Descriptor()
+}
+
+func (DeclineKind) Type() protoreflect.EnumType {
+	return &file_levyan_v1_invoice_proto_enumTypes[1]
+}
+
+func (x DeclineKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 // CreditNoteReason is why a credit note takes back, value for value levyan's
 // own.
 type CreditNoteReason int32
@@ -124,11 +181,11 @@ func (x CreditNoteReason) String() string {
 }
 
 func (CreditNoteReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_levyan_v1_invoice_proto_enumTypes[1].Descriptor()
+	return file_levyan_v1_invoice_proto_enumTypes[2].Descriptor()
 }
 
 func (CreditNoteReason) Type() protoreflect.EnumType {
-	return &file_levyan_v1_invoice_proto_enumTypes[1]
+	return &file_levyan_v1_invoice_proto_enumTypes[2]
 }
 
 func (x CreditNoteReason) Number() protoreflect.EnumNumber {
@@ -360,6 +417,7 @@ type GetInvoiceResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Invoice     *Invoice               `protobuf:"bytes,1,opt,name=invoice"`
 	xxx_hidden_CreditNotes *[]*CreditNote         `protobuf:"bytes,2,rep,name=credit_notes,json=creditNotes"`
+	xxx_hidden_Dunning     *Dunning               `protobuf:"bytes,3,opt,name=dunning"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -405,12 +463,23 @@ func (x *GetInvoiceResponse) GetCreditNotes() []*CreditNote {
 	return nil
 }
 
+func (x *GetInvoiceResponse) GetDunning() *Dunning {
+	if x != nil {
+		return x.xxx_hidden_Dunning
+	}
+	return nil
+}
+
 func (x *GetInvoiceResponse) SetInvoice(v *Invoice) {
 	x.xxx_hidden_Invoice = v
 }
 
 func (x *GetInvoiceResponse) SetCreditNotes(v []*CreditNote) {
 	x.xxx_hidden_CreditNotes = &v
+}
+
+func (x *GetInvoiceResponse) SetDunning(v *Dunning) {
+	x.xxx_hidden_Dunning = v
 }
 
 func (x *GetInvoiceResponse) HasInvoice() bool {
@@ -420,8 +489,19 @@ func (x *GetInvoiceResponse) HasInvoice() bool {
 	return x.xxx_hidden_Invoice != nil
 }
 
+func (x *GetInvoiceResponse) HasDunning() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Dunning != nil
+}
+
 func (x *GetInvoiceResponse) ClearInvoice() {
 	x.xxx_hidden_Invoice = nil
+}
+
+func (x *GetInvoiceResponse) ClearDunning() {
+	x.xxx_hidden_Dunning = nil
 }
 
 type GetInvoiceResponse_builder struct {
@@ -431,6 +511,9 @@ type GetInvoiceResponse_builder struct {
 	Invoice *Invoice
 	// Its credit notes, the earliest first.
 	CreditNotes []*CreditNote
+	// What is done of it since its charge failed: unset while it is in no
+	// dunning -- none of its charges failed, or it is paid or void.
+	Dunning *Dunning
 }
 
 func (b0 GetInvoiceResponse_builder) Build() *GetInvoiceResponse {
@@ -439,6 +522,7 @@ func (b0 GetInvoiceResponse_builder) Build() *GetInvoiceResponse {
 	_, _ = b, x
 	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_CreditNotes = &b.CreditNotes
+	x.xxx_hidden_Dunning = b.Dunning
 	return m0
 }
 
@@ -991,6 +1075,220 @@ func (b0 Invoice_builder) Build() *Invoice {
 	return m0
 }
 
+// Dunning is what is done of an invoice its channel failed to collect
+// (#11), by the deployment's policy table: a row for each kind of decline --
+// its retries, its grace, and when what the invoice bills is restricted. Each
+// retry is a charge of its own through the same channel, and a charge is made
+// as soon as the billing account is collectable again -- a payer who began a
+// subscription anew, a payment that waited for them made -- whatever the row
+// schedules. Once no retry is left and the grace is over the invoice is
+// `INVOICE_STATE_UNCOLLECTIBLE`, still owed, and paid by the first charge of
+// it that succeeds.
+//
+// Every time here is worked out from the invoice's charges as it is asked,
+// and moves only as they do. It is what a product shows: the payer, what to
+// do and by when; the members of the workspaces it bills, that they are to
+// be restricted, and from when. levyan tells nobody itself (docs/apps.md).
+type Dunning struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Invoice        string                 `protobuf:"bytes,1,opt,name=invoice"`
+	xxx_hidden_BillingAccount string                 `protobuf:"bytes,2,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_Kind           DeclineKind            `protobuf:"varint,3,opt,name=kind,enum=levyan.v1.DeclineKind"`
+	xxx_hidden_Failed         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=failed"`
+	xxx_hidden_NextRetry      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=next_retry,json=nextRetry"`
+	xxx_hidden_GraceEnds      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=grace_ends,json=graceEnds"`
+	xxx_hidden_RestrictedFrom *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=restricted_from,json=restrictedFrom"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *Dunning) Reset() {
+	*x = Dunning{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Dunning) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Dunning) ProtoMessage() {}
+
+func (x *Dunning) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Dunning) GetInvoice() string {
+	if x != nil {
+		return x.xxx_hidden_Invoice
+	}
+	return ""
+}
+
+func (x *Dunning) GetBillingAccount() string {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return ""
+}
+
+func (x *Dunning) GetKind() DeclineKind {
+	if x != nil {
+		return x.xxx_hidden_Kind
+	}
+	return DeclineKind_DECLINE_KIND_UNSPECIFIED
+}
+
+func (x *Dunning) GetFailed() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Failed
+	}
+	return nil
+}
+
+func (x *Dunning) GetNextRetry() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_NextRetry
+	}
+	return nil
+}
+
+func (x *Dunning) GetGraceEnds() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_GraceEnds
+	}
+	return nil
+}
+
+func (x *Dunning) GetRestrictedFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_RestrictedFrom
+	}
+	return nil
+}
+
+func (x *Dunning) SetInvoice(v string) {
+	x.xxx_hidden_Invoice = v
+}
+
+func (x *Dunning) SetBillingAccount(v string) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *Dunning) SetKind(v DeclineKind) {
+	x.xxx_hidden_Kind = v
+}
+
+func (x *Dunning) SetFailed(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Failed = v
+}
+
+func (x *Dunning) SetNextRetry(v *timestamppb.Timestamp) {
+	x.xxx_hidden_NextRetry = v
+}
+
+func (x *Dunning) SetGraceEnds(v *timestamppb.Timestamp) {
+	x.xxx_hidden_GraceEnds = v
+}
+
+func (x *Dunning) SetRestrictedFrom(v *timestamppb.Timestamp) {
+	x.xxx_hidden_RestrictedFrom = v
+}
+
+func (x *Dunning) HasFailed() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Failed != nil
+}
+
+func (x *Dunning) HasNextRetry() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_NextRetry != nil
+}
+
+func (x *Dunning) HasGraceEnds() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_GraceEnds != nil
+}
+
+func (x *Dunning) HasRestrictedFrom() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RestrictedFrom != nil
+}
+
+func (x *Dunning) ClearFailed() {
+	x.xxx_hidden_Failed = nil
+}
+
+func (x *Dunning) ClearNextRetry() {
+	x.xxx_hidden_NextRetry = nil
+}
+
+func (x *Dunning) ClearGraceEnds() {
+	x.xxx_hidden_GraceEnds = nil
+}
+
+func (x *Dunning) ClearRestrictedFrom() {
+	x.xxx_hidden_RestrictedFrom = nil
+}
+
+type Dunning_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The invoice, by its identifier, and the billing account it bills.
+	Invoice        string
+	BillingAccount string
+	// The kind of its latest decline, whose row of the table it is held to:
+	// what the payer has to do. Unspecified is a refusal that says no more than
+	// that it is one, or a failure that is no decline.
+	Kind DeclineKind
+	// When its first charge failed: what every time below is measured from.
+	Failed *timestamppb.Timestamp
+	// When it is charged next: a retry its row schedules, or the moment its
+	// billing account became collectable again. One already past is due, and
+	// is made at the deployment's next look (`dunning.every`, a minute). Unset
+	// when no retry is to come: then it is charged as soon as its billing
+	// account is collectable again, and never else -- a method to replace is
+	// never tried again as it is.
+	NextRetry *timestamppb.Timestamp
+	// When its grace ends, and from when what it bills -- every workspace of
+	// its lines -- is restricted (`<product>.restricted`): as its grace ends,
+	// or at once, from its first failure. It is restricted from then until it
+	// is paid.
+	GraceEnds      *timestamppb.Timestamp
+	RestrictedFrom *timestamppb.Timestamp
+}
+
+func (b0 Dunning_builder) Build() *Dunning {
+	m0 := &Dunning{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Invoice = b.Invoice
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_Kind = b.Kind
+	x.xxx_hidden_Failed = b.Failed
+	x.xxx_hidden_NextRetry = b.NextRetry
+	x.xxx_hidden_GraceEnds = b.GraceEnds
+	x.xxx_hidden_RestrictedFrom = b.RestrictedFrom
+	return m0
+}
+
 // InvoiceLine is one statement on an invoice: what one workspace came to over
 // one period.
 type InvoiceLine struct {
@@ -1006,7 +1304,7 @@ type InvoiceLine struct {
 
 func (x *InvoiceLine) Reset() {
 	*x = InvoiceLine{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1018,7 +1316,7 @@ func (x *InvoiceLine) String() string {
 func (*InvoiceLine) ProtoMessage() {}
 
 func (x *InvoiceLine) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1144,7 +1442,7 @@ type CreditNote struct {
 
 func (x *CreditNote) Reset() {
 	*x = CreditNote{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1156,7 +1454,7 @@ func (x *CreditNote) String() string {
 func (*CreditNote) ProtoMessage() {}
 
 func (x *CreditNote) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1350,10 +1648,11 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\binvoices\x18\x01 \x03(\v2\x12.levyan.v1.InvoiceR\binvoices\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"#\n" +
 	"\x11GetInvoiceRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"|\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xaa\x01\n" +
 	"\x12GetInvoiceResponse\x12,\n" +
 	"\ainvoice\x18\x01 \x01(\v2\x12.levyan.v1.InvoiceR\ainvoice\x128\n" +
-	"\fcredit_notes\x18\x02 \x03(\v2\x15.levyan.v1.CreditNoteR\vcreditNotes\"[\n" +
+	"\fcredit_notes\x18\x02 \x03(\v2\x15.levyan.v1.CreditNoteR\vcreditNotes\x12,\n" +
+	"\adunning\x18\x03 \x01(\v2\x12.levyan.v1.DunningR\adunning\"[\n" +
 	"\x16ListCreditNotesRequest\x12'\n" +
 	"\x0fbilling_account\x18\x01 \x01(\tR\x0ebillingAccount\x12\x18\n" +
 	"\ainvoice\x18\x02 \x01(\tR\ainvoice\"S\n" +
@@ -1381,7 +1680,17 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\bdue_date\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\adueDate\x124\n" +
 	"\asettled\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\asettled\x12%\n" +
 	"\x0echannel_number\x18\x14 \x01(\tR\rchannelNumber\x12,\n" +
-	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\"\xa0\x01\n" +
+	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\"\xe7\x02\n" +
+	"\aDunning\x12\x18\n" +
+	"\ainvoice\x18\x01 \x01(\tR\ainvoice\x12'\n" +
+	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12*\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x16.levyan.v1.DeclineKindR\x04kind\x122\n" +
+	"\x06failed\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x06failed\x129\n" +
+	"\n" +
+	"next_retry\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tnextRetry\x129\n" +
+	"\n" +
+	"grace_ends\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tgraceEnds\x12C\n" +
+	"\x0frestricted_from\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\"\xa0\x01\n" +
 	"\vInvoiceLine\x12\x1c\n" +
 	"\tstatement\x18\x01 \x01(\tR\tstatement\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x14\n" +
@@ -1410,52 +1719,65 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x1bINVOICE_STATE_UNCOLLECTIBLE\x10\x04\x12\x16\n" +
 	"\x12INVOICE_STATE_VOID\x10\x05\x12\x1d\n" +
 	"\x19INVOICE_STATE_WRITTEN_OFF\x10\x06\x12\x18\n" +
-	"\x14INVOICE_STATE_SHADOW\x10\a*\x9d\x01\n" +
+	"\x14INVOICE_STATE_SHADOW\x10\a*y\n" +
+	"\vDeclineKind\x12\x1c\n" +
+	"\x18DECLINE_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16DECLINE_KIND_TEMPORARY\x10\x01\x12\x18\n" +
+	"\x14DECLINE_KIND_REPLACE\x10\x02\x12\x16\n" +
+	"\x12DECLINE_KIND_FRAUD\x10\x03*\x9d\x01\n" +
 	"\x10CreditNoteReason\x12\"\n" +
 	"\x1eCREDIT_NOTE_REASON_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dCREDIT_NOTE_REASON_CORRECTION\x10\x01\x12\x1d\n" +
 	"\x19CREDIT_NOTE_REASON_REFUND\x10\x02\x12#\n" +
 	"\x1fCREDIT_NOTE_REASON_CANCELLATION\x10\x03B8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
-var file_levyan_v1_invoice_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_levyan_v1_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_levyan_v1_invoice_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_levyan_v1_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_levyan_v1_invoice_proto_goTypes = []any{
 	(InvoiceState)(0),               // 0: levyan.v1.InvoiceState
-	(CreditNoteReason)(0),           // 1: levyan.v1.CreditNoteReason
-	(*ListInvoicesRequest)(nil),     // 2: levyan.v1.ListInvoicesRequest
-	(*ListInvoicesResponse)(nil),    // 3: levyan.v1.ListInvoicesResponse
-	(*GetInvoiceRequest)(nil),       // 4: levyan.v1.GetInvoiceRequest
-	(*GetInvoiceResponse)(nil),      // 5: levyan.v1.GetInvoiceResponse
-	(*ListCreditNotesRequest)(nil),  // 6: levyan.v1.ListCreditNotesRequest
-	(*ListCreditNotesResponse)(nil), // 7: levyan.v1.ListCreditNotesResponse
-	(*Invoice)(nil),                 // 8: levyan.v1.Invoice
-	(*InvoiceLine)(nil),             // 9: levyan.v1.InvoiceLine
-	(*CreditNote)(nil),              // 10: levyan.v1.CreditNote
-	(*timestamppb.Timestamp)(nil),   // 11: google.protobuf.Timestamp
-	(Channel)(0),                    // 12: levyan.v1.Channel
-	(*Period)(nil),                  // 13: levyan.v1.Period
+	(DeclineKind)(0),                // 1: levyan.v1.DeclineKind
+	(CreditNoteReason)(0),           // 2: levyan.v1.CreditNoteReason
+	(*ListInvoicesRequest)(nil),     // 3: levyan.v1.ListInvoicesRequest
+	(*ListInvoicesResponse)(nil),    // 4: levyan.v1.ListInvoicesResponse
+	(*GetInvoiceRequest)(nil),       // 5: levyan.v1.GetInvoiceRequest
+	(*GetInvoiceResponse)(nil),      // 6: levyan.v1.GetInvoiceResponse
+	(*ListCreditNotesRequest)(nil),  // 7: levyan.v1.ListCreditNotesRequest
+	(*ListCreditNotesResponse)(nil), // 8: levyan.v1.ListCreditNotesResponse
+	(*Invoice)(nil),                 // 9: levyan.v1.Invoice
+	(*Dunning)(nil),                 // 10: levyan.v1.Dunning
+	(*InvoiceLine)(nil),             // 11: levyan.v1.InvoiceLine
+	(*CreditNote)(nil),              // 12: levyan.v1.CreditNote
+	(*timestamppb.Timestamp)(nil),   // 13: google.protobuf.Timestamp
+	(Channel)(0),                    // 14: levyan.v1.Channel
+	(*Period)(nil),                  // 15: levyan.v1.Period
 }
 var file_levyan_v1_invoice_proto_depIdxs = []int32{
-	8,  // 0: levyan.v1.ListInvoicesResponse.invoices:type_name -> levyan.v1.Invoice
-	8,  // 1: levyan.v1.GetInvoiceResponse.invoice:type_name -> levyan.v1.Invoice
-	10, // 2: levyan.v1.GetInvoiceResponse.credit_notes:type_name -> levyan.v1.CreditNote
-	10, // 3: levyan.v1.ListCreditNotesResponse.credit_notes:type_name -> levyan.v1.CreditNote
-	0,  // 4: levyan.v1.Invoice.state:type_name -> levyan.v1.InvoiceState
-	11, // 5: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
-	11, // 6: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
-	12, // 7: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
-	11, // 8: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
-	11, // 9: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
-	11, // 10: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
-	9,  // 11: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
-	13, // 12: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
-	1,  // 13: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
-	11, // 14: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	9,  // 0: levyan.v1.ListInvoicesResponse.invoices:type_name -> levyan.v1.Invoice
+	9,  // 1: levyan.v1.GetInvoiceResponse.invoice:type_name -> levyan.v1.Invoice
+	12, // 2: levyan.v1.GetInvoiceResponse.credit_notes:type_name -> levyan.v1.CreditNote
+	10, // 3: levyan.v1.GetInvoiceResponse.dunning:type_name -> levyan.v1.Dunning
+	12, // 4: levyan.v1.ListCreditNotesResponse.credit_notes:type_name -> levyan.v1.CreditNote
+	0,  // 5: levyan.v1.Invoice.state:type_name -> levyan.v1.InvoiceState
+	13, // 6: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
+	13, // 7: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
+	14, // 8: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
+	13, // 9: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
+	13, // 10: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
+	13, // 11: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
+	11, // 12: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
+	1,  // 13: levyan.v1.Dunning.kind:type_name -> levyan.v1.DeclineKind
+	13, // 14: levyan.v1.Dunning.failed:type_name -> google.protobuf.Timestamp
+	13, // 15: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
+	13, // 16: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
+	13, // 17: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
+	15, // 18: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
+	2,  // 19: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
+	13, // 20: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_invoice_proto_init() }
@@ -1470,8 +1792,8 @@ func file_levyan_v1_invoice_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_v1_invoice_proto_rawDesc), len(file_levyan_v1_invoice_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   9,
+			NumEnums:      3,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

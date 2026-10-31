@@ -16,6 +16,7 @@ import (
 	entcheckout "github.com/lesomnus/levyan/internal/ent/checkout"
 	"github.com/lesomnus/levyan/internal/ent/predicate"
 	entsubscription "github.com/lesomnus/levyan/internal/ent/subscription"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/pd"
 	"github.com/lesomnus/levyan/server/subscriptions"
 )
@@ -44,7 +45,7 @@ func ownSubscriptions(ctx context.Context, account pdid.Id) (predicate.Subscript
 var checkoutReads = pd.Reads{BillingAccount: ownBillingAccounts, Checkout: ownCheckouts, Subscription: ownSubscriptions}
 
 func (h Payers) GetBillingAccount(ctx context.Context, req *levyanv1.GetBillingAccountRequest) (*levyanv1.GetBillingAccountResponse, error) {
-	ctx, _, _, err := as(ctx, levyan.PayerService_GetBillingAccount_FullMethodName)
+	ctx, _, product, err := as(ctx, levyan.PayerService_GetBillingAccount_FullMethodName)
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +76,18 @@ func (h Payers) GetBillingAccount(ctx context.Context, req *levyanv1.GetBillingA
 		return nil, err
 	}
 
+	// What is done of its invoices whose charge failed, of the relaying
+	// product's alone: a billing account is the account's in every product,
+	// and what it is billed in one is no other product's to show.
+	ds, err := invoices.AccountDunning(ctx, h.Db, h.Dunning, product.Uuid(), b.Id, clock(h.Now))
+	if err != nil {
+		return nil, err
+	}
+
 	out := levyanv1.GetBillingAccountResponse_builder{
 		BillingAccount: billingAccount(v),
 		Collection:     collectionOf(col),
+		Dunning:        dunningsOf(ds),
 	}.Build()
 	if col.Mirror != nil {
 		m, err := h.mirror(ctx, col.Mirror.Id[:])

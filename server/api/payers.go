@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,6 +15,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	entbillingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
 	"github.com/lesomnus/levyan/internal/ent/predicate"
@@ -50,8 +52,15 @@ type Payers struct {
 
 	// Db is what is read of the workspaces and periods an answer names, once
 	// the walled stack has said the account may see what names them, and
-	// what a billing account's collection is read with.
+	// what a billing account's collection, and its invoices' charges, are
+	// read with.
 	Db *ent.Client
+
+	// Dunning is the policy table of what is done after a charge fails, and
+	// Now the deployment's clock: what an invoice whose charge failed is
+	// told as (`server/invoices.Dunning`).
+	Dunning dunning.Policy
+	Now     func() time.Time
 }
 
 // PayerMethods is the methods of `levyan.v1.PayerService` by the names gRPC

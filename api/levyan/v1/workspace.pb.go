@@ -1361,6 +1361,7 @@ type Payer struct {
 	xxx_hidden_PayerlessSince *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=payerless_since,json=payerlessSince"`
 	xxx_hidden_RestrictedFrom *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=restricted_from,json=restrictedFrom"`
 	xxx_hidden_Collection     *Collection            `protobuf:"bytes,7,opt,name=collection"`
+	xxx_hidden_Dunning        *[]*Dunning            `protobuf:"bytes,8,rep,name=dunning"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1439,6 +1440,15 @@ func (x *Payer) GetCollection() *Collection {
 	return nil
 }
 
+func (x *Payer) GetDunning() []*Dunning {
+	if x != nil {
+		if x.xxx_hidden_Dunning != nil {
+			return *x.xxx_hidden_Dunning
+		}
+	}
+	return nil
+}
+
 func (x *Payer) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
@@ -1465,6 +1475,10 @@ func (x *Payer) SetRestrictedFrom(v *timestamppb.Timestamp) {
 
 func (x *Payer) SetCollection(v *Collection) {
 	x.xxx_hidden_Collection = v
+}
+
+func (x *Payer) SetDunning(v []*Dunning) {
+	x.xxx_hidden_Dunning = &v
 }
 
 func (x *Payer) HasCurrent() bool {
@@ -1544,9 +1558,11 @@ type Payer_builder struct {
 	// What is offered and not answered.
 	Offer *Offer
 	// Since when it has had nobody paying for it, and from when it is
-	// restricted for that: `payers.grace` after. Unset while it has a payer,
-	// for a workspace that never had one, and for one destroyed, which nobody
-	// pays for and nothing restricts.
+	// restricted for that: as the deployment's policy table says of a
+	// workspace with no payer (`dunning.kinds.payerless`) -- thirty days after,
+	// by default, or at once. Unset while it has a payer, for a workspace that
+	// never had one, and for one destroyed, which nobody pays for and nothing
+	// restricts.
 	PayerlessSince *timestamppb.Timestamp
 	RestrictedFrom *timestamppb.Timestamp
 	// Whether what the billing account it is paid for with now is billed can
@@ -1555,6 +1571,14 @@ type Payer_builder struct {
 	// yet. How the payer pays is the payer's to see (`PayerService`), and not
 	// here.
 	Collection *Collection
+	// The invoices still owed that bill this workspace -- of the billing
+	// account it is paid for with now, or of one that paid for it before --
+	// whose charge failed, each with what is done of it: when it is charged
+	// next, and from when it restricts the workspace, the one that restricts
+	// soonest first. Empty while there is none. Restricted by either -- an
+	// invoice, or having no payer -- the workspace is restricted, by one key
+	// (`<product>.restricted`), until neither restricts it.
+	Dunning []*Dunning
 }
 
 func (b0 Payer_builder) Build() *Payer {
@@ -1568,6 +1592,7 @@ func (b0 Payer_builder) Build() *Payer {
 	x.xxx_hidden_PayerlessSince = b.PayerlessSince
 	x.xxx_hidden_RestrictedFrom = b.RestrictedFrom
 	x.xxx_hidden_Collection = b.Collection
+	x.xxx_hidden_Dunning = &b.Dunning
 	return m0
 }
 
@@ -1575,7 +1600,7 @@ var File_levyan_v1_workspace_proto protoreflect.FileDescriptor
 
 const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\n" +
-	"\x19levyan/v1/workspace.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15levyan/v1/payer.proto\"\x93\x01\n" +
+	"\x19levyan/v1/workspace.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17levyan/v1/invoice.proto\x1a\x15levyan/v1/payer.proto\"\x93\x01\n" +
 	"\rArriveRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12\x18\n" +
 	"\acreator\x18\x02 \x01(\tR\acreator\x124\n" +
@@ -1622,7 +1647,7 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\tLifecycle\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12=\n" +
 	"\fclosed_since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vclosedSince\x128\n" +
-	"\tdestroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tdestroyed\"\xde\x02\n" +
+	"\tdestroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tdestroyed\"\x8c\x03\n" +
 	"\x05Payer\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12)\n" +
 	"\acurrent\x18\x02 \x01(\v2\x0f.levyan.v1.LinkR\acurrent\x12#\n" +
@@ -1632,7 +1657,8 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\x0frestricted_from\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\x125\n" +
 	"\n" +
 	"collection\x18\a \x01(\v2\x15.levyan.v1.CollectionR\n" +
-	"collection2\x9f\x04\n" +
+	"collection\x12,\n" +
+	"\adunning\x18\b \x03(\v2\x12.levyan.v1.DunningR\adunning2\x9f\x04\n" +
 	"\x10WorkspaceService\x12=\n" +
 	"\x06Arrive\x12\x18.levyan.v1.ArriveRequest\x1a\x19.levyan.v1.ArriveResponse\x12:\n" +
 	"\x05Leave\x12\x17.levyan.v1.LeaveRequest\x1a\x18.levyan.v1.LeaveResponse\x12:\n" +
@@ -1667,6 +1693,7 @@ var file_levyan_v1_workspace_proto_goTypes = []any{
 	(*Offer)(nil),                 // 19: levyan.v1.Offer
 	(*Link)(nil),                  // 20: levyan.v1.Link
 	(*Collection)(nil),            // 21: levyan.v1.Collection
+	(*Dunning)(nil),               // 22: levyan.v1.Dunning
 }
 var file_levyan_v1_workspace_proto_depIdxs = []int32{
 	18, // 0: levyan.v1.ArriveRequest.created:type_name -> google.protobuf.Timestamp
@@ -1689,27 +1716,28 @@ var file_levyan_v1_workspace_proto_depIdxs = []int32{
 	18, // 17: levyan.v1.Payer.payerless_since:type_name -> google.protobuf.Timestamp
 	18, // 18: levyan.v1.Payer.restricted_from:type_name -> google.protobuf.Timestamp
 	21, // 19: levyan.v1.Payer.collection:type_name -> levyan.v1.Collection
-	0,  // 20: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
-	2,  // 21: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest
-	4,  // 22: levyan.v1.WorkspaceService.Offer:input_type -> levyan.v1.OfferRequest
-	6,  // 23: levyan.v1.WorkspaceService.GetPayer:input_type -> levyan.v1.GetPayerRequest
-	8,  // 24: levyan.v1.WorkspaceService.Close:input_type -> levyan.v1.CloseRequest
-	10, // 25: levyan.v1.WorkspaceService.Restore:input_type -> levyan.v1.RestoreRequest
-	12, // 26: levyan.v1.WorkspaceService.Destroy:input_type -> levyan.v1.DestroyRequest
-	14, // 27: levyan.v1.WorkspaceService.GetLifecycle:input_type -> levyan.v1.GetLifecycleRequest
-	1,  // 28: levyan.v1.WorkspaceService.Arrive:output_type -> levyan.v1.ArriveResponse
-	3,  // 29: levyan.v1.WorkspaceService.Leave:output_type -> levyan.v1.LeaveResponse
-	5,  // 30: levyan.v1.WorkspaceService.Offer:output_type -> levyan.v1.OfferResponse
-	7,  // 31: levyan.v1.WorkspaceService.GetPayer:output_type -> levyan.v1.GetPayerResponse
-	9,  // 32: levyan.v1.WorkspaceService.Close:output_type -> levyan.v1.CloseResponse
-	11, // 33: levyan.v1.WorkspaceService.Restore:output_type -> levyan.v1.RestoreResponse
-	13, // 34: levyan.v1.WorkspaceService.Destroy:output_type -> levyan.v1.DestroyResponse
-	15, // 35: levyan.v1.WorkspaceService.GetLifecycle:output_type -> levyan.v1.GetLifecycleResponse
-	28, // [28:36] is the sub-list for method output_type
-	20, // [20:28] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	22, // 20: levyan.v1.Payer.dunning:type_name -> levyan.v1.Dunning
+	0,  // 21: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
+	2,  // 22: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest
+	4,  // 23: levyan.v1.WorkspaceService.Offer:input_type -> levyan.v1.OfferRequest
+	6,  // 24: levyan.v1.WorkspaceService.GetPayer:input_type -> levyan.v1.GetPayerRequest
+	8,  // 25: levyan.v1.WorkspaceService.Close:input_type -> levyan.v1.CloseRequest
+	10, // 26: levyan.v1.WorkspaceService.Restore:input_type -> levyan.v1.RestoreRequest
+	12, // 27: levyan.v1.WorkspaceService.Destroy:input_type -> levyan.v1.DestroyRequest
+	14, // 28: levyan.v1.WorkspaceService.GetLifecycle:input_type -> levyan.v1.GetLifecycleRequest
+	1,  // 29: levyan.v1.WorkspaceService.Arrive:output_type -> levyan.v1.ArriveResponse
+	3,  // 30: levyan.v1.WorkspaceService.Leave:output_type -> levyan.v1.LeaveResponse
+	5,  // 31: levyan.v1.WorkspaceService.Offer:output_type -> levyan.v1.OfferResponse
+	7,  // 32: levyan.v1.WorkspaceService.GetPayer:output_type -> levyan.v1.GetPayerResponse
+	9,  // 33: levyan.v1.WorkspaceService.Close:output_type -> levyan.v1.CloseResponse
+	11, // 34: levyan.v1.WorkspaceService.Restore:output_type -> levyan.v1.RestoreResponse
+	13, // 35: levyan.v1.WorkspaceService.Destroy:output_type -> levyan.v1.DestroyResponse
+	15, // 36: levyan.v1.WorkspaceService.GetLifecycle:output_type -> levyan.v1.GetLifecycleResponse
+	29, // [29:37] is the sub-list for method output_type
+	21, // [21:29] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_workspace_proto_init() }
@@ -1717,6 +1745,7 @@ func file_levyan_v1_workspace_proto_init() {
 	if File_levyan_v1_workspace_proto != nil {
 		return
 	}
+	file_levyan_v1_invoice_proto_init()
 	file_levyan_v1_payer_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{

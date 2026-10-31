@@ -8,8 +8,10 @@ import (
 	"github.com/lesomnus/payday/entitle"
 	"github.com/lesomnus/payday/pdid"
 	"github.com/lesomnus/payday/spin"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	levyan "github.com/lesomnus/levyan"
+	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
 	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/internal/ent"
 	entgrant "github.com/lesomnus/levyan/internal/ent/grant"
@@ -256,6 +258,85 @@ func TestAWorkspaceTwoRulesRestrictIsRestrictedUntilBothLetItGo(t *testing.T) {
 	restricted, by = w.restricted(ws)
 	x.False(restricted, "let go by both")
 	x.Empty(by)
+}
+
+// What an invoice's charge failing does is of its product alone: a billing
+// account paying for a workspace of each of two products, declined in one,
+// restricts that one's workspace by that one's key, and nothing of the
+// other's; a payer reading the billing account through the other product,
+// and the other product reading its workspace, are told of no dunning.
+func TestDunningIsOfOneProductAlone(t *testing.T) {
+	w := setup(t, mor)
+	x := w.X
+
+	kamino := w.Terms(w.Product("kamino"), "UTC", mor, "KRW")
+	key, _ := w.Key(kamino, "kamino-prod", nil)
+	m := w.Meter(kamino, "kamino.assets.active", "{asset}", stock, twa)
+	w.Price(kamino, m, mor, "KRW", 100, 50, on(1, 1))
+	k, err := pdid.From(kamino.GetId())
+	x.NoError(err)
+	as := levyantest.As(w.ctx, key)
+
+	ours, theirs := levyantest.Tenant(), levyantest.Tenant()
+	account, ba := w.payer(ours)
+	_, err = w.S.Payers.Arrive(w.ctx, k, theirs, account, on(1, 1))
+	x.NoError(err)
+	w.At(on(2, 9))
+	rs := []*levyanv1.Reading{}
+	for d := on(1, 1); d.Before(on(2, 1)); d = d.AddDate(0, 0, 1) {
+		rs = append(rs, levyanv1.Reading_builder{Workspace: theirs.String(), Meter: "kamino.assets.active", MeasuredAt: timestamppb.New(d), Value: 200, Unit: "{asset}"}.Build())
+	}
+	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(as, levyanv1.RecordRequest_builder{Readings: rs}.Build())
+	x.NoError(err)
+	for _, r := range res.GetResults() {
+		x.Equal(levyanv1.Outcome_OUTCOME_KEPT, r.GetOutcome(), r.GetWhy())
+	}
+	p, err := w.S.Ent.Tenant.Get(w.ctx, k.Uuid())
+	x.NoError(err)
+	_, err = w.S.Closer.Close(w.ctx, p, on(2, 9))
+	x.NoError(err)
+
+	// Kamino's charge, paid; then loft's, declined as fraud.
+	w.ch.Then(invoicestest.Pay)
+	w.run()
+	w.ch.Then(invoicestest.DeclineFraud)
+	w.january(ours)
+	w.dun()
+
+	invs := w.invoices(ba)
+	x.Len(invs, 2)
+	for _, inv := range invs {
+		if inv.TenantId == w.product.Uuid() {
+			x.Equal(uncollectible, inv.State)
+		} else {
+			x.Equal(paid, inv.State)
+		}
+	}
+	restricted, _ := w.restricted(ours)
+	x.True(restricted)
+	vs, err := w.S.Ent.Grant.Query().Where(entgrant.TenantId(k.Uuid())).All(w.ctx)
+	x.NoError(err)
+	x.Empty(vs, "nothing of kamino's is restricted")
+
+	// What each product, and the payer through each, is told.
+	payer := levyanv1.NewPayerServiceClient(w.conn)
+	got, err := payer.GetBillingAccount(levyantest.AsAccount(w.ctx, w.key, account), levyanv1.GetBillingAccountRequest_builder{Id: ba.String()}.Build())
+	x.NoError(err)
+	x.Len(got.GetDunning(), 1, "through loft")
+	x.Equal(levyanv1.DeclineKind_DECLINE_KIND_FRAUD, got.GetDunning()[0].GetKind())
+	got, err = payer.GetBillingAccount(levyantest.AsAccount(w.ctx, key, account), levyanv1.GetBillingAccountRequest_builder{Id: ba.String()}.Build())
+	x.NoError(err)
+	x.Empty(got.GetDunning(), "through kamino, which bills it nothing unpaid")
+
+	pw, err := levyanv1.NewWorkspaceServiceClient(w.conn).GetPayer(as, levyanv1.GetPayerRequest_builder{Workspace: theirs.String()}.Build())
+	x.NoError(err)
+	x.Empty(pw.GetPayer().GetDunning())
+	pw, err = levyanv1.NewWorkspaceServiceClient(w.conn).GetPayer(w.as, levyanv1.GetPayerRequest_builder{Workspace: ours.String()}.Build())
+	x.NoError(err)
+	x.Len(pw.GetPayer().GetDunning(), 1)
+	pw, err = levyanv1.NewWorkspaceServiceClient(w.conn).GetPayer(as, levyanv1.GetPayerRequest_builder{Workspace: ours.String()}.Build())
+	x.NoError(err, "a workspace kamino never heard of is one with no payer")
+	x.Empty(pw.GetPayer().GetDunning())
 }
 
 // Dunning is a loop of its own name, which a lease holds it by, and `levyan

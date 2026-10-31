@@ -30,6 +30,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
@@ -69,6 +70,11 @@ type Deps struct {
 	// written through S ([Payers]), and what a workspace's payer's billing
 	// account's collection is ([Workspaces]).
 	M subscriptions.Subscriptions
+
+	// Dunning is the policy table of what is done after a charge fails
+	// (#11): what a payer and a product are told of an invoice whose charge
+	// failed is what it says ([Payers], [Workspaces]).
+	Dunning dunning.Policy
 }
 
 // Register serves `levyan.v1` on g, from d.
@@ -77,8 +83,8 @@ func Register(g grpc.ServiceRegistrar, d Deps) {
 	levyanv1.RegisterMeteringServiceServer(g, Metering{L: d.L})
 	levyanv1.RegisterBillingServiceServer(g, Billing{S: d.S, Db: d.Db, Now: d.Now, Free: d.Free})
 	pdpb.RegisterGrantServiceServer(g, Grants{S: d.S, W: d.W})
-	levyanv1.RegisterWorkspaceServiceServer(g, Workspaces{S: d.S, P: d.P, Db: d.Db})
-	levyanv1.RegisterPayerServiceServer(g, Payers{S: d.S, P: d.P, M: d.M, Db: d.Db})
+	levyanv1.RegisterWorkspaceServiceServer(g, Workspaces{S: d.S, P: d.P, Db: d.Db, Dunning: d.Dunning, Now: d.Now})
+	levyanv1.RegisterPayerServiceServer(g, Payers{S: d.S, P: d.P, M: d.M, Db: d.Db, Dunning: d.Dunning, Now: d.Now})
 }
 
 // page is how many rows one read through the stack asks for at a time.

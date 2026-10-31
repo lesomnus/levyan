@@ -157,7 +157,7 @@ func (c *Collector) charge(ctx context.Context, s invoices.Send) (invoices.Outco
 			state = levyan.CollectionState_COLLECTION_STATE_NO_SUBSCRIPTION
 		}
 		log.From(ctx).InfoContext(ctx, "invoices: the billing account cannot be collected from, and nothing is sent",
-			slog.String("attempt", s.Key), slog.String("billing_account", s.Invoice.Account.String()), slog.String("collection", state.String()))
+			slog.String("attempt", s.Attempt.Key), slog.String("billing_account", s.Invoice.Account.String()), slog.String("collection", state.String()))
 		return failed(state), nil
 	}
 

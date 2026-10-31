@@ -1014,3 +1014,104 @@ func TestTransactionsAreReadPageByPage(t *testing.T) {
 	_, err = ch.Transactions(ctx, mor.List{After: "../events"})
 	require.Equal(t, mor.Invalid, mor.KindOf(err))
 }
+
+// An adjustment changes nothing of its transaction's -- asking for a refund
+// leaves the transaction's updated_at as it was, as Paddle's sandbox showed
+// (docs/design.md §17, 115) -- so what was given or taken back of a
+// transaction is not among the transactions changed since. It is read by its
+// own time, whoever made it -- levyan, the seller in Paddle's own pages, the
+// payer's bank -- the newest first, a page at a time, of those made since a
+// time or ever; and the first made before the time ends the list, which
+// Paddle filters by no time.
+func TestAdjustmentsAreReadByWhenTheyWereMade(t *testing.T) {
+	srv, ch := setup(t)
+	ctx := t.Context()
+	srv.AdjustmentsPageSize = 2
+
+	s := subscribe(t, srv, ch)
+	charged := map[string]mor.Transaction{}
+	for i, key := range []string{"lv-a", "lv-b", "lv-c", "lv-d", "lv-e", "lv-f"} {
+		tx, err := ch.Charge(ctx, now(s, key, 500+100*int64(i)))
+		require.NoError(t, err)
+		charged[key] = tx
+	}
+	before, err := ch.Refund(ctx, mor.Refund{Transaction: charged["lv-a"].ID, All: true, Reason: "해지", Key: "lv-refund-1"})
+	require.NoError(t, err)
+	srv.RefundByHand(charged["lv-e"].ID, "고객 요청")
+	srv.Chargeback(charged["lv-f"].ID)
+
+	srv.Advance(30 * 24 * time.Hour)
+	since := srv.Now()
+	l, _ := charged["lv-b"].Line("lv-b")
+	asked, err := ch.Refund(ctx, mor.Refund{Transaction: charged["lv-b"].ID, Line: l.ID, Amount: usd(300), Reason: "정정 청구", Key: "lv-refund-2"})
+	require.NoError(t, err)
+	srv.Approve(asked.ID)
+	byHand := srv.RefundByHand(charged["lv-c"].ID, "고객 요청으로 대시보드에서")
+	back := srv.Chargeback(charged["lv-d"].ID)
+
+	ts, err := ch.Transactions(ctx, mor.List{Since: since})
+	require.NoError(t, err)
+	require.Empty(t, ts.Transactions, "a refund asked for, approved or made by hand, and a chargeback, change nothing of their transactions'")
+
+	all := func(l mor.Adjusted) []mor.Adjustment {
+		t.Helper()
+		out := []mor.Adjustment{}
+		for pages := 0; ; pages++ {
+			require.Less(t, pages, 10)
+			got, err := ch.Adjustments(ctx, l)
+			require.NoError(t, err)
+			require.LessOrEqual(t, len(got.Adjustments), 2)
+			out = append(out, got.Adjustments...)
+			if !got.More {
+				return out
+			}
+			require.NotEmpty(t, got.Last)
+			l.After = got.Last
+		}
+	}
+
+	asks := srv.Requests(paddletest.Adjustments)
+	made := all(mor.Adjusted{Since: since})
+	require.Equal(t, 2, srv.Requests(paddletest.Adjustments)-asks, "the page that reaches one made before the time is the last read")
+	require.Len(t, made, 3, "made since the time, the newest first")
+	cb, hand, ours := made[0], made[1], made[2]
+
+	require.Equal(t, back, cb.ID)
+	require.Equal(t, charged["lv-d"].ID, cb.Transaction)
+	require.Equal(t, mor.Chargeback, cb.Kind)
+	require.Equal(t, mor.Approved, cb.Status)
+	require.Empty(t, cb.Key)
+	require.Equal(t, usd(800), cb.Asked, "all of it, in the terms of a charge")
+	require.Equal(t, usd(880), cb.Amount)
+
+	require.Equal(t, byHand, hand.ID)
+	require.Equal(t, charged["lv-c"].ID, hand.Transaction)
+	require.Equal(t, mor.RefundAdjustment, hand.Kind)
+	require.Equal(t, mor.Requested, hand.Status, "Paddle reviews it as it does one asked through the API")
+	require.Equal(t, "고객 요청으로 대시보드에서", hand.Reason)
+	require.Empty(t, hand.Key, "made in Paddle's own pages: no key of levyan's")
+	require.Equal(t, usd(700), hand.Asked)
+
+	require.Equal(t, asked.ID, ours.ID)
+	require.Equal(t, charged["lv-b"].ID, ours.Transaction)
+	require.Equal(t, "lv-refund-2", ours.Key)
+	require.Equal(t, mor.Approved, ours.Status)
+	require.Equal(t, usd(300), ours.Asked)
+	for _, a := range made {
+		require.False(t, a.At.Before(since))
+	}
+
+	every := all(mor.Adjusted{})
+	require.Len(t, every, 6, "made since ever")
+	for i := 1; i < len(every); i++ {
+		require.Greater(t, every[i-1].ID, every[i].ID, "the newest first")
+	}
+	require.Equal(t, before.ID, every[5].ID)
+
+	got, err := ch.Transaction(ctx, charged["lv-c"].ID)
+	require.NoError(t, err)
+	require.Equal(t, []mor.Adjustment{hand}, got.Adjustments, "and among its transaction's, as the list has it")
+
+	_, err = ch.Adjustments(ctx, mor.Adjusted{After: "../transactions"})
+	require.Equal(t, mor.Invalid, mor.KindOf(err))
+}

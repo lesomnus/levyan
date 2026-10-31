@@ -4,9 +4,9 @@
 //
 // Which MoR levyan sells through is the owner's decision, and it is Paddle
 // (2026-10-31, levyan#12): this adapter, built as a candidate (#21) before
-// the choice was made, is the MoR channel's. It is still to be tried against
-// Paddle's sandbox, whose keys the owner has not made yet (TestLive).
-// Nothing outside the wiring names this package.
+// the choice was made, is the MoR channel's. It is tried against Paddle's
+// sandbox by hand (TestLive), first on 2026-11-01. Nothing outside the
+// wiring names this package.
 //
 // # What it relies on
 //
@@ -95,6 +95,17 @@
 //     ten minutes, and a transaction takes no adjustment while one is pending
 //     (https://developer.paddle.com/api-reference/adjustments/create-adjustment,
 //     https://developer.paddle.com/build/transactions/create-transaction-adjustments).
+//   - GET /adjustments lists adjustments by no time: of ids, transactions,
+//     subscriptions, customers, actions and statuses, ordered by id alone
+//     (id[DESC] by default), at most 50 a page (10 by default), after a
+//     cursor, each with when it was created and last updated
+//     (https://developer.paddle.com/api-reference/adjustments/list-adjustments,
+//     2026-11-01). An adjustment is a financial record that is not changed
+//     once it is made, but for the status Paddle sets: a refund
+//     pending_approval approved or rejected, and a chargeback or a credit
+//     reversed once an adjustment that reverses it is made
+//     (https://developer.paddle.com/api-reference/adjustments/overview,
+//     https://developer.paddle.com/api-reference/adjustments/create-adjustment).
 //   - Paddle charges no less than its minimum for a currency: 0.70 USD, 0.65
 //     EUR, 100 JPY, 980 KRW, and answers less with
 //     subscription_update_transaction_balance_less_than_charge_limit
@@ -163,6 +174,18 @@
 //     (https://developer.paddle.com/concepts/payment-methods/korean/local-cobranded-cards,
 //     https://developer.paddle.com/changelog/2025/improved-korean-payment-methods),
 //     and a checkout's currency is its billing account's.
+//
+// # What the sandbox showed
+//
+// Where the documentation says nothing, TestLive asks the sandbox:
+//
+//   - Asking for a refund leaves its transaction's updated_at as it was. On
+//     2026-11-01 a transaction charged 1,960 KRW, half of it then asked
+//     back (pending_approval), was not among the transactions updated since
+//     the moment before the refund was asked for, and was among them all,
+//     with its one adjustment (docs/design.md §17, 115). So what was
+//     adjusted of a transaction is read by the adjustment's own time
+//     ([Channel.Adjustments]), never by its transaction's.
 package paddle
 
 import (
@@ -902,6 +925,53 @@ func (c *Channel) Transactions(ctx context.Context, l mor.List) (mor.Transaction
 	}
 	if len(ts) > 0 {
 		out.Last = ts[len(ts)-1].ID
+	}
+	return out, nil
+}
+
+// adjustmentsPage is the most of the adjustments one read asks for: Paddle's
+// most (https://developer.paddle.com/api-reference/adjustments/list-adjustments).
+const adjustmentsPage = 50
+
+// Adjustments is GET /adjustments, the newest first, fifty at a time. Paddle
+// filters adjustments by no time and orders them by id alone, which sorts as
+// they were made: so they are read the newest first, and those made before
+// l.Since are left out -- and end the list, since every one after them was
+// made before them too.
+func (c *Channel) Adjustments(ctx context.Context, l mor.Adjusted) (mor.Adjustments, error) {
+	const op = "adjustments"
+	if l.After != "" && !idOK("adj", l.After) {
+		return mor.Adjustments{}, invalid(op, "no adjustment of Paddle's to read after")
+	}
+	q := url.Values{
+		"order_by": {"id[DESC]"},
+		"per_page": {strconv.Itoa(adjustmentsPage)},
+	}
+	if l.After != "" {
+		q.Set("after", l.After)
+	}
+
+	var as []adjustment
+	m, err := c.call(ctx, op, http.MethodGet, "/adjustments", q, nil, &as)
+	if err != nil {
+		return mor.Adjustments{}, err
+	}
+	out := mor.Adjustments{More: m.Pagination != nil && m.Pagination.HasMore && len(as) > 0}
+	for _, a := range as {
+		v, err := a.read(c.c.TaxMode)
+		if err != nil {
+			return mor.Adjustments{}, unread(op, err)
+		}
+		if !l.Since.IsZero() && v.At.Before(l.Since) {
+			// Made before the time asked for, and so is every one of the
+			// pages after this.
+			out.More = false
+			continue
+		}
+		out.Adjustments = append(out.Adjustments, v)
+	}
+	if len(as) > 0 {
+		out.Last = as[len(as)-1].ID
 	}
 	return out, nil
 }

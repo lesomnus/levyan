@@ -18,6 +18,19 @@
 //   - A refund waits as pending_approval until [Server.Approve] or
 //     [Server.Reject]. A refund of all of a line, or of the transaction,
 //     gives back what is left of it once approved refunds are taken off.
+//   - An adjustment leaves its transaction as it was. Asking for a refund
+//     does not move the transaction's updated_at, as Paddle's sandbox showed
+//     on 2026-11-01 (paddle's TestLive); neither do its approval, its
+//     rejection or a chargeback, which nobody has seen Paddle do or not do.
+//     So the transactions updated since a time (GET /transactions,
+//     updated_at[GTE]) hold none that only an adjustment changed, and the
+//     adjustments are listed by their own (GET /adjustments): by id, as they
+//     were made, and by no time, as Paddle's reference lists them.
+//   - A refund made in Paddle's own pages ([Server.RefundByHand]) gives back
+//     all that is left of a transaction, under the seller's reason and no
+//     key of levyan's, and waits for approval as one asked through the API
+//     does; a chargeback ([Server.Chargeback]) takes all that is left of it
+//     back, approved, as Paddle makes one when the payer's bank does.
 //   - A paused subscription takes no charge (subscription_not_active), and
 //     is canceled only immediately.
 //   - An id is "<prefix>_" and 26 lowercase letters and digits, in the order
@@ -88,6 +101,8 @@ const (
 	Cancel   Op = "cancel"   // POST /subscriptions/{id}/cancel
 	Refund   Op = "refund"   // POST /adjustments
 	Events   Op = "events"   // GET /events
+
+	Adjustments Op = "adjustments" // GET /adjustments
 )
 
 // Fault is what the next request of an [Op] meets instead of its answer.
@@ -147,6 +162,10 @@ type Server struct {
 	// EventsPageSize is the most the event stream answers at once: Paddle's
 	// 200, and less to make a test page.
 	EventsPageSize int
+
+	// AdjustmentsPageSize is the most the list of adjustments answers at
+	// once: Paddle's 50, and less to make a test page.
+	AdjustmentsPageSize int
 
 	srv  *httptest.Server
 	done chan struct{}
@@ -268,6 +287,7 @@ type adj struct {
 	txn      string
 	sub      string
 	customer string
+	action   string // refund, chargeback
 	typ      string
 	reason   string
 	status   string
@@ -292,19 +312,20 @@ type adjItem struct {
 func New(t testing.TB) *Server {
 	t.Helper()
 	s := &Server{
-		APIKey:         "pdl_sdbx_apikey_" + id26() + "_" + alnum(22) + "_" + alnum(3),
-		ClientToken:    "test_" + strings.ToLower(alnum(27)),
-		WebhookSecret:  "pdl_ntfset_" + id26() + "_" + alnum(32),
-		TaxRate:        1_000,
-		TaxCategories:  []string{"standard"},
-		PageSize:       30,
-		EventsPageSize: 200,
-		done:           make(chan struct{}),
-		subs:           map[string]*sub{},
-		txns:           map[string]*txn{},
-		adjs:           map[string]*adj{},
-		faults:         map[Op][]Fault{},
-		requests:       map[Op]int{},
+		APIKey:              "pdl_sdbx_apikey_" + id26() + "_" + alnum(22) + "_" + alnum(3),
+		ClientToken:         "test_" + strings.ToLower(alnum(27)),
+		WebhookSecret:       "pdl_ntfset_" + id26() + "_" + alnum(32),
+		TaxRate:             1_000,
+		TaxCategories:       []string{"standard"},
+		PageSize:            30,
+		EventsPageSize:      200,
+		AdjustmentsPageSize: 50,
+		done:                make(chan struct{}),
+		subs:                map[string]*sub{},
+		txns:                map[string]*txn{},
+		adjs:                map[string]*adj{},
+		faults:              map[Op][]Fault{},
+		requests:            map[Op]int{},
 	}
 	s.Plans = map[string]string{"USD": s.id("pri"), "KRW": s.id("pri")}
 
@@ -316,6 +337,7 @@ func New(t testing.TB) *Server {
 	mux.HandleFunc("POST /subscriptions/{id}/charge", s.handle(Charge, s.charge))
 	mux.HandleFunc("POST /subscriptions/{id}/cancel", s.handle(Cancel, s.cancel))
 	mux.HandleFunc("POST /adjustments", s.handle(Refund, s.refund))
+	mux.HandleFunc("GET /adjustments", s.handle(Adjustments, s.listAdjustments))
 	mux.HandleFunc("GET /events", s.handle(Events, s.listEvents))
 
 	s.srv = httptest.NewServer(mux)
@@ -644,8 +666,34 @@ func (s *Server) decide(id, status string) {
 	if !ok || a.status != "pending_approval" {
 		panic(fmt.Sprintf("paddletest: no refund %q waiting for approval", id))
 	}
+	// The adjustment changes, and its transaction is left as it was.
 	a.status, a.updated = status, s.now()
 	s.emit("adjustment.updated", a.object(s))
+}
+
+// RefundByHand is the seller giving back all that is left of transaction id
+// in Paddle's own pages: a refund under their reason, which carries no key of
+// levyan's, waiting for approval as one asked through the API does. The
+// transaction is left as it was. It answers the adjustment's id.
+func (s *Server) RefundByHand(id, reason string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t := s.adjustable(id)
+	for _, a := range s.adjs {
+		if a.txn == t.id && a.status == "pending_approval" {
+			panic(fmt.Sprintf("paddletest: transaction %q has a refund pending approval, and takes no other", id))
+		}
+	}
+	return s.adjust(t, "refund", "pending_approval", reason)
+}
+
+// Chargeback is the payer's bank taking back all that is left of transaction
+// id: an adjustment Paddle makes itself, approved. The transaction is left as
+// it was. It answers the adjustment's id.
+func (s *Server) Chargeback(id string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.adjust(s.adjustable(id), "chargeback", "approved", "The customer disputed the payment with their bank.")
 }
 
 // Behind keeps every event the fake records from now on out of its event
@@ -1129,6 +1177,75 @@ type page struct {
 	more    bool
 }
 
+// listAdjustments is GET /adjustments, as Paddle's reference has it
+// (https://developer.paddle.com/api-reference/adjustments/list-adjustments):
+// of ids, transactions, subscriptions, customers, actions and statuses, each
+// a comma-separated list, and of no time -- a time asked for is refused, so
+// that nothing is built on a filter Paddle does not have -- ordered by id
+// alone, the newest first unless asked otherwise, 10 a page unless asked for
+// up to 50, after a cursor.
+func (s *Server) listAdjustments(r *http.Request, _ []byte) (int, any) {
+	q := r.URL.Query()
+	for k := range q {
+		if strings.HasPrefix(k, "created_at") || strings.HasPrefix(k, "updated_at") {
+			return http.StatusBadRequest, no("invalid_field", k+": Paddle lists adjustments by no time")
+		}
+	}
+	asc := q.Get("order_by") == "id[ASC]"
+	if o := q.Get("order_by"); o != "" && o != "id[ASC]" && o != "id[DESC]" {
+		return http.StatusBadRequest, no("invalid_field", "order_by: Paddle orders adjustments by id")
+	}
+	per := 10
+	if n, err := strconv.Atoi(q.Get("per_page")); err == nil && n > 0 {
+		per = min(n, 50)
+	}
+	per = min(per, s.AdjustmentsPageSize)
+	of := func(field, v string) bool {
+		return q.Get(field) == "" || slices.Contains(strings.Split(q.Get(field), ","), v)
+	}
+
+	var as []*adj
+	for _, a := range s.adjs {
+		if !s.seen(a.hidden) || !of("id", a.id) || !of("transaction_id", a.txn) || !of("subscription_id", a.sub) ||
+			!of("customer_id", a.customer) || !of("action", a.action) || !of("status", a.status) {
+			continue
+		}
+		as = append(as, a)
+	}
+	slices.SortFunc(as, func(a, b *adj) int {
+		if asc {
+			return strings.Compare(a.id, b.id)
+		}
+		return strings.Compare(b.id, a.id)
+	})
+	if after := q.Get("after"); after != "" {
+		// After an id, whether or not it is listed: ids sort as their
+		// entities were made.
+		i := slices.IndexFunc(as, func(a *adj) bool {
+			if asc {
+				return a.id > after
+			}
+			return a.id < after
+		})
+		if i < 0 {
+			i = len(as)
+		}
+		as = as[i:]
+	}
+	more := len(as) > per
+	if more {
+		as = as[:per]
+	}
+	data := make([]map[string]any, len(as))
+	for i, a := range as {
+		data[i] = a.object(s)
+	}
+	if len(as) > 0 {
+		q.Set("after", as[len(as)-1].id)
+	}
+	return http.StatusOK, page{data: data, perPage: per, next: s.URL + "/adjustments?" + q.Encode(), more: more}
+}
+
 func (s *Server) getSubscription(r *http.Request, _ []byte) (int, any) {
 	su, ok := s.subs[r.PathValue("id")]
 	if !ok {
@@ -1365,18 +1482,13 @@ func (s *Server) refund(_ *http.Request, body []byte) (int, any) {
 		mode = "internal"
 	}
 
+	// The transaction is left as it was: asking for a refund does not move
+	// its updated_at (Paddle's sandbox, 2026-11-01).
 	now := s.now()
-	a := &adj{id: s.id("adj"), txn: t.id, sub: t.sub, customer: t.customer, reason: in.Reason, status: "pending_approval", currency: t.currency, created: now, updated: now}
+	a := &adj{id: s.id("adj"), txn: t.id, sub: t.sub, customer: t.customer, action: "refund", reason: in.Reason, status: "pending_approval", currency: t.currency, created: now, updated: now}
 	switch in.Type {
 	case "full":
-		for _, it := range t.items {
-			left := s.left(t, it)
-			if left == 0 {
-				continue
-			}
-			sub, tax := s.split(it, left)
-			a.items = append(a.items, adjItem{id: s.id("adjitm"), line: it.line, typ: "full", subtotal: sub, tax: tax, total: left})
-		}
+		a.items = s.rest(t)
 		if len(a.items) == 0 {
 			return http.StatusBadRequest, no("adjustment_total_amount_above_remaining_allowed", "Nothing is left of the transaction to adjust.")
 		}
@@ -1434,8 +1546,48 @@ func (s *Server) refund(_ *http.Request, body []byte) (int, any) {
 	return http.StatusCreated, a.object(s)
 }
 
-// left is what is left of a line to give back: its total, less the refunds
-// of it approved.
+// rest is what an adjustment of all of t is: each line's items, of what is
+// left of it, and none of a line with nothing left.
+func (s *Server) rest(t *txn) []adjItem {
+	var out []adjItem
+	for _, it := range t.items {
+		left := s.left(t, it)
+		if left == 0 {
+			continue
+		}
+		sub, tax := s.split(it, left)
+		out = append(out, adjItem{id: s.id("adjitm"), line: it.line, typ: "full", subtotal: sub, tax: tax, total: left})
+	}
+	return out
+}
+
+// adjustable is transaction id, to be adjusted outside a request -- in
+// Paddle's own pages, or by Paddle -- as one is only once it is completed.
+func (s *Server) adjustable(id string) *txn {
+	t, ok := s.txns[id]
+	if !ok || t.status != "completed" {
+		panic(fmt.Sprintf("paddletest: no completed transaction %q to adjust", id))
+	}
+	return t
+}
+
+// adjust is an adjustment of action, of all that is left of t, made outside
+// a request and recorded as one is made: in its status, under reason. The
+// transaction is left as it was.
+func (s *Server) adjust(t *txn, action, status, reason string) string {
+	now := s.now()
+	a := &adj{id: s.id("adj"), txn: t.id, sub: t.sub, customer: t.customer, action: action, typ: "full", reason: reason, status: status, currency: t.currency, created: now, updated: now}
+	a.items = s.rest(t)
+	if len(a.items) == 0 {
+		panic(fmt.Sprintf("paddletest: nothing is left of transaction %q to adjust", t.id))
+	}
+	s.adjs[a.id] = a
+	s.emit("adjustment.created", a.object(s))
+	return a.id
+}
+
+// left is what is left of a line to give back: its total, less what was
+// given or taken back of it, approved -- refunds and chargebacks.
 func (s *Server) left(t *txn, it item) int64 {
 	_, _, total := s.totals(it)
 	for _, a := range s.adjs {
@@ -1721,7 +1873,7 @@ func (a *adj) object(_ *Server) map[string]any {
 	}
 	return map[string]any{
 		"id":                        a.id,
-		"action":                    "refund",
+		"action":                    a.action,
 		"type":                      a.typ,
 		"transaction_id":            a.txn,
 		"subscription_id":           orNil(a.sub),

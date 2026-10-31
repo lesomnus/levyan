@@ -39,6 +39,10 @@ type BillingAccount struct {
 	Business *levyan.BillingBusiness `json:"business,omitempty"`
 	// DateForgotten holds the value of the "date_forgotten" field.
 	DateForgotten *time.Time `json:"date_forgotten,omitempty"`
+	// Collection holds the value of the "collection" field.
+	Collection int32 `json:"collection,omitempty"`
+	// DateCollection holds the value of the "date_collection" field.
+	DateCollection *time.Time `json:"date_collection,omitempty"`
 	// DateUpdated holds the value of the "date_updated" field.
 	DateUpdated time.Time `json:"date_updated,omitempty"`
 	// DateErased holds the value of the "date_erased" field.
@@ -53,9 +57,11 @@ func (*BillingAccount) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case billingaccount.FieldCollection:
+			values[i] = new(sql.NullInt64)
 		case billingaccount.FieldName, billingaccount.FieldCountry, billingaccount.FieldChannel, billingaccount.FieldCurrency, billingaccount.FieldRecipient, billingaccount.FieldEmail, billingaccount.FieldAddress:
 			values[i] = new(sql.NullString)
-		case billingaccount.FieldDateForgotten, billingaccount.FieldDateUpdated, billingaccount.FieldDateErased, billingaccount.FieldDateCreated:
+		case billingaccount.FieldDateForgotten, billingaccount.FieldDateCollection, billingaccount.FieldDateUpdated, billingaccount.FieldDateErased, billingaccount.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case billingaccount.FieldId, billingaccount.FieldOwner:
 			values[i] = new(uuid.UUID)
@@ -143,6 +149,19 @@ func (_m *BillingAccount) assignValues(columns []string, values []any) error {
 				_m.DateForgotten = new(time.Time)
 				*_m.DateForgotten = value.Time
 			}
+		case billingaccount.FieldCollection:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field collection", values[i])
+			} else if value.Valid {
+				_m.Collection = int32(value.Int64)
+			}
+		case billingaccount.FieldDateCollection:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field date_collection", values[i])
+			} else if value.Valid {
+				_m.DateCollection = new(time.Time)
+				*_m.DateCollection = value.Time
+			}
 		case billingaccount.FieldDateUpdated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field date_updated", values[i])
@@ -227,6 +246,14 @@ func (_m *BillingAccount) String() string {
 	builder.WriteString(", ")
 	if v := _m.DateForgotten; v != nil {
 		builder.WriteString("date_forgotten=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("collection=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Collection))
+	builder.WriteString(", ")
+	if v := _m.DateCollection; v != nil {
+		builder.WriteString("date_collection=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

@@ -33,6 +33,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
+	"github.com/lesomnus/levyan/server/subscriptions"
 )
 
 // PriceBook is `levyan.v1.PriceBookService`.
@@ -63,6 +64,11 @@ type Deps struct {
 	// many of a payer's have their allowances, which an estimate rates by.
 	P    payers.Payers
 	Free int
+
+	// M is billing accounts' subscriptions with the merchant of record,
+	// written through S ([Payers]), and what a workspace's payer's billing
+	// account's collection is ([Workspaces]).
+	M subscriptions.Subscriptions
 }
 
 // Register serves `levyan.v1` on g, from d.
@@ -71,8 +77,8 @@ func Register(g grpc.ServiceRegistrar, d Deps) {
 	levyanv1.RegisterMeteringServiceServer(g, Metering{L: d.L})
 	levyanv1.RegisterBillingServiceServer(g, Billing{S: d.S, Db: d.Db, Now: d.Now, Free: d.Free})
 	pdpb.RegisterGrantServiceServer(g, Grants{S: d.S, W: d.W})
-	levyanv1.RegisterWorkspaceServiceServer(g, Workspaces{S: d.S, P: d.P})
-	levyanv1.RegisterPayerServiceServer(g, Payers{S: d.S, P: d.P, Db: d.Db})
+	levyanv1.RegisterWorkspaceServiceServer(g, Workspaces{S: d.S, P: d.P, Db: d.Db})
+	levyanv1.RegisterPayerServiceServer(g, Payers{S: d.S, P: d.P, M: d.M, Db: d.Db})
 }
 
 // page is how many rows one read through the stack asks for at a time.

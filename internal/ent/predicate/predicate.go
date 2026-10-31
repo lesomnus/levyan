@@ -29,6 +29,9 @@ func BillingAccountOrErr(p BillingAccount, err error) BillingAccount {
 	}
 }
 
+// Checkout is the predicate function for checkout builders.
+type Checkout func(*sql.Selector)
+
 // Credit is the predicate function for credit builders.
 type Credit func(*sql.Selector)
 
@@ -66,6 +69,23 @@ type Link func(*sql.Selector)
 
 // Meter is the predicate function for meter builders.
 type Meter func(*sql.Selector)
+
+// Notice is the predicate function for notice builders.
+type Notice func(*sql.Selector)
+
+// NoticeOrErr calls the predicate only if the error is not nit.
+func NoticeOrErr(p Notice, err error) Notice {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// NoticeCursor is the predicate function for noticecursor builders.
+type NoticeCursor func(*sql.Selector)
 
 // Offer is the predicate function for offer builders.
 type Offer func(*sql.Selector)
@@ -138,6 +158,9 @@ func StatementOrErr(p Statement, err error) Statement {
 		p(s)
 	}
 }
+
+// Subscription is the predicate function for subscription builders.
+type Subscription func(*sql.Selector)
 
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)

@@ -100,6 +100,16 @@ func DateForgotten(v time.Time) predicate.BillingAccount {
 	return predicate.BillingAccount(sql.FieldEQ(FieldDateForgotten, v))
 }
 
+// Collection applies equality check predicate on the "collection" field. It's identical to CollectionEQ.
+func Collection(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldEQ(FieldCollection, v))
+}
+
+// DateCollection applies equality check predicate on the "date_collection" field. It's identical to DateCollectionEQ.
+func DateCollection(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldEQ(FieldDateCollection, v))
+}
+
 // DateUpdated applies equality check predicate on the "date_updated" field. It's identical to DateUpdatedEQ.
 func DateUpdated(v time.Time) predicate.BillingAccount {
 	return predicate.BillingAccount(sql.FieldEQ(FieldDateUpdated, v))
@@ -668,6 +678,96 @@ func DateForgottenIsNil() predicate.BillingAccount {
 // DateForgottenNotNil applies the NotNil predicate on the "date_forgotten" field.
 func DateForgottenNotNil() predicate.BillingAccount {
 	return predicate.BillingAccount(sql.FieldNotNull(FieldDateForgotten))
+}
+
+// CollectionEQ applies the EQ predicate on the "collection" field.
+func CollectionEQ(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldEQ(FieldCollection, v))
+}
+
+// CollectionNEQ applies the NEQ predicate on the "collection" field.
+func CollectionNEQ(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldNEQ(FieldCollection, v))
+}
+
+// CollectionIn applies the In predicate on the "collection" field.
+func CollectionIn(vs ...int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldIn(FieldCollection, vs...))
+}
+
+// CollectionNotIn applies the NotIn predicate on the "collection" field.
+func CollectionNotIn(vs ...int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldNotIn(FieldCollection, vs...))
+}
+
+// CollectionGT applies the GT predicate on the "collection" field.
+func CollectionGT(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldGT(FieldCollection, v))
+}
+
+// CollectionGTE applies the GTE predicate on the "collection" field.
+func CollectionGTE(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldGTE(FieldCollection, v))
+}
+
+// CollectionLT applies the LT predicate on the "collection" field.
+func CollectionLT(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldLT(FieldCollection, v))
+}
+
+// CollectionLTE applies the LTE predicate on the "collection" field.
+func CollectionLTE(v int32) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldLTE(FieldCollection, v))
+}
+
+// DateCollectionEQ applies the EQ predicate on the "date_collection" field.
+func DateCollectionEQ(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldEQ(FieldDateCollection, v))
+}
+
+// DateCollectionNEQ applies the NEQ predicate on the "date_collection" field.
+func DateCollectionNEQ(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldNEQ(FieldDateCollection, v))
+}
+
+// DateCollectionIn applies the In predicate on the "date_collection" field.
+func DateCollectionIn(vs ...time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldIn(FieldDateCollection, vs...))
+}
+
+// DateCollectionNotIn applies the NotIn predicate on the "date_collection" field.
+func DateCollectionNotIn(vs ...time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldNotIn(FieldDateCollection, vs...))
+}
+
+// DateCollectionGT applies the GT predicate on the "date_collection" field.
+func DateCollectionGT(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldGT(FieldDateCollection, v))
+}
+
+// DateCollectionGTE applies the GTE predicate on the "date_collection" field.
+func DateCollectionGTE(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldGTE(FieldDateCollection, v))
+}
+
+// DateCollectionLT applies the LT predicate on the "date_collection" field.
+func DateCollectionLT(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldLT(FieldDateCollection, v))
+}
+
+// DateCollectionLTE applies the LTE predicate on the "date_collection" field.
+func DateCollectionLTE(v time.Time) predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldLTE(FieldDateCollection, v))
+}
+
+// DateCollectionIsNil applies the IsNil predicate on the "date_collection" field.
+func DateCollectionIsNil() predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldIsNull(FieldDateCollection))
+}
+
+// DateCollectionNotNil applies the NotNil predicate on the "date_collection" field.
+func DateCollectionNotNil() predicate.BillingAccount {
+	return predicate.BillingAccount(sql.FieldNotNull(FieldDateCollection))
 }
 
 // DateUpdatedEQ applies the EQ predicate on the "date_updated" field.

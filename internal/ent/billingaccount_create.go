@@ -92,6 +92,26 @@ func (_c *BillingAccountCreate) SetNillableDateForgotten(v *time.Time) *BillingA
 	return _c
 }
 
+// SetCollection sets the "collection" field.
+func (_c *BillingAccountCreate) SetCollection(v int32) *BillingAccountCreate {
+	_c.mutation.SetCollection(v)
+	return _c
+}
+
+// SetDateCollection sets the "date_collection" field.
+func (_c *BillingAccountCreate) SetDateCollection(v time.Time) *BillingAccountCreate {
+	_c.mutation.SetDateCollection(v)
+	return _c
+}
+
+// SetNillableDateCollection sets the "date_collection" field if the given value is not nil.
+func (_c *BillingAccountCreate) SetNillableDateCollection(v *time.Time) *BillingAccountCreate {
+	if v != nil {
+		_c.SetDateCollection(*v)
+	}
+	return _c
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (_c *BillingAccountCreate) SetDateUpdated(v time.Time) *BillingAccountCreate {
 	_c.mutation.SetDateUpdated(v)
@@ -192,6 +212,9 @@ func (_c *BillingAccountCreate) check() error {
 	}
 	if _, ok := _c.mutation.Address(); !ok {
 		return &ValidationError{Name: "address", err: errors.New(`ent: missing required field "BillingAccount.address"`)}
+	}
+	if _, ok := _c.mutation.Collection(); !ok {
+		return &ValidationError{Name: "collection", err: errors.New(`ent: missing required field "BillingAccount.collection"`)}
 	}
 	if _, ok := _c.mutation.DateUpdated(); !ok {
 		return &ValidationError{Name: "date_updated", err: errors.New(`ent: missing required field "BillingAccount.date_updated"`)}
@@ -296,6 +319,14 @@ func (_c *BillingAccountCreate) createSpec() (*BillingAccount, *sqlgraph.CreateS
 	if value, ok := _c.mutation.DateForgotten(); ok {
 		_spec.SetField(billingaccount.FieldDateForgotten, field.TypeTime, value)
 		_node.DateForgotten = &value
+	}
+	if value, ok := _c.mutation.Collection(); ok {
+		_spec.SetField(billingaccount.FieldCollection, field.TypeInt32, value)
+		_node.Collection = value
+	}
+	if value, ok := _c.mutation.DateCollection(); ok {
+		_spec.SetField(billingaccount.FieldDateCollection, field.TypeTime, value)
+		_node.DateCollection = &value
 	}
 	if value, ok := _c.mutation.DateUpdated(); ok {
 		_spec.SetField(billingaccount.FieldDateUpdated, field.TypeTime, value)

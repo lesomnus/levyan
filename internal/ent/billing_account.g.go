@@ -25,6 +25,10 @@ func (e *BillingAccount) Proto() *levyan.BillingAccount {
 	if e.DateForgotten != nil {
 		x.SetDateForgotten(timestamppb.New(*e.DateForgotten))
 	}
+	x.SetCollection(levyan.CollectionState(e.Collection))
+	if e.DateCollection != nil {
+		x.SetDateCollection(timestamppb.New(*e.DateCollection))
+	}
 	x.SetDateUpdated(timestamppb.New(e.DateUpdated))
 	if e.DateErased != nil {
 		x.SetDateErased(timestamppb.New(*e.DateErased))

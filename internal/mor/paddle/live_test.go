@@ -31,7 +31,7 @@ import (
 //	                             test card. In KRW, with South Korea picked on
 //	                             the checkout's first screen, it is where
 //	                             Korean cards, KakaoPay and NaverPay are to be
-//	                             seen (docs/design.md §16, 61).
+//	                             seen (docs/design.md §17, 61).
 //	PADDLE_SANDBOX_SUBSCRIPTION  sub_…, one such a checkout started: the test
 //	                             charges it now and for the next period, asks
 //	                             both, and refunds part of the first.

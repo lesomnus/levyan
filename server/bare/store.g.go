@@ -12,6 +12,7 @@ import (
 	archived "github.com/lesomnus/levyan/internal/ent/archived"
 	audit "github.com/lesomnus/levyan/internal/ent/audit"
 	billingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
+	checkout "github.com/lesomnus/levyan/internal/ent/checkout"
 	credit "github.com/lesomnus/levyan/internal/ent/credit"
 	creditnote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	departure "github.com/lesomnus/levyan/internal/ent/departure"
@@ -21,6 +22,8 @@ import (
 	invoiceline "github.com/lesomnus/levyan/internal/ent/invoiceline"
 	link "github.com/lesomnus/levyan/internal/ent/link"
 	meter "github.com/lesomnus/levyan/internal/ent/meter"
+	notice "github.com/lesomnus/levyan/internal/ent/notice"
+	noticecursor "github.com/lesomnus/levyan/internal/ent/noticecursor"
 	offer "github.com/lesomnus/levyan/internal/ent/offer"
 	operator "github.com/lesomnus/levyan/internal/ent/operator"
 	outbox "github.com/lesomnus/levyan/internal/ent/outbox"
@@ -35,6 +38,7 @@ import (
 	series "github.com/lesomnus/levyan/internal/ent/series"
 	servicekey "github.com/lesomnus/levyan/internal/ent/servicekey"
 	statement "github.com/lesomnus/levyan/internal/ent/statement"
+	subscription "github.com/lesomnus/levyan/internal/ent/subscription"
 	tenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	workspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
@@ -388,6 +392,8 @@ func snapshotOrNil(v proto.Message) proto.Message {
 // say about.
 type Scope interface {
 	BillingAccountScope(ctx context.Context) (predicate.BillingAccount, error)
+	SubscriptionScope(ctx context.Context) (predicate.Subscription, error)
+	CheckoutScope(ctx context.Context) (predicate.Checkout, error)
 	TenantScope(ctx context.Context) (predicate.Tenant, error)
 	PeriodScope(ctx context.Context) (predicate.Period, error)
 	InvoiceScope(ctx context.Context) (predicate.Invoice, error)
@@ -401,6 +407,8 @@ type Scope interface {
 	OfferScope(ctx context.Context) (predicate.Offer, error)
 	LinkScope(ctx context.Context) (predicate.Link, error)
 	MeterScope(ctx context.Context) (predicate.Meter, error)
+	NoticeScope(ctx context.Context) (predicate.Notice, error)
+	NoticeCursorScope(ctx context.Context) (predicate.NoticeCursor, error)
 	OperatorScope(ctx context.Context) (predicate.Operator, error)
 	AccessScope(ctx context.Context) (predicate.Access, error)
 	ArchivedScope(ctx context.Context) (predicate.Archived, error)
@@ -430,6 +438,12 @@ type Unscoped struct{}
 var _ Scope = Unscoped{}
 
 func (Unscoped) BillingAccountScope(_ context.Context) (predicate.BillingAccount, error) {
+	return nil, nil
+}
+func (Unscoped) SubscriptionScope(_ context.Context) (predicate.Subscription, error) {
+	return nil, nil
+}
+func (Unscoped) CheckoutScope(_ context.Context) (predicate.Checkout, error) {
 	return nil, nil
 }
 func (Unscoped) TenantScope(_ context.Context) (predicate.Tenant, error) {
@@ -469,6 +483,12 @@ func (Unscoped) LinkScope(_ context.Context) (predicate.Link, error) {
 	return nil, nil
 }
 func (Unscoped) MeterScope(_ context.Context) (predicate.Meter, error) {
+	return nil, nil
+}
+func (Unscoped) NoticeScope(_ context.Context) (predicate.Notice, error) {
+	return nil, nil
+}
+func (Unscoped) NoticeCursorScope(_ context.Context) (predicate.NoticeCursor, error) {
 	return nil, nil
 }
 func (Unscoped) OperatorScope(_ context.Context) (predicate.Operator, error) {
@@ -551,6 +571,46 @@ func (ss Scopes) BillingAccountScope(ctx context.Context) (predicate.BillingAcco
 	}
 
 	return billingaccount.And(ps...), nil
+}
+
+func (ss Scopes) SubscriptionScope(ctx context.Context) (predicate.Subscription, error) {
+	ps := make([]predicate.Subscription, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.SubscriptionScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return subscription.And(ps...), nil
+}
+
+func (ss Scopes) CheckoutScope(ctx context.Context) (predicate.Checkout, error) {
+	ps := make([]predicate.Checkout, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.CheckoutScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return checkout.And(ps...), nil
 }
 
 func (ss Scopes) TenantScope(ctx context.Context) (predicate.Tenant, error) {
@@ -811,6 +871,46 @@ func (ss Scopes) MeterScope(ctx context.Context) (predicate.Meter, error) {
 	}
 
 	return meter.And(ps...), nil
+}
+
+func (ss Scopes) NoticeScope(ctx context.Context) (predicate.Notice, error) {
+	ps := make([]predicate.Notice, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.NoticeScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return notice.And(ps...), nil
+}
+
+func (ss Scopes) NoticeCursorScope(ctx context.Context) (predicate.NoticeCursor, error) {
+	ps := make([]predicate.NoticeCursor, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.NoticeCursorScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return noticecursor.And(ps...), nil
 }
 
 func (ss Scopes) OperatorScope(ctx context.Context) (predicate.Operator, error) {
@@ -1228,7 +1328,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. BillingAccount, Credit, CreditNote, Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement and Workspace free the names they held when a row
+// check. BillingAccount, Checkout, Credit, CreditNote, Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement, Subscription and Workspace free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -1269,9 +1369,13 @@ func (s Server) WithDriver(drv dialect.Driver) (levyan.Server, error) {
 func (s Server) BillingAccount() levyan.BillingAccountServiceServer {
 	return BillingAccountServiceServer{Store: s.Store}
 }
-func (s Server) Tenant() levyan.TenantServiceServer   { return TenantServiceServer{Store: s.Store} }
-func (s Server) Period() levyan.PeriodServiceServer   { return PeriodServiceServer{Store: s.Store} }
-func (s Server) Invoice() levyan.InvoiceServiceServer { return InvoiceServiceServer{Store: s.Store} }
+func (s Server) Subscription() levyan.SubscriptionServiceServer {
+	return SubscriptionServiceServer{Store: s.Store}
+}
+func (s Server) Checkout() levyan.CheckoutServiceServer { return CheckoutServiceServer{Store: s.Store} }
+func (s Server) Tenant() levyan.TenantServiceServer     { return TenantServiceServer{Store: s.Store} }
+func (s Server) Period() levyan.PeriodServiceServer     { return PeriodServiceServer{Store: s.Store} }
+func (s Server) Invoice() levyan.InvoiceServiceServer   { return InvoiceServiceServer{Store: s.Store} }
 func (s Server) CreditNote() levyan.CreditNoteServiceServer {
 	return CreditNoteServiceServer{Store: s.Store}
 }
@@ -1289,9 +1393,13 @@ func (s Server) Statement() levyan.StatementServiceServer {
 func (s Server) InvoiceLine() levyan.InvoiceLineServiceServer {
 	return InvoiceLineServiceServer{Store: s.Store}
 }
-func (s Server) Offer() levyan.OfferServiceServer       { return OfferServiceServer{Store: s.Store} }
-func (s Server) Link() levyan.LinkServiceServer         { return LinkServiceServer{Store: s.Store} }
-func (s Server) Meter() levyan.MeterServiceServer       { return MeterServiceServer{Store: s.Store} }
+func (s Server) Offer() levyan.OfferServiceServer   { return OfferServiceServer{Store: s.Store} }
+func (s Server) Link() levyan.LinkServiceServer     { return LinkServiceServer{Store: s.Store} }
+func (s Server) Meter() levyan.MeterServiceServer   { return MeterServiceServer{Store: s.Store} }
+func (s Server) Notice() levyan.NoticeServiceServer { return NoticeServiceServer{Store: s.Store} }
+func (s Server) NoticeCursor() levyan.NoticeCursorServiceServer {
+	return NoticeCursorServiceServer{Store: s.Store}
+}
 func (s Server) Operator() levyan.OperatorServiceServer { return OperatorServiceServer{Store: s.Store} }
 func (s Server) Access() levyan.AccessServiceServer     { return AccessServiceServer{Store: s.Store} }
 func (s Server) Archived() levyan.ArchivedServiceServer { return ArchivedServiceServer{Store: s.Store} }

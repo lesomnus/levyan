@@ -32,6 +32,8 @@ import (
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/internal/keyring"
+	"github.com/lesomnus/levyan/internal/mor"
+	"github.com/lesomnus/levyan/internal/mor/paddle"
 	"github.com/lesomnus/levyan/server/bare"
 	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/book"
@@ -41,6 +43,7 @@ import (
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
 	"github.com/lesomnus/levyan/server/pd"
+	"github.com/lesomnus/levyan/server/subscriptions"
 )
 
 // Server is a built app: the database it runs on and the two stacks it answers
@@ -153,6 +156,21 @@ type Server struct {
 	// allowances (`payers.free`).
 	Free int
 
+	// Subscriptions is billing accounts' subscriptions with the merchant of
+	// record (#12), through the server with no wall: what the merchant's
+	// notices lead to is written through it, as the deployment. An
+	// account's own checkout is begun and completed through the walled stack
+	// ([subscriptions.Subscriptions.On]). Its Channel is nil when `mor`
+	// names no merchant, when no checkout is begun.
+	Subscriptions subscriptions.Subscriptions
+
+	// Inbox is the merchant of record's notices, kept once: its webhooks,
+	// which the public listener's endpoint receives when Webhooks says so
+	// (`mor.webhook_secret`), and its list of them, pulled. Nil with no
+	// merchant.
+	Inbox    *subscriptions.Inbox
+	Webhooks bool
+
 	closeRoster func() error
 
 	// Spin is whatever this deployment has to run besides answering requests,
@@ -199,6 +217,23 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 			return nil, fmt.Errorf("invoices.bank_kr.%w", err)
 		}
 		bankKR = v
+	}
+
+	// The merchant of record, if one is named, the same: one that could not
+	// be reached, or a currency billed on it with no plan to subscribe to,
+	// stops the deployment before anything is opened.
+	var ch mor.Channel
+	if c.Mor != nil {
+		pc, err := c.Mor.Paddle()
+		if err == nil {
+			err = c.Mor.PlansFor(channels)
+		}
+		if err == nil {
+			ch, err = paddle.New(pc)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("mor: %w", err)
+		}
 	}
 
 	db, dialect, err := c.Db.Open(ctx)
@@ -341,6 +376,27 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// since `payers.grace` ago is restricted.
 	s.Payers = payers.Payers{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Payers.GraceOf()}
 	s.Grants.Rules = append(s.Grants.Rules, payers.Payerless{Grace: c.Payers.GraceOf()})
+
+	// The merchant of record (#12): a billing account on its channel
+	// subscribes in its checkout, levyan keeps a mirror of the subscription
+	// made of what its API answers, and what it notices -- its webhooks, and
+	// its own list of them, pulled -- is kept in an inbox and taken by a
+	// loop, each in one process. With no `mor` block there is none: a
+	// checkout is refused, and the loops do not run.
+	s.Subscriptions = subscriptions.Subscriptions{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Channel: ch}
+	if ch != nil {
+		s.Inbox = subscriptions.NewInbox(client, ch, clock)
+		s.Webhooks = !c.Mor.WebhookSecret.IsZero()
+		s.Spin = append(s.Spin,
+			subscriptions.Takes(subscriptions.Taker{In: s.Inbox, Subs: s.Subscriptions}, 5*time.Second),
+			subscriptions.Pulls(subscriptions.Puller{In: s.Inbox, Now: c.Mor.Clock}, c.Mor.PullEvery()),
+		)
+		if !s.Webhooks {
+			log.From(ctx).InfoContext(ctx, "mor: no webhook_secret, so no webhook is received; the merchant's events are pulled", slog.String("mor", ch.Name()), slog.Duration("every", c.Mor.PullEvery()))
+		}
+	} else {
+		log.From(ctx).InfoContext(ctx, "mor: none is configured, so no checkout is begun")
+	}
 
 	// roster, whose accounts pay: asked whether each account a product relays
 	// a call for is in good standing, and heard saying when one is suspended
@@ -541,10 +597,13 @@ func (s *Server) Serve(ctx context.Context, c Config, l net.Listener) error {
 // behind the same wall.
 func (s *Server) serveHttp(ctx context.Context, c Config, g *grpc.Server) (func(), error) {
 	if !c.Server.Http.Serves() {
+		if s.Webhooks {
+			log.From(ctx).WarnContext(ctx, "mor: server.http names no address, so no webhook of the merchant's is received; its events are pulled")
+		}
 		return func() {}, nil
 	}
 
-	h, err := web.New(c.Server.Http, g)
+	h, err := s.Http(ctx, c, g)
 	if err != nil {
 		return nil, err
 	}
@@ -564,6 +623,24 @@ func (s *Server) serveHttp(ctx context.Context, c Config, g *grpc.Server) (func(
 	log.From(ctx).InfoContext(ctx, "http", slog.String("addr", l.Addr().String()))
 
 	return func() { srv.Close() }, nil
+}
+
+// Http is what the second listener answers: `g` for a caller that speaks
+// Connect or gRPC-Web, and the merchant of record's webhooks
+// ([subscriptions.WebhookPath]) when they are received, which reach no server
+// stack -- the endpoint keeps each in the inbox and answers.
+func (s *Server) Http(ctx context.Context, c Config, g *grpc.Server) (http.Handler, error) {
+	h, err := web.New(c.Server.Http, g)
+	if err != nil {
+		return nil, err
+	}
+	if s.Inbox != nil && s.Webhooks {
+		path := subscriptions.WebhookPath(s.Inbox.Channel)
+		h.Handle("POST "+path, s.Inbox.Handler(ctx))
+		log.From(ctx).InfoContext(ctx, "mor: webhooks", slog.String("path", path))
+	}
+
+	return h, nil
 }
 
 // grantName is a grant's message, as an event of a change names its type.

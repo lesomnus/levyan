@@ -98,4 +98,11 @@ message Payer {
   // and for a workspace that never had one.
   google.protobuf.Timestamp payerless_since = 5;
   google.protobuf.Timestamp restricted_from = 6;
+
+  // Whether what the billing account it is paid for with now is billed can
+  // be collected, and why not: what a product warns its owners of. Unset
+  // while nobody pays for it, or its payer has set up no billing account
+  // yet. How the payer pays is the payer's to see (`PayerService`), and not
+  // here.
+  Collection collection = 7;
 }

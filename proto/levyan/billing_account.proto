@@ -86,6 +86,16 @@ message BillingAccount {
   // them any more; unset while it has.
   google.protobuf.Timestamp date_forgotten = 19 [(orm.field) = {nullable: true}];
 
+  // Whether what it is billed can be collected now, and why not, and since
+  // when it has been so: what the subscription it is collected through says,
+  // on the merchant of record's channel (`Subscription`, #12). Written beside
+  // the mirror whenever it moves, and by nothing else, so that each change of
+  // it is on the trail. Unspecified on a channel nothing is collected on yet
+  // (PG_KR), and on the MoR's until a subscription is first mirrored -- read
+  // as no subscription since it was made.
+  CollectionState collection = 20;
+  google.protobuf.Timestamp date_collection = 21 [(orm.field) = {nullable: true}];
+
   google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
 
   // Never stamped: there is no Erase. A billing account somebody was billed
@@ -152,6 +162,38 @@ message BillingAccount {
       max: 200
     }
   };
+}
+
+// CollectionState is whether what a billing account is billed can be
+// collected now, and why not.
+//
+// What a state that is not collectable leads to -- a grace, a restriction --
+// is dunning's (#11), and not said here.
+enum CollectionState {
+  // Nothing is said: a channel levyan collects nothing on yet.
+  COLLECTION_STATE_UNSPECIFIED = 0;
+
+  // Its subscription is billed and paid up, and takes a charge.
+  COLLECTION_STATE_COLLECTABLE = 1;
+
+  // It has no subscription: the payer has not finished a checkout.
+  COLLECTION_STATE_NO_SUBSCRIPTION = 2;
+
+  // A payment the MoR has not collected, which it is retrying: nothing more
+  // is charged until it is paid.
+  COLLECTION_STATE_PAST_DUE = 3;
+
+  // Its subscription is paused, and billed nothing.
+  COLLECTION_STATE_PAUSED = 4;
+
+  // Its subscription is over -- canceled at the MoR, by levyan or by the
+  // payer -- and charges nothing again: another checkout begins another.
+  COLLECTION_STATE_CANCELED = 5;
+
+  // A payment waits for the payer to act -- approve it in their card
+  // company's app, or pass their bank's check -- before the MoR can collect
+  // it.
+  COLLECTION_STATE_NEEDS_ACTION = 6;
 }
 
 // BillingBusiness is the business a billing account is billed to: what a Korean

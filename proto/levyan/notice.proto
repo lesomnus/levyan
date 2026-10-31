@@ -1,0 +1,280 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/billing_account.proto";
+import "levyan/checkout.proto";
+import "levyan/subscription.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Notice is the inbox of what a merchant of record says has happened (#12,
+// docs/design.md §12): each of its webhooks, its signature checked, kept
+// before it is answered; and each event the MoR's list of them answers to
+// levyan's pull of it (`levyan.mor.events`). Either way a notice is kept once,
+// by the MoR's id of the event, so one that came both ways, or twice, is one
+// row.
+//
+// Nothing a notice says is believed. What it names is asked of the MoR by the
+// loop that takes the inbox (`levyan.mor.inbox`), and what the MoR answers is
+// what is written -- through the servers, and so on the trail: a mirror
+// (`Subscription`), a checkout completed, a billing account's collection.
+// What the notice named, what the asking found of a transaction, and what
+// came of it, stay here.
+//
+// Written by levyan's own code alone, with ent, and kept off the trail
+// (`trail: off`, below): the endpoint a webhook comes to is the public's to
+// reach, so it holds this table and the channel's check of a signature and no
+// server stack, and what follows from a notice is on the trail as the writes
+// it leads to.
+message Notice {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The merchant of record that sent it, by the name its adapter answers
+  // ("paddle"), and the MoR's id of the event (evt_…): what keeps it once.
+  string mor = 8 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string mor_event = 9 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // What happened, in the MoR's words (subscription.updated), and what of
+  // levyan's it is about.
+  string type = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  NoticeKind kind = 11 [(orm.field) = {immutable: true}];
+
+  // How it first came.
+  NoticeVia via = 12 [(orm.field) = {immutable: true}];
+
+  // What it names, by the MoR's ids, and nothing else of what it says: a
+  // transaction, the subscription it is of, an adjustment of it.
+  string mor_transaction = 16 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string mor_subscription = 17 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string mor_adjustment = 18 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // When the MoR says it happened: not believed, and no order.
+  google.protobuf.Timestamp date_occurred = 19 [(orm.field) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // What the MoR answered, asked of the transaction it names: unset for a
+  // notice of anything else, and until it is asked.
+  NoticeTransaction transaction = 20 [(orm.field) = {nullable: true}];
+
+  // What came of it, once it was taken.
+  NoticeOutcome outcome = 21;
+
+  // What of levyan's it was found to be about: the billing account, its
+  // mirror of the subscription, the checkout it completed.
+  BillingAccount billing_account = 22 [(orm.edge) = {nullable: true}];
+  Subscription subscription = 23 [(orm.edge) = {nullable: true}];
+  Checkout checkout = 24 [(orm.edge) = {nullable: true}];
+
+  // How many times it was taken and the MoR could not be asked, why the last
+  // try failed, and not before when the next is made.
+  int32 tries = 25;
+  string error = 26 [(payday.field) = {personal: false}];
+  google.protobuf.Timestamp date_retry = 27 [(orm.field) = {nullable: true}];
+
+  // When it was taken, for good; unset while it waits.
+  google.protobuf.Timestamp date_done = 28 [(orm.field) = {nullable: true}];
+
+  // When it came.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    indexes: [
+      {
+        name: "mor_event"
+        refs: [
+          {
+            name: "mor"
+            number: 8
+          },
+          {
+            name: "mor_event"
+            number: 9
+          }
+        ]
+        unique: true
+      },
+      {
+        // What the loop takes next: what waits, oldest first.
+        name: "waiting"
+        refs: [
+          {
+            name: "date_done"
+            number: 28
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
+      },
+      {
+        // What was heard of a transaction.
+        name: "mor_transaction"
+        refs: [
+          {
+            name: "mor"
+            number: 8
+          },
+          {
+            name: "mor_transaction"
+            number: 16
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 42
+    global: {}
+    erase: {hard: {}}
+    trail: {off: {why: "the inbox of a merchant of record's notices: hints, none believed, each kept once by the MoR's id of it and taken by a loop within seconds; what one leads to is asked of the MoR and written through the servers"}}
+  };
+}
+
+// NoticeKind is what a notice is about, as levyan acts on it.
+enum NoticeKind {
+  NOTICE_KIND_UNSPECIFIED = 0;
+
+  // A transaction that changed, or an adjustment of one: the transaction is
+  // asked about.
+  NOTICE_KIND_TRANSACTION = 1;
+
+  // A subscription that changed: it is asked about.
+  NOTICE_KIND_SUBSCRIPTION = 2;
+
+  // Anything else -- a customer, an address, a payment method saved --
+  // which levyan does not act on: kept, and taken at once.
+  NOTICE_KIND_OTHER = 3;
+}
+
+// NoticeVia is how a notice came.
+enum NoticeVia {
+  NOTICE_VIA_UNSPECIFIED = 0;
+
+  // A webhook, to levyan's endpoint.
+  NOTICE_VIA_WEBHOOK = 1;
+
+  // The MoR's list of its events, which levyan reads.
+  NOTICE_VIA_EVENTS = 2;
+}
+
+// NoticeOutcome is what came of a notice.
+enum NoticeOutcome {
+  NOTICE_OUTCOME_UNSPECIFIED = 0;
+
+  // What it names was asked, and what the MoR answered was written down: a
+  // mirror moved, a checkout completed, a transaction recorded.
+  NOTICE_OUTCOME_APPLIED = 1;
+
+  // Asked, and what levyan holds is as new already.
+  NOTICE_OUTCOME_UNCHANGED = 2;
+
+  // About nothing of levyan's: no checkout of it was begun, and no mirror is
+  // of it.
+  NOTICE_OUTCOME_FOREIGN = 3;
+
+  // About nothing levyan acts on.
+  NOTICE_OUTCOME_DROPPED = 4;
+
+  // What it names could not be asked about, ever: an id the MoR refuses.
+  NOTICE_OUTCOME_REFUSED = 5;
+}
+
+// NoticeTransaction is what the MoR answered of a transaction a notice
+// named, as `mor.Transaction` says it -- what a payment's attempts and
+// invoices are brought to by the collection of a period's amount, which is
+// not built yet (#9) -- and nothing of who paid but the kind of method.
+message NoticeTransaction {
+  // Scheduled, pending, paid or failed, and how far along its life it is
+  // (`mor.Transaction.Progress`).
+  string status = 1;
+  int32 progress = 2;
+
+  // The subscription it is of, and the payer as the MoR's customer.
+  string mor_subscription = 3;
+  string mor_customer = 4;
+
+  // What it bills, tax included, in a whole number of the currency's minor
+  // unit, before anything is given back.
+  int64 total = 5;
+  string currency = 6;
+
+  // When it was paid: unset for one that was not.
+  google.protobuf.Timestamp date_paid = 7;
+
+  // Whether its latest payment waits for the payer to act, and the kind of
+  // method it was attempted with.
+  bool awaiting_payer = 8;
+  string method_type = 9;
+
+  // Why the last attempt to collect it failed, by `mor.Kind` and the MoR's
+  // code.
+  string failure = 10;
+  string failure_code = 11;
+
+  repeated NoticeLine lines = 12;
+  repeated NoticeAdjustment adjustments = 13;
+}
+
+// NoticeLine is a line of a transaction, as the MoR answered it.
+message NoticeLine {
+  // The MoR's id of the line (txnitm_…), and the key of levyan's charge it
+  // is: empty for a line that is none, as the plan's.
+  string mor_line = 1;
+  string key = 2;
+
+  // What was charged, its tax, and what the payer is billed for it.
+  int64 amount = 3;
+  int64 tax = 4;
+  int64 total = 5;
+}
+
+// NoticeAdjustment is what was given back of a transaction, or taken back,
+// as the MoR answered it.
+message NoticeAdjustment {
+  string mor_adjustment = 1;
+
+  // A refund or a chargeback, and where it is: by `mor.AdjustmentKind` and
+  // `mor.AdjustmentStatus`.
+  string kind = 2;
+  string status = 3;
+
+  // What it gives back, tax included, and the key levyan asked for it
+  // under: empty for one levyan did not ask for.
+  int64 amount = 4;
+  string key = 5;
+
+  google.protobuf.Timestamp date_created = 6;
+}

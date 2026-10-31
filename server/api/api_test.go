@@ -29,6 +29,10 @@ func TestTheAPIsEnumsAreTheSchemas(t *testing.T) {
 		{levyan.LinkEnded(0).Descriptor(), levyanv1.LinkEnded(0).Descriptor()},
 		{levyan.InvoiceState(0).Descriptor(), levyanv1.InvoiceState(0).Descriptor()},
 		{levyan.CreditNoteReason(0).Descriptor(), levyanv1.CreditNoteReason(0).Descriptor()},
+		{levyan.CheckoutState(0).Descriptor(), levyanv1.CheckoutState(0).Descriptor()},
+		{levyan.CollectionState(0).Descriptor(), levyanv1.CollectionState(0).Descriptor()},
+		{levyan.SubscriptionStatus(0).Descriptor(), levyanv1.SubscriptionStatus(0).Descriptor()},
+		{levyan.SubscriptionChange(0).Descriptor(), levyanv1.SubscriptionChange(0).Descriptor()},
 	} {
 		schema, api := pair[0], pair[1]
 		x.Equal(schema.Values().Len(), api.Values().Len(), "%s", schema.FullName())

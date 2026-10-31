@@ -137,6 +137,10 @@ func (st BillingAccountServiceServer) create(ctx context.Context, req *levyan.Bi
 	if req.HasDateForgotten() {
 		q.SetDateForgotten(req.GetDateForgotten().AsTime())
 	}
+	q.SetCollection(int32(req.GetCollection()))
+	if req.HasDateCollection() {
+		q.SetDateCollection(req.GetDateCollection().AsTime())
+	}
 	q.SetDateUpdated(st.now())
 	if req.HasDateCreated() {
 		q.SetDateCreated(req.GetDateCreated().AsTime())
@@ -300,6 +304,12 @@ func BillingAccountSelectedFields(m *levyan.BillingAccountSelect) []string {
 	if m.GetDateForgotten() {
 		vs = append(vs, billingaccount.FieldDateForgotten)
 	}
+	if m.GetCollection() {
+		vs = append(vs, billingaccount.FieldCollection)
+	}
+	if m.GetDateCollection() {
+		vs = append(vs, billingaccount.FieldDateCollection)
+	}
 	if m.GetDateUpdated() {
 		vs = append(vs, billingaccount.FieldDateUpdated)
 	}
@@ -373,7 +383,7 @@ func BillingAccountGetKey(ctx context.Context, db *ent.Client, ref *levyan.Billi
 var billingAccountOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_billing_account_proto, "BillingAccount")
 
 var billingAccountPatchColumns = entpatch.Columns{
-	1: billingaccount.FieldId, 5: billingaccount.FieldName, 8: billingaccount.FieldOwner, 9: billingaccount.FieldCountry, 10: billingaccount.FieldChannel, 11: billingaccount.FieldCurrency, 12: billingaccount.FieldRecipient, 16: billingaccount.FieldEmail, 17: billingaccount.FieldAddress, 18: billingaccount.FieldBusiness, 19: billingaccount.FieldDateForgotten, 13: billingaccount.FieldDateUpdated, 14: billingaccount.FieldDateErased, 15: billingaccount.FieldDateCreated}
+	1: billingaccount.FieldId, 5: billingaccount.FieldName, 8: billingaccount.FieldOwner, 9: billingaccount.FieldCountry, 10: billingaccount.FieldChannel, 11: billingaccount.FieldCurrency, 12: billingaccount.FieldRecipient, 16: billingaccount.FieldEmail, 17: billingaccount.FieldAddress, 18: billingaccount.FieldBusiness, 19: billingaccount.FieldDateForgotten, 20: billingaccount.FieldCollection, 21: billingaccount.FieldDateCollection, 13: billingaccount.FieldDateUpdated, 14: billingaccount.FieldDateErased, 15: billingaccount.FieldDateCreated}
 
 func (s BillingAccountServiceServer) Apply(ctx context.Context, req *levyan.BillingAccountApplyRequest) (*levyan.BillingAccount, error) {
 	if !req.HasPatch() {

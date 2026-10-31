@@ -97,6 +97,11 @@ func init() {
 	// relays the call: the invoices once finalized, and their credit notes
 	// (#9).
 	allow(Payer, "levyan.v1.PayerService", "ListInvoices", "GetInvoice", "ListCreditNotes")
+
+	// And a billing account's subscription with the merchant of record: the
+	// billing account with whether it can be collected from, and the
+	// checkout that subscribes it (#12).
+	allow(Payer, "levyan.v1.PayerService", "GetBillingAccount", "StartCheckout", "CompleteCheckout")
 }
 
 // Policy is the table, asked.

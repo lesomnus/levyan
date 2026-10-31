@@ -24,6 +24,228 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CheckoutState is where a checkout is, value for value levyan's own.
+type CheckoutState int32
+
+const (
+	CheckoutState_CHECKOUT_STATE_UNSPECIFIED CheckoutState = 0
+	// Begun, and not finished.
+	CheckoutState_CHECKOUT_STATE_OPEN CheckoutState = 1
+	// Finished: the merchant made the subscription it started.
+	CheckoutState_CHECKOUT_STATE_COMPLETED CheckoutState = 2
+	// One the merchant says can no longer be finished: another is begun.
+	CheckoutState_CHECKOUT_STATE_CANCELED CheckoutState = 3
+)
+
+// Enum value maps for CheckoutState.
+var (
+	CheckoutState_name = map[int32]string{
+		0: "CHECKOUT_STATE_UNSPECIFIED",
+		1: "CHECKOUT_STATE_OPEN",
+		2: "CHECKOUT_STATE_COMPLETED",
+		3: "CHECKOUT_STATE_CANCELED",
+	}
+	CheckoutState_value = map[string]int32{
+		"CHECKOUT_STATE_UNSPECIFIED": 0,
+		"CHECKOUT_STATE_OPEN":        1,
+		"CHECKOUT_STATE_COMPLETED":   2,
+		"CHECKOUT_STATE_CANCELED":    3,
+	}
+)
+
+func (x CheckoutState) Enum() *CheckoutState {
+	p := new(CheckoutState)
+	*p = x
+	return p
+}
+
+func (x CheckoutState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CheckoutState) Descriptor() protoreflect.EnumDescriptor {
+	return file_levyan_v1_payer_proto_enumTypes[0].Descriptor()
+}
+
+func (CheckoutState) Type() protoreflect.EnumType {
+	return &file_levyan_v1_payer_proto_enumTypes[0]
+}
+
+func (x CheckoutState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// CollectionState is whether what a billing account is billed can be
+// collected now, and why not, value for value levyan's own.
+type CollectionState int32
+
+const (
+	// Nothing is said: a channel levyan collects nothing on yet.
+	CollectionState_COLLECTION_STATE_UNSPECIFIED CollectionState = 0
+	// Its subscription is billed and paid up.
+	CollectionState_COLLECTION_STATE_COLLECTABLE CollectionState = 1
+	// It has no subscription: the payer has not finished a checkout.
+	CollectionState_COLLECTION_STATE_NO_SUBSCRIPTION CollectionState = 2
+	// A payment the merchant has not collected, and is retrying.
+	CollectionState_COLLECTION_STATE_PAST_DUE CollectionState = 3
+	// Its subscription is paused.
+	CollectionState_COLLECTION_STATE_PAUSED CollectionState = 4
+	// Its subscription is over -- canceled at the merchant, by levyan or by
+	// the payer -- and another checkout begins another.
+	CollectionState_COLLECTION_STATE_CANCELED CollectionState = 5
+	// A payment waits for the payer to act -- approve it in their card
+	// company's app, or pass their bank's check.
+	CollectionState_COLLECTION_STATE_NEEDS_ACTION CollectionState = 6
+)
+
+// Enum value maps for CollectionState.
+var (
+	CollectionState_name = map[int32]string{
+		0: "COLLECTION_STATE_UNSPECIFIED",
+		1: "COLLECTION_STATE_COLLECTABLE",
+		2: "COLLECTION_STATE_NO_SUBSCRIPTION",
+		3: "COLLECTION_STATE_PAST_DUE",
+		4: "COLLECTION_STATE_PAUSED",
+		5: "COLLECTION_STATE_CANCELED",
+		6: "COLLECTION_STATE_NEEDS_ACTION",
+	}
+	CollectionState_value = map[string]int32{
+		"COLLECTION_STATE_UNSPECIFIED":     0,
+		"COLLECTION_STATE_COLLECTABLE":     1,
+		"COLLECTION_STATE_NO_SUBSCRIPTION": 2,
+		"COLLECTION_STATE_PAST_DUE":        3,
+		"COLLECTION_STATE_PAUSED":          4,
+		"COLLECTION_STATE_CANCELED":        5,
+		"COLLECTION_STATE_NEEDS_ACTION":    6,
+	}
+)
+
+func (x CollectionState) Enum() *CollectionState {
+	p := new(CollectionState)
+	*p = x
+	return p
+}
+
+func (x CollectionState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CollectionState) Descriptor() protoreflect.EnumDescriptor {
+	return file_levyan_v1_payer_proto_enumTypes[1].Descriptor()
+}
+
+func (CollectionState) Type() protoreflect.EnumType {
+	return &file_levyan_v1_payer_proto_enumTypes[1]
+}
+
+func (x CollectionState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// SubscriptionStatus is where a subscription is, value for value levyan's
+// own.
+type SubscriptionStatus int32
+
+const (
+	SubscriptionStatus_SUBSCRIPTION_STATUS_UNSPECIFIED SubscriptionStatus = 0
+	SubscriptionStatus_SUBSCRIPTION_STATUS_ACTIVE      SubscriptionStatus = 1
+	SubscriptionStatus_SUBSCRIPTION_STATUS_TRIALING    SubscriptionStatus = 2
+	SubscriptionStatus_SUBSCRIPTION_STATUS_PAST_DUE    SubscriptionStatus = 3
+	SubscriptionStatus_SUBSCRIPTION_STATUS_PAUSED      SubscriptionStatus = 4
+	SubscriptionStatus_SUBSCRIPTION_STATUS_CANCELED    SubscriptionStatus = 5
+)
+
+// Enum value maps for SubscriptionStatus.
+var (
+	SubscriptionStatus_name = map[int32]string{
+		0: "SUBSCRIPTION_STATUS_UNSPECIFIED",
+		1: "SUBSCRIPTION_STATUS_ACTIVE",
+		2: "SUBSCRIPTION_STATUS_TRIALING",
+		3: "SUBSCRIPTION_STATUS_PAST_DUE",
+		4: "SUBSCRIPTION_STATUS_PAUSED",
+		5: "SUBSCRIPTION_STATUS_CANCELED",
+	}
+	SubscriptionStatus_value = map[string]int32{
+		"SUBSCRIPTION_STATUS_UNSPECIFIED": 0,
+		"SUBSCRIPTION_STATUS_ACTIVE":      1,
+		"SUBSCRIPTION_STATUS_TRIALING":    2,
+		"SUBSCRIPTION_STATUS_PAST_DUE":    3,
+		"SUBSCRIPTION_STATUS_PAUSED":      4,
+		"SUBSCRIPTION_STATUS_CANCELED":    5,
+	}
+)
+
+func (x SubscriptionStatus) Enum() *SubscriptionStatus {
+	p := new(SubscriptionStatus)
+	*p = x
+	return p
+}
+
+func (x SubscriptionStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SubscriptionStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_levyan_v1_payer_proto_enumTypes[2].Descriptor()
+}
+
+func (SubscriptionStatus) Type() protoreflect.EnumType {
+	return &file_levyan_v1_payer_proto_enumTypes[2]
+}
+
+func (x SubscriptionStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// SubscriptionChange is what a merchant of record has scheduled of a
+// subscription, value for value levyan's own.
+type SubscriptionChange int32
+
+const (
+	SubscriptionChange_SUBSCRIPTION_CHANGE_UNSPECIFIED SubscriptionChange = 0
+	SubscriptionChange_SUBSCRIPTION_CHANGE_CANCEL      SubscriptionChange = 1
+	SubscriptionChange_SUBSCRIPTION_CHANGE_PAUSE       SubscriptionChange = 2
+	SubscriptionChange_SUBSCRIPTION_CHANGE_RESUME      SubscriptionChange = 3
+)
+
+// Enum value maps for SubscriptionChange.
+var (
+	SubscriptionChange_name = map[int32]string{
+		0: "SUBSCRIPTION_CHANGE_UNSPECIFIED",
+		1: "SUBSCRIPTION_CHANGE_CANCEL",
+		2: "SUBSCRIPTION_CHANGE_PAUSE",
+		3: "SUBSCRIPTION_CHANGE_RESUME",
+	}
+	SubscriptionChange_value = map[string]int32{
+		"SUBSCRIPTION_CHANGE_UNSPECIFIED": 0,
+		"SUBSCRIPTION_CHANGE_CANCEL":      1,
+		"SUBSCRIPTION_CHANGE_PAUSE":       2,
+		"SUBSCRIPTION_CHANGE_RESUME":      3,
+	}
+)
+
+func (x SubscriptionChange) Enum() *SubscriptionChange {
+	p := new(SubscriptionChange)
+	*p = x
+	return p
+}
+
+func (x SubscriptionChange) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SubscriptionChange) Descriptor() protoreflect.EnumDescriptor {
+	return file_levyan_v1_payer_proto_enumTypes[3].Descriptor()
+}
+
+func (SubscriptionChange) Type() protoreflect.EnumType {
+	return &file_levyan_v1_payer_proto_enumTypes[3]
+}
+
+func (x SubscriptionChange) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 // LinkBegan is how a link began, value for value levyan's own.
 type LinkBegan int32
 
@@ -64,11 +286,11 @@ func (x LinkBegan) String() string {
 }
 
 func (LinkBegan) Descriptor() protoreflect.EnumDescriptor {
-	return file_levyan_v1_payer_proto_enumTypes[0].Descriptor()
+	return file_levyan_v1_payer_proto_enumTypes[4].Descriptor()
 }
 
 func (LinkBegan) Type() protoreflect.EnumType {
-	return &file_levyan_v1_payer_proto_enumTypes[0]
+	return &file_levyan_v1_payer_proto_enumTypes[4]
 }
 
 func (x LinkBegan) Number() protoreflect.EnumNumber {
@@ -119,11 +341,11 @@ func (x LinkEnded) String() string {
 }
 
 func (LinkEnded) Descriptor() protoreflect.EnumDescriptor {
-	return file_levyan_v1_payer_proto_enumTypes[1].Descriptor()
+	return file_levyan_v1_payer_proto_enumTypes[5].Descriptor()
 }
 
 func (LinkEnded) Type() protoreflect.EnumType {
-	return &file_levyan_v1_payer_proto_enumTypes[1]
+	return &file_levyan_v1_payer_proto_enumTypes[5]
 }
 
 func (x LinkEnded) Number() protoreflect.EnumNumber {
@@ -1369,6 +1591,1365 @@ func (b0 StopResponse_builder) Build() *StopResponse {
 	return m0
 }
 
+type GetBillingAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id string                 `protobuf:"bytes,1,opt,name=id"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBillingAccountRequest) Reset() {
+	*x = GetBillingAccountRequest{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBillingAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBillingAccountRequest) ProtoMessage() {}
+
+func (x *GetBillingAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetBillingAccountRequest) GetId() string {
+	if x != nil {
+		return x.xxx_hidden_Id
+	}
+	return ""
+}
+
+func (x *GetBillingAccountRequest) SetId(v string) {
+	x.xxx_hidden_Id = v
+}
+
+type GetBillingAccountRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The billing account, by its identifier.
+	Id string
+}
+
+func (b0 GetBillingAccountRequest_builder) Build() *GetBillingAccountRequest {
+	m0 := &GetBillingAccountRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	return m0
+}
+
+type GetBillingAccountResponse struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_BillingAccount *BillingAccount        `protobuf:"bytes,1,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_Collection     *Collection            `protobuf:"bytes,2,opt,name=collection"`
+	xxx_hidden_Subscription   *Subscription          `protobuf:"bytes,3,opt,name=subscription"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *GetBillingAccountResponse) Reset() {
+	*x = GetBillingAccountResponse{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBillingAccountResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBillingAccountResponse) ProtoMessage() {}
+
+func (x *GetBillingAccountResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetBillingAccountResponse) GetBillingAccount() *BillingAccount {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return nil
+}
+
+func (x *GetBillingAccountResponse) GetCollection() *Collection {
+	if x != nil {
+		return x.xxx_hidden_Collection
+	}
+	return nil
+}
+
+func (x *GetBillingAccountResponse) GetSubscription() *Subscription {
+	if x != nil {
+		return x.xxx_hidden_Subscription
+	}
+	return nil
+}
+
+func (x *GetBillingAccountResponse) SetBillingAccount(v *BillingAccount) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *GetBillingAccountResponse) SetCollection(v *Collection) {
+	x.xxx_hidden_Collection = v
+}
+
+func (x *GetBillingAccountResponse) SetSubscription(v *Subscription) {
+	x.xxx_hidden_Subscription = v
+}
+
+func (x *GetBillingAccountResponse) HasBillingAccount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BillingAccount != nil
+}
+
+func (x *GetBillingAccountResponse) HasCollection() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Collection != nil
+}
+
+func (x *GetBillingAccountResponse) HasSubscription() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Subscription != nil
+}
+
+func (x *GetBillingAccountResponse) ClearBillingAccount() {
+	x.xxx_hidden_BillingAccount = nil
+}
+
+func (x *GetBillingAccountResponse) ClearCollection() {
+	x.xxx_hidden_Collection = nil
+}
+
+func (x *GetBillingAccountResponse) ClearSubscription() {
+	x.xxx_hidden_Subscription = nil
+}
+
+type GetBillingAccountResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	BillingAccount *BillingAccount
+	// Whether what it is billed can be collected now.
+	Collection *Collection
+	// The subscription it is collected through: its live one, or the last it
+	// had; unset for none, and on a channel with no subscriptions.
+	Subscription *Subscription
+}
+
+func (b0 GetBillingAccountResponse_builder) Build() *GetBillingAccountResponse {
+	m0 := &GetBillingAccountResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_Collection = b.Collection
+	x.xxx_hidden_Subscription = b.Subscription
+	return m0
+}
+
+type StartCheckoutRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_BillingAccount string                 `protobuf:"bytes,1,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_SuccessUrl     string                 `protobuf:"bytes,2,opt,name=success_url,json=successUrl"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *StartCheckoutRequest) Reset() {
+	*x = StartCheckoutRequest{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartCheckoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartCheckoutRequest) ProtoMessage() {}
+
+func (x *StartCheckoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *StartCheckoutRequest) GetBillingAccount() string {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return ""
+}
+
+func (x *StartCheckoutRequest) GetSuccessUrl() string {
+	if x != nil {
+		return x.xxx_hidden_SuccessUrl
+	}
+	return ""
+}
+
+func (x *StartCheckoutRequest) SetBillingAccount(v string) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *StartCheckoutRequest) SetSuccessUrl(v string) {
+	x.xxx_hidden_SuccessUrl = v
+}
+
+type StartCheckoutRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The billing account it subscribes, by its identifier: one of the
+	// account's, on the merchant of record's channel.
+	BillingAccount string
+	// Where the checkout sends the payer once they have finished: an absolute
+	// URL of the product's, which then calls `CompleteCheckout`.
+	SuccessUrl string
+}
+
+func (b0 StartCheckoutRequest_builder) Build() *StartCheckoutRequest {
+	m0 := &StartCheckoutRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_SuccessUrl = b.SuccessUrl
+	return m0
+}
+
+type StartCheckoutResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Checkout *Checkout              `protobuf:"bytes,1,opt,name=checkout"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *StartCheckoutResponse) Reset() {
+	*x = StartCheckoutResponse{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartCheckoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartCheckoutResponse) ProtoMessage() {}
+
+func (x *StartCheckoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *StartCheckoutResponse) GetCheckout() *Checkout {
+	if x != nil {
+		return x.xxx_hidden_Checkout
+	}
+	return nil
+}
+
+func (x *StartCheckoutResponse) SetCheckout(v *Checkout) {
+	x.xxx_hidden_Checkout = v
+}
+
+func (x *StartCheckoutResponse) HasCheckout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Checkout != nil
+}
+
+func (x *StartCheckoutResponse) ClearCheckout() {
+	x.xxx_hidden_Checkout = nil
+}
+
+type StartCheckoutResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The checkout, open, with what a page opens it with.
+	Checkout *Checkout
+}
+
+func (b0 StartCheckoutResponse_builder) Build() *StartCheckoutResponse {
+	m0 := &StartCheckoutResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Checkout = b.Checkout
+	return m0
+}
+
+type CompleteCheckoutRequest struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Checkout string                 `protobuf:"bytes,1,opt,name=checkout"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *CompleteCheckoutRequest) Reset() {
+	*x = CompleteCheckoutRequest{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteCheckoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteCheckoutRequest) ProtoMessage() {}
+
+func (x *CompleteCheckoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteCheckoutRequest) GetCheckout() string {
+	if x != nil {
+		return x.xxx_hidden_Checkout
+	}
+	return ""
+}
+
+func (x *CompleteCheckoutRequest) SetCheckout(v string) {
+	x.xxx_hidden_Checkout = v
+}
+
+type CompleteCheckoutRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The checkout, by levyan's identifier of it (`Checkout.id`) and never the
+	// merchant's: a checkout is completed only as levyan recorded it.
+	Checkout string
+}
+
+func (b0 CompleteCheckoutRequest_builder) Build() *CompleteCheckoutRequest {
+	m0 := &CompleteCheckoutRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Checkout = b.Checkout
+	return m0
+}
+
+type CompleteCheckoutResponse struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Checkout     *Checkout              `protobuf:"bytes,1,opt,name=checkout"`
+	xxx_hidden_Subscription *Subscription          `protobuf:"bytes,2,opt,name=subscription"`
+	xxx_hidden_Collection   *Collection            `protobuf:"bytes,3,opt,name=collection"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *CompleteCheckoutResponse) Reset() {
+	*x = CompleteCheckoutResponse{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteCheckoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteCheckoutResponse) ProtoMessage() {}
+
+func (x *CompleteCheckoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteCheckoutResponse) GetCheckout() *Checkout {
+	if x != nil {
+		return x.xxx_hidden_Checkout
+	}
+	return nil
+}
+
+func (x *CompleteCheckoutResponse) GetSubscription() *Subscription {
+	if x != nil {
+		return x.xxx_hidden_Subscription
+	}
+	return nil
+}
+
+func (x *CompleteCheckoutResponse) GetCollection() *Collection {
+	if x != nil {
+		return x.xxx_hidden_Collection
+	}
+	return nil
+}
+
+func (x *CompleteCheckoutResponse) SetCheckout(v *Checkout) {
+	x.xxx_hidden_Checkout = v
+}
+
+func (x *CompleteCheckoutResponse) SetSubscription(v *Subscription) {
+	x.xxx_hidden_Subscription = v
+}
+
+func (x *CompleteCheckoutResponse) SetCollection(v *Collection) {
+	x.xxx_hidden_Collection = v
+}
+
+func (x *CompleteCheckoutResponse) HasCheckout() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Checkout != nil
+}
+
+func (x *CompleteCheckoutResponse) HasSubscription() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Subscription != nil
+}
+
+func (x *CompleteCheckoutResponse) HasCollection() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Collection != nil
+}
+
+func (x *CompleteCheckoutResponse) ClearCheckout() {
+	x.xxx_hidden_Checkout = nil
+}
+
+func (x *CompleteCheckoutResponse) ClearSubscription() {
+	x.xxx_hidden_Subscription = nil
+}
+
+func (x *CompleteCheckoutResponse) ClearCollection() {
+	x.xxx_hidden_Collection = nil
+}
+
+type CompleteCheckoutResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The checkout as it is now: completed, still open, or canceled -- one the
+	// merchant says can no longer be finished, after which another is begun.
+	Checkout *Checkout
+	// The subscription it started, once it has.
+	Subscription *Subscription
+	// Whether what the billing account is billed can be collected now.
+	Collection *Collection
+}
+
+func (b0 CompleteCheckoutResponse_builder) Build() *CompleteCheckoutResponse {
+	m0 := &CompleteCheckoutResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Checkout = b.Checkout
+	x.xxx_hidden_Subscription = b.Subscription
+	x.xxx_hidden_Collection = b.Collection
+	return m0
+}
+
+// Checkout is a checkout begun with a merchant of record.
+type Checkout struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id             string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_BillingAccount string                 `protobuf:"bytes,2,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_State          CheckoutState          `protobuf:"varint,3,opt,name=state,enum=levyan.v1.CheckoutState"`
+	xxx_hidden_Started        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=started"`
+	xxx_hidden_Done           *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=done"`
+	xxx_hidden_Window         *CheckoutWindow        `protobuf:"bytes,6,opt,name=window"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *Checkout) Reset() {
+	*x = Checkout{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Checkout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Checkout) ProtoMessage() {}
+
+func (x *Checkout) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Checkout) GetId() string {
+	if x != nil {
+		return x.xxx_hidden_Id
+	}
+	return ""
+}
+
+func (x *Checkout) GetBillingAccount() string {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return ""
+}
+
+func (x *Checkout) GetState() CheckoutState {
+	if x != nil {
+		return x.xxx_hidden_State
+	}
+	return CheckoutState_CHECKOUT_STATE_UNSPECIFIED
+}
+
+func (x *Checkout) GetStarted() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Started
+	}
+	return nil
+}
+
+func (x *Checkout) GetDone() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Done
+	}
+	return nil
+}
+
+func (x *Checkout) GetWindow() *CheckoutWindow {
+	if x != nil {
+		return x.xxx_hidden_Window
+	}
+	return nil
+}
+
+func (x *Checkout) SetId(v string) {
+	x.xxx_hidden_Id = v
+}
+
+func (x *Checkout) SetBillingAccount(v string) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *Checkout) SetState(v CheckoutState) {
+	x.xxx_hidden_State = v
+}
+
+func (x *Checkout) SetStarted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Started = v
+}
+
+func (x *Checkout) SetDone(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Done = v
+}
+
+func (x *Checkout) SetWindow(v *CheckoutWindow) {
+	x.xxx_hidden_Window = v
+}
+
+func (x *Checkout) HasStarted() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Started != nil
+}
+
+func (x *Checkout) HasDone() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Done != nil
+}
+
+func (x *Checkout) HasWindow() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Window != nil
+}
+
+func (x *Checkout) ClearStarted() {
+	x.xxx_hidden_Started = nil
+}
+
+func (x *Checkout) ClearDone() {
+	x.xxx_hidden_Done = nil
+}
+
+func (x *Checkout) ClearWindow() {
+	x.xxx_hidden_Window = nil
+}
+
+type Checkout_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id             string
+	BillingAccount string
+	State          CheckoutState
+	Started        *timestamppb.Timestamp
+	// When the merchant said it was finished, or that it never will be.
+	Done *timestamppb.Timestamp
+	// What a page opens it with: answered by `StartCheckout`, and unset
+	// elsewhere.
+	Window *CheckoutWindow
+}
+
+func (b0 Checkout_builder) Build() *Checkout {
+	m0 := &Checkout{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_State = b.State
+	x.xxx_hidden_Started = b.Started
+	x.xxx_hidden_Done = b.Done
+	x.xxx_hidden_Window = b.Window
+	return m0
+}
+
+// CheckoutWindow is what a page opens a merchant of record's checkout with:
+// the merchant's script and what its SDK is called with -- a page that draws
+// a checkout is written for the merchant whose checkout it draws -- or the
+// merchant's own page for it, to send the payer to instead.
+//
+// For Paddle: load `script`; in the sandbox, `Paddle.Environment.set("sandbox")`
+// first; then `Paddle.Initialize({token: client_token})` and
+// `Paddle.Checkout.open({transactionId: transaction, settings: {successUrl}})`.
+// Paddle shows Korean cards, KakaoPay and NaverPay only for a price in won to
+// a customer with a Korean address: a page that has the payer's email may
+// prefill both, `customer: {email, address: {countryCode: country}}`.
+type CheckoutWindow struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Merchant    string                 `protobuf:"bytes,1,opt,name=merchant"`
+	xxx_hidden_Environment string                 `protobuf:"bytes,2,opt,name=environment"`
+	xxx_hidden_Transaction string                 `protobuf:"bytes,3,opt,name=transaction"`
+	xxx_hidden_ClientToken string                 `protobuf:"bytes,4,opt,name=client_token,json=clientToken"`
+	xxx_hidden_Script      string                 `protobuf:"bytes,5,opt,name=script"`
+	xxx_hidden_Url         string                 `protobuf:"bytes,6,opt,name=url"`
+	xxx_hidden_Country     string                 `protobuf:"bytes,7,opt,name=country"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CheckoutWindow) Reset() {
+	*x = CheckoutWindow{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckoutWindow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckoutWindow) ProtoMessage() {}
+
+func (x *CheckoutWindow) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CheckoutWindow) GetMerchant() string {
+	if x != nil {
+		return x.xxx_hidden_Merchant
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) GetEnvironment() string {
+	if x != nil {
+		return x.xxx_hidden_Environment
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) GetTransaction() string {
+	if x != nil {
+		return x.xxx_hidden_Transaction
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) GetClientToken() string {
+	if x != nil {
+		return x.xxx_hidden_ClientToken
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) GetScript() string {
+	if x != nil {
+		return x.xxx_hidden_Script
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) GetUrl() string {
+	if x != nil {
+		return x.xxx_hidden_Url
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) GetCountry() string {
+	if x != nil {
+		return x.xxx_hidden_Country
+	}
+	return ""
+}
+
+func (x *CheckoutWindow) SetMerchant(v string) {
+	x.xxx_hidden_Merchant = v
+}
+
+func (x *CheckoutWindow) SetEnvironment(v string) {
+	x.xxx_hidden_Environment = v
+}
+
+func (x *CheckoutWindow) SetTransaction(v string) {
+	x.xxx_hidden_Transaction = v
+}
+
+func (x *CheckoutWindow) SetClientToken(v string) {
+	x.xxx_hidden_ClientToken = v
+}
+
+func (x *CheckoutWindow) SetScript(v string) {
+	x.xxx_hidden_Script = v
+}
+
+func (x *CheckoutWindow) SetUrl(v string) {
+	x.xxx_hidden_Url = v
+}
+
+func (x *CheckoutWindow) SetCountry(v string) {
+	x.xxx_hidden_Country = v
+}
+
+type CheckoutWindow_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The merchant of record, by the name of its adapter: "paddle".
+	Merchant string
+	// "sandbox", where test cards move no money, or "production".
+	Environment string
+	// The merchant's id of the checkout, which its SDK opens: Paddle's
+	// transaction.
+	Transaction string
+	// The client-side token the merchant's SDK is initialized with: public,
+	// the checkout's, and no key.
+	ClientToken string
+	// The script the page loads.
+	Script string
+	// The merchant's own page for it, to send the payer to instead.
+	Url string
+	// The billing account's country, ISO 3166-1 alpha-2: what a page may
+	// prefill the checkout's address with.
+	Country string
+}
+
+func (b0 CheckoutWindow_builder) Build() *CheckoutWindow {
+	m0 := &CheckoutWindow{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Merchant = b.Merchant
+	x.xxx_hidden_Environment = b.Environment
+	x.xxx_hidden_Transaction = b.Transaction
+	x.xxx_hidden_ClientToken = b.ClientToken
+	x.xxx_hidden_Script = b.Script
+	x.xxx_hidden_Url = b.Url
+	x.xxx_hidden_Country = b.Country
+	return m0
+}
+
+// Collection is whether what a billing account is billed can be collected
+// now, and why not.
+type Collection struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_State CollectionState        `protobuf:"varint,1,opt,name=state,enum=levyan.v1.CollectionState"`
+	xxx_hidden_Since *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=since"`
+	xxx_hidden_Ends  *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=ends"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Collection) Reset() {
+	*x = Collection{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Collection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Collection) ProtoMessage() {}
+
+func (x *Collection) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Collection) GetState() CollectionState {
+	if x != nil {
+		return x.xxx_hidden_State
+	}
+	return CollectionState_COLLECTION_STATE_UNSPECIFIED
+}
+
+func (x *Collection) GetSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Since
+	}
+	return nil
+}
+
+func (x *Collection) GetEnds() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Ends
+	}
+	return nil
+}
+
+func (x *Collection) SetState(v CollectionState) {
+	x.xxx_hidden_State = v
+}
+
+func (x *Collection) SetSince(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Since = v
+}
+
+func (x *Collection) SetEnds(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Ends = v
+}
+
+func (x *Collection) HasSince() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Since != nil
+}
+
+func (x *Collection) HasEnds() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Ends != nil
+}
+
+func (x *Collection) ClearSince() {
+	x.xxx_hidden_Since = nil
+}
+
+func (x *Collection) ClearEnds() {
+	x.xxx_hidden_Ends = nil
+}
+
+type Collection_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	State CollectionState
+	// Since when it has been so.
+	Since *timestamppb.Timestamp
+	// When the merchant of record will end, or pause, the subscription it is
+	// collected through, as somebody scheduled it there -- the payer, in the
+	// merchant's own pages, among them -- from when it is not collectable;
+	// unset for nothing scheduled.
+	Ends *timestamppb.Timestamp
+}
+
+func (b0 Collection_builder) Build() *Collection {
+	m0 := &Collection{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_State = b.State
+	x.xxx_hidden_Since = b.Since
+	x.xxx_hidden_Ends = b.Ends
+	return m0
+}
+
+// Subscription is a subscription a merchant of record runs for a billing
+// account, as levyan mirrors it from what the merchant's API answers.
+type Subscription struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Merchant    string                 `protobuf:"bytes,2,opt,name=merchant"`
+	xxx_hidden_Status      SubscriptionStatus     `protobuf:"varint,3,opt,name=status,enum=levyan.v1.SubscriptionStatus"`
+	xxx_hidden_Currency    string                 `protobuf:"bytes,4,opt,name=currency"`
+	xxx_hidden_PeriodStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=period_start,json=periodStart"`
+	xxx_hidden_PeriodEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=period_end,json=periodEnd"`
+	xxx_hidden_NextBilled  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=next_billed,json=nextBilled"`
+	xxx_hidden_Change      SubscriptionChange     `protobuf:"varint,8,opt,name=change,enum=levyan.v1.SubscriptionChange"`
+	xxx_hidden_ChangeAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=change_at,json=changeAt"`
+	xxx_hidden_Canceled    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=canceled"`
+	xxx_hidden_Method      *PaymentMethod         `protobuf:"bytes,11,opt,name=method"`
+	xxx_hidden_Updated     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated"`
+	xxx_hidden_Checked     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=checked"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *Subscription) Reset() {
+	*x = Subscription{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Subscription) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Subscription) ProtoMessage() {}
+
+func (x *Subscription) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Subscription) GetId() string {
+	if x != nil {
+		return x.xxx_hidden_Id
+	}
+	return ""
+}
+
+func (x *Subscription) GetMerchant() string {
+	if x != nil {
+		return x.xxx_hidden_Merchant
+	}
+	return ""
+}
+
+func (x *Subscription) GetStatus() SubscriptionStatus {
+	if x != nil {
+		return x.xxx_hidden_Status
+	}
+	return SubscriptionStatus_SUBSCRIPTION_STATUS_UNSPECIFIED
+}
+
+func (x *Subscription) GetCurrency() string {
+	if x != nil {
+		return x.xxx_hidden_Currency
+	}
+	return ""
+}
+
+func (x *Subscription) GetPeriodStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_PeriodStart
+	}
+	return nil
+}
+
+func (x *Subscription) GetPeriodEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_PeriodEnd
+	}
+	return nil
+}
+
+func (x *Subscription) GetNextBilled() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_NextBilled
+	}
+	return nil
+}
+
+func (x *Subscription) GetChange() SubscriptionChange {
+	if x != nil {
+		return x.xxx_hidden_Change
+	}
+	return SubscriptionChange_SUBSCRIPTION_CHANGE_UNSPECIFIED
+}
+
+func (x *Subscription) GetChangeAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_ChangeAt
+	}
+	return nil
+}
+
+func (x *Subscription) GetCanceled() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Canceled
+	}
+	return nil
+}
+
+func (x *Subscription) GetMethod() *PaymentMethod {
+	if x != nil {
+		return x.xxx_hidden_Method
+	}
+	return nil
+}
+
+func (x *Subscription) GetUpdated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Updated
+	}
+	return nil
+}
+
+func (x *Subscription) GetChecked() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Checked
+	}
+	return nil
+}
+
+func (x *Subscription) SetId(v string) {
+	x.xxx_hidden_Id = v
+}
+
+func (x *Subscription) SetMerchant(v string) {
+	x.xxx_hidden_Merchant = v
+}
+
+func (x *Subscription) SetStatus(v SubscriptionStatus) {
+	x.xxx_hidden_Status = v
+}
+
+func (x *Subscription) SetCurrency(v string) {
+	x.xxx_hidden_Currency = v
+}
+
+func (x *Subscription) SetPeriodStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_PeriodStart = v
+}
+
+func (x *Subscription) SetPeriodEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_PeriodEnd = v
+}
+
+func (x *Subscription) SetNextBilled(v *timestamppb.Timestamp) {
+	x.xxx_hidden_NextBilled = v
+}
+
+func (x *Subscription) SetChange(v SubscriptionChange) {
+	x.xxx_hidden_Change = v
+}
+
+func (x *Subscription) SetChangeAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ChangeAt = v
+}
+
+func (x *Subscription) SetCanceled(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Canceled = v
+}
+
+func (x *Subscription) SetMethod(v *PaymentMethod) {
+	x.xxx_hidden_Method = v
+}
+
+func (x *Subscription) SetUpdated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Updated = v
+}
+
+func (x *Subscription) SetChecked(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Checked = v
+}
+
+func (x *Subscription) HasPeriodStart() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PeriodStart != nil
+}
+
+func (x *Subscription) HasPeriodEnd() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PeriodEnd != nil
+}
+
+func (x *Subscription) HasNextBilled() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_NextBilled != nil
+}
+
+func (x *Subscription) HasChangeAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ChangeAt != nil
+}
+
+func (x *Subscription) HasCanceled() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Canceled != nil
+}
+
+func (x *Subscription) HasMethod() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Method != nil
+}
+
+func (x *Subscription) HasUpdated() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Updated != nil
+}
+
+func (x *Subscription) HasChecked() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Checked != nil
+}
+
+func (x *Subscription) ClearPeriodStart() {
+	x.xxx_hidden_PeriodStart = nil
+}
+
+func (x *Subscription) ClearPeriodEnd() {
+	x.xxx_hidden_PeriodEnd = nil
+}
+
+func (x *Subscription) ClearNextBilled() {
+	x.xxx_hidden_NextBilled = nil
+}
+
+func (x *Subscription) ClearChangeAt() {
+	x.xxx_hidden_ChangeAt = nil
+}
+
+func (x *Subscription) ClearCanceled() {
+	x.xxx_hidden_Canceled = nil
+}
+
+func (x *Subscription) ClearMethod() {
+	x.xxx_hidden_Method = nil
+}
+
+func (x *Subscription) ClearUpdated() {
+	x.xxx_hidden_Updated = nil
+}
+
+func (x *Subscription) ClearChecked() {
+	x.xxx_hidden_Checked = nil
+}
+
+type Subscription_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id string
+	// The merchant of record that runs it, by the name of its adapter.
+	Merchant string
+	Status   SubscriptionStatus
+	// What it is billed in.
+	Currency string
+	// The billing period the merchant is in, and when it bills it next:
+	// unset when it will not.
+	PeriodStart *timestamppb.Timestamp
+	PeriodEnd   *timestamppb.Timestamp
+	NextBilled  *timestamppb.Timestamp
+	// What the merchant will do to it, and when; unspecified for nothing.
+	Change   SubscriptionChange
+	ChangeAt *timestamppb.Timestamp
+	Canceled *timestamppb.Timestamp
+	// How the payer pays, as the newest payment levyan was told of says;
+	// unset until one says.
+	Method *PaymentMethod
+	// When the merchant last changed it, by its own clock, and when levyan
+	// last asked it.
+	Updated *timestamppb.Timestamp
+	Checked *timestamppb.Timestamp
+}
+
+func (b0 Subscription_builder) Build() *Subscription {
+	m0 := &Subscription{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	x.xxx_hidden_Merchant = b.Merchant
+	x.xxx_hidden_Status = b.Status
+	x.xxx_hidden_Currency = b.Currency
+	x.xxx_hidden_PeriodStart = b.PeriodStart
+	x.xxx_hidden_PeriodEnd = b.PeriodEnd
+	x.xxx_hidden_NextBilled = b.NextBilled
+	x.xxx_hidden_Change = b.Change
+	x.xxx_hidden_ChangeAt = b.ChangeAt
+	x.xxx_hidden_Canceled = b.Canceled
+	x.xxx_hidden_Method = b.Method
+	x.xxx_hidden_Updated = b.Updated
+	x.xxx_hidden_Checked = b.Checked
+	return m0
+}
+
+// PaymentMethod is how a payer pays, and never more of a card than this.
+type PaymentMethod struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Type  string                 `protobuf:"bytes,1,opt,name=type"`
+	xxx_hidden_Brand string                 `protobuf:"bytes,2,opt,name=brand"`
+	xxx_hidden_Last4 string                 `protobuf:"bytes,3,opt,name=last4"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PaymentMethod) Reset() {
+	*x = PaymentMethod{}
+	mi := &file_levyan_v1_payer_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentMethod) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentMethod) ProtoMessage() {}
+
+func (x *PaymentMethod) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_payer_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PaymentMethod) GetType() string {
+	if x != nil {
+		return x.xxx_hidden_Type
+	}
+	return ""
+}
+
+func (x *PaymentMethod) GetBrand() string {
+	if x != nil {
+		return x.xxx_hidden_Brand
+	}
+	return ""
+}
+
+func (x *PaymentMethod) GetLast4() string {
+	if x != nil {
+		return x.xxx_hidden_Last4
+	}
+	return ""
+}
+
+func (x *PaymentMethod) SetType(v string) {
+	x.xxx_hidden_Type = v
+}
+
+func (x *PaymentMethod) SetBrand(v string) {
+	x.xxx_hidden_Brand = v
+}
+
+func (x *PaymentMethod) SetLast4(v string) {
+	x.xxx_hidden_Last4 = v
+}
+
+type PaymentMethod_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The merchant's name of the kind: card, south_korea_local_card,
+	// kakao_pay, naver_pay, ….
+	Type string
+	// A card's brand (visa) or its company (hyundai); empty for a method that
+	// is no card.
+	Brand string
+	// A card's last four digits.
+	Last4 string
+}
+
+func (b0 PaymentMethod_builder) Build() *PaymentMethod {
+	m0 := &PaymentMethod{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Type = b.Type
+	x.xxx_hidden_Brand = b.Brand
+	x.xxx_hidden_Last4 = b.Last4
+	return m0
+}
+
 // BillingAccount is what an account pays with.
 type BillingAccount struct {
 	state                protoimpl.MessageState `protogen:"opaque.v1"`
@@ -1386,7 +2967,7 @@ type BillingAccount struct {
 
 func (x *BillingAccount) Reset() {
 	*x = BillingAccount{}
-	mi := &file_levyan_v1_payer_proto_msgTypes[18]
+	mi := &file_levyan_v1_payer_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1398,7 +2979,7 @@ func (x *BillingAccount) String() string {
 func (*BillingAccount) ProtoMessage() {}
 
 func (x *BillingAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_payer_proto_msgTypes[18]
+	mi := &file_levyan_v1_payer_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1572,7 +3153,7 @@ type Recipient struct {
 
 func (x *Recipient) Reset() {
 	*x = Recipient{}
-	mi := &file_levyan_v1_payer_proto_msgTypes[19]
+	mi := &file_levyan_v1_payer_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1584,7 +3165,7 @@ func (x *Recipient) String() string {
 func (*Recipient) ProtoMessage() {}
 
 func (x *Recipient) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_payer_proto_msgTypes[19]
+	mi := &file_levyan_v1_payer_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1663,7 +3244,7 @@ type Business struct {
 
 func (x *Business) Reset() {
 	*x = Business{}
-	mi := &file_levyan_v1_payer_proto_msgTypes[20]
+	mi := &file_levyan_v1_payer_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1675,7 +3256,7 @@ func (x *Business) String() string {
 func (*Business) ProtoMessage() {}
 
 func (x *Business) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_payer_proto_msgTypes[20]
+	mi := &file_levyan_v1_payer_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1805,7 +3386,7 @@ type Offer struct {
 
 func (x *Offer) Reset() {
 	*x = Offer{}
-	mi := &file_levyan_v1_payer_proto_msgTypes[21]
+	mi := &file_levyan_v1_payer_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1817,7 +3398,7 @@ func (x *Offer) String() string {
 func (*Offer) ProtoMessage() {}
 
 func (x *Offer) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_payer_proto_msgTypes[21]
+	mi := &file_levyan_v1_payer_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1922,7 +3503,7 @@ type Link struct {
 
 func (x *Link) Reset() {
 	*x = Link{}
-	mi := &file_levyan_v1_payer_proto_msgTypes[22]
+	mi := &file_levyan_v1_payer_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1934,7 +3515,7 @@ func (x *Link) String() string {
 func (*Link) ProtoMessage() {}
 
 func (x *Link) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_payer_proto_msgTypes[22]
+	mi := &file_levyan_v1_payer_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2131,7 +3712,70 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\vStopRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\"3\n" +
 	"\fStopResponse\x12#\n" +
-	"\x04link\x18\x01 \x01(\v2\x0f.levyan.v1.LinkR\x04link\"\xb3\x02\n" +
+	"\x04link\x18\x01 \x01(\v2\x0f.levyan.v1.LinkR\x04link\"*\n" +
+	"\x18GetBillingAccountRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xd3\x01\n" +
+	"\x19GetBillingAccountResponse\x12B\n" +
+	"\x0fbilling_account\x18\x01 \x01(\v2\x19.levyan.v1.BillingAccountR\x0ebillingAccount\x125\n" +
+	"\n" +
+	"collection\x18\x02 \x01(\v2\x15.levyan.v1.CollectionR\n" +
+	"collection\x12;\n" +
+	"\fsubscription\x18\x03 \x01(\v2\x17.levyan.v1.SubscriptionR\fsubscription\"`\n" +
+	"\x14StartCheckoutRequest\x12'\n" +
+	"\x0fbilling_account\x18\x01 \x01(\tR\x0ebillingAccount\x12\x1f\n" +
+	"\vsuccess_url\x18\x02 \x01(\tR\n" +
+	"successUrl\"H\n" +
+	"\x15StartCheckoutResponse\x12/\n" +
+	"\bcheckout\x18\x01 \x01(\v2\x13.levyan.v1.CheckoutR\bcheckout\"5\n" +
+	"\x17CompleteCheckoutRequest\x12\x1a\n" +
+	"\bcheckout\x18\x01 \x01(\tR\bcheckout\"\xbf\x01\n" +
+	"\x18CompleteCheckoutResponse\x12/\n" +
+	"\bcheckout\x18\x01 \x01(\v2\x13.levyan.v1.CheckoutR\bcheckout\x12;\n" +
+	"\fsubscription\x18\x02 \x01(\v2\x17.levyan.v1.SubscriptionR\fsubscription\x125\n" +
+	"\n" +
+	"collection\x18\x03 \x01(\v2\x15.levyan.v1.CollectionR\n" +
+	"collection\"\x8c\x02\n" +
+	"\bCheckout\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
+	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12.\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x18.levyan.v1.CheckoutStateR\x05state\x124\n" +
+	"\astarted\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x12.\n" +
+	"\x04done\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x04done\x121\n" +
+	"\x06window\x18\x06 \x01(\v2\x19.levyan.v1.CheckoutWindowR\x06window\"\xd7\x01\n" +
+	"\x0eCheckoutWindow\x12\x1a\n" +
+	"\bmerchant\x18\x01 \x01(\tR\bmerchant\x12 \n" +
+	"\venvironment\x18\x02 \x01(\tR\venvironment\x12 \n" +
+	"\vtransaction\x18\x03 \x01(\tR\vtransaction\x12!\n" +
+	"\fclient_token\x18\x04 \x01(\tR\vclientToken\x12\x16\n" +
+	"\x06script\x18\x05 \x01(\tR\x06script\x12\x10\n" +
+	"\x03url\x18\x06 \x01(\tR\x03url\x12\x18\n" +
+	"\acountry\x18\a \x01(\tR\acountry\"\xa0\x01\n" +
+	"\n" +
+	"Collection\x120\n" +
+	"\x05state\x18\x01 \x01(\x0e2\x1a.levyan.v1.CollectionStateR\x05state\x120\n" +
+	"\x05since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\x12.\n" +
+	"\x04ends\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04ends\"\x8a\x05\n" +
+	"\fSubscription\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\bmerchant\x18\x02 \x01(\tR\bmerchant\x125\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1d.levyan.v1.SubscriptionStatusR\x06status\x12\x1a\n" +
+	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12=\n" +
+	"\fperiod_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
+	"\n" +
+	"period_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\x12;\n" +
+	"\vnext_billed\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"nextBilled\x125\n" +
+	"\x06change\x18\b \x01(\x0e2\x1d.levyan.v1.SubscriptionChangeR\x06change\x127\n" +
+	"\tchange_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\bchangeAt\x126\n" +
+	"\bcanceled\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\bcanceled\x120\n" +
+	"\x06method\x18\v \x01(\v2\x18.levyan.v1.PaymentMethodR\x06method\x124\n" +
+	"\aupdated\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x124\n" +
+	"\achecked\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\achecked\"O\n" +
+	"\rPaymentMethod\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x14\n" +
+	"\x05brand\x18\x02 \x01(\tR\x05brand\x12\x14\n" +
+	"\x05last4\x18\x03 \x01(\tR\x05last4\"\xb3\x02\n" +
 	"\x0eBillingAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -2166,7 +3810,32 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\x05start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
 	"\x03end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\x12*\n" +
 	"\x05began\x18\a \x01(\x0e2\x14.levyan.v1.LinkBeganR\x05began\x12*\n" +
-	"\x05ended\x18\b \x01(\x0e2\x14.levyan.v1.LinkEndedR\x05ended*\x85\x01\n" +
+	"\x05ended\x18\b \x01(\x0e2\x14.levyan.v1.LinkEndedR\x05ended*\x83\x01\n" +
+	"\rCheckoutState\x12\x1e\n" +
+	"\x1aCHECKOUT_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13CHECKOUT_STATE_OPEN\x10\x01\x12\x1c\n" +
+	"\x18CHECKOUT_STATE_COMPLETED\x10\x02\x12\x1b\n" +
+	"\x17CHECKOUT_STATE_CANCELED\x10\x03*\xf9\x01\n" +
+	"\x0fCollectionState\x12 \n" +
+	"\x1cCOLLECTION_STATE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cCOLLECTION_STATE_COLLECTABLE\x10\x01\x12$\n" +
+	" COLLECTION_STATE_NO_SUBSCRIPTION\x10\x02\x12\x1d\n" +
+	"\x19COLLECTION_STATE_PAST_DUE\x10\x03\x12\x1b\n" +
+	"\x17COLLECTION_STATE_PAUSED\x10\x04\x12\x1d\n" +
+	"\x19COLLECTION_STATE_CANCELED\x10\x05\x12!\n" +
+	"\x1dCOLLECTION_STATE_NEEDS_ACTION\x10\x06*\xdf\x01\n" +
+	"\x12SubscriptionStatus\x12#\n" +
+	"\x1fSUBSCRIPTION_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aSUBSCRIPTION_STATUS_ACTIVE\x10\x01\x12 \n" +
+	"\x1cSUBSCRIPTION_STATUS_TRIALING\x10\x02\x12 \n" +
+	"\x1cSUBSCRIPTION_STATUS_PAST_DUE\x10\x03\x12\x1e\n" +
+	"\x1aSUBSCRIPTION_STATUS_PAUSED\x10\x04\x12 \n" +
+	"\x1cSUBSCRIPTION_STATUS_CANCELED\x10\x05*\x98\x01\n" +
+	"\x12SubscriptionChange\x12#\n" +
+	"\x1fSUBSCRIPTION_CHANGE_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aSUBSCRIPTION_CHANGE_CANCEL\x10\x01\x12\x1d\n" +
+	"\x19SUBSCRIPTION_CHANGE_PAUSE\x10\x02\x12\x1e\n" +
+	"\x1aSUBSCRIPTION_CHANGE_RESUME\x10\x03*\x85\x01\n" +
 	"\tLinkBegan\x12\x1a\n" +
 	"\x16LINK_BEGAN_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12LINK_BEGAN_ARRIVED\x10\x01\x12\x17\n" +
@@ -2179,7 +3848,7 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\x12LINK_ENDED_STOPPED\x10\x02\x12\x13\n" +
 	"\x0fLINK_ENDED_LEFT\x10\x03\x12\x18\n" +
 	"\x14LINK_ENDED_SUSPENDED\x10\x04\x12\x15\n" +
-	"\x11LINK_ENDED_ERASED\x10\x052\xbf\a\n" +
+	"\x11LINK_ENDED_ERASED\x10\x052\xd0\t\n" +
 	"\fPayerService\x12d\n" +
 	"\x13ListBillingAccounts\x12%.levyan.v1.ListBillingAccountsRequest\x1a&.levyan.v1.ListBillingAccountsResponse\x12g\n" +
 	"\x14CreateBillingAccount\x12&.levyan.v1.CreateBillingAccountRequest\x1a'.levyan.v1.CreateBillingAccountResponse\x12g\n" +
@@ -2194,96 +3863,144 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\fListInvoices\x12\x1e.levyan.v1.ListInvoicesRequest\x1a\x1f.levyan.v1.ListInvoicesResponse\x12I\n" +
 	"\n" +
 	"GetInvoice\x12\x1c.levyan.v1.GetInvoiceRequest\x1a\x1d.levyan.v1.GetInvoiceResponse\x12X\n" +
-	"\x0fListCreditNotes\x12!.levyan.v1.ListCreditNotesRequest\x1a\".levyan.v1.ListCreditNotesResponseB8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
+	"\x0fListCreditNotes\x12!.levyan.v1.ListCreditNotesRequest\x1a\".levyan.v1.ListCreditNotesResponse\x12^\n" +
+	"\x11GetBillingAccount\x12#.levyan.v1.GetBillingAccountRequest\x1a$.levyan.v1.GetBillingAccountResponse\x12R\n" +
+	"\rStartCheckout\x12\x1f.levyan.v1.StartCheckoutRequest\x1a .levyan.v1.StartCheckoutResponse\x12[\n" +
+	"\x10CompleteCheckout\x12\".levyan.v1.CompleteCheckoutRequest\x1a#.levyan.v1.CompleteCheckoutResponseB8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
-var file_levyan_v1_payer_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_levyan_v1_payer_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_levyan_v1_payer_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_levyan_v1_payer_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_levyan_v1_payer_proto_goTypes = []any{
-	(LinkBegan)(0),                       // 0: levyan.v1.LinkBegan
-	(LinkEnded)(0),                       // 1: levyan.v1.LinkEnded
-	(*ListBillingAccountsRequest)(nil),   // 2: levyan.v1.ListBillingAccountsRequest
-	(*ListBillingAccountsResponse)(nil),  // 3: levyan.v1.ListBillingAccountsResponse
-	(*CreateBillingAccountRequest)(nil),  // 4: levyan.v1.CreateBillingAccountRequest
-	(*CreateBillingAccountResponse)(nil), // 5: levyan.v1.CreateBillingAccountResponse
-	(*UpdateBillingAccountRequest)(nil),  // 6: levyan.v1.UpdateBillingAccountRequest
-	(*UpdateBillingAccountResponse)(nil), // 7: levyan.v1.UpdateBillingAccountResponse
-	(*ListOffersRequest)(nil),            // 8: levyan.v1.ListOffersRequest
-	(*ListOffersResponse)(nil),           // 9: levyan.v1.ListOffersResponse
-	(*AcceptRequest)(nil),                // 10: levyan.v1.AcceptRequest
-	(*AcceptResponse)(nil),               // 11: levyan.v1.AcceptResponse
-	(*DeclineRequest)(nil),               // 12: levyan.v1.DeclineRequest
-	(*DeclineResponse)(nil),              // 13: levyan.v1.DeclineResponse
-	(*ListLinksRequest)(nil),             // 14: levyan.v1.ListLinksRequest
-	(*ListLinksResponse)(nil),            // 15: levyan.v1.ListLinksResponse
-	(*UseRequest)(nil),                   // 16: levyan.v1.UseRequest
-	(*UseResponse)(nil),                  // 17: levyan.v1.UseResponse
-	(*StopRequest)(nil),                  // 18: levyan.v1.StopRequest
-	(*StopResponse)(nil),                 // 19: levyan.v1.StopResponse
-	(*BillingAccount)(nil),               // 20: levyan.v1.BillingAccount
-	(*Recipient)(nil),                    // 21: levyan.v1.Recipient
-	(*Business)(nil),                     // 22: levyan.v1.Business
-	(*Offer)(nil),                        // 23: levyan.v1.Offer
-	(*Link)(nil),                         // 24: levyan.v1.Link
-	(Channel)(0),                         // 25: levyan.v1.Channel
-	(*timestamppb.Timestamp)(nil),        // 26: google.protobuf.Timestamp
-	(*ListInvoicesRequest)(nil),          // 27: levyan.v1.ListInvoicesRequest
-	(*GetInvoiceRequest)(nil),            // 28: levyan.v1.GetInvoiceRequest
-	(*ListCreditNotesRequest)(nil),       // 29: levyan.v1.ListCreditNotesRequest
-	(*ListInvoicesResponse)(nil),         // 30: levyan.v1.ListInvoicesResponse
-	(*GetInvoiceResponse)(nil),           // 31: levyan.v1.GetInvoiceResponse
-	(*ListCreditNotesResponse)(nil),      // 32: levyan.v1.ListCreditNotesResponse
+	(CheckoutState)(0),                   // 0: levyan.v1.CheckoutState
+	(CollectionState)(0),                 // 1: levyan.v1.CollectionState
+	(SubscriptionStatus)(0),              // 2: levyan.v1.SubscriptionStatus
+	(SubscriptionChange)(0),              // 3: levyan.v1.SubscriptionChange
+	(LinkBegan)(0),                       // 4: levyan.v1.LinkBegan
+	(LinkEnded)(0),                       // 5: levyan.v1.LinkEnded
+	(*ListBillingAccountsRequest)(nil),   // 6: levyan.v1.ListBillingAccountsRequest
+	(*ListBillingAccountsResponse)(nil),  // 7: levyan.v1.ListBillingAccountsResponse
+	(*CreateBillingAccountRequest)(nil),  // 8: levyan.v1.CreateBillingAccountRequest
+	(*CreateBillingAccountResponse)(nil), // 9: levyan.v1.CreateBillingAccountResponse
+	(*UpdateBillingAccountRequest)(nil),  // 10: levyan.v1.UpdateBillingAccountRequest
+	(*UpdateBillingAccountResponse)(nil), // 11: levyan.v1.UpdateBillingAccountResponse
+	(*ListOffersRequest)(nil),            // 12: levyan.v1.ListOffersRequest
+	(*ListOffersResponse)(nil),           // 13: levyan.v1.ListOffersResponse
+	(*AcceptRequest)(nil),                // 14: levyan.v1.AcceptRequest
+	(*AcceptResponse)(nil),               // 15: levyan.v1.AcceptResponse
+	(*DeclineRequest)(nil),               // 16: levyan.v1.DeclineRequest
+	(*DeclineResponse)(nil),              // 17: levyan.v1.DeclineResponse
+	(*ListLinksRequest)(nil),             // 18: levyan.v1.ListLinksRequest
+	(*ListLinksResponse)(nil),            // 19: levyan.v1.ListLinksResponse
+	(*UseRequest)(nil),                   // 20: levyan.v1.UseRequest
+	(*UseResponse)(nil),                  // 21: levyan.v1.UseResponse
+	(*StopRequest)(nil),                  // 22: levyan.v1.StopRequest
+	(*StopResponse)(nil),                 // 23: levyan.v1.StopResponse
+	(*GetBillingAccountRequest)(nil),     // 24: levyan.v1.GetBillingAccountRequest
+	(*GetBillingAccountResponse)(nil),    // 25: levyan.v1.GetBillingAccountResponse
+	(*StartCheckoutRequest)(nil),         // 26: levyan.v1.StartCheckoutRequest
+	(*StartCheckoutResponse)(nil),        // 27: levyan.v1.StartCheckoutResponse
+	(*CompleteCheckoutRequest)(nil),      // 28: levyan.v1.CompleteCheckoutRequest
+	(*CompleteCheckoutResponse)(nil),     // 29: levyan.v1.CompleteCheckoutResponse
+	(*Checkout)(nil),                     // 30: levyan.v1.Checkout
+	(*CheckoutWindow)(nil),               // 31: levyan.v1.CheckoutWindow
+	(*Collection)(nil),                   // 32: levyan.v1.Collection
+	(*Subscription)(nil),                 // 33: levyan.v1.Subscription
+	(*PaymentMethod)(nil),                // 34: levyan.v1.PaymentMethod
+	(*BillingAccount)(nil),               // 35: levyan.v1.BillingAccount
+	(*Recipient)(nil),                    // 36: levyan.v1.Recipient
+	(*Business)(nil),                     // 37: levyan.v1.Business
+	(*Offer)(nil),                        // 38: levyan.v1.Offer
+	(*Link)(nil),                         // 39: levyan.v1.Link
+	(*timestamppb.Timestamp)(nil),        // 40: google.protobuf.Timestamp
+	(Channel)(0),                         // 41: levyan.v1.Channel
+	(*ListInvoicesRequest)(nil),          // 42: levyan.v1.ListInvoicesRequest
+	(*GetInvoiceRequest)(nil),            // 43: levyan.v1.GetInvoiceRequest
+	(*ListCreditNotesRequest)(nil),       // 44: levyan.v1.ListCreditNotesRequest
+	(*ListInvoicesResponse)(nil),         // 45: levyan.v1.ListInvoicesResponse
+	(*GetInvoiceResponse)(nil),           // 46: levyan.v1.GetInvoiceResponse
+	(*ListCreditNotesResponse)(nil),      // 47: levyan.v1.ListCreditNotesResponse
 }
 var file_levyan_v1_payer_proto_depIdxs = []int32{
-	20, // 0: levyan.v1.ListBillingAccountsResponse.billing_accounts:type_name -> levyan.v1.BillingAccount
-	21, // 1: levyan.v1.CreateBillingAccountRequest.recipient:type_name -> levyan.v1.Recipient
-	22, // 2: levyan.v1.CreateBillingAccountRequest.business:type_name -> levyan.v1.Business
-	20, // 3: levyan.v1.CreateBillingAccountResponse.billing_account:type_name -> levyan.v1.BillingAccount
-	21, // 4: levyan.v1.UpdateBillingAccountRequest.recipient:type_name -> levyan.v1.Recipient
-	22, // 5: levyan.v1.UpdateBillingAccountRequest.business:type_name -> levyan.v1.Business
-	20, // 6: levyan.v1.UpdateBillingAccountResponse.billing_account:type_name -> levyan.v1.BillingAccount
-	23, // 7: levyan.v1.ListOffersResponse.offers:type_name -> levyan.v1.Offer
-	24, // 8: levyan.v1.AcceptResponse.link:type_name -> levyan.v1.Link
-	24, // 9: levyan.v1.ListLinksResponse.links:type_name -> levyan.v1.Link
-	24, // 10: levyan.v1.UseResponse.link:type_name -> levyan.v1.Link
-	24, // 11: levyan.v1.StopResponse.link:type_name -> levyan.v1.Link
-	25, // 12: levyan.v1.BillingAccount.channel:type_name -> levyan.v1.Channel
-	21, // 13: levyan.v1.BillingAccount.recipient:type_name -> levyan.v1.Recipient
-	22, // 14: levyan.v1.BillingAccount.business:type_name -> levyan.v1.Business
-	26, // 15: levyan.v1.BillingAccount.created:type_name -> google.protobuf.Timestamp
-	26, // 16: levyan.v1.Offer.offered:type_name -> google.protobuf.Timestamp
-	26, // 17: levyan.v1.Link.start:type_name -> google.protobuf.Timestamp
-	26, // 18: levyan.v1.Link.end:type_name -> google.protobuf.Timestamp
-	0,  // 19: levyan.v1.Link.began:type_name -> levyan.v1.LinkBegan
-	1,  // 20: levyan.v1.Link.ended:type_name -> levyan.v1.LinkEnded
-	2,  // 21: levyan.v1.PayerService.ListBillingAccounts:input_type -> levyan.v1.ListBillingAccountsRequest
-	4,  // 22: levyan.v1.PayerService.CreateBillingAccount:input_type -> levyan.v1.CreateBillingAccountRequest
-	6,  // 23: levyan.v1.PayerService.UpdateBillingAccount:input_type -> levyan.v1.UpdateBillingAccountRequest
-	8,  // 24: levyan.v1.PayerService.ListOffers:input_type -> levyan.v1.ListOffersRequest
-	10, // 25: levyan.v1.PayerService.Accept:input_type -> levyan.v1.AcceptRequest
-	12, // 26: levyan.v1.PayerService.Decline:input_type -> levyan.v1.DeclineRequest
-	14, // 27: levyan.v1.PayerService.ListLinks:input_type -> levyan.v1.ListLinksRequest
-	16, // 28: levyan.v1.PayerService.Use:input_type -> levyan.v1.UseRequest
-	18, // 29: levyan.v1.PayerService.Stop:input_type -> levyan.v1.StopRequest
-	27, // 30: levyan.v1.PayerService.ListInvoices:input_type -> levyan.v1.ListInvoicesRequest
-	28, // 31: levyan.v1.PayerService.GetInvoice:input_type -> levyan.v1.GetInvoiceRequest
-	29, // 32: levyan.v1.PayerService.ListCreditNotes:input_type -> levyan.v1.ListCreditNotesRequest
-	3,  // 33: levyan.v1.PayerService.ListBillingAccounts:output_type -> levyan.v1.ListBillingAccountsResponse
-	5,  // 34: levyan.v1.PayerService.CreateBillingAccount:output_type -> levyan.v1.CreateBillingAccountResponse
-	7,  // 35: levyan.v1.PayerService.UpdateBillingAccount:output_type -> levyan.v1.UpdateBillingAccountResponse
-	9,  // 36: levyan.v1.PayerService.ListOffers:output_type -> levyan.v1.ListOffersResponse
-	11, // 37: levyan.v1.PayerService.Accept:output_type -> levyan.v1.AcceptResponse
-	13, // 38: levyan.v1.PayerService.Decline:output_type -> levyan.v1.DeclineResponse
-	15, // 39: levyan.v1.PayerService.ListLinks:output_type -> levyan.v1.ListLinksResponse
-	17, // 40: levyan.v1.PayerService.Use:output_type -> levyan.v1.UseResponse
-	19, // 41: levyan.v1.PayerService.Stop:output_type -> levyan.v1.StopResponse
-	30, // 42: levyan.v1.PayerService.ListInvoices:output_type -> levyan.v1.ListInvoicesResponse
-	31, // 43: levyan.v1.PayerService.GetInvoice:output_type -> levyan.v1.GetInvoiceResponse
-	32, // 44: levyan.v1.PayerService.ListCreditNotes:output_type -> levyan.v1.ListCreditNotesResponse
-	33, // [33:45] is the sub-list for method output_type
-	21, // [21:33] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	35, // 0: levyan.v1.ListBillingAccountsResponse.billing_accounts:type_name -> levyan.v1.BillingAccount
+	36, // 1: levyan.v1.CreateBillingAccountRequest.recipient:type_name -> levyan.v1.Recipient
+	37, // 2: levyan.v1.CreateBillingAccountRequest.business:type_name -> levyan.v1.Business
+	35, // 3: levyan.v1.CreateBillingAccountResponse.billing_account:type_name -> levyan.v1.BillingAccount
+	36, // 4: levyan.v1.UpdateBillingAccountRequest.recipient:type_name -> levyan.v1.Recipient
+	37, // 5: levyan.v1.UpdateBillingAccountRequest.business:type_name -> levyan.v1.Business
+	35, // 6: levyan.v1.UpdateBillingAccountResponse.billing_account:type_name -> levyan.v1.BillingAccount
+	38, // 7: levyan.v1.ListOffersResponse.offers:type_name -> levyan.v1.Offer
+	39, // 8: levyan.v1.AcceptResponse.link:type_name -> levyan.v1.Link
+	39, // 9: levyan.v1.ListLinksResponse.links:type_name -> levyan.v1.Link
+	39, // 10: levyan.v1.UseResponse.link:type_name -> levyan.v1.Link
+	39, // 11: levyan.v1.StopResponse.link:type_name -> levyan.v1.Link
+	35, // 12: levyan.v1.GetBillingAccountResponse.billing_account:type_name -> levyan.v1.BillingAccount
+	32, // 13: levyan.v1.GetBillingAccountResponse.collection:type_name -> levyan.v1.Collection
+	33, // 14: levyan.v1.GetBillingAccountResponse.subscription:type_name -> levyan.v1.Subscription
+	30, // 15: levyan.v1.StartCheckoutResponse.checkout:type_name -> levyan.v1.Checkout
+	30, // 16: levyan.v1.CompleteCheckoutResponse.checkout:type_name -> levyan.v1.Checkout
+	33, // 17: levyan.v1.CompleteCheckoutResponse.subscription:type_name -> levyan.v1.Subscription
+	32, // 18: levyan.v1.CompleteCheckoutResponse.collection:type_name -> levyan.v1.Collection
+	0,  // 19: levyan.v1.Checkout.state:type_name -> levyan.v1.CheckoutState
+	40, // 20: levyan.v1.Checkout.started:type_name -> google.protobuf.Timestamp
+	40, // 21: levyan.v1.Checkout.done:type_name -> google.protobuf.Timestamp
+	31, // 22: levyan.v1.Checkout.window:type_name -> levyan.v1.CheckoutWindow
+	1,  // 23: levyan.v1.Collection.state:type_name -> levyan.v1.CollectionState
+	40, // 24: levyan.v1.Collection.since:type_name -> google.protobuf.Timestamp
+	40, // 25: levyan.v1.Collection.ends:type_name -> google.protobuf.Timestamp
+	2,  // 26: levyan.v1.Subscription.status:type_name -> levyan.v1.SubscriptionStatus
+	40, // 27: levyan.v1.Subscription.period_start:type_name -> google.protobuf.Timestamp
+	40, // 28: levyan.v1.Subscription.period_end:type_name -> google.protobuf.Timestamp
+	40, // 29: levyan.v1.Subscription.next_billed:type_name -> google.protobuf.Timestamp
+	3,  // 30: levyan.v1.Subscription.change:type_name -> levyan.v1.SubscriptionChange
+	40, // 31: levyan.v1.Subscription.change_at:type_name -> google.protobuf.Timestamp
+	40, // 32: levyan.v1.Subscription.canceled:type_name -> google.protobuf.Timestamp
+	34, // 33: levyan.v1.Subscription.method:type_name -> levyan.v1.PaymentMethod
+	40, // 34: levyan.v1.Subscription.updated:type_name -> google.protobuf.Timestamp
+	40, // 35: levyan.v1.Subscription.checked:type_name -> google.protobuf.Timestamp
+	41, // 36: levyan.v1.BillingAccount.channel:type_name -> levyan.v1.Channel
+	36, // 37: levyan.v1.BillingAccount.recipient:type_name -> levyan.v1.Recipient
+	37, // 38: levyan.v1.BillingAccount.business:type_name -> levyan.v1.Business
+	40, // 39: levyan.v1.BillingAccount.created:type_name -> google.protobuf.Timestamp
+	40, // 40: levyan.v1.Offer.offered:type_name -> google.protobuf.Timestamp
+	40, // 41: levyan.v1.Link.start:type_name -> google.protobuf.Timestamp
+	40, // 42: levyan.v1.Link.end:type_name -> google.protobuf.Timestamp
+	4,  // 43: levyan.v1.Link.began:type_name -> levyan.v1.LinkBegan
+	5,  // 44: levyan.v1.Link.ended:type_name -> levyan.v1.LinkEnded
+	6,  // 45: levyan.v1.PayerService.ListBillingAccounts:input_type -> levyan.v1.ListBillingAccountsRequest
+	8,  // 46: levyan.v1.PayerService.CreateBillingAccount:input_type -> levyan.v1.CreateBillingAccountRequest
+	10, // 47: levyan.v1.PayerService.UpdateBillingAccount:input_type -> levyan.v1.UpdateBillingAccountRequest
+	12, // 48: levyan.v1.PayerService.ListOffers:input_type -> levyan.v1.ListOffersRequest
+	14, // 49: levyan.v1.PayerService.Accept:input_type -> levyan.v1.AcceptRequest
+	16, // 50: levyan.v1.PayerService.Decline:input_type -> levyan.v1.DeclineRequest
+	18, // 51: levyan.v1.PayerService.ListLinks:input_type -> levyan.v1.ListLinksRequest
+	20, // 52: levyan.v1.PayerService.Use:input_type -> levyan.v1.UseRequest
+	22, // 53: levyan.v1.PayerService.Stop:input_type -> levyan.v1.StopRequest
+	42, // 54: levyan.v1.PayerService.ListInvoices:input_type -> levyan.v1.ListInvoicesRequest
+	43, // 55: levyan.v1.PayerService.GetInvoice:input_type -> levyan.v1.GetInvoiceRequest
+	44, // 56: levyan.v1.PayerService.ListCreditNotes:input_type -> levyan.v1.ListCreditNotesRequest
+	24, // 57: levyan.v1.PayerService.GetBillingAccount:input_type -> levyan.v1.GetBillingAccountRequest
+	26, // 58: levyan.v1.PayerService.StartCheckout:input_type -> levyan.v1.StartCheckoutRequest
+	28, // 59: levyan.v1.PayerService.CompleteCheckout:input_type -> levyan.v1.CompleteCheckoutRequest
+	7,  // 60: levyan.v1.PayerService.ListBillingAccounts:output_type -> levyan.v1.ListBillingAccountsResponse
+	9,  // 61: levyan.v1.PayerService.CreateBillingAccount:output_type -> levyan.v1.CreateBillingAccountResponse
+	11, // 62: levyan.v1.PayerService.UpdateBillingAccount:output_type -> levyan.v1.UpdateBillingAccountResponse
+	13, // 63: levyan.v1.PayerService.ListOffers:output_type -> levyan.v1.ListOffersResponse
+	15, // 64: levyan.v1.PayerService.Accept:output_type -> levyan.v1.AcceptResponse
+	17, // 65: levyan.v1.PayerService.Decline:output_type -> levyan.v1.DeclineResponse
+	19, // 66: levyan.v1.PayerService.ListLinks:output_type -> levyan.v1.ListLinksResponse
+	21, // 67: levyan.v1.PayerService.Use:output_type -> levyan.v1.UseResponse
+	23, // 68: levyan.v1.PayerService.Stop:output_type -> levyan.v1.StopResponse
+	45, // 69: levyan.v1.PayerService.ListInvoices:output_type -> levyan.v1.ListInvoicesResponse
+	46, // 70: levyan.v1.PayerService.GetInvoice:output_type -> levyan.v1.GetInvoiceResponse
+	47, // 71: levyan.v1.PayerService.ListCreditNotes:output_type -> levyan.v1.ListCreditNotesResponse
+	25, // 72: levyan.v1.PayerService.GetBillingAccount:output_type -> levyan.v1.GetBillingAccountResponse
+	27, // 73: levyan.v1.PayerService.StartCheckout:output_type -> levyan.v1.StartCheckoutResponse
+	29, // 74: levyan.v1.PayerService.CompleteCheckout:output_type -> levyan.v1.CompleteCheckoutResponse
+	60, // [60:75] is the sub-list for method output_type
+	45, // [45:60] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_payer_proto_init() }
@@ -2298,8 +4015,8 @@ func file_levyan_v1_payer_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_v1_payer_proto_rawDesc), len(file_levyan_v1_payer_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   23,
+			NumEnums:      6,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

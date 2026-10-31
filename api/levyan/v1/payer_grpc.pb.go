@@ -34,6 +34,9 @@ const (
 	PayerService_ListInvoices_FullMethodName         = "/levyan.v1.PayerService/ListInvoices"
 	PayerService_GetInvoice_FullMethodName           = "/levyan.v1.PayerService/GetInvoice"
 	PayerService_ListCreditNotes_FullMethodName      = "/levyan.v1.PayerService/ListCreditNotes"
+	PayerService_GetBillingAccount_FullMethodName    = "/levyan.v1.PayerService/GetBillingAccount"
+	PayerService_StartCheckout_FullMethodName        = "/levyan.v1.PayerService/StartCheckout"
+	PayerService_CompleteCheckout_FullMethodName     = "/levyan.v1.PayerService/CompleteCheckout"
 )
 
 // PayerServiceClient is the client API for PayerService service.
@@ -96,6 +99,28 @@ type PayerServiceClient interface {
 	GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*GetInvoiceResponse, error)
 	// ListCreditNotes is the credit notes of them.
 	ListCreditNotes(ctx context.Context, in *ListCreditNotesRequest, opts ...grpc.CallOption) (*ListCreditNotesResponse, error)
+	// GetBillingAccount is one of the account's billing accounts, with whether
+	// what it is billed can be collected now, and the subscription it is
+	// collected through on the merchant of record's channel.
+	GetBillingAccount(ctx context.Context, in *GetBillingAccountRequest, opts ...grpc.CallOption) (*GetBillingAccountResponse, error)
+	// StartCheckout begins the subscription a billing account on the merchant
+	// of record's channel is collected through: what a page opens the
+	// merchant's checkout with, in which the payer gives the merchant a card --
+	// never levyan, never the product -- and subscribes to the plan of the
+	// billing account's currency.
+	//
+	// A billing account whose checkout was begun and not finished is answered
+	// with that one again, while the merchant still takes it, so that a payer
+	// who begins twice subscribes once. One that has a subscription, or is on
+	// another channel, is refused (FailedPrecondition), and so is every one
+	// while the deployment names no merchant of record.
+	StartCheckout(ctx context.Context, in *StartCheckoutRequest, opts ...grpc.CallOption) (*StartCheckoutResponse, error)
+	// CompleteCheckout asks the merchant of record about a checkout of the
+	// account's as the payer comes back from it: the subscription it started,
+	// once it has, and the checkout open until then -- the payer may still be
+	// in it, or the merchant still making the subscription, which a notice of
+	// the merchant's completes all the same. Asked again, it answers the same.
+	CompleteCheckout(ctx context.Context, in *CompleteCheckoutRequest, opts ...grpc.CallOption) (*CompleteCheckoutResponse, error)
 }
 
 type payerServiceClient struct {
@@ -226,6 +251,36 @@ func (c *payerServiceClient) ListCreditNotes(ctx context.Context, in *ListCredit
 	return out, nil
 }
 
+func (c *payerServiceClient) GetBillingAccount(ctx context.Context, in *GetBillingAccountRequest, opts ...grpc.CallOption) (*GetBillingAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBillingAccountResponse)
+	err := c.cc.Invoke(ctx, PayerService_GetBillingAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *payerServiceClient) StartCheckout(ctx context.Context, in *StartCheckoutRequest, opts ...grpc.CallOption) (*StartCheckoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartCheckoutResponse)
+	err := c.cc.Invoke(ctx, PayerService_StartCheckout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *payerServiceClient) CompleteCheckout(ctx context.Context, in *CompleteCheckoutRequest, opts ...grpc.CallOption) (*CompleteCheckoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteCheckoutResponse)
+	err := c.cc.Invoke(ctx, PayerService_CompleteCheckout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PayerServiceServer is the server API for PayerService service.
 // All implementations must embed UnimplementedPayerServiceServer
 // for forward compatibility.
@@ -286,6 +341,28 @@ type PayerServiceServer interface {
 	GetInvoice(context.Context, *GetInvoiceRequest) (*GetInvoiceResponse, error)
 	// ListCreditNotes is the credit notes of them.
 	ListCreditNotes(context.Context, *ListCreditNotesRequest) (*ListCreditNotesResponse, error)
+	// GetBillingAccount is one of the account's billing accounts, with whether
+	// what it is billed can be collected now, and the subscription it is
+	// collected through on the merchant of record's channel.
+	GetBillingAccount(context.Context, *GetBillingAccountRequest) (*GetBillingAccountResponse, error)
+	// StartCheckout begins the subscription a billing account on the merchant
+	// of record's channel is collected through: what a page opens the
+	// merchant's checkout with, in which the payer gives the merchant a card --
+	// never levyan, never the product -- and subscribes to the plan of the
+	// billing account's currency.
+	//
+	// A billing account whose checkout was begun and not finished is answered
+	// with that one again, while the merchant still takes it, so that a payer
+	// who begins twice subscribes once. One that has a subscription, or is on
+	// another channel, is refused (FailedPrecondition), and so is every one
+	// while the deployment names no merchant of record.
+	StartCheckout(context.Context, *StartCheckoutRequest) (*StartCheckoutResponse, error)
+	// CompleteCheckout asks the merchant of record about a checkout of the
+	// account's as the payer comes back from it: the subscription it started,
+	// once it has, and the checkout open until then -- the payer may still be
+	// in it, or the merchant still making the subscription, which a notice of
+	// the merchant's completes all the same. Asked again, it answers the same.
+	CompleteCheckout(context.Context, *CompleteCheckoutRequest) (*CompleteCheckoutResponse, error)
 	mustEmbedUnimplementedPayerServiceServer()
 }
 
@@ -331,6 +408,15 @@ func (UnimplementedPayerServiceServer) GetInvoice(context.Context, *GetInvoiceRe
 }
 func (UnimplementedPayerServiceServer) ListCreditNotes(context.Context, *ListCreditNotesRequest) (*ListCreditNotesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCreditNotes not implemented")
+}
+func (UnimplementedPayerServiceServer) GetBillingAccount(context.Context, *GetBillingAccountRequest) (*GetBillingAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBillingAccount not implemented")
+}
+func (UnimplementedPayerServiceServer) StartCheckout(context.Context, *StartCheckoutRequest) (*StartCheckoutResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartCheckout not implemented")
+}
+func (UnimplementedPayerServiceServer) CompleteCheckout(context.Context, *CompleteCheckoutRequest) (*CompleteCheckoutResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteCheckout not implemented")
 }
 func (UnimplementedPayerServiceServer) mustEmbedUnimplementedPayerServiceServer() {}
 func (UnimplementedPayerServiceServer) testEmbeddedByValue()                      {}
@@ -569,6 +655,60 @@ func _PayerService_ListCreditNotes_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PayerService_GetBillingAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBillingAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).GetBillingAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_GetBillingAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).GetBillingAccount(ctx, req.(*GetBillingAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PayerService_StartCheckout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartCheckoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).StartCheckout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_StartCheckout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).StartCheckout(ctx, req.(*StartCheckoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PayerService_CompleteCheckout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteCheckoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).CompleteCheckout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_CompleteCheckout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).CompleteCheckout(ctx, req.(*CompleteCheckoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PayerService_ServiceDesc is the grpc.ServiceDesc for PayerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -623,6 +763,18 @@ var PayerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListCreditNotes",
 			Handler:    _PayerService_ListCreditNotes_Handler,
+		},
+		{
+			MethodName: "GetBillingAccount",
+			Handler:    _PayerService_GetBillingAccount_Handler,
+		},
+		{
+			MethodName: "StartCheckout",
+			Handler:    _PayerService_StartCheckout_Handler,
+		},
+		{
+			MethodName: "CompleteCheckout",
+			Handler:    _PayerService_CompleteCheckout_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

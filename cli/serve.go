@@ -65,7 +65,7 @@ func Front(s *cmd.Server) {
 	p := s.Payers.On(s.Walled)
 	s.Register = append(s.Register,
 		func(g grpc.ServiceRegistrar) {
-			api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now, W: s.Watch, P: p, Free: s.Free})
+			api.Register(g, api.Deps{S: s.Walled, L: l, Db: s.Ent, Now: now, W: s.Watch, P: p, Free: s.Free, M: s.Subscriptions.On(s.Walled)})
 		},
 		func(g grpc.ServiceRegistrar) { otlp.Register(g, l) },
 	)

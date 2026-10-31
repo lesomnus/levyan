@@ -118,6 +118,47 @@ func (_u *BillingAccountUpdate) ClearDateForgotten() *BillingAccountUpdate {
 	return _u
 }
 
+// SetCollection sets the "collection" field.
+func (_u *BillingAccountUpdate) SetCollection(v int32) *BillingAccountUpdate {
+	_u.mutation.ResetCollection()
+	_u.mutation.SetCollection(v)
+	return _u
+}
+
+// SetNillableCollection sets the "collection" field if the given value is not nil.
+func (_u *BillingAccountUpdate) SetNillableCollection(v *int32) *BillingAccountUpdate {
+	if v != nil {
+		_u.SetCollection(*v)
+	}
+	return _u
+}
+
+// AddCollection adds value to the "collection" field.
+func (_u *BillingAccountUpdate) AddCollection(v int32) *BillingAccountUpdate {
+	_u.mutation.AddCollection(v)
+	return _u
+}
+
+// SetDateCollection sets the "date_collection" field.
+func (_u *BillingAccountUpdate) SetDateCollection(v time.Time) *BillingAccountUpdate {
+	_u.mutation.SetDateCollection(v)
+	return _u
+}
+
+// SetNillableDateCollection sets the "date_collection" field if the given value is not nil.
+func (_u *BillingAccountUpdate) SetNillableDateCollection(v *time.Time) *BillingAccountUpdate {
+	if v != nil {
+		_u.SetDateCollection(*v)
+	}
+	return _u
+}
+
+// ClearDateCollection clears the value of the "date_collection" field.
+func (_u *BillingAccountUpdate) ClearDateCollection() *BillingAccountUpdate {
+	_u.mutation.ClearDateCollection()
+	return _u
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (_u *BillingAccountUpdate) SetDateUpdated(v time.Time) *BillingAccountUpdate {
 	_u.mutation.SetDateUpdated(v)
@@ -248,6 +289,24 @@ func (_u *BillingAccountUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if _u.mutation.DateForgottenCleared() {
 		_spec.ClearField(billingaccount.FieldDateForgotten, field.TypeTime)
 	}
+	if value, ok := _u.mutation.Collection(); ok {
+		_spec.SetField(billingaccount.FieldCollection, field.TypeInt32, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(billingaccount.FieldCollection); ok {
+		_spec.SetField(billingaccount.FieldCollection, field.TypeInt32, e)
+	}
+	if value, ok := _u.mutation.AddedCollection(); ok {
+		_spec.AddField(billingaccount.FieldCollection, field.TypeInt32, value)
+	}
+	if value, ok := _u.mutation.DateCollection(); ok {
+		_spec.SetField(billingaccount.FieldDateCollection, field.TypeTime, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(billingaccount.FieldDateCollection); ok {
+		_spec.SetField(billingaccount.FieldDateCollection, field.TypeTime, e)
+	}
+	if _u.mutation.DateCollectionCleared() {
+		_spec.ClearField(billingaccount.FieldDateCollection, field.TypeTime)
+	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(billingaccount.FieldDateUpdated, field.TypeTime, value)
 	}
@@ -373,6 +432,47 @@ func (_u *BillingAccountUpdateOne) SetNillableDateForgotten(v *time.Time) *Billi
 // ClearDateForgotten clears the value of the "date_forgotten" field.
 func (_u *BillingAccountUpdateOne) ClearDateForgotten() *BillingAccountUpdateOne {
 	_u.mutation.ClearDateForgotten()
+	return _u
+}
+
+// SetCollection sets the "collection" field.
+func (_u *BillingAccountUpdateOne) SetCollection(v int32) *BillingAccountUpdateOne {
+	_u.mutation.ResetCollection()
+	_u.mutation.SetCollection(v)
+	return _u
+}
+
+// SetNillableCollection sets the "collection" field if the given value is not nil.
+func (_u *BillingAccountUpdateOne) SetNillableCollection(v *int32) *BillingAccountUpdateOne {
+	if v != nil {
+		_u.SetCollection(*v)
+	}
+	return _u
+}
+
+// AddCollection adds value to the "collection" field.
+func (_u *BillingAccountUpdateOne) AddCollection(v int32) *BillingAccountUpdateOne {
+	_u.mutation.AddCollection(v)
+	return _u
+}
+
+// SetDateCollection sets the "date_collection" field.
+func (_u *BillingAccountUpdateOne) SetDateCollection(v time.Time) *BillingAccountUpdateOne {
+	_u.mutation.SetDateCollection(v)
+	return _u
+}
+
+// SetNillableDateCollection sets the "date_collection" field if the given value is not nil.
+func (_u *BillingAccountUpdateOne) SetNillableDateCollection(v *time.Time) *BillingAccountUpdateOne {
+	if v != nil {
+		_u.SetDateCollection(*v)
+	}
+	return _u
+}
+
+// ClearDateCollection clears the value of the "date_collection" field.
+func (_u *BillingAccountUpdateOne) ClearDateCollection() *BillingAccountUpdateOne {
+	_u.mutation.ClearDateCollection()
 	return _u
 }
 
@@ -535,6 +635,24 @@ func (_u *BillingAccountUpdateOne) sqlSave(ctx context.Context) (_node *BillingA
 	}
 	if _u.mutation.DateForgottenCleared() {
 		_spec.ClearField(billingaccount.FieldDateForgotten, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Collection(); ok {
+		_spec.SetField(billingaccount.FieldCollection, field.TypeInt32, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(billingaccount.FieldCollection); ok {
+		_spec.SetField(billingaccount.FieldCollection, field.TypeInt32, e)
+	}
+	if value, ok := _u.mutation.AddedCollection(); ok {
+		_spec.AddField(billingaccount.FieldCollection, field.TypeInt32, value)
+	}
+	if value, ok := _u.mutation.DateCollection(); ok {
+		_spec.SetField(billingaccount.FieldDateCollection, field.TypeTime, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(billingaccount.FieldDateCollection); ok {
+		_spec.SetField(billingaccount.FieldDateCollection, field.TypeTime, e)
+	}
+	if _u.mutation.DateCollectionCleared() {
+		_spec.ClearField(billingaccount.FieldDateCollection, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(billingaccount.FieldDateUpdated, field.TypeTime, value)

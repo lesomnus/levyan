@@ -32,6 +32,9 @@ const (
 	PayerService_ListInvoices_FullMethodName         = "/levyan.PayerService/ListInvoices"
 	PayerService_GetInvoice_FullMethodName           = "/levyan.PayerService/GetInvoice"
 	PayerService_ListCreditNotes_FullMethodName      = "/levyan.PayerService/ListCreditNotes"
+	PayerService_GetBillingAccount_FullMethodName    = "/levyan.PayerService/GetBillingAccount"
+	PayerService_StartCheckout_FullMethodName        = "/levyan.PayerService/StartCheckout"
+	PayerService_CompleteCheckout_FullMethodName     = "/levyan.PayerService/CompleteCheckout"
 )
 
 // PayerServiceClient is the client API for PayerService service.
@@ -81,6 +84,15 @@ type PayerServiceClient interface {
 	GetInvoice(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// The credit notes of them.
 	ListCreditNotes(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// One of the account's billing accounts, with whether what it is billed
+	// can be collected now and the subscription it is collected through (#12).
+	GetBillingAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// A checkout begun with the merchant of record, for a billing account of
+	// the account's on its channel: what a page opens the MoR's window with.
+	StartCheckout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// A checkout of the account's asked about as the payer comes back from it:
+	// the subscription it started, once it has.
+	CompleteCheckout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type payerServiceClient struct {
@@ -211,6 +223,36 @@ func (c *payerServiceClient) ListCreditNotes(ctx context.Context, in *emptypb.Em
 	return out, nil
 }
 
+func (c *payerServiceClient) GetBillingAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, PayerService_GetBillingAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *payerServiceClient) StartCheckout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, PayerService_StartCheckout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *payerServiceClient) CompleteCheckout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, PayerService_CompleteCheckout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PayerServiceServer is the server API for PayerService service.
 // All implementations must embed UnimplementedPayerServiceServer
 // for forward compatibility.
@@ -258,6 +300,15 @@ type PayerServiceServer interface {
 	GetInvoice(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	// The credit notes of them.
 	ListCreditNotes(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// One of the account's billing accounts, with whether what it is billed
+	// can be collected now and the subscription it is collected through (#12).
+	GetBillingAccount(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// A checkout begun with the merchant of record, for a billing account of
+	// the account's on its channel: what a page opens the MoR's window with.
+	StartCheckout(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	// A checkout of the account's asked about as the payer comes back from it:
+	// the subscription it started, once it has.
+	CompleteCheckout(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	mustEmbedUnimplementedPayerServiceServer()
 }
 
@@ -303,6 +354,15 @@ func (UnimplementedPayerServiceServer) GetInvoice(context.Context, *emptypb.Empt
 }
 func (UnimplementedPayerServiceServer) ListCreditNotes(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCreditNotes not implemented")
+}
+func (UnimplementedPayerServiceServer) GetBillingAccount(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBillingAccount not implemented")
+}
+func (UnimplementedPayerServiceServer) StartCheckout(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartCheckout not implemented")
+}
+func (UnimplementedPayerServiceServer) CompleteCheckout(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteCheckout not implemented")
 }
 func (UnimplementedPayerServiceServer) mustEmbedUnimplementedPayerServiceServer() {}
 func (UnimplementedPayerServiceServer) testEmbeddedByValue()                      {}
@@ -541,6 +601,60 @@ func _PayerService_ListCreditNotes_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PayerService_GetBillingAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).GetBillingAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_GetBillingAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).GetBillingAccount(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PayerService_StartCheckout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).StartCheckout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_StartCheckout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).StartCheckout(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PayerService_CompleteCheckout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).CompleteCheckout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_CompleteCheckout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).CompleteCheckout(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PayerService_ServiceDesc is the grpc.ServiceDesc for PayerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -595,6 +709,18 @@ var PayerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListCreditNotes",
 			Handler:    _PayerService_ListCreditNotes_Handler,
+		},
+		{
+			MethodName: "GetBillingAccount",
+			Handler:    _PayerService_GetBillingAccount_Handler,
+		},
+		{
+			MethodName: "StartCheckout",
+			Handler:    _PayerService_StartCheckout_Handler,
+		},
+		{
+			MethodName: "CompleteCheckout",
+			Handler:    _PayerService_CompleteCheckout_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

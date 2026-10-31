@@ -78,6 +78,31 @@ service PayerService {
 
   // ListCreditNotes is the credit notes of them.
   rpc ListCreditNotes(ListCreditNotesRequest) returns (ListCreditNotesResponse);
+
+  // GetBillingAccount is one of the account's billing accounts, with whether
+  // what it is billed can be collected now, and the subscription it is
+  // collected through on the merchant of record's channel.
+  rpc GetBillingAccount(GetBillingAccountRequest) returns (GetBillingAccountResponse);
+
+  // StartCheckout begins the subscription a billing account on the merchant
+  // of record's channel is collected through: what a page opens the
+  // merchant's checkout with, in which the payer gives the merchant a card --
+  // never levyan, never the product -- and subscribes to the plan of the
+  // billing account's currency.
+  //
+  // A billing account whose checkout was begun and not finished is answered
+  // with that one again, while the merchant still takes it, so that a payer
+  // who begins twice subscribes once. One that has a subscription, or is on
+  // another channel, is refused (FailedPrecondition), and so is every one
+  // while the deployment names no merchant of record.
+  rpc StartCheckout(StartCheckoutRequest) returns (StartCheckoutResponse);
+
+  // CompleteCheckout asks the merchant of record about a checkout of the
+  // account's as the payer comes back from it: the subscription it started,
+  // once it has, and the checkout open until then -- the payer may still be
+  // in it, or the merchant still making the subscription, which a notice of
+  // the merchant's completes all the same. Asked again, it answers the same.
+  rpc CompleteCheckout(CompleteCheckoutRequest) returns (CompleteCheckoutResponse);
 }
 
 message ListBillingAccountsRequest {}
@@ -175,6 +200,233 @@ message StopRequest {
 message StopResponse {
   // The link that ends, and when.
   Link link = 1;
+}
+
+message GetBillingAccountRequest {
+  // The billing account, by its identifier.
+  string id = 1;
+}
+
+message GetBillingAccountResponse {
+  BillingAccount billing_account = 1;
+
+  // Whether what it is billed can be collected now.
+  Collection collection = 2;
+
+  // The subscription it is collected through: its live one, or the last it
+  // had; unset for none, and on a channel with no subscriptions.
+  Subscription subscription = 3;
+}
+
+message StartCheckoutRequest {
+  // The billing account it subscribes, by its identifier: one of the
+  // account's, on the merchant of record's channel.
+  string billing_account = 1;
+
+  // Where the checkout sends the payer once they have finished: an absolute
+  // URL of the product's, which then calls `CompleteCheckout`.
+  string success_url = 2;
+}
+
+message StartCheckoutResponse {
+  // The checkout, open, with what a page opens it with.
+  Checkout checkout = 1;
+}
+
+message CompleteCheckoutRequest {
+  // The checkout, by levyan's identifier of it (`Checkout.id`) and never the
+  // merchant's: a checkout is completed only as levyan recorded it.
+  string checkout = 1;
+}
+
+message CompleteCheckoutResponse {
+  // The checkout as it is now: completed, still open, or canceled -- one the
+  // merchant says can no longer be finished, after which another is begun.
+  Checkout checkout = 1;
+
+  // The subscription it started, once it has.
+  Subscription subscription = 2;
+
+  // Whether what the billing account is billed can be collected now.
+  Collection collection = 3;
+}
+
+// Checkout is a checkout begun with a merchant of record.
+message Checkout {
+  string id = 1;
+  string billing_account = 2;
+  CheckoutState state = 3;
+
+  google.protobuf.Timestamp started = 4;
+
+  // When the merchant said it was finished, or that it never will be.
+  google.protobuf.Timestamp done = 5;
+
+  // What a page opens it with: answered by `StartCheckout`, and unset
+  // elsewhere.
+  CheckoutWindow window = 6;
+}
+
+// CheckoutState is where a checkout is, value for value levyan's own.
+enum CheckoutState {
+  CHECKOUT_STATE_UNSPECIFIED = 0;
+
+  // Begun, and not finished.
+  CHECKOUT_STATE_OPEN = 1;
+
+  // Finished: the merchant made the subscription it started.
+  CHECKOUT_STATE_COMPLETED = 2;
+
+  // One the merchant says can no longer be finished: another is begun.
+  CHECKOUT_STATE_CANCELED = 3;
+}
+
+// CheckoutWindow is what a page opens a merchant of record's checkout with:
+// the merchant's script and what its SDK is called with -- a page that draws
+// a checkout is written for the merchant whose checkout it draws -- or the
+// merchant's own page for it, to send the payer to instead.
+//
+// For Paddle: load `script`; in the sandbox, `Paddle.Environment.set("sandbox")`
+// first; then `Paddle.Initialize({token: client_token})` and
+// `Paddle.Checkout.open({transactionId: transaction, settings: {successUrl}})`.
+// Paddle shows Korean cards, KakaoPay and NaverPay only for a price in won to
+// a customer with a Korean address: a page that has the payer's email may
+// prefill both, `customer: {email, address: {countryCode: country}}`.
+message CheckoutWindow {
+  // The merchant of record, by the name of its adapter: "paddle".
+  string merchant = 1;
+
+  // "sandbox", where test cards move no money, or "production".
+  string environment = 2;
+
+  // The merchant's id of the checkout, which its SDK opens: Paddle's
+  // transaction.
+  string transaction = 3;
+
+  // The client-side token the merchant's SDK is initialized with: public,
+  // the checkout's, and no key.
+  string client_token = 4;
+
+  // The script the page loads.
+  string script = 5;
+
+  // The merchant's own page for it, to send the payer to instead.
+  string url = 6;
+
+  // The billing account's country, ISO 3166-1 alpha-2: what a page may
+  // prefill the checkout's address with.
+  string country = 7;
+}
+
+// Collection is whether what a billing account is billed can be collected
+// now, and why not.
+message Collection {
+  CollectionState state = 1;
+
+  // Since when it has been so.
+  google.protobuf.Timestamp since = 2;
+
+  // When the merchant of record will end, or pause, the subscription it is
+  // collected through, as somebody scheduled it there -- the payer, in the
+  // merchant's own pages, among them -- from when it is not collectable;
+  // unset for nothing scheduled.
+  google.protobuf.Timestamp ends = 3;
+}
+
+// CollectionState is whether what a billing account is billed can be
+// collected now, and why not, value for value levyan's own.
+enum CollectionState {
+  // Nothing is said: a channel levyan collects nothing on yet.
+  COLLECTION_STATE_UNSPECIFIED = 0;
+
+  // Its subscription is billed and paid up.
+  COLLECTION_STATE_COLLECTABLE = 1;
+
+  // It has no subscription: the payer has not finished a checkout.
+  COLLECTION_STATE_NO_SUBSCRIPTION = 2;
+
+  // A payment the merchant has not collected, and is retrying.
+  COLLECTION_STATE_PAST_DUE = 3;
+
+  // Its subscription is paused.
+  COLLECTION_STATE_PAUSED = 4;
+
+  // Its subscription is over -- canceled at the merchant, by levyan or by
+  // the payer -- and another checkout begins another.
+  COLLECTION_STATE_CANCELED = 5;
+
+  // A payment waits for the payer to act -- approve it in their card
+  // company's app, or pass their bank's check.
+  COLLECTION_STATE_NEEDS_ACTION = 6;
+}
+
+// Subscription is a subscription a merchant of record runs for a billing
+// account, as levyan mirrors it from what the merchant's API answers.
+message Subscription {
+  string id = 1;
+
+  // The merchant of record that runs it, by the name of its adapter.
+  string merchant = 2;
+
+  SubscriptionStatus status = 3;
+
+  // What it is billed in.
+  string currency = 4;
+
+  // The billing period the merchant is in, and when it bills it next:
+  // unset when it will not.
+  google.protobuf.Timestamp period_start = 5;
+  google.protobuf.Timestamp period_end = 6;
+  google.protobuf.Timestamp next_billed = 7;
+
+  // What the merchant will do to it, and when; unspecified for nothing.
+  SubscriptionChange change = 8;
+  google.protobuf.Timestamp change_at = 9;
+
+  google.protobuf.Timestamp canceled = 10;
+
+  // How the payer pays, as the newest payment levyan was told of says;
+  // unset until one says.
+  PaymentMethod method = 11;
+
+  // When the merchant last changed it, by its own clock, and when levyan
+  // last asked it.
+  google.protobuf.Timestamp updated = 12;
+  google.protobuf.Timestamp checked = 13;
+}
+
+// SubscriptionStatus is where a subscription is, value for value levyan's
+// own.
+enum SubscriptionStatus {
+  SUBSCRIPTION_STATUS_UNSPECIFIED = 0;
+  SUBSCRIPTION_STATUS_ACTIVE = 1;
+  SUBSCRIPTION_STATUS_TRIALING = 2;
+  SUBSCRIPTION_STATUS_PAST_DUE = 3;
+  SUBSCRIPTION_STATUS_PAUSED = 4;
+  SUBSCRIPTION_STATUS_CANCELED = 5;
+}
+
+// SubscriptionChange is what a merchant of record has scheduled of a
+// subscription, value for value levyan's own.
+enum SubscriptionChange {
+  SUBSCRIPTION_CHANGE_UNSPECIFIED = 0;
+  SUBSCRIPTION_CHANGE_CANCEL = 1;
+  SUBSCRIPTION_CHANGE_PAUSE = 2;
+  SUBSCRIPTION_CHANGE_RESUME = 3;
+}
+
+// PaymentMethod is how a payer pays, and never more of a card than this.
+message PaymentMethod {
+  // The merchant's name of the kind: card, south_korea_local_card,
+  // kakao_pay, naver_pay, ….
+  string type = 1;
+
+  // A card's brand (visa) or its company (hyundai); empty for a method that
+  // is no card.
+  string brand = 2;
+
+  // A card's last four digits.
+  string last4 = 3;
 }
 
 // BillingAccount is what an account pays with.

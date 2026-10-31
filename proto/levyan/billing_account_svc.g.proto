@@ -32,6 +32,8 @@ message BillingAccountAddRequest {
   string address = 17 [features.field_presence = IMPLICIT];
   BillingBusiness business = 18;
   google.protobuf.Timestamp date_forgotten = 19;
+  CollectionState collection = 20 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_collection = 21;
   google.protobuf.Timestamp date_created = 15;
 }
 
@@ -58,6 +60,8 @@ message BillingAccountSelect {
   bool address = 17;
   bool business = 18;
   bool date_forgotten = 19;
+  bool collection = 20;
+  bool date_collection = 21;
   bool date_updated = 13;
   bool date_erased = 14;
   bool date_created = 15;
@@ -81,6 +85,13 @@ message BillingAccountPatchRequest {
   // "leave it alone", so no value could have meant NULL. It wins
   // outright: setting both this and date_forgotten clears.
   bool date_forgotten_null = 39;
+  CollectionState collection = 40;
+  google.protobuf.Timestamp date_collection = 42;
+  // Clear date_collection instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_collection clears.
+  bool date_collection_null = 43;
   // The version this update requires the stored date_updated to be.
   // It is a precondition, not a write: the update applies only if the row
   // still holds this value, and the server stamps the new version itself.

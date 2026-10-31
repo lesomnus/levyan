@@ -10,6 +10,7 @@ import (
 	entinvoiceline "github.com/lesomnus/levyan/internal/ent/invoiceline"
 	entattempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	"github.com/lesomnus/levyan/server/invoices"
+	"github.com/lesomnus/levyan/server/pd"
 	"github.com/lesomnus/levyan/server/reconcile"
 )
 
@@ -177,4 +178,39 @@ func TestAChargeOfAnotherAmountIsFound(t *testing.T) {
 	x.Len(fs, 1)
 	x.Contains(fs[0].Summary, "charge "+a.AttemptKey+" of 4,000 KRW succeeded")
 	x.Contains(fs[0].Summary, "which charged 5,000 KRW of its key")
+}
+
+// An invoice is collected by one charge: one collected again -- a charge
+// written past the loops, sent and paid -- has charged its payer what is now
+// the billing account's credit, and is found (Claude's, #9: reconciliation
+// finds an invoice two charges of which succeeded).
+func TestAnInvoiceCollectedTwiceIsFound(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	inv, _, _ := w.charged()
+	at := pdid.New(pd.PaymentAttemptDomain)
+	_, err := w.S.Ungated.PaymentAttempt().Add(w.ctx, levyan.PaymentAttemptAddRequest_builder{
+		Id:         at.Bytes(),
+		Tenant:     levyan.TenantRef_builder{Id: inv.TenantId[:]}.Build(),
+		Invoice:    levyan.InvoiceRef_builder{Id: inv.Id[:]}.Build(),
+		Kind:       levyan.AttemptKind_ATTEMPT_KIND_CHARGE,
+		AttemptKey: invoices.KeyOf(at),
+		Channel:    inv.Channel,
+		Currency:   inv.Currency,
+		Amount:     5000,
+		State:      levyan.AttemptState_ATTEMPT_STATE_REQUESTED,
+	}.Build())
+	x.NoError(err)
+	w.run()
+	x.Equal(2, w.srv.Charged(), "two charges, of a plan of nothing")
+	x.Equal(int64(5000), w.again(inv).Paid, "paid once")
+
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_OVERCOLLECTED)
+	x.Len(fs, 1)
+	x.Equal(reconcile.Subject("Invoice", inv.Id), fs[0].Subject)
+	x.Equal(int64(5000), fs[0].Amount, "what is now credit")
+	x.Contains(fs[0].Summary, "collected by 2 charges")
+	x.Len(w.findings(), 1, "and the ledger agrees with itself otherwise")
 }

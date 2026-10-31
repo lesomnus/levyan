@@ -1,7 +1,8 @@
-// Package reconcile is levyan's backstop (#13, docs/design.md §19): it holds
-// what levyan keeps to what the channels answer, and to itself, and says to
-// an operator what has drifted -- a finding ([levyan.Finding]) of each, in
-// the log at its severity and in a gauge a dashboard alerts on.
+// Package reconcile is levyan's backstop (#13, docs/design.md §15, "대조와
+// 경보"): it holds what levyan keeps to what the channels answer, and to
+// itself, and says to an operator what has drifted -- a finding
+// ([levyan.Finding]) of each, in the log at its severity and in a gauge a
+// dashboard alerts on.
 //
 // # The backstop, not the path
 //
@@ -232,6 +233,7 @@ var kinds = map[levyan.FindingKind]kind{
 	levyan.FindingKind_FINDING_KIND_MIRROR_STALE:          {warning, levyan.FindingCorrection_FINDING_CORRECTION_REASK},
 	levyan.FindingKind_FINDING_KIND_READINGS_MISSING:      {warning, investigate},
 	levyan.FindingKind_FINDING_KIND_CHECK_FAILED:          {errored, investigate},
+	levyan.FindingKind_FINDING_KIND_OVERCOLLECTED:         {errored, investigate},
 }
 
 // SeverityOf is how much a finding of kind `k` asks of an operator.
@@ -315,6 +317,7 @@ var checks = []check{
 	{name: "invoices", kinds: []levyan.FindingKind{
 		levyan.FindingKind_FINDING_KIND_INVOICE_PAID_DIFFERS,
 		levyan.FindingKind_FINDING_KIND_INVOICE_STATE_DIFFERS,
+		levyan.FindingKind_FINDING_KIND_OVERCOLLECTED,
 		levyan.FindingKind_FINDING_KIND_REFUND_NOT_MADE,
 		levyan.FindingKind_FINDING_KIND_LINES_DIFFER,
 	}, run: (*Reconciler).invoices},

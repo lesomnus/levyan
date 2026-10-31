@@ -85,6 +85,11 @@ const (
 	FindingKind_FINDING_KIND_READINGS_MISSING FindingKind = 19
 	// A check that could not be made: what it would have found is not known.
 	FindingKind_FINDING_KIND_CHECK_FAILED FindingKind = 20
+	// An invoice collected by more than one charge, or collected once it was
+	// no longer owed -- voided, written off: what more than was left was
+	// collected is the billing account's credit, and the payer was charged
+	// it.
+	FindingKind_FINDING_KIND_OVERCOLLECTED FindingKind = 21
 )
 
 // Enum value maps for FindingKind.
@@ -111,6 +116,7 @@ var (
 		18: "FINDING_KIND_MIRROR_STALE",
 		19: "FINDING_KIND_READINGS_MISSING",
 		20: "FINDING_KIND_CHECK_FAILED",
+		21: "FINDING_KIND_OVERCOLLECTED",
 	}
 	FindingKind_value = map[string]int32{
 		"FINDING_KIND_UNSPECIFIED":           0,
@@ -134,6 +140,7 @@ var (
 		"FINDING_KIND_MIRROR_STALE":          18,
 		"FINDING_KIND_READINGS_MISSING":      19,
 		"FINDING_KIND_CHECK_FAILED":          20,
+		"FINDING_KIND_OVERCOLLECTED":         21,
 	}
 )
 
@@ -331,13 +338,13 @@ func (x FindingCorrection) Number() protoreflect.EnumNumber {
 }
 
 // Finding is one thing reconciliation found drifted (#13, docs/design.md
-// §19): levyan's own records against what a channel answers -- a charge the
-// ledger says succeeded that the merchant of record has no completed
-// transaction of, a key it charged twice -- or levyan's records against one
-// another -- an invoice whose paid amount is not what its attempts add up
-// to, a grant a rule no longer wants -- or a state left where it should have
-// moved on: a period not closed, an attempt nobody knows the outcome of, a
-// notice not taken.
+// §15, "대조와 경보"): levyan's own records against what a channel answers
+// -- a charge the ledger says succeeded that the merchant of record has no
+// completed transaction of, a key it charged twice -- or levyan's records
+// against one another -- an invoice whose paid amount is not what its
+// attempts add up to, a grant a rule no longer wants -- or a state left
+// where it should have moved on: a period not closed, an attempt nobody
+// knows the outcome of, a notice not taken.
 //
 // Events are assumed to go missing, to come twice and to come out of order
 // (levyan#1, "정합성 원칙"); what does is put right by the loops that ask the
@@ -978,7 +985,7 @@ const file_levyan_finding_proto_rawDesc = "" +
 	"\n" +
 	"FindingRow\x12\x16\n" +
 	"\x06entity\x18\x01 \x01(\tR\x06entity\x12\x10\n" +
-	"\x03ref\x18\x02 \x01(\tR\x03ref*\xc1\x05\n" +
+	"\x03ref\x18\x02 \x01(\tR\x03ref*\xe1\x05\n" +
 	"\vFindingKind\x12\x1c\n" +
 	"\x18FINDING_KIND_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dFINDING_KIND_CHARGE_UNMATCHED\x10\x01\x12\x1c\n" +
@@ -1001,7 +1008,8 @@ const file_levyan_finding_proto_rawDesc = "" +
 	"\x19FINDING_KIND_NOTICE_STUCK\x10\x11\x12\x1d\n" +
 	"\x19FINDING_KIND_MIRROR_STALE\x10\x12\x12!\n" +
 	"\x1dFINDING_KIND_READINGS_MISSING\x10\x13\x12\x1d\n" +
-	"\x19FINDING_KIND_CHECK_FAILED\x10\x14*\x8c\x01\n" +
+	"\x19FINDING_KIND_CHECK_FAILED\x10\x14\x12\x1e\n" +
+	"\x1aFINDING_KIND_OVERCOLLECTED\x10\x15*\x8c\x01\n" +
 	"\x0fFindingSeverity\x12 \n" +
 	"\x1cFINDING_SEVERITY_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18FINDING_SEVERITY_WARNING\x10\x01\x12\x1a\n" +

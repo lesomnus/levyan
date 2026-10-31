@@ -140,7 +140,7 @@ func (r *Reconciler) notices(ctx context.Context, p *pass) ([]Found, error) {
 			Subject: Subject("Notice", n.Id),
 			Summary: fmt.Sprintf("the merchant of record's notice %s (%s) has waited to be taken since %s, and the merchant could not be asked of what it names %d times",
 				n.MorEvent, n.Type, stamp(n.DateCreated), n.Tries),
-			Facts: fmt.Sprintf("event=%s tries=%d", n.MorEvent, n.Tries),
+			Facts: fmt.Sprintf("event=%s type=%s", n.MorEvent, n.Type),
 			Rows:  rows,
 		})
 	}

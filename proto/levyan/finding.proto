@@ -12,13 +12,13 @@ option features.field_presence = IMPLICIT;
 option go_package = "github.com/lesomnus/levyan";
 
 // Finding is one thing reconciliation found drifted (#13, docs/design.md
-// §19): levyan's own records against what a channel answers -- a charge the
-// ledger says succeeded that the merchant of record has no completed
-// transaction of, a key it charged twice -- or levyan's records against one
-// another -- an invoice whose paid amount is not what its attempts add up
-// to, a grant a rule no longer wants -- or a state left where it should have
-// moved on: a period not closed, an attempt nobody knows the outcome of, a
-// notice not taken.
+// §15, "대조와 경보"): levyan's own records against what a channel answers
+// -- a charge the ledger says succeeded that the merchant of record has no
+// completed transaction of, a key it charged twice -- or levyan's records
+// against one another -- an invoice whose paid amount is not what its
+// attempts add up to, a grant a rule no longer wants -- or a state left
+// where it should have moved on: a period not closed, an attempt nobody
+// knows the outcome of, a notice not taken.
 //
 // Events are assumed to go missing, to come twice and to come out of order
 // (levyan#1, "정합성 원칙"); what does is put right by the loops that ask the
@@ -265,6 +265,12 @@ enum FindingKind {
 
   // A check that could not be made: what it would have found is not known.
   FINDING_KIND_CHECK_FAILED = 20;
+
+  // An invoice collected by more than one charge, or collected once it was
+  // no longer owed -- voided, written off: what more than was left was
+  // collected is the billing account's credit, and the payer was charged
+  // it.
+  FINDING_KIND_OVERCOLLECTED = 21;
 }
 
 // FindingSeverity is how much a finding asks of an operator.

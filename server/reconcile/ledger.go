@@ -102,7 +102,7 @@ func (r *Reconciler) attempts(ctx context.Context, p *pass) ([]Found, error) {
 		if asked != "" {
 			f.Summary += ", and asking the channel again failed: " + asked
 		}
-		f.Facts = fmt.Sprintf("state=%s since=%s asked=%s", attemptState(state), stamp(since), asked)
+		f.Facts = fmt.Sprintf("state=%s since=%s", attemptState(state), stamp(since))
 		out = append(out, f)
 	}
 
@@ -146,7 +146,7 @@ func (r *Reconciler) ledgerRows(ctx context.Context, p *pass) (*ledgerRows, erro
 	}
 	as, err := p.db.PaymentAttempt.Query().
 		Select(entattempt.FieldId, entattempt.FieldInvoiceId, entattempt.FieldCreditNoteId, entattempt.FieldKind, entattempt.FieldState,
-			entattempt.FieldAmount, entattempt.FieldAttemptKey, entattempt.FieldExtraOf).
+			entattempt.FieldAmount, entattempt.FieldAttemptKey, entattempt.FieldExtraOf, entattempt.FieldRecorded).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -215,9 +215,13 @@ func (r *Reconciler) invoices(ctx context.Context, p *pass) ([]Found, error) {
 		}
 
 		charged, overpaid, applied := int64(0), int64(0), int64(0)
+		collected := []string{}
 		for _, a := range l.attempts[inv.Id] {
 			if a.Kind == charge && a.State == succeeded {
 				charged += a.Amount
+				if !a.Recorded {
+					collected = append(collected, a.AttemptKey)
+				}
 			}
 		}
 		for _, c := range l.credits[inv.Id] {
@@ -240,6 +244,22 @@ func (r *Reconciler) invoices(ctx context.Context, p *pass) ([]Found, error) {
 				fmt.Sprintf("invoice %s says it was %s", pdid.Id(inv.Id), strings.Join(wrong, "; ")),
 				fmt.Sprintf("paid=%d charged=%d overpaid=%d credited=%d applied=%d", inv.Paid, charged, overpaid, inv.Credited, applied),
 				charged-overpaid-inv.Paid))
+		}
+
+		// Collected once, a charge at a time (#11 makes a retry once the
+		// charge before failed): by more than one, or once it was owed no
+		// longer, the payer was charged what is now credit.
+		gone := false
+		switch levyan.InvoiceState(inv.State) {
+		case levyan.InvoiceState_INVOICE_STATE_VOID, levyan.InvoiceState_INVOICE_STATE_WRITTEN_OFF,
+			levyan.InvoiceState_INVOICE_STATE_SHADOW, levyan.InvoiceState_INVOICE_STATE_DRAFT:
+			gone = true
+		}
+		if len(collected) > 1 || (gone && len(collected) > 0) {
+			name := strings.ToLower(strings.TrimPrefix(levyan.InvoiceState(inv.State).String(), "INVOICE_STATE_"))
+			out = append(out, of(levyan.FindingKind_FINDING_KIND_OVERCOLLECTED,
+				fmt.Sprintf("invoice %s, %s, was collected by %d charges -- %s -- and %s of it is the billing account's credit", pdid.Id(inv.Id), name, len(collected), strings.Join(collected, ", "), money.String(overpaid, inv.Currency)),
+				fmt.Sprintf("state=%s charges=%s overpaid=%d", name, strings.Join(collected, ","), overpaid), overpaid))
 		}
 
 		left := invoices.Remaining(inv)

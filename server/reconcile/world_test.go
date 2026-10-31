@@ -74,6 +74,11 @@ func setup(t *testing.T, with ...func(*cmd.Config)) *world {
 	return arrange(t, w, srv)
 }
 
+// waits is a deployment whose periods wait three months for what comes late
+// before they are closed (`periods.grace`): for a test that passes months
+// over, which are then no findings of their own.
+func waits(c *cmd.Config) { c.Periods.Grace = 90 * 24 * time.Hour }
+
 // bare is loft on a levyan that names no merchant of record: its billing
 // accounts are on the merchant's channel all the same, which nothing
 // collects on.

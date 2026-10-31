@@ -113,16 +113,19 @@ type Config struct {
 
 // ReconcileConfig is how the loop `levyan.reconcile` holds what levyan keeps
 // to what its channels answer, and to itself (#13): how often, how far back
-// the merchant of record's transactions are read, and how long each state
-// may be left before it is a finding. Every one has a default.
+// the merchant of record's transactions and adjustments are read, and how
+// long each state may be left before it is a finding. Every one has a
+// default.
 type ReconcileConfig struct {
 	// Every is how often a pass is made: a day when unset.
 	Every time.Duration `yaml:"every"`
 
 	// Window is how far back the merchant of record's transactions are read,
-	// by when they last changed: a week when unset. What was billed in it is
-	// held to the ledger, and what a finding open names is held to it again
-	// wherever it is.
+	// by when they last changed, and its adjustments -- refunds,
+	// chargebacks -- by when they were made, each with its transaction: a
+	// week when unset. What was billed or adjusted in it is held to the
+	// ledger, and what a finding open names is held to it again wherever it
+	// is.
 	Window time.Duration `yaml:"window"`
 
 	// Stale is how long each state may be left.

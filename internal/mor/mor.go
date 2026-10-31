@@ -59,7 +59,8 @@
 //
 // A key the MoR has more than one charge of is a key charged twice, which the
 // rule above is there to prevent and reconciliation (#13) is there to find:
-// [Channel.Charged] answers the first of them, with [ErrTwice].
+// [Channel.Charged] answers the first of them that was paid -- the first of
+// them, when none was -- with [ErrTwice].
 //
 // # A charge for the next period
 //
@@ -98,6 +99,7 @@ package mor
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/lesomnus/levyan/internal/money"
@@ -119,6 +121,11 @@ type Channel interface {
 	// Name is the MoR's, as a stored subscription says which channel it is
 	// of: "paddle".
 	Name() string
+
+	// Minimum is the least the MoR charges in `currency`, in its minor unit:
+	// a charge of less is refused ([ErrBelowMinimum]). Nothing for a currency
+	// the MoR has no least of.
+	Minimum(currency string) money.Amount
 
 	// StartCheckout begins a subscription: what a page opens the MoR's
 	// checkout with, in which the payer gives a card to the MoR and not to
@@ -164,7 +171,8 @@ type Channel interface {
 	// MoR saying it was never made -- or was dropped with a subscription that
 	// ended -- and is answered only once [Settle] has passed since the charge
 	// was last sent. A key the MoR has more than once is answered with the
-	// first, and [ErrTwice].
+	// first of them that was paid, or the first when none was, and
+	// [ErrTwice].
 	Charged(ctx context.Context, c Charge) (Transaction, error)
 
 	// Transaction is a transaction as the MoR has it now, with every
@@ -528,6 +536,11 @@ type Transaction struct {
 	// At is when it was paid: zero for one that was not.
 	At time.Time
 
+	// InvoiceNumber is the number of the invoice the MoR, the seller, issued
+	// for it (Paddle's invoice_number, 325-10566): "" until it has issued
+	// one.
+	InvoiceNumber string
+
 	// Adjustments is what was given back of it, or taken back, oldest
 	// first: refunds and chargebacks.
 	Adjustments []Adjustment
@@ -655,9 +668,57 @@ type Failure struct {
 	// a reason of its own, which says nothing of the card.
 	Kind Kind
 
+	// Decline is which kind of decline a [Declined] failure is, and is not
+	// read of any other: [DeclineOther] where the MoR says no more.
+	Decline Decline
+
 	// Code and Message are the MoR's. The message is the MoR's words.
 	Code    string
 	Message string
+}
+
+// Decline is which kind of decline a refusal is, by what the MoR answered:
+// what follows a decline is set by its kind (#11). They are package pg's
+// kinds of decline, by the same names and values, as [Kind] is pg's kinds --
+// that declines are told apart by kind is the owner's (2026-10-31), and that
+// they are these four is Claude's, the lead's (levyan#10, 26). A channel says
+// which of its MoR's codes is which, and one it does not place is
+// [DeclineOther], the zero Decline, with its code kept beside it.
+type Decline int
+
+const (
+	// DeclineOther is a refusal that says no more than that it is one, or a
+	// code its channel does not place.
+	DeclineOther Decline = iota
+
+	// DeclineTemporary may go through later, on the same method: too little
+	// left in the account, a limit reached.
+	DeclineTemporary
+
+	// DeclineReplace is a method that will not be charged as it is: expired,
+	// lost or stolen, frozen by its issuer, one the MoR will not take, a
+	// mandate the payer withdrew. The payer gives another, or takes it up
+	// with the card's company.
+	DeclineReplace
+
+	// DeclineFraud is a charge refused as suspected fraud, or blocked by a
+	// check of risk: the issuer's, the MoR's, or one the seller set.
+	DeclineFraud
+)
+
+func (d Decline) String() string {
+	switch d {
+	case DeclineOther:
+		return "other"
+	case DeclineTemporary:
+		return "temporary"
+	case DeclineReplace:
+		return "replace"
+	case DeclineFraud:
+		return "fraud"
+	default:
+		return "decline " + strconv.Itoa(int(d))
+	}
 }
 
 // Refund gives back some or all of a paid transaction.

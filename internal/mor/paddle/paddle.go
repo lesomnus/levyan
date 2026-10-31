@@ -136,7 +136,18 @@
 //     (https://developer.paddle.com/api-reference/transactions/get-transaction).
 //     The adapter keeps of a method its type, brand or company, and last
 //     four digits, and nothing more of a card: not its expiry, not who
-//     holds it.
+//     holds it. A failed attempt's error_code says why, each code in
+//     Paddle's own words -- not_enough_balance "insufficient funds, or fund
+//     limits being reached", blocked_card "frozen, lost, damaged, or
+//     stolen", fraud, declined "with no other information returned", … --
+//     which is what the kind of a decline is read from (codes.go).
+//   - A transaction's invoice_number is the number of the invoice Paddle
+//     issued for it, "325-10566" in the example of a completed transaction;
+//     the field's description says Paddle generates it "when you mark a
+//     transaction as billed" where collection is manual, and says nothing of
+//     an automatic one (https://developer.paddle.com/api-reference/transactions/get-transaction).
+//     It is read where there is one, and is what levyan's invoice of a
+//     charge refers to.
 //   - A transaction is created ready -- the checkout's first screen
 //     skipped -- only with a customer_id and an address_id, an address
 //     being a customer's, and a customer an email
@@ -383,6 +394,21 @@ func keyEnv(k string) string {
 
 func (c *Channel) Name() string { return "paddle" }
 
+// minimums is the least Paddle charges in each currency levyan prices in, in
+// its minor unit: 0.70 USD, 0.65 EUR, 100 JPY, 980 KRW
+// (https://developer.paddle.com/concepts/sell/supported-currencies,
+// 2026-10-31). Less is refused with
+// subscription_update_transaction_balance_less_than_charge_limit.
+var minimums = map[string]int64{"USD": 70, "EUR": 65, "JPY": 100, "KRW": 980}
+
+// Minimum is the least Paddle charges in currency: nothing for a currency
+// levyan does not price in. Paddle holds a transaction's balance to it, its
+// tax included; a charge of an amount before tax (the external tax mode) of
+// no less than it is so of no less either.
+func (c *Channel) Minimum(currency string) money.Amount {
+	return money.Amount{Minor: minimums[currency], Currency: currency}
+}
+
 func invalid(op, why string) *mor.Error {
 	return &mor.Error{Op: op, Kind: mor.Invalid, Err: errors.New(why)}
 }
@@ -624,7 +650,7 @@ func (c *Channel) Charge(ctx context.Context, ch mor.Charge) (mor.Transaction, e
 		return mor.Transaction{}, err
 	}
 	if len(found) > 0 {
-		t := found[0]
+		t := first(found)
 		if l, _ := t.Line(ch.Key); l.Amount != ch.Amount {
 			return mor.Transaction{}, invalid(op, fmt.Sprintf("the key was charged %s, not %s", l.Amount, ch.Amount))
 		}
@@ -686,7 +712,7 @@ func (c *Channel) Charge(ctx context.Context, ch mor.Charge) (mor.Transaction, e
 			Customer:     s.Customer,
 			Status:       mor.Failed,
 			Lines:        []mor.Line{{Key: ch.Key, Name: ch.Description, Amount: ch.Amount}},
-			Failure:      &mor.Failure{Kind: mor.Declined, Code: e.Code, Message: e.Message},
+			Failure:      &mor.Failure{Kind: mor.Declined, Decline: decline(e.Code), Code: e.Code, Message: e.Message},
 		}, nil
 	default:
 		return mor.Transaction{}, err
@@ -712,9 +738,22 @@ func (c *Channel) Charge(ctx context.Context, ch mor.Charge) (mor.Transaction, e
 		return made, nil
 	}
 	if len(found) > 1 {
-		return found[0], &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrTwice}
+		return first(found), &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrTwice}
 	}
 	return found[0], nil
+}
+
+// first is what a key found in more than one transaction is answered with:
+// the first of them that was paid -- money moved for the charge, whatever
+// became of the others -- and the first of them when none was. The others are
+// reconciliation's (#13) to give back.
+func first(found []mor.Transaction) mor.Transaction {
+	for _, t := range found {
+		if t.Status == mor.Paid {
+			return t
+		}
+	}
+	return found[0]
 }
 
 func (c *Channel) chargeOK(op string, ch mor.Charge) error {
@@ -751,7 +790,7 @@ func (c *Channel) Charged(ctx context.Context, ch mor.Charge) (mor.Transaction, 
 	case err != nil:
 		return mor.Transaction{}, err
 	case len(found) > 1:
-		return found[0], &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrTwice}
+		return first(found), &mor.Error{Op: op, Kind: mor.Invalid, Err: mor.ErrTwice}
 	case len(found) == 1:
 		return found[0], nil
 	case c.tooSoon(ch.Sent):

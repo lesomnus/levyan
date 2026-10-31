@@ -499,6 +499,19 @@ What billing accounts are asked to pay, and the money it moves
   each declaring what it reads with `pd.AccountReads`).
 - A workspace's `label` is what the product calls it (`Arrive`'s `label`); a
   line keeps the label it was written with.
+- **The bank-transfer channel** (`CHANNEL_BANK_KR`, `server/invoices/bank`)
+  pushes nothing: an invoice is finalized with its due date and its tax
+  invoice, and an operator records each transfer (`invoice paid`) and each
+  refund made back by hand (`invoice credit --reason refund --reference`).
+  Its billing accounts are an operator's alone (`billing-account add
+  --channel bank_kr`): `payers.Layer` refuses one from a frame that is no
+  operator's, and `payers.channels` refuses it as a country's default.
+- **Tax invoices** go through `internal/taxinvoice` (`Issuer`, once by its
+  key, which is the invoice's number), whose services register their kind;
+  `invoices.bank_kr.issuer` names one. **None is linked**: which service is
+  the owner's open question, so do not name one as chosen, and a deployment
+  that configures the channel does not come up yet. `taxinvoicetest` (kind
+  `test`) is the fake, and no binary links it (cmd/levyan's test).
 
 ## Background work
 

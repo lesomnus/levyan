@@ -204,4 +204,7 @@ enum Channel {
 
   // A Korean payment gateway.
   CHANNEL_PG_KR = 2;
+
+  // A bank transfer in Korea, with a tax invoice.
+  CHANNEL_BANK_KR = 3;
 }

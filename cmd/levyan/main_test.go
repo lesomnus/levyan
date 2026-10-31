@@ -51,3 +51,20 @@ func TestTheTwoBinariesLinkNeitherDoorOfTheOther(t *testing.T) {
 		x.Contains(operator, "github.com/lesomnus/payday/"+pkg)
 	}
 }
+
+// What a test collects and issues through is no deployment's: neither binary
+// links the channel tests stand on, nor the issuer of tax invoices they name
+// by its kind, so a configuration that names the test's kind is refused
+// where it comes up.
+func TestTheBinariesLinkNoTestsChannel(t *testing.T) {
+	x := require.New(t)
+
+	const m = "github.com/lesomnus/levyan/"
+	for _, dir := range []string{".", "../levyan-admin"} {
+		ds := deps(t, dir)
+		x.Contains(ds, m+"server/invoices", "the list is the binary's")
+		for _, pkg := range []string{m + "server/invoices/invoicestest", m + "internal/taxinvoice/taxinvoicetest"} {
+			x.NotContains(ds, pkg, "%s links %s", dir, pkg)
+		}
+	}
+}

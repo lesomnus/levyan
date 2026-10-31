@@ -287,8 +287,14 @@ func (p Payers) Create(ctx context.Context, account pdid.Id, v *levyan.BillingAc
 // `id` of `account`'s is billed and the business it is billed to: what `v`
 // says, and nothing it leaves out.
 func (p Payers) Update(ctx context.Context, account, id pdid.Id, req *levyan.BillingAccountPatchRequest) (*levyan.BillingAccount, error) {
-	if _, err := own(ctx, p.db(), account, id); err != nil {
+	v, err := own(ctx, p.db(), account, id)
+	if err != nil {
 		return nil, err
+	}
+	if v.Channel == levyan.Channel_CHANNEL_BANK_KR.String() && (req.HasBusiness() || req.GetBusinessNull()) {
+		// The business a transfer's tax invoices go to is the contract's,
+		// and an operator's to say.
+		return nil, status.Error(codes.FailedPrecondition, "the business a billing account paid by transfer is billed to is its contract's, and an operator's to change")
 	}
 
 	req = proto.CloneOf(req)

@@ -170,7 +170,7 @@ type Document struct {
 	// original's number and reference.
 	CreditNote bool
 	Reason     levyan.CreditNoteReason
-	Original   int64
+	Amends     int64
 	Document   string
 
 	Invoice Invoice
@@ -184,8 +184,10 @@ type Document struct {
 	Rate     string
 
 	// Written is the day it is written for: the last day an invoice
-	// covers, in the product's zone, or the day a credit note is written.
-	Written time.Time
+	// covers, in the product's zone, or the day a credit note is written --
+	// and for a credit note, Original the day its invoice's was.
+	Written  time.Time
+	Original time.Time
 
 	// BillTo is who it is to.
 	BillTo *levyan.BillTo

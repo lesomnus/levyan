@@ -187,6 +187,13 @@ enum Channel {
   // A Korean payment gateway: levyan is the seller, and charges the card
   // itself.
   CHANNEL_PG_KR = 2;
+
+  // A bank transfer in Korea, with a tax invoice: levyan is the seller, an
+  // institution pays what its invoice says by transfer, and an operator
+  // records the transfer (#9). Its billing accounts are opened by an
+  // operator, after a contract, and never by an account itself: paying
+  // after the fact is credit.
+  CHANNEL_BANK_KR = 3;
 }
 
 // PriceBands is a price by bands of a meter's value.

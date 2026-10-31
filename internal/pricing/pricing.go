@@ -262,7 +262,7 @@ var ErrTooMuch = errors.New("pricing: the amount is more than an amount holds")
 // CheckChannel refuses what is not a channel anything is sold through.
 func CheckChannel(c levyan.Channel) error {
 	switch c {
-	case levyan.Channel_CHANNEL_MOR, levyan.Channel_CHANNEL_PG_KR:
+	case levyan.Channel_CHANNEL_MOR, levyan.Channel_CHANNEL_PG_KR, levyan.Channel_CHANNEL_BANK_KR:
 		return nil
 	}
 

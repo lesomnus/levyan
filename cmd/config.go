@@ -13,6 +13,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"math/big"
@@ -26,7 +27,9 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/keyring"
+	"github.com/lesomnus/levyan/internal/taxinvoice"
 	"github.com/lesomnus/levyan/server/invoices"
+	"github.com/lesomnus/levyan/server/invoices/bank"
 	"github.com/lesomnus/levyan/server/payers"
 )
 
@@ -102,6 +105,79 @@ type InvoicesConfig struct {
 	// adds its own: 10 when unset, Korea's VAT (부가가치세법 제30조). It may
 	// be a fraction, `7.5`; `0` is none.
 	Tax *string `yaml:"tax"`
+
+	// BankKR is the bank-transfer channel (`CHANNEL_BANK_KR`): an
+	// institution pays by transfer, with a tax invoice. Not configured --
+	// no issuer named -- it collects nothing, and its drafts wait.
+	BankKR BankConfig `yaml:"bank_kr"`
+}
+
+// BankConfig is the bank-transfer channel: who issues its tax invoices, the
+// business that sells, the least it collects and when an invoice is due.
+type BankConfig struct {
+	// Issuer is the kind of service that issues its tax invoices, as the
+	// package that implements it registers itself (`internal/taxinvoice`).
+	// None is linked yet: which service it is, is the owner's to choose.
+	Issuer string `yaml:"issuer"`
+
+	// Seller is the deployment's own business, the supplier of every tax
+	// invoice: its registration number, name, representative, address,
+	// 업태 and 종목, and its email.
+	Seller SellerConfig `yaml:"seller"`
+
+	// Minimum is the least an invoice is collected for, in won: none when
+	// unset. Less waits for the next period -- which a tax invoice issued for
+	// two months makes risky (docs/design.md §17, 64).
+	Minimum int64 `yaml:"minimum"`
+
+	// Due is how long after it is finalized an invoice is due: 720h, thirty
+	// days, when unset.
+	Due time.Duration `yaml:"due"`
+}
+
+// SellerConfig is the business that sells on a channel levyan sells on.
+type SellerConfig struct {
+	Registration   string `yaml:"registration"`
+	Name           string `yaml:"name"`
+	Representative string `yaml:"representative"`
+	Address        string `yaml:"address"`
+	Kind           string `yaml:"kind"`
+	Item           string `yaml:"item"`
+	Email          string `yaml:"email"`
+}
+
+// Configured says whether the channel is: whether an issuer is named.
+func (c BankConfig) Configured() bool { return c.Issuer != "" }
+
+// Collector is the channel's collector, its issuer opened: refused when the
+// seller is not a business a tax invoice can name, or the issuer is of no
+// kind linked into this binary.
+func (c BankConfig) Collector() (*bank.Channel, error) {
+	if !taxinvoice.Registration(c.Seller.Registration) || strings.TrimSpace(c.Seller.Name) == "" {
+		return nil, errors.New("seller: the business that sells, by its registration number of ten digits and its name, which every tax invoice names")
+	}
+	if c.Minimum < 0 {
+		return nil, errors.New("minimum: no less than nothing")
+	}
+	iss, err := taxinvoice.Open(c.Issuer)
+	if err != nil {
+		return nil, fmt.Errorf("issuer: %w", err)
+	}
+
+	return &bank.Channel{
+		Issuer: iss,
+		Seller: taxinvoice.Party{
+			Registration:   strings.TrimSpace(c.Seller.Registration),
+			Name:           strings.TrimSpace(c.Seller.Name),
+			Representative: strings.TrimSpace(c.Seller.Representative),
+			Address:        strings.TrimSpace(c.Seller.Address),
+			Kind:           strings.TrimSpace(c.Seller.Kind),
+			Item:           strings.TrimSpace(c.Seller.Item),
+			Email:          strings.TrimSpace(c.Seller.Email),
+		},
+		Least: c.Minimum,
+		After: c.Due,
+	}, nil
 }
 
 // CollectEvery is [InvoicesConfig.Every], or its default.
@@ -247,7 +323,7 @@ func (c ChannelsConfig) Over(base payers.Channels) (payers.Channels, error) {
 func channelNames() []string {
 	out := []string{}
 	for v, name := range levyan.Channel_name {
-		if v != 0 {
+		if v != 0 && levyan.Channel(v) != levyan.Channel_CHANNEL_BANK_KR {
 			out = append(out, strings.TrimPrefix(name, "CHANNEL_"))
 		}
 	}

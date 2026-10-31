@@ -71,6 +71,9 @@ func (cs Channels) Check() error {
 		if err := pricing.CheckChannel(v.Channel); err != nil {
 			return fmt.Errorf("%s: %w", k, err)
 		}
+		if v.Channel == levyan.Channel_CHANNEL_BANK_KR {
+			return fmt.Errorf("%s: a billing account paid by transfer is opened by an operator after a contract, and is no country's default", k)
+		}
 		if err := money.Check(v.Currency); err != nil {
 			return fmt.Errorf("%s: %w", k, err)
 		}

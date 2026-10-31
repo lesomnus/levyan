@@ -188,6 +188,7 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("POST /admin/invoices/{id}/credit", a.creditInvoice)
 	api.HandleFunc("POST /admin/invoices/{id}/paid", a.paidInvoice)
 	api.HandleFunc("GET /admin/products/{product}/unpriced", a.unpriced)
+	api.HandleFunc("POST /admin/billing-accounts", a.openBillingAccount)
 
 	mux := http.NewServeMux()
 	mux.Handle("/admin/", a.authorized(api))

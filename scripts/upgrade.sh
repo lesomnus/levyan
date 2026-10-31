@@ -24,8 +24,9 @@
 # months before this one and in this one, and an offer; the two months closed
 # (`period close`) into statements, and those of the billing account gathered
 # into its invoice; and the second workspace closed in the month before this
-# one, said after that month was closed, so that it is late (#14). What a build does not have yet -- a command, a method, a
-# setting -- it is not asked, and that is said. Nothing here reaches a roster
+# one, said after that month was closed, so that it is late (#14); and, by a
+# build that reconciles, what that found (#13). What a build does not have
+# yet -- a command, a method, a setting -- it is not asked, and that is said. Nothing here reaches a roster
 # or a merchant of record, so what only they make happen is not made: an
 # account's own billing accounts and what it answers, a departure, a
 # checkout, a subscription, its notices, and an invoice finalized and paid.
@@ -36,8 +37,10 @@
 # prices, its periods, statements and invoices, the grants (as an operator
 # lists them and as payday's `GrantService` answers the product), each
 # workspace's payer and what became of it, and what this month's readings come
-# to so far -- nothing, of the workspace closed. And if it
-# has `levyan trail rows`, every row is what the trail says of it.
+# to so far -- nothing, of the workspace closed -- and what the build before's
+# reconciliation found. And if it has `levyan trail rows`, every row is what
+# the trail says of it; and if it reconciles, a pass of it over all of that
+# makes every check (#13).
 #
 # Every server this starts is stopped by its PID before this exits. What it
 # writes is in a directory of its own, removed when all is well and kept, and
@@ -160,6 +163,10 @@ nanos() { jq -rn --arg at "$1" --argjson s "${2:-0}" '(($at | fromdateiso8601) +
 serve() {
 	local b="$1" name="$2" admin_pid serve_pid
 	shift 2
+	# There before either is started: `listening` reads them at once, and a
+	# server's own shell may not have opened its log yet.
+	: >"${dir}/${db}/${name}-admin.log"
+	: >"${dir}/${db}/${name}-serve.log"
 	env "$@" "${b}/levyan-admin" serve >"${dir}/${db}/${name}-admin.log" 2>&1 &
 	admin_pid=$!
 	pids="${pids} ${admin_pid}"
@@ -257,6 +264,12 @@ seed() {
 	# So that what the close writes is invoiced while this waits.
 	if reads "${b}" LEVYAN_INVOICES_EVERY; then
 		extra+=(LEVYAN_INVOICES_EVERY=1s)
+	fi
+	# And so that the draft of the billing account paid by transfer -- a
+	# channel nothing collects on here -- is one its reconciliation finds
+	# left undecided, at once rather than a day after its period closed.
+	if reads "${b}" LEVYAN_RECONCILE_STALE_DRAFT; then
+		extra+=(LEVYAN_RECONCILE_STALE_DRAFT=1ns)
 	fi
 	serve "${b}" before "${extra[@]}"
 
@@ -383,6 +396,22 @@ seed() {
 		say "the build before has no \`grant add\`: no grants"
 	fi
 
+	# What its reconciliation found of all that, by a build that has it --
+	# the draft nothing decides, at least -- kept, and listed again by this
+	# one.
+	if has "${b}" reconcile run; then
+		admin "${b}" reconcile run >/dev/null
+		out="$(admin "${b}" reconcile ls --state all)"
+		if [ -n "${billing}" ] && ! grep -q $'\tdraft_stale\t' <<<"${out}"; then
+			fail "${log}" "levyan-admin reconcile run: the draft nothing collects on was not found"
+		fi
+		while read -r id; do
+			[ -z "${id}" ] || expect "${id}" reconcile ls --state all
+		done < <(cut -f1 <<<"${out}")
+	else
+		say "the build before has no \`reconcile run\`: nothing found to read again"
+	fi
+
 	stop
 }
 
@@ -451,6 +480,24 @@ reread() {
 	say "${n} rows listed again and ${m} answers alike"
 }
 
+# reconcile: a pass of NOW's reconciliation over what BEFORE wrote, made by the
+# operator: every check made -- the merchant of record's passed over, there
+# being none -- and none failed of rows a build before wrote.
+reconcile() {
+	local out
+	if ! has "${now}" reconcile run; then
+		say "this build has no \`reconcile run\`"
+		return
+	fi
+	out="$(admin "${now}" reconcile run)"
+	if grep -q $'^check\t[a-z]*\tnot made' <<<"${out}"; then
+		fail "${log}" "levyan-admin reconcile run: a check could not be made of what the build before wrote"
+	fi
+	grep -q $'^check\tinvoices\t' <<<"${out}" || fail "${log}" "levyan-admin reconcile run: the invoices were not checked"
+	admin "${now}" reconcile ls --state all >/dev/null
+	say "this build's reconciliation made its checks of what the build before wrote"
+}
+
 # check NAME DRIVER DSN: what BEFORE makes on the database DSN names, migrated
 # by NOW and read by it -- in a shell of its own, which stops its own servers,
 # so that one database that fails does not keep the other from saying what
@@ -471,6 +518,7 @@ check() {
 		migrate
 		serve "${now}" now
 		reread
+		reconcile
 		stop
 		say "what the build before wrote is in this build's shape, and reads as it did"
 	)

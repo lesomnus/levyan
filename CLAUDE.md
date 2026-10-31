@@ -12,8 +12,9 @@ file are English; issues, PRs and the docs are Korean.
 Whose a decision is, is said wherever one is written down -- docs, PRs, code
 comments -- with one of three labels, and never more than it was:
 
-- **대표**, the owner: only what the owner decided, which is levyan#1's
-  "정한 것 (2026-10-31, 대표)" table (docs/design.md §2).
+- **대표**, the owner: the owner's decisions -- levyan#1's "정한 것
+  (2026-10-31, 대표)" table (docs/design.md §2) and the owner's later
+  answers, each recorded with its date (25–27 on 2026-10-31, §11).
 - **Claude**, the lead: what Claude decided carrying out the owner's plan
   ("남은 작업 모두 진행해줘") -- what a sub-issue was handed with. The owner
   may overturn it, and it is never written as the owner's.

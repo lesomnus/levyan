@@ -96,7 +96,7 @@ const (
 	Listed = 48 * time.Hour
 
 	// DefaultHorizon is how far a grant that renews reaches, when
-	// `grants.horizon` says nothing: a week (the owner's, #7).
+	// `grants.horizon` says nothing: a week (Claude's, the lead's, #7).
 	DefaultHorizon = 7 * 24 * time.Hour
 )
 

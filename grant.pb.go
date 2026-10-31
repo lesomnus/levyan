@@ -155,7 +155,7 @@ func (x GrantSource) Number() protoreflect.EnumNumber {
 // what grants give. A restriction is therefore a grant that restricts when it
 // is there (`loft.restricted` ON), and never the absence of one: an app's core
 // writes are never held to a grant's presence, or a gap in levyan would stop
-// every workspace at once (docs/design.md, "권한").
+// every workspace at once (docs/design.md, "권한 부여와 앱으로 보내는 스트림").
 //
 // Written through the servers, so the trail says who gave each and who ended
 // it: an operator by their row, the deployment's own rules as the deployment.

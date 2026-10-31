@@ -6,9 +6,18 @@ apps' tenants for what they hold and use. Most of it is **generated from
 then write the part no schema can state.
 
 `README.md` is how to run it (in Korean), `docs/design.md` why it is shaped
-this way (in Korean, condensed from levyan#1, which says whose each decision
-is). Code comments, commits and this file are English; issues, PRs and the
-docs are Korean.
+this way (in Korean, condensed from levyan#1). Code comments, commits and this
+file are English; issues, PRs and the docs are Korean.
+
+Whose a decision is, is said wherever one is written down -- docs, PRs, code
+comments -- with one of three labels, and never more than it was:
+
+- **대표**, the owner: only what the owner decided, which is levyan#1's
+  "정한 것 (2026-10-31, 대표)" table (docs/design.md §2).
+- **Claude**, the lead: what Claude decided carrying out the owner's plan
+  ("남은 작업 모두 진행해줘") -- what a sub-issue was handed with. The owner
+  may overturn it, and it is never written as the owner's.
+- **구현에서 정한 것**: what the agent implementing a sub-issue chose.
 
 ## Regenerate after touching the schema
 
@@ -32,7 +41,7 @@ leave alone (payday#189): `scripts/api.sh` is its generation, and runs the buf
 generated from `proto/`, names nothing of payday's, and lives in a Go module of
 its own (`github.com/lesomnus/levyan/api`) that requires gRPC and protobuf and
 nothing else. That is so that an app calling levyan is never held to the payday
-levyan is built with -- the way loft is held to roster's (docs/design.md §7).
+levyan is built with -- the way loft is held to roster's (docs/design.md §8).
 The root module uses it through `replace ./api`.
 
 ```sh
@@ -192,7 +201,7 @@ a generated one.
 
 ## The ledger
 
-What products send of their workspaces (`server/ledger`, docs/design.md §8):
+What products send of their workspaces (`server/ledger`, docs/design.md §9):
 a stock's **readings** (`levyan.v1.MeteringService/Record`) and a flow's
 **points** (OpenTelemetry's `MetricsService/Export`, `server/otlp`). Both are
 rows that are never changed: every field immutable, no Patch, no Erase.
@@ -239,7 +248,7 @@ test).
 
 ## Rating and closing periods
 
-What a workspace's period comes to (`server/billing`, docs/design.md §9). The
+What a workspace's period comes to (`server/billing`, docs/design.md §10). The
 arithmetic is pure and has tests of its own, by hand: `internal/usage` (what a
 stretch held or did) and `internal/rating` (what it comes to under the versions
 in force). Keep it there; `server/billing` only reads the ledger into it.
@@ -277,7 +286,7 @@ in force). Keep it there; `server/billing` only reads the ledger into it.
 
 ## The PG channel (`internal/pg`)
 
-What levyan asks of a PG it sells through (docs/design.md §10): the
+What levyan asks of a PG it sells through (docs/design.md §11): the
 interface, `pg.Channel`, and one candidate's adapter, `internal/pg/toss`.
 **Which PG is the owner's decision and is not made**; nothing but the wiring
 names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
@@ -300,7 +309,7 @@ names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
 
 ## Grants
 
-What a product's workspaces are granted (`server/grants`, docs/design.md §11,
+What a product's workspaces are granted (`server/grants`, docs/design.md §12,
 #7): a key, a value and a window, which the product keeps a copy of with
 payday's `entitle.Follower` and checks in the transaction of the write each
 decides (payday#185). levyan is the source; the contract is payday's

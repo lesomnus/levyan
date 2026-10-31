@@ -15,13 +15,20 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/cmd"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	entgrant "github.com/lesomnus/levyan/internal/ent/grant"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/lesomnus/levyan/internal/levyantest"
+	"github.com/lesomnus/levyan/server/grants"
 	"github.com/lesomnus/levyan/server/payers"
 )
+
+// grace is how long a workspace may go with no payer before it is
+// restricted, as the policy table's row of it says by default: thirty days,
+// what `payers.grace` was.
+var grace = dunning.Defaults().Payerless.Grace
 
 // on is a day of 2027 at midnight UTC.
 func on(month, d int) time.Time { return time.Date(2027, time.Month(month), d, 0, 0, 0, 0, time.UTC) }
@@ -206,7 +213,7 @@ func TestAChangeOfAPayersIsAtTheEndOfThePeriod(t *testing.T) {
 	x.Nil(st.Current)
 	x.True(st.Payerless())
 	x.Equal(on(2, 1), st.Since)
-	x.Equal(on(2, 1).Add(payers.DefaultGrace), st.Restricted)
+	x.Equal(on(2, 1).Add(grace), st.Restricted)
 }
 
 // An account that leaves a workspace pays for it no longer, from now, and
@@ -262,11 +269,11 @@ func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
 		return vs
 	}
 
-	w.At(on(1, 15).Add(payers.DefaultGrace - time.Hour))
+	w.At(on(1, 15).Add(grace - time.Hour))
 	x.NoError(w.S.Grants.Pass(w.ctx))
 	x.Empty(restricted(), "within its grace")
 
-	w.At(on(1, 15).Add(payers.DefaultGrace + time.Hour))
+	w.At(on(1, 15).Add(grace + time.Hour))
 	x.NoError(w.S.Grants.Pass(w.ctx))
 	vs := restricted()
 	x.Len(vs, 1)
@@ -286,11 +293,62 @@ func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
 	x.False(vs[0].ValidUntil.After(w.S.Clock()))
 
 	// A workspace levyan never heard of a payer of is not restricted.
-	key, err := payers.Restricted("loft")
+	key, err := grants.Restricted("loft")
 	x.NoError(err)
 	x.Equal("loft.restricted", key)
-	_, err = payers.Restricted("9lives")
+	_, err = grants.Restricted("9lives")
 	x.Error(err)
+}
+
+// A workspace nobody pays for is restricted as the policy table's row of it
+// says (`dunning.kinds.payerless`, #11): its grace what the deployment says,
+// or no grace at all -- restricted as its last payer goes -- and what it is
+// told it is restricted from is that.
+func TestAWorkspaceWithNoPayerIsRestrictedAsItsRowSays(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		with  func(*cmd.Config)
+		after time.Duration
+	}{
+		{"at once", func(c *cmd.Config) { c.Dunning.Kinds.Payerless.Restrict = "at_once" }, 0},
+		{"after ten days", func(c *cmd.Config) {
+			ten := cmd.Span(10 * 24 * time.Hour)
+			c.Dunning.Kinds.Payerless.Grace = &ten
+		}, 10 * 24 * time.Hour},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lw := levyantest.New(t, tc.with)
+			lw.At(on(1, 15))
+			loft := lw.Product("loft")
+			p, err := pdid.From(loft.GetId())
+			lw.X.NoError(err)
+			w := world{World: lw, t: t, ctx: context.Background(), loft: loft, p: p}
+			x := w.X
+
+			a, ws := levyantest.Account(), levyantest.Tenant()
+			_, err = w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+			x.NoError(err)
+			_, err = w.payers().Leave(w.ctx, w.p, ws, a)
+			x.NoError(err)
+			st := w.state(ws)
+			x.Equal(on(1, 15), st.Since)
+			x.Equal(on(1, 15).Add(tc.after), st.Restricted)
+
+			restricted := func() bool {
+				vs, err := w.S.Ent.Grant.Query().Where(entgrant.Key("loft.restricted"), entgrant.Renews(true)).All(w.ctx)
+				x.NoError(err)
+				return len(vs) == 1
+			}
+			if tc.after > 0 {
+				w.At(on(1, 15).Add(tc.after - time.Hour))
+				x.NoError(w.S.Grants.Pass(w.ctx))
+				x.False(restricted(), "within its grace")
+			}
+			w.At(on(1, 15).Add(tc.after))
+			x.NoError(w.S.Grants.Pass(w.ctx))
+			x.True(restricted())
+		})
+	}
 }
 
 // A billing account is in a country, which says the channel it is sold

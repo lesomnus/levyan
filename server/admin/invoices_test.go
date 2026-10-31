@@ -211,3 +211,65 @@ func TestAnOperatorSeesAShadow(t *testing.T) {
 	x.Len(got.Lines, 1)
 	x.Empty(got.Attempts, "never collected")
 }
+
+// An operator sees what is done of an invoice whose charge failed (#11): the
+// kind of its decline, when it failed, when it is charged next and when its
+// grace ends and what it bills is restricted -- and, given up on, the
+// invoice uncollectible with no retry left.
+func TestAnOperatorSeesWhatIsDoneOfAnInvoiceWhoseChargeFailed(t *testing.T) {
+	d := open(t, map[string]string{"alice": aliceKey})
+	x := d.w.X
+	jan := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+	d.w.At(jan.Add(-time.Hour))
+
+	loft := d.w.Terms(d.w.Product("loft"), "UTC", levyan.Channel_CHANNEL_MOR, "KRW")
+	assets := d.w.Meter(loft, "loft.assets.active", "{asset}", levyan.MeterKind_METER_KIND_STOCK, levyan.Aggregation_AGGREGATION_LAST)
+	d.w.Price(loft, assets, levyan.Channel_CHANNEL_MOR, "KRW", 100, 50, jan)
+	key, _ := d.w.Key(loft, "loft-prod", nil)
+	ch := invoicestest.New()
+	ch.Then(invoicestest.Decline)
+	d.w.S.Invoices.Collectors[levyan.Channel_CHANNEL_MOR] = ch
+	conn := d.w.Serve()
+	product := levyantest.As(context.Background(), key)
+
+	d.w.At(jan)
+	a, ws := levyantest.Account(), levyantest.Tenant()
+	_, err := d.w.S.Payers.Create(context.Background(), a, levyan.BillingAccount_builder{Country: "KR", Recipient: "수민"}.Build())
+	x.NoError(err)
+	_, err = levyanv1.NewWorkspaceServiceClient(conn).Arrive(product, levyanv1.ArriveRequest_builder{Workspace: ws.String(), Creator: a.String()}.Build())
+	x.NoError(err)
+	failed := jan.AddDate(0, 1, 0)
+	d.w.At(failed)
+	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+	}}.Build())
+	x.NoError(err)
+	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
+	x.NoError(d.w.S.Invoices.Run(context.Background()))
+
+	var vs []admin.Invoice
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
+	x.Len(vs, 1)
+	var got admin.Invoice
+	d.as(aliceKey, http.MethodGet, "/admin/invoices/"+vs[0].Id, nil, &got)
+	x.Equal("open", got.State)
+	x.NotNil(got.Dunning)
+	x.Equal("temporary", got.Dunning.Kind)
+	x.True(failed.Equal(got.Dunning.Failed))
+	x.NotNil(got.Dunning.NextRetry)
+	x.True(failed.AddDate(0, 0, 1).Equal(*got.Dunning.NextRetry), "a day after")
+	x.True(failed.AddDate(0, 0, 7).Equal(got.Dunning.GraceEnds))
+	x.True(failed.AddDate(0, 0, 7).Equal(got.Dunning.RestrictedFrom))
+
+	for _, days := range []int{1, 3, 5, 7} {
+		ch.Then(invoicestest.Decline)
+		d.w.At(failed.AddDate(0, 0, days))
+		x.NoError(d.w.S.Invoices.Dun(context.Background(), &d.w.S.Grants))
+	}
+	var spent admin.Invoice
+	d.as(aliceKey, http.MethodGet, "/admin/invoices/"+vs[0].Id, nil, &spent)
+	x.Equal("uncollectible", spent.State)
+	x.Len(spent.Attempts, 4)
+	x.NotNil(spent.Dunning, "still owed")
+	x.Nil(spent.Dunning.NextRetry, "no retry left")
+}

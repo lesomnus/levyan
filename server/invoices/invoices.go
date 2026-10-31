@@ -40,8 +40,21 @@
 // Each attempt has its own key, and each send of it is written down and
 // committed before it is made, so a send whose answer never came is known to
 // be out; it is then asked about, and sent again only once the channel says
-// it never had it. A decline ends the attempt and leaves the invoice open:
-// trying again is dunning's (#11).
+// it never had it. A decline ends the attempt and leaves the invoice open.
+//
+// # After a charge fails
+//
+// What follows a failed charge is dunning's (#11, [Invoices.Dun]), by the
+// policy table (`internal/dunning`), a row for each kind of decline: the
+// retries it schedules, each a new attempt with a key of its own through the
+// same channel, and a charge as soon as the billing account is collectable
+// again; from the end of the grace -- or at once -- every workspace the
+// invoice bills restricted, through the grants' rule `dunning`
+// ([Restriction]); and once no retry is left and the grace is over, the
+// invoice given up on, uncollectible, and still owed: a charge that succeeds
+// after pays it, and lets the workspaces go. What the table says of an
+// invoice is worked out from its attempts every time it is asked
+// ([Dunning]), and written nowhere.
 //
 // # Before collection began
 //
@@ -81,6 +94,7 @@ import (
 	"github.com/lesomnus/payday/config"
 
 	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	entbillingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
 	entcredit "github.com/lesomnus/levyan/internal/ent/credit"
@@ -119,6 +133,10 @@ type Invoices struct {
 	// Tax is what of an invoice's subtotal a seller's tax is, on a channel
 	// levyan sells on itself ([Seller]): [DefaultTax] when nil.
 	Tax *big.Rat
+
+	// Dunning is the policy table of what is done after a charge fails
+	// (#11, [Invoices.Dun]): what `dunning.kinds` says over its defaults.
+	Dunning dunning.Policy
 }
 
 func (v Invoices) now() time.Time {

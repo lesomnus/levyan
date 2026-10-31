@@ -121,12 +121,13 @@ type Server struct {
 	Closer billing.Closer
 
 	// Invoices is what billing accounts are asked to pay, and the money it
-	// moves (#9), through the server with no wall: by the loop
-	// `levyan.invoices.collect`, and by an operator's hand. Its Collectors
-	// are how each channel is collected, which a deployment wires -- the
-	// bank transfer's when `invoices.bank_kr` names an issuer, the merchant
-	// of record's when `mor` names one, from `invoices.mor.live_from` on
-	// (LiveFrom) -- or a test.
+	// moves (#9), through the server with no wall: by the loops
+	// `levyan.invoices.collect` and `levyan.invoices.dunning`, and by an
+	// operator's hand. Its Collectors are how each channel is collected,
+	// which a deployment wires -- the bank transfer's when `invoices.bank_kr`
+	// names an issuer, the merchant of record's when `mor` names one, from
+	// `invoices.mor.live_from` on (LiveFrom) -- or a test; its Dunning, what
+	// follows a failed charge (`dunning.kinds`, #11).
 	Invoices invoices.Invoices
 
 	// Grants gives and ends what products' workspaces are granted, through
@@ -214,6 +215,14 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	channels, err := c.Payers.ChannelsOf()
 	if err != nil {
 		return nil, fmt.Errorf("payers.channels: %w", err)
+	}
+
+	// The policy table of what is done after a payment fails (#11), and of a
+	// workspace nobody pays for, the same: a table that says no schedule
+	// stops the deployment rather than its first decline.
+	policy, err := c.Dunning.Policy()
+	if err != nil {
+		return nil, fmt.Errorf("dunning.%w", err)
 	}
 
 	// The bank-transfer channel, when it is configured: its issuer of tax
@@ -372,7 +381,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		db.Close()
 		return nil, fmt.Errorf("invoices.tax: %w", err)
 	}
-	s.Invoices = invoices.Invoices{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Collectors: map[levyan.Channel]invoices.Collector{}, LiveFrom: map[levyan.Channel]time.Time{}, Tax: tax}
+	s.Invoices = invoices.Invoices{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Collectors: map[levyan.Channel]invoices.Collector{}, LiveFrom: map[levyan.Channel]time.Time{}, Tax: tax, Dunning: policy}
 	if bankKR != nil {
 		s.Invoices.Collectors[levyan.Channel_CHANNEL_BANK_KR] = bankKR
 	}
@@ -400,9 +409,20 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 
 	// Who pays (#4): through the server with no wall for the deployment's
 	// own work, and a rule of the grants' -- a workspace nobody has paid for
-	// since `payers.grace` ago is restricted.
-	s.Payers = payers.Payers{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Payers.GraceOf()}
-	s.Grants.Rules = append(s.Grants.Rules, payers.Payerless{Grace: c.Payers.GraceOf()})
+	// is restricted as the policy table's row of it says.
+	s.Payers = payers.Payers{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Payerless: policy.Payerless}
+	s.Grants.Rules = append(s.Grants.Rules, payers.Payerless{Row: policy.Payerless})
+
+	// What follows a failed charge (#11): the loop that makes the retries the
+	// policy table schedules -- and a charge as soon as a billing account is
+	// collectable again -- and gives up on an invoice that spent its retries
+	// and its grace (`levyan.invoices.dunning`), through the server with no
+	// wall, as the deployment; and a rule of the grants' -- what an invoice
+	// still owed bills is restricted from when the table says -- which that
+	// loop follows each pass too, so that a payment lets a workspace go
+	// within one.
+	s.Grants.Rules = append(s.Grants.Rules, invoices.Restriction{Policy: policy})
+	s.Spin = append(s.Spin, invoices.Duns(&s.Invoices, &s.Grants, c.Dunning.DunEvery()))
 
 	// The merchant of record (#12): a billing account on its channel
 	// subscribes in its checkout, levyan keeps a mirror of the subscription

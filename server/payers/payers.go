@@ -16,9 +16,11 @@
 //
 // A workspace whose links have all ended, and that nobody will pay for from
 // the next period either, has no payer. Its owners are told so by the product
-// (`levyan.v1.WorkspaceService/GetPayer`), and once it has lasted
-// `payers.grace` the workspace is restricted: [Payerless] is the rule that
-// gives it `<product>.restricted` ON, through the grants' rules hook.
+// (`levyan.v1.WorkspaceService/GetPayer`), and once that has lasted the grace
+// of the policy table's row of it (`dunning.kinds.payerless`, #11) -- or at
+// once, as the row says -- the workspace is restricted: [Payerless] is the
+// rule that gives it `<product>.restricted` ON, through the grants' rules
+// hook.
 //
 // # Written through the servers
 //
@@ -57,6 +59,7 @@ import (
 	"github.com/lesomnus/payday/pdid"
 
 	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entoffer "github.com/lesomnus/levyan/internal/ent/offer"
@@ -65,10 +68,6 @@ import (
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/pd"
 )
-
-// DefaultGrace is how long a workspace may go with no payer before it is
-// restricted, when `payers.grace` says nothing: thirty days (Claude's, #4).
-const DefaultGrace = 30 * 24 * time.Hour
 
 // Payers keeps who pays for products' workspaces, through S.
 type Payers struct {
@@ -83,9 +82,11 @@ type Payers struct {
 	// Now is the deployment's clock.
 	Now func() time.Time
 
-	// Grace is how long a workspace may go with no payer before it is
-	// restricted: [DefaultGrace] when zero.
-	Grace time.Duration
+	// Payerless is the policy table's row of a workspace with no payer
+	// (`dunning.kinds.payerless`, #11): how long it may go with none before
+	// it is restricted -- thirty days by default, as `payers.grace` was
+	// (Claude's, #4) -- or that it is restricted at once.
+	Payerless dunning.Row
 }
 
 func (p Payers) now() time.Time {
@@ -94,14 +95,6 @@ func (p Payers) now() time.Time {
 	}
 
 	return ledger.Moment(p.Now())
-}
-
-func (p Payers) grace() time.Duration {
-	if p.Grace <= 0 {
-		return DefaultGrace
-	}
-
-	return p.Grace
 }
 
 // On is these payers writing through `s`: the same, with another stack.
@@ -303,7 +296,7 @@ func (p Payers) state(ctx context.Context, db *ent.Client, product uuid.UUID, ke
 			}
 		}
 		if !out.Since.IsZero() {
-			out.Restricted = out.Since.Add(p.grace())
+			out.Restricted = p.Payerless.Restricts(out.Since)
 		}
 	}
 

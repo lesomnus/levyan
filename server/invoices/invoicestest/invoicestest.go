@@ -2,7 +2,8 @@
 // [invoices.Collector] that keeps what it was sent by each attempt's key, as
 // a gateway keeps an order and a merchant of record a charge, and answers as
 // the test tells it to -- paid, declined, an answer lost after the money
-// moved, a send lost before it arrived, still pending, refused.
+// moved, a send lost before it arrived, still pending, refused -- and
+// declined as each kind of decline there is, which dunning (#11) follows.
 //
 // It is what the ledger's tests stand on in place of a channel's adapter, as
 // `tosstest` and `paddletest` stand in for a PG's and an MoR's own APIs.
@@ -27,7 +28,8 @@ const (
 	// Pay moves the money, and says so.
 	Pay Answer = iota
 
-	// Decline is the payer's method refusing it, temporarily: a result.
+	// Decline is the payer's method refusing it, temporarily -- too little
+	// in the account: a result.
 	Decline
 
 	// Lost moves the money, and the answer never comes: an error of
@@ -46,6 +48,16 @@ const (
 
 	// Busy does nothing for now: an error of RateLimited.
 	Busy
+
+	// DeclineReplace is the payer's method refusing it as one that will not
+	// be charged as it is: expired.
+	DeclineReplace
+
+	// DeclineFraud is a charge refused as suspected fraud.
+	DeclineFraud
+
+	// DeclineOther is a refusal that says no more than that it is one.
+	DeclineOther
 )
 
 // Channel is a channel in a test.
@@ -75,11 +87,12 @@ type Channel struct {
 }
 
 type made struct {
-	kind   levyan.AttemptKind
-	state  levyan.AttemptState
-	ref    string
-	amount int64
-	at     time.Time
+	kind    levyan.AttemptKind
+	state   levyan.AttemptState
+	decline pg.Decline
+	ref     string
+	amount  int64
+	at      time.Time
 }
 
 // New is a channel that pushes: each send is paid unless [Channel.Then]
@@ -96,7 +109,8 @@ func (c *Channel) Then(as ...Answer) {
 	c.script = append(c.script, as...)
 }
 
-// Finish ends what was held of the attempt keyed `key`: paid, or not.
+// Finish ends what was held of the attempt keyed `key`: paid, or not --
+// declined, temporarily.
 func (c *Channel) Finish(key string, paid bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -107,7 +121,7 @@ func (c *Channel) Finish(key string, paid bool) {
 	if paid {
 		m.state = levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED
 	} else {
-		m.state = levyan.AttemptState_ATTEMPT_STATE_FAILED
+		m.state, m.decline = levyan.AttemptState_ATTEMPT_STATE_FAILED, pg.DeclineTemporary
 	}
 }
 
@@ -219,8 +233,8 @@ func (c *Channel) Send(_ context.Context, s invoices.Send) (invoices.Outcome, er
 	case Pay:
 		c.made[s.Attempt.Key] = &made{kind: s.Attempt.Kind, state: levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED, ref: ref, amount: s.Attempt.Amount.Minor, at: now}
 		return outcome(c.made[s.Attempt.Key]), nil
-	case Decline:
-		m := &made{kind: s.Attempt.Kind, state: levyan.AttemptState_ATTEMPT_STATE_FAILED, ref: ref, amount: s.Attempt.Amount.Minor}
+	case Decline, DeclineReplace, DeclineFraud, DeclineOther:
+		m := &made{kind: s.Attempt.Kind, state: levyan.AttemptState_ATTEMPT_STATE_FAILED, decline: declines[a], ref: ref, amount: s.Attempt.Amount.Minor}
 		c.made[s.Attempt.Key] = m
 		return outcome(m), nil
 	case Lost:
@@ -253,13 +267,30 @@ func (c *Channel) Ask(_ context.Context, a invoices.Attempt) (invoices.Outcome, 
 	return outcome(m), nil
 }
 
+// declines are the kinds each answer that declines declines as.
+var declines = map[Answer]pg.Decline{
+	Decline:        pg.DeclineTemporary,
+	DeclineReplace: pg.DeclineReplace,
+	DeclineFraud:   pg.DeclineFraud,
+	DeclineOther:   pg.DeclineOther,
+}
+
+// codes are a gateway's code and words of each kind, as Toss says them.
+var codes = map[pg.Decline][2]string{
+	pg.DeclineTemporary: {"REJECT_CARD_PAYMENT", "잔액이 부족합니다"},
+	pg.DeclineReplace:   {"INVALID_CARD_EXPIRATION", "카드 정보를 다시 확인해주세요 (유효기간)"},
+	pg.DeclineFraud:     {"FDS_ERROR", "위험거래가 감지되어 결제가 제한됩니다"},
+	pg.DeclineOther:     {"REJECT_CARD_COMPANY", "결제 승인이 거절되었습니다"},
+}
+
 func outcome(m *made) invoices.Outcome {
 	o := invoices.Outcome{State: m.state, Ref: m.ref, At: m.at}
 	switch m.state {
 	case levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED:
 		o.Number = "MOR-" + m.ref
 	case levyan.AttemptState_ATTEMPT_STATE_FAILED:
-		o.Failure = invoices.FailureOf(invoices.Declined, pg.DeclineTemporary, "REJECT_CARD_PAYMENT", "잔액이 부족합니다")
+		said := codes[m.decline]
+		o.Failure = invoices.FailureOf(invoices.Declined, m.decline, said[0], said[1])
 	}
 	return o
 }

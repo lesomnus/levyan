@@ -113,8 +113,9 @@ spin:
 #     directory: loft
 
 # Who pays: how many of each payer's workspaces of a product have their
-# allowances, and how long a workspace may go with no payer before it is
-# restricted; how often an erased account is asked about again, and everybody.
+# allowances; how often an erased account is asked about again, and everybody.
+# How long a workspace may go with no payer before it is restricted is the
+# dunning table's row of it (`dunning.kinds.payerless`, below).
 #
 # `channels` is what a billing account is billed through, by the country it
 # is in (ISO 3166-1 alpha-2, in capitals), and `default` for every country no
@@ -126,12 +127,33 @@ spin:
 #
 # payers:
 #   free: 3
-#   grace: 720h
 #   settle: 1h
 #   reconcile: 24h
 #   channels:
 #     KR: {channel: MOR, currency: KRW}
 #     default: {channel: MOR, currency: USD}
+
+# What is done after a payment fails (#11): the policy table, a row for each
+# kind of decline -- temporary, replace (a method to give anew), fraud, and
+# other, which says no more -- and one for a workspace nobody pays for. A
+# row's retries are spans from the invoice's first failed charge, each a new
+# charge with a key of its own; its grace is from the same, after which what
+# the invoice bills is restricted (`<product>.restricted`, or at once with
+# `restrict: at_once`); and once no retry is left and the grace is over, the
+# invoice is uncollectible, still owed and still restricted until it is paid.
+# A billing account collectable again is charged at once, whatever its row
+# schedules. What `other` leaves out is what `temporary` says. The values
+# below are the defaults -- Claude's, provisional: the owner has not decided
+# them (docs/design.md §17, 3) -- and a row left out is its default.
+#
+# dunning:
+#   every: 1m
+#   kinds:
+#     temporary: {retries: [24h, 72h, 120h], grace: 168h, restrict: after_grace}
+#     replace:   {retries: [], grace: 168h, restrict: after_grace}
+#     fraud:     {retries: [], grace: 0s, restrict: at_once}
+#     other:     {}
+#     payerless: {grace: 720h, restrict: after_grace}
 
 # The merchant of record a billing account on its channel is collected
 # through (#12): Paddle. With no block there is none -- a checkout is refused,

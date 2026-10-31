@@ -31,7 +31,10 @@ import (
 //   - An attempt is written to be sent -- or as one an operator saw succeed
 //     -- and its state goes on from there and never back from an end. Of
 //     one that ended, only a mark for reconciliation and the channel's
-//     number of it, where it had none, are written after.
+//     number of it, where it had none, are written after. A refund gives
+//     back what a credit note says, or -- an operator's correction of
+//     reconciliation's -- what a key was charged twice, of the payment that
+//     was.
 //   - A movement of credit moves it one way, as its kind says.
 //
 // Apply is refused for all of them: a document is held to none of this.
@@ -280,8 +283,12 @@ func admitAttempt(ctx context.Context, req *levyan.PaymentAttemptAddRequest) (*l
 		return nil, pderr.Invalidf("state", "an attempt an operator records is one they saw succeed")
 	case !req.GetRecorded() && req.GetState() != levyan.AttemptState_ATTEMPT_STATE_REQUESTED:
 		return nil, pderr.Invalidf("state", "an attempt is written to be sent")
-	case req.GetKind() == levyan.AttemptKind_ATTEMPT_KIND_REFUND && req.GetCreditNote() == nil:
-		return nil, pderr.Invalidf("credit_note", "a refund gives back what a credit note says")
+	case (req.GetExtraOf() != "") != (req.GetRefunds() != ""):
+		return nil, pderr.Invalidf("extra_of", "a refund of what a key was charged twice names the charge and the payment it gives back of, both")
+	case req.GetExtraOf() != "" && (req.GetKind() != levyan.AttemptKind_ATTEMPT_KIND_REFUND || req.GetCreditNote() != nil || req.GetRecorded()):
+		return nil, pderr.Invalidf("extra_of", "what a key was charged twice is given back by a refund of its own, sent, which no credit note says")
+	case req.GetKind() == levyan.AttemptKind_ATTEMPT_KIND_REFUND && req.GetCreditNote() == nil && req.GetExtraOf() == "":
+		return nil, pderr.Invalidf("credit_note", "a refund gives back what a credit note says, or what a key was charged twice")
 	}
 
 	return req, nil

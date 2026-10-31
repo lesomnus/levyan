@@ -268,9 +268,11 @@ func (c *Collector) refund(ctx context.Context, s invoices.Send) (invoices.Outco
 	if err != nil {
 		return invoices.Outcome{}, err
 	}
+	// The line of the charge it gives back of: the invoice's own charge, or
+	// the one a key was charged twice in.
 	var line *mor.Line
 	for i, l := range t.Lines {
-		if l.Key != "" {
+		if l.Key != "" && (s.Charge == "" || l.Key == s.Charge) {
 			line = &t.Lines[i]
 			break
 		}

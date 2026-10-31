@@ -120,8 +120,13 @@ type Attempt struct {
 	Sent  time.Time
 
 	// For a refund: the channel's reference of the payment it gives back of,
-	// and why, in words the payer may be shown.
+	// the key of the charge whose part of that payment it gives back, and
+	// why, in words the payer may be shown. A refund of what a key was
+	// charged twice gives back of the payment the ledger does not account
+	// for (`PaymentAttempt.refunds`), and every other of the payment the
+	// invoice's charge settled by.
 	Refunds string
+	Charge  string
 	Reason  string
 }
 

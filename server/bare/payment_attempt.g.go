@@ -217,6 +217,16 @@ func (st PaymentAttemptServiceServer) create(ctx context.Context, req *levyan.Pa
 	if req.HasDateTwice() {
 		q.SetDateTwice(req.GetDateTwice().AsTime())
 	}
+	if req.HasExtraOf() {
+		q.SetExtraOf(req.GetExtraOf())
+	} else {
+		q.SetExtraOf("")
+	}
+	if req.HasRefunds() {
+		q.SetRefunds(req.GetRefunds())
+	} else {
+		q.SetRefunds("")
+	}
 	q.SetDateUpdated(st.now())
 	if req.HasDateCreated() {
 		q.SetDateCreated(req.GetDateCreated().AsTime())
@@ -398,6 +408,12 @@ func PaymentAttemptSelectedFields(m *levyan.PaymentAttemptSelect) []string {
 	if m.GetDateTwice() {
 		vs = append(vs, paymentattempt.FieldDateTwice)
 	}
+	if m.GetExtraOf() {
+		vs = append(vs, paymentattempt.FieldExtraOf)
+	}
+	if m.GetRefunds() {
+		vs = append(vs, paymentattempt.FieldRefunds)
+	}
 	if m.GetDateUpdated() {
 		vs = append(vs, paymentattempt.FieldDateUpdated)
 	}
@@ -488,7 +504,7 @@ func PaymentAttemptGetKey(ctx context.Context, db *ent.Client, ref *levyan.Payme
 var paymentAttemptOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_payment_attempt_proto, "PaymentAttempt")
 
 var paymentAttemptPatchColumns = entpatch.Columns{
-	1: paymentattempt.FieldId, 2: paymentattempt.TenantColumn, 8: paymentattempt.InvoiceColumn, 9: paymentattempt.CreditNoteColumn, 10: paymentattempt.FieldKind, 11: paymentattempt.FieldAttemptKey, 12: paymentattempt.FieldChannel, 16: paymentattempt.FieldCurrency, 17: paymentattempt.FieldAmount, 18: paymentattempt.FieldState, 19: paymentattempt.FieldSends, 20: paymentattempt.FieldDateSent, 21: paymentattempt.FieldFailure, 22: paymentattempt.FieldChannelRef, 23: paymentattempt.FieldChannelNumber, 24: paymentattempt.FieldDateResolved, 25: paymentattempt.FieldDatePaid, 26: paymentattempt.FieldRecorded, 27: paymentattempt.FieldReference, 28: paymentattempt.FieldDateTwice, 13: paymentattempt.FieldDateUpdated, 14: paymentattempt.FieldDateErased, 15: paymentattempt.FieldDateCreated}
+	1: paymentattempt.FieldId, 2: paymentattempt.TenantColumn, 8: paymentattempt.InvoiceColumn, 9: paymentattempt.CreditNoteColumn, 10: paymentattempt.FieldKind, 11: paymentattempt.FieldAttemptKey, 12: paymentattempt.FieldChannel, 16: paymentattempt.FieldCurrency, 17: paymentattempt.FieldAmount, 18: paymentattempt.FieldState, 19: paymentattempt.FieldSends, 20: paymentattempt.FieldDateSent, 21: paymentattempt.FieldFailure, 22: paymentattempt.FieldChannelRef, 23: paymentattempt.FieldChannelNumber, 24: paymentattempt.FieldDateResolved, 25: paymentattempt.FieldDatePaid, 26: paymentattempt.FieldRecorded, 27: paymentattempt.FieldReference, 28: paymentattempt.FieldDateTwice, 29: paymentattempt.FieldExtraOf, 30: paymentattempt.FieldRefunds, 13: paymentattempt.FieldDateUpdated, 14: paymentattempt.FieldDateErased, 15: paymentattempt.FieldDateCreated}
 
 func (s PaymentAttemptServiceServer) Apply(ctx context.Context, req *levyan.PaymentAttemptApplyRequest) (*levyan.PaymentAttempt, error) {
 	if !req.HasPatch() {

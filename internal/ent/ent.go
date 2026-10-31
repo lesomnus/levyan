@@ -17,6 +17,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/departure"
+	"github.com/lesomnus/levyan/internal/ent/finding"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
@@ -113,6 +114,7 @@ func checkColumn(t, c string) error {
 			credit.Table:         credit.ValidColumn,
 			creditnote.Table:     creditnote.ValidColumn,
 			departure.Table:      departure.ValidColumn,
+			finding.Table:        finding.ValidColumn,
 			grant.Table:          grant.ValidColumn,
 			holder.Table:         holder.ValidColumn,
 			invoice.Table:        invoice.ValidColumn,

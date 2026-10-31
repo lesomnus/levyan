@@ -55,6 +55,14 @@ func (PaymentAttempt) Fields() []ent.Field {
 		field.Time("date_twice").
 			Nillable().
 			Optional(),
+		field.String("extra_of").
+			Immutable().
+			Optional().
+			Default(""),
+		field.String("refunds").
+			Immutable().
+			Optional().
+			Default(""),
 		field.Time("date_updated"),
 		field.Time("date_erased").
 			Nillable().

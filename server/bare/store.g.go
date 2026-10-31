@@ -16,6 +16,7 @@ import (
 	credit "github.com/lesomnus/levyan/internal/ent/credit"
 	creditnote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	departure "github.com/lesomnus/levyan/internal/ent/departure"
+	finding "github.com/lesomnus/levyan/internal/ent/finding"
 	grant "github.com/lesomnus/levyan/internal/ent/grant"
 	holder "github.com/lesomnus/levyan/internal/ent/holder"
 	invoice "github.com/lesomnus/levyan/internal/ent/invoice"
@@ -401,6 +402,8 @@ type Scope interface {
 	CreditNoteScope(ctx context.Context) (predicate.CreditNote, error)
 	CreditScope(ctx context.Context) (predicate.Credit, error)
 	DepartureScope(ctx context.Context) (predicate.Departure, error)
+	OperatorScope(ctx context.Context) (predicate.Operator, error)
+	FindingScope(ctx context.Context) (predicate.Finding, error)
 	WorkspaceScope(ctx context.Context) (predicate.Workspace, error)
 	GrantScope(ctx context.Context) (predicate.Grant, error)
 	StatementScope(ctx context.Context) (predicate.Statement, error)
@@ -410,7 +413,6 @@ type Scope interface {
 	MeterScope(ctx context.Context) (predicate.Meter, error)
 	NoticeScope(ctx context.Context) (predicate.Notice, error)
 	NoticeCursorScope(ctx context.Context) (predicate.NoticeCursor, error)
-	OperatorScope(ctx context.Context) (predicate.Operator, error)
 	AccessScope(ctx context.Context) (predicate.Access, error)
 	ArchivedScope(ctx context.Context) (predicate.Archived, error)
 	AuditScope(ctx context.Context) (predicate.Audit, error)
@@ -466,6 +468,12 @@ func (Unscoped) CreditScope(_ context.Context) (predicate.Credit, error) {
 func (Unscoped) DepartureScope(_ context.Context) (predicate.Departure, error) {
 	return nil, nil
 }
+func (Unscoped) OperatorScope(_ context.Context) (predicate.Operator, error) {
+	return nil, nil
+}
+func (Unscoped) FindingScope(_ context.Context) (predicate.Finding, error) {
+	return nil, nil
+}
 func (Unscoped) WorkspaceScope(_ context.Context) (predicate.Workspace, error) {
 	return nil, nil
 }
@@ -491,9 +499,6 @@ func (Unscoped) NoticeScope(_ context.Context) (predicate.Notice, error) {
 	return nil, nil
 }
 func (Unscoped) NoticeCursorScope(_ context.Context) (predicate.NoticeCursor, error) {
-	return nil, nil
-}
-func (Unscoped) OperatorScope(_ context.Context) (predicate.Operator, error) {
 	return nil, nil
 }
 func (Unscoped) AccessScope(_ context.Context) (predicate.Access, error) {
@@ -738,6 +743,46 @@ func (ss Scopes) DepartureScope(ctx context.Context) (predicate.Departure, error
 	return departure.And(ps...), nil
 }
 
+func (ss Scopes) OperatorScope(ctx context.Context) (predicate.Operator, error) {
+	ps := make([]predicate.Operator, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.OperatorScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return operator.And(ps...), nil
+}
+
+func (ss Scopes) FindingScope(ctx context.Context) (predicate.Finding, error) {
+	ps := make([]predicate.Finding, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.FindingScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return finding.And(ps...), nil
+}
+
 func (ss Scopes) WorkspaceScope(ctx context.Context) (predicate.Workspace, error) {
 	ps := make([]predicate.Workspace, 0, len(ss))
 	for _, s := range ss {
@@ -916,26 +961,6 @@ func (ss Scopes) NoticeCursorScope(ctx context.Context) (predicate.NoticeCursor,
 	}
 
 	return noticecursor.And(ps...), nil
-}
-
-func (ss Scopes) OperatorScope(ctx context.Context) (predicate.Operator, error) {
-	ps := make([]predicate.Operator, 0, len(ss))
-	for _, s := range ss {
-		p, err := s.OperatorScope(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if p == nil {
-			continue
-		}
-
-		ps = append(ps, p)
-	}
-	if len(ps) == 0 {
-		return nil, nil
-	}
-
-	return operator.And(ps...), nil
 }
 
 func (ss Scopes) AccessScope(ctx context.Context) (predicate.Access, error) {
@@ -1353,7 +1378,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. BillingAccount, Checkout, Credit, CreditNote, Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement, Subscription, Workspace and WorkspaceEvent free the names they held when a row
+// check. BillingAccount, Checkout, Credit, CreditNote, Departure, Finding, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement, Subscription, Workspace and WorkspaceEvent free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -1408,6 +1433,8 @@ func (s Server) Credit() levyan.CreditServiceServer { return CreditServiceServer
 func (s Server) Departure() levyan.DepartureServiceServer {
 	return DepartureServiceServer{Store: s.Store}
 }
+func (s Server) Operator() levyan.OperatorServiceServer { return OperatorServiceServer{Store: s.Store} }
+func (s Server) Finding() levyan.FindingServiceServer   { return FindingServiceServer{Store: s.Store} }
 func (s Server) Workspace() levyan.WorkspaceServiceServer {
 	return WorkspaceServiceServer{Store: s.Store}
 }
@@ -1425,7 +1452,6 @@ func (s Server) Notice() levyan.NoticeServiceServer { return NoticeServiceServer
 func (s Server) NoticeCursor() levyan.NoticeCursorServiceServer {
 	return NoticeCursorServiceServer{Store: s.Store}
 }
-func (s Server) Operator() levyan.OperatorServiceServer { return OperatorServiceServer{Store: s.Store} }
 func (s Server) Access() levyan.AccessServiceServer     { return AccessServiceServer{Store: s.Store} }
 func (s Server) Archived() levyan.ArchivedServiceServer { return ArchivedServiceServer{Store: s.Store} }
 func (s Server) Audit() levyan.AuditServiceServer       { return AuditServiceServer{Store: s.Store} }

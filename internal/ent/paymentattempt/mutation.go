@@ -38,6 +38,8 @@ type Mutation struct {
 	recorded           *bool
 	reference          *string
 	date_twice         *time.Time
+	extra_of           *string
+	refunds            *string
 	date_updated       *time.Time
 	date_erased        *time.Time
 	date_created       *time.Time
@@ -543,6 +545,72 @@ func (m *Mutation) ResetDateTwice() {
 	delete(m.exprs, FieldDateTwice)
 }
 
+// SetExtraOf sets the "extra_of" field.
+func (m *Mutation) SetExtraOf(s string) {
+	m.extra_of = &s
+	delete(m.clearedFields, FieldExtraOf)
+}
+
+// ExtraOf returns the value of the "extra_of" field in the mutation.
+func (m *Mutation) ExtraOf() (r string, exists bool) {
+	v := m.extra_of
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearExtraOf clears the value of the "extra_of" field.
+func (m *Mutation) ClearExtraOf() {
+	m.extra_of = nil
+	m.clearedFields[FieldExtraOf] = struct{}{}
+}
+
+// ExtraOfCleared returns if the "extra_of" field was cleared in this mutation.
+func (m *Mutation) ExtraOfCleared() bool {
+	_, ok := m.clearedFields[FieldExtraOf]
+	return ok
+}
+
+// ResetExtraOf resets all changes to the "extra_of" field.
+func (m *Mutation) ResetExtraOf() {
+	m.extra_of = nil
+	delete(m.clearedFields, FieldExtraOf)
+}
+
+// SetRefunds sets the "refunds" field.
+func (m *Mutation) SetRefunds(s string) {
+	m.refunds = &s
+	delete(m.clearedFields, FieldRefunds)
+}
+
+// Refunds returns the value of the "refunds" field in the mutation.
+func (m *Mutation) Refunds() (r string, exists bool) {
+	v := m.refunds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearRefunds clears the value of the "refunds" field.
+func (m *Mutation) ClearRefunds() {
+	m.refunds = nil
+	m.clearedFields[FieldRefunds] = struct{}{}
+}
+
+// RefundsCleared returns if the "refunds" field was cleared in this mutation.
+func (m *Mutation) RefundsCleared() bool {
+	_, ok := m.clearedFields[FieldRefunds]
+	return ok
+}
+
+// ResetRefunds resets all changes to the "refunds" field.
+func (m *Mutation) ResetRefunds() {
+	m.refunds = nil
+	delete(m.clearedFields, FieldRefunds)
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (m *Mutation) SetDateUpdated(t time.Time) {
 	m.date_updated = &t
@@ -819,7 +887,7 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 24)
 	if m.kind != nil {
 		fields = append(fields, FieldKind)
 	}
@@ -867,6 +935,12 @@ func (m *Mutation) Fields() []string {
 	}
 	if m.date_twice != nil || m.exprs[FieldDateTwice] != nil {
 		fields = append(fields, FieldDateTwice)
+	}
+	if m.extra_of != nil {
+		fields = append(fields, FieldExtraOf)
+	}
+	if m.refunds != nil {
+		fields = append(fields, FieldRefunds)
 	}
 	if m.date_updated != nil || m.exprs[FieldDateUpdated] != nil {
 		fields = append(fields, FieldDateUpdated)
@@ -932,6 +1006,10 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.Reference()
 	case FieldDateTwice:
 		return m.DateTwice()
+	case FieldExtraOf:
+		return m.ExtraOf()
+	case FieldRefunds:
+		return m.Refunds()
 	case FieldDateUpdated:
 		return m.DateUpdated()
 	case FieldDateErased:
@@ -1123,6 +1201,26 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDateTwice(v)
 		return nil
+	case FieldExtraOf:
+		v, ok := value.(string)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExtraOf(v)
+		return nil
+	case FieldRefunds:
+		v, ok := value.(string)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRefunds(v)
+		return nil
 	case FieldDateUpdated:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -1237,6 +1335,10 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldDateTwice:
 		m.ResetDateTwice()
+	case FieldExtraOf:
+		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
+	case FieldRefunds:
+		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldDateUpdated:
 		m.ResetDateUpdated()
 	case FieldDateErased:
@@ -1398,6 +1500,12 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldDateTwice) {
 		fields = append(fields, FieldDateTwice)
 	}
+	if m.FieldCleared(FieldExtraOf) {
+		fields = append(fields, FieldExtraOf)
+	}
+	if m.FieldCleared(FieldRefunds) {
+		fields = append(fields, FieldRefunds)
+	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
 	}
@@ -1435,6 +1543,12 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldDateTwice:
 		m.ClearDateTwice()
+		return nil
+	case FieldExtraOf:
+		m.ClearExtraOf()
+		return nil
+	case FieldRefunds:
+		m.ClearRefunds()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -1500,6 +1614,12 @@ func (m *Mutation) ResetField(name string) error {
 		return nil
 	case FieldDateTwice:
 		m.ResetDateTwice()
+		return nil
+	case FieldExtraOf:
+		m.ResetExtraOf()
+		return nil
+	case FieldRefunds:
+		m.ResetRefunds()
 		return nil
 	case FieldDateUpdated:
 		m.ResetDateUpdated()

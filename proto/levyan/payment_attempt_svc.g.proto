@@ -44,6 +44,8 @@ message PaymentAttemptAddRequest {
   bool recorded = 26 [features.field_presence = IMPLICIT];
   string reference = 27 [features.field_presence = IMPLICIT];
   google.protobuf.Timestamp date_twice = 28;
+  string extra_of = 29;
+  string refunds = 30;
   google.protobuf.Timestamp date_created = 15;
 }
 
@@ -84,6 +86,8 @@ message PaymentAttemptSelect {
   bool recorded = 26;
   bool reference = 27;
   bool date_twice = 28;
+  bool extra_of = 29;
+  bool refunds = 30;
   bool date_updated = 13;
   bool date_erased = 14;
   bool date_created = 15;

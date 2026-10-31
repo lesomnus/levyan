@@ -35,6 +35,8 @@ type Server interface {
 	CreditNote() CreditNoteServiceServer
 	Credit() CreditServiceServer
 	Departure() DepartureServiceServer
+	Operator() OperatorServiceServer
+	Finding() FindingServiceServer
 	Workspace() WorkspaceServiceServer
 	Grant() GrantServiceServer
 	Statement() StatementServiceServer
@@ -44,7 +46,6 @@ type Server interface {
 	Meter() MeterServiceServer
 	Notice() NoticeServiceServer
 	NoticeCursor() NoticeCursorServiceServer
-	Operator() OperatorServiceServer
 	Access() AccessServiceServer
 	Archived() ArchivedServiceServer
 	Audit() AuditServiceServer
@@ -75,6 +76,8 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterCreditNoteServiceServer(g, s.CreditNote())
 	RegisterCreditServiceServer(g, s.Credit())
 	RegisterDepartureServiceServer(g, s.Departure())
+	RegisterOperatorServiceServer(g, s.Operator())
+	RegisterFindingServiceServer(g, s.Finding())
 	RegisterWorkspaceServiceServer(g, s.Workspace())
 	RegisterGrantServiceServer(g, s.Grant())
 	RegisterStatementServiceServer(g, s.Statement())
@@ -84,7 +87,6 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterMeterServiceServer(g, s.Meter())
 	RegisterNoticeServiceServer(g, s.Notice())
 	RegisterNoticeCursorServiceServer(g, s.NoticeCursor())
-	RegisterOperatorServiceServer(g, s.Operator())
 	RegisterAccessServiceServer(g, s.Access())
 	RegisterArchivedServiceServer(g, s.Archived())
 	RegisterAuditServiceServer(g, s.Audit())
@@ -111,6 +113,8 @@ type UnimplementedServer struct {
 	CreditNoteServer     CreditNoteServiceServer
 	CreditServer         CreditServiceServer
 	DepartureServer      DepartureServiceServer
+	OperatorServer       OperatorServiceServer
+	FindingServer        FindingServiceServer
 	WorkspaceServer      WorkspaceServiceServer
 	GrantServer          GrantServiceServer
 	StatementServer      StatementServiceServer
@@ -120,7 +124,6 @@ type UnimplementedServer struct {
 	MeterServer          MeterServiceServer
 	NoticeServer         NoticeServiceServer
 	NoticeCursorServer   NoticeCursorServiceServer
-	OperatorServer       OperatorServiceServer
 	AccessServer         AccessServiceServer
 	ArchivedServer       ArchivedServiceServer
 	AuditServer          AuditServiceServer
@@ -156,6 +159,10 @@ func (UnimplementedServer) Credit() CreditServiceServer { return UnimplementedCr
 func (UnimplementedServer) Departure() DepartureServiceServer {
 	return UnimplementedDepartureServiceServer{}
 }
+func (UnimplementedServer) Operator() OperatorServiceServer {
+	return UnimplementedOperatorServiceServer{}
+}
+func (UnimplementedServer) Finding() FindingServiceServer { return UnimplementedFindingServiceServer{} }
 func (UnimplementedServer) Workspace() WorkspaceServiceServer {
 	return UnimplementedWorkspaceServiceServer{}
 }
@@ -172,9 +179,6 @@ func (UnimplementedServer) Meter() MeterServiceServer   { return UnimplementedMe
 func (UnimplementedServer) Notice() NoticeServiceServer { return UnimplementedNoticeServiceServer{} }
 func (UnimplementedServer) NoticeCursor() NoticeCursorServiceServer {
 	return UnimplementedNoticeCursorServiceServer{}
-}
-func (UnimplementedServer) Operator() OperatorServiceServer {
-	return UnimplementedOperatorServiceServer{}
 }
 func (UnimplementedServer) Access() AccessServiceServer { return UnimplementedAccessServiceServer{} }
 func (UnimplementedServer) Archived() ArchivedServiceServer {
@@ -209,6 +213,8 @@ type StaticServer struct {
 	CreditNoteServer     CreditNoteServiceServer
 	CreditServer         CreditServiceServer
 	DepartureServer      DepartureServiceServer
+	OperatorServer       OperatorServiceServer
+	FindingServer        FindingServiceServer
 	WorkspaceServer      WorkspaceServiceServer
 	GrantServer          GrantServiceServer
 	StatementServer      StatementServiceServer
@@ -218,7 +224,6 @@ type StaticServer struct {
 	MeterServer          MeterServiceServer
 	NoticeServer         NoticeServiceServer
 	NoticeCursorServer   NoticeCursorServiceServer
-	OperatorServer       OperatorServiceServer
 	AccessServer         AccessServiceServer
 	ArchivedServer       ArchivedServiceServer
 	AuditServer          AuditServiceServer
@@ -244,6 +249,8 @@ func (s StaticServer) Invoice() InvoiceServiceServer               { return s.In
 func (s StaticServer) CreditNote() CreditNoteServiceServer         { return s.CreditNoteServer }
 func (s StaticServer) Credit() CreditServiceServer                 { return s.CreditServer }
 func (s StaticServer) Departure() DepartureServiceServer           { return s.DepartureServer }
+func (s StaticServer) Operator() OperatorServiceServer             { return s.OperatorServer }
+func (s StaticServer) Finding() FindingServiceServer               { return s.FindingServer }
 func (s StaticServer) Workspace() WorkspaceServiceServer           { return s.WorkspaceServer }
 func (s StaticServer) Grant() GrantServiceServer                   { return s.GrantServer }
 func (s StaticServer) Statement() StatementServiceServer           { return s.StatementServer }
@@ -253,7 +260,6 @@ func (s StaticServer) Link() LinkServiceServer                     { return s.Li
 func (s StaticServer) Meter() MeterServiceServer                   { return s.MeterServer }
 func (s StaticServer) Notice() NoticeServiceServer                 { return s.NoticeServer }
 func (s StaticServer) NoticeCursor() NoticeCursorServiceServer     { return s.NoticeCursorServer }
-func (s StaticServer) Operator() OperatorServiceServer             { return s.OperatorServer }
 func (s StaticServer) Access() AccessServiceServer                 { return s.AccessServer }
 func (s StaticServer) Archived() ArchivedServiceServer             { return s.ArchivedServer }
 func (s StaticServer) Audit() AuditServiceServer                   { return s.AuditServer }
@@ -279,6 +285,8 @@ type Client interface {
 	CreditNote() CreditNoteServiceClient
 	Credit() CreditServiceClient
 	Departure() DepartureServiceClient
+	Operator() OperatorServiceClient
+	Finding() FindingServiceClient
 	Workspace() WorkspaceServiceClient
 	Grant() GrantServiceClient
 	Statement() StatementServiceClient
@@ -288,7 +296,6 @@ type Client interface {
 	Meter() MeterServiceClient
 	Notice() NoticeServiceClient
 	NoticeCursor() NoticeCursorServiceClient
-	Operator() OperatorServiceClient
 	Access() AccessServiceClient
 	Archived() ArchivedServiceClient
 	Audit() AuditServiceClient
@@ -316,6 +323,8 @@ func NewClient(c *grpc.ClientConn) Client {
 		_CreditNote:     NewCreditNoteServiceClient(c),
 		_Credit:         NewCreditServiceClient(c),
 		_Departure:      NewDepartureServiceClient(c),
+		_Operator:       NewOperatorServiceClient(c),
+		_Finding:        NewFindingServiceClient(c),
 		_Workspace:      NewWorkspaceServiceClient(c),
 		_Grant:          NewGrantServiceClient(c),
 		_Statement:      NewStatementServiceClient(c),
@@ -325,7 +334,6 @@ func NewClient(c *grpc.ClientConn) Client {
 		_Meter:          NewMeterServiceClient(c),
 		_Notice:         NewNoticeServiceClient(c),
 		_NoticeCursor:   NewNoticeCursorServiceClient(c),
-		_Operator:       NewOperatorServiceClient(c),
 		_Access:         NewAccessServiceClient(c),
 		_Archived:       NewArchivedServiceClient(c),
 		_Audit:          NewAuditServiceClient(c),
@@ -353,6 +361,8 @@ type client struct {
 	_CreditNote     CreditNoteServiceClient
 	_Credit         CreditServiceClient
 	_Departure      DepartureServiceClient
+	_Operator       OperatorServiceClient
+	_Finding        FindingServiceClient
 	_Workspace      WorkspaceServiceClient
 	_Grant          GrantServiceClient
 	_Statement      StatementServiceClient
@@ -362,7 +372,6 @@ type client struct {
 	_Meter          MeterServiceClient
 	_Notice         NoticeServiceClient
 	_NoticeCursor   NoticeCursorServiceClient
-	_Operator       OperatorServiceClient
 	_Access         AccessServiceClient
 	_Archived       ArchivedServiceClient
 	_Audit          AuditServiceClient
@@ -388,6 +397,8 @@ func (c *client) Invoice() InvoiceServiceClient               { return c._Invoic
 func (c *client) CreditNote() CreditNoteServiceClient         { return c._CreditNote }
 func (c *client) Credit() CreditServiceClient                 { return c._Credit }
 func (c *client) Departure() DepartureServiceClient           { return c._Departure }
+func (c *client) Operator() OperatorServiceClient             { return c._Operator }
+func (c *client) Finding() FindingServiceClient               { return c._Finding }
 func (c *client) Workspace() WorkspaceServiceClient           { return c._Workspace }
 func (c *client) Grant() GrantServiceClient                   { return c._Grant }
 func (c *client) Statement() StatementServiceClient           { return c._Statement }
@@ -397,7 +408,6 @@ func (c *client) Link() LinkServiceClient                     { return c._Link }
 func (c *client) Meter() MeterServiceClient                   { return c._Meter }
 func (c *client) Notice() NoticeServiceClient                 { return c._Notice }
 func (c *client) NoticeCursor() NoticeCursorServiceClient     { return c._NoticeCursor }
-func (c *client) Operator() OperatorServiceClient             { return c._Operator }
 func (c *client) Access() AccessServiceClient                 { return c._Access }
 func (c *client) Archived() ArchivedServiceClient             { return c._Archived }
 func (c *client) Audit() AuditServiceClient                   { return c._Audit }

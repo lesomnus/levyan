@@ -19,6 +19,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/departure"
+	"github.com/lesomnus/levyan/internal/ent/finding"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
@@ -64,6 +65,7 @@ const (
 	TypeCredit         = "Credit"
 	TypeCreditNote     = "CreditNote"
 	TypeDeparture      = "Departure"
+	TypeFinding        = "Finding"
 	TypeGrant          = "Grant"
 	TypeHolder         = "Holder"
 	TypeInvoice        = "Invoice"
@@ -2911,6 +2913,487 @@ func (m *DepartureMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDateCreated(ctx)
 	}
 	return nil, fmt.Errorf("unknown Departure field %s", name)
+}
+
+// FindingMutation represents an operation that mutates the Finding nodes in the graph.
+type FindingMutation struct {
+	finding.Mutation
+	config
+	id       *uuid.UUID
+	done     bool
+	oldValue func(context.Context) (*Finding, error)
+}
+
+var _ ent.Mutation = (*FindingMutation)(nil)
+
+// findingOption allows management of the mutation configuration using functional options.
+type findingOption func(*FindingMutation)
+
+// newFindingMutation creates new mutation for the Finding entity.
+func newFindingMutation(c config, op Op, opts ...findingOption) *FindingMutation {
+	m := &FindingMutation{
+		Mutation: *finding.NewMutation(op),
+		config:   c,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// SetId sets the value of the id field. Note that this
+// operation is only accepted on creation of Finding entities.
+func (m *FindingMutation) SetId(id uuid.UUID) {
+	m.id = &id
+}
+
+// Id returns the Id value in the mutation. Note that the Id is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *FindingMutation) Id() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// withFindingId sets the Id field of the mutation.
+func withFindingId(id uuid.UUID) findingOption {
+	return func(m *FindingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Finding
+		)
+		m.oldValue = func(ctx context.Context) (*Finding, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Finding.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withFinding sets the old Finding of the mutation.
+func withFinding(node *Finding) findingOption {
+	return func(m *FindingMutation) {
+		m.oldValue = func(context.Context) (*Finding, error) {
+			return node, nil
+		}
+		m.id = &node.Id
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m FindingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m FindingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// Ids queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *FindingMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.Op().Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.Id()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.Op().Is(OpUpdate | OpDelete):
+		return m.Client().Finding.Query().Where(m.Predicates()...).Ids(ctx)
+	default:
+		return nil, fmt.Errorf("Ids is not allowed on %s operations", m.Op())
+	}
+}
+
+// OldKind returns the old "kind" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldKind(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldKind requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// OldSubject returns the old "subject" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldSubject(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldSubject is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldSubject requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubject: %w", err)
+	}
+	return oldValue.Subject, nil
+}
+
+// OldSeverity returns the old "severity" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldSeverity(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldSeverity is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldSeverity requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSeverity: %w", err)
+	}
+	return oldValue.Severity, nil
+}
+
+// OldState returns the old "state" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldState(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldState requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// OldSummary returns the old "summary" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldSummary(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldSummary is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldSummary requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSummary: %w", err)
+	}
+	return oldValue.Summary, nil
+}
+
+// OldFacts returns the old "facts" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldFacts(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldFacts is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldFacts requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFacts: %w", err)
+	}
+	return oldValue.Facts, nil
+}
+
+// OldRows returns the old "rows" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldRows(ctx context.Context) (v *levyan.FindingRows, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldRows is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldRows requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRows: %w", err)
+	}
+	return oldValue.Rows, nil
+}
+
+// OldAmount returns the old "amount" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldAmount(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// OldCurrency returns the old "currency" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// OldCorrection returns the old "correction" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldCorrection(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCorrection is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCorrection requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrection: %w", err)
+	}
+	return oldValue.Correction, nil
+}
+
+// OldDateResolved returns the old "date_resolved" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldDateResolved(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateResolved is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateResolved requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateResolved: %w", err)
+	}
+	return oldValue.DateResolved, nil
+}
+
+// OldResolution returns the old "resolution" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldResolution(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldResolution is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldResolution requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResolution: %w", err)
+	}
+	return oldValue.Resolution, nil
+}
+
+// OldReason returns the old "reason" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldReason requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// OldDateAccepted returns the old "date_accepted" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldDateAccepted(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateAccepted is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateAccepted requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateAccepted: %w", err)
+	}
+	return oldValue.DateAccepted, nil
+}
+
+// OldDateUpdated returns the old "date_updated" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldDateUpdated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateUpdated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateUpdated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateUpdated: %w", err)
+	}
+	return oldValue.DateUpdated, nil
+}
+
+// OldDateErased returns the old "date_erased" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldDateErased(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateErased is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateErased requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateErased: %w", err)
+	}
+	return oldValue.DateErased, nil
+}
+
+// OldDateCreated returns the old "date_created" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldDateCreated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCreated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCreated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCreated: %w", err)
+	}
+	return oldValue.DateCreated, nil
+}
+
+// OldProductId returns the old "product_id" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldProductId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldProductId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldProductId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProductId: %w", err)
+	}
+	return oldValue.ProductId, nil
+}
+
+// OldAcceptedById returns the old "accepted_by_id" field's value of the Finding entity.
+// If the Finding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FindingMutation) OldAcceptedById(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldAcceptedById is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldAcceptedById requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAcceptedById: %w", err)
+	}
+	return oldValue.AcceptedById, nil
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *FindingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case finding.FieldKind:
+		return m.OldKind(ctx)
+	case finding.FieldSubject:
+		return m.OldSubject(ctx)
+	case finding.FieldSeverity:
+		return m.OldSeverity(ctx)
+	case finding.FieldState:
+		return m.OldState(ctx)
+	case finding.FieldSummary:
+		return m.OldSummary(ctx)
+	case finding.FieldFacts:
+		return m.OldFacts(ctx)
+	case finding.FieldRows:
+		return m.OldRows(ctx)
+	case finding.FieldAmount:
+		return m.OldAmount(ctx)
+	case finding.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case finding.FieldCorrection:
+		return m.OldCorrection(ctx)
+	case finding.FieldDateResolved:
+		return m.OldDateResolved(ctx)
+	case finding.FieldResolution:
+		return m.OldResolution(ctx)
+	case finding.FieldReason:
+		return m.OldReason(ctx)
+	case finding.FieldDateAccepted:
+		return m.OldDateAccepted(ctx)
+	case finding.FieldDateUpdated:
+		return m.OldDateUpdated(ctx)
+	case finding.FieldDateErased:
+		return m.OldDateErased(ctx)
+	case finding.FieldDateCreated:
+		return m.OldDateCreated(ctx)
+	case finding.FieldProductId:
+		return m.OldProductId(ctx)
+	case finding.FieldAcceptedById:
+		return m.OldAcceptedById(ctx)
+	}
+	return nil, fmt.Errorf("unknown Finding field %s", name)
 }
 
 // GrantMutation represents an operation that mutates the Grant nodes in the graph.
@@ -7263,6 +7746,40 @@ func (m *PaymentAttemptMutation) OldDateTwice(ctx context.Context) (v *time.Time
 	return oldValue.DateTwice, nil
 }
 
+// OldExtraOf returns the old "extra_of" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldExtraOf(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldExtraOf is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldExtraOf requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExtraOf: %w", err)
+	}
+	return oldValue.ExtraOf, nil
+}
+
+// OldRefunds returns the old "refunds" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldRefunds(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldRefunds is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldRefunds requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefunds: %w", err)
+	}
+	return oldValue.Refunds, nil
+}
+
 // OldDateUpdated returns the old "date_updated" field's value of the PaymentAttempt entity.
 // If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
@@ -7402,6 +7919,10 @@ func (m *PaymentAttemptMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldReference(ctx)
 	case paymentattempt.FieldDateTwice:
 		return m.OldDateTwice(ctx)
+	case paymentattempt.FieldExtraOf:
+		return m.OldExtraOf(ctx)
+	case paymentattempt.FieldRefunds:
+		return m.OldRefunds(ctx)
 	case paymentattempt.FieldDateUpdated:
 		return m.OldDateUpdated(ctx)
 	case paymentattempt.FieldDateErased:

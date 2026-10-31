@@ -7,6 +7,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/finding"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
 	"github.com/lesomnus/levyan/internal/ent/notice"
 	"github.com/lesomnus/levyan/internal/ent/paymentattempt"
@@ -44,6 +45,11 @@ func init() {
 	billingaccountDescCollection := billingaccountFields[11].Descriptor()
 	// billingaccount.DefaultCollection holds the default value on creation for the collection field.
 	billingaccount.DefaultCollection = billingaccountDescCollection.Default.(int32)
+	findingFields := schema.Finding{}.Fields()
+	_ = findingFields
+	// findingDescRows is the schema descriptor for rows field.
+	findingDescRows := findingFields[7].Descriptor()
+	finding.ValueScanner.Rows = findingDescRows.ValueScanner.(field.TypeValueScanner[*levyan.FindingRows])
 	invoiceFields := schema.Invoice{}.Fields()
 	_ = invoiceFields
 	// invoiceDescBillTo is the schema descriptor for bill_to field.
@@ -59,6 +65,14 @@ func init() {
 	// paymentattemptDescFailure is the schema descriptor for failure field.
 	paymentattemptDescFailure := paymentattemptFields[9].Descriptor()
 	paymentattempt.ValueScanner.Failure = paymentattemptDescFailure.ValueScanner.(field.TypeValueScanner[*levyan.AttemptFailure])
+	// paymentattemptDescExtraOf is the schema descriptor for extra_of field.
+	paymentattemptDescExtraOf := paymentattemptFields[17].Descriptor()
+	// paymentattempt.DefaultExtraOf holds the default value on creation for the extra_of field.
+	paymentattempt.DefaultExtraOf = paymentattemptDescExtraOf.Default.(string)
+	// paymentattemptDescRefunds is the schema descriptor for refunds field.
+	paymentattemptDescRefunds := paymentattemptFields[18].Descriptor()
+	// paymentattempt.DefaultRefunds holds the default value on creation for the refunds field.
+	paymentattempt.DefaultRefunds = paymentattemptDescRefunds.Default.(string)
 	priceFields := schema.Price{}.Fields()
 	_ = priceFields
 	// priceDescBands is the schema descriptor for bands field.

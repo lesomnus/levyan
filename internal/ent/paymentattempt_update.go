@@ -369,6 +369,12 @@ func (_u *PaymentAttemptUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if _u.mutation.DateTwiceCleared() {
 		_spec.ClearField(paymentattempt.FieldDateTwice, field.TypeTime)
 	}
+	if _u.mutation.ExtraOfCleared() {
+		_spec.ClearField(paymentattempt.FieldExtraOf, field.TypeString)
+	}
+	if _u.mutation.RefundsCleared() {
+		_spec.ClearField(paymentattempt.FieldRefunds, field.TypeString)
+	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(paymentattempt.FieldDateUpdated, field.TypeTime, value)
 	}
@@ -777,6 +783,12 @@ func (_u *PaymentAttemptUpdateOne) sqlSave(ctx context.Context) (_node *PaymentA
 	}
 	if _u.mutation.DateTwiceCleared() {
 		_spec.ClearField(paymentattempt.FieldDateTwice, field.TypeTime)
+	}
+	if _u.mutation.ExtraOfCleared() {
+		_spec.ClearField(paymentattempt.FieldExtraOf, field.TypeString)
+	}
+	if _u.mutation.RefundsCleared() {
+		_spec.ClearField(paymentattempt.FieldRefunds, field.TypeString)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(paymentattempt.FieldDateUpdated, field.TypeTime, value)

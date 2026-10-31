@@ -131,6 +131,16 @@ func DateTwice(v time.Time) predicate.PaymentAttempt {
 	return predicate.PaymentAttempt(sql.FieldEQ(FieldDateTwice, v))
 }
 
+// ExtraOf applies equality check predicate on the "extra_of" field. It's identical to ExtraOfEQ.
+func ExtraOf(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEQ(FieldExtraOf, v))
+}
+
+// Refunds applies equality check predicate on the "refunds" field. It's identical to RefundsEQ.
+func Refunds(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEQ(FieldRefunds, v))
+}
+
 // DateUpdated applies equality check predicate on the "date_updated" field. It's identical to DateUpdatedEQ.
 func DateUpdated(v time.Time) predicate.PaymentAttempt {
 	return predicate.PaymentAttempt(sql.FieldEQ(FieldDateUpdated, v))
@@ -929,6 +939,156 @@ func DateTwiceIsNil() predicate.PaymentAttempt {
 // DateTwiceNotNil applies the NotNil predicate on the "date_twice" field.
 func DateTwiceNotNil() predicate.PaymentAttempt {
 	return predicate.PaymentAttempt(sql.FieldNotNull(FieldDateTwice))
+}
+
+// ExtraOfEQ applies the EQ predicate on the "extra_of" field.
+func ExtraOfEQ(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEQ(FieldExtraOf, v))
+}
+
+// ExtraOfNEQ applies the NEQ predicate on the "extra_of" field.
+func ExtraOfNEQ(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNEQ(FieldExtraOf, v))
+}
+
+// ExtraOfIn applies the In predicate on the "extra_of" field.
+func ExtraOfIn(vs ...string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldIn(FieldExtraOf, vs...))
+}
+
+// ExtraOfNotIn applies the NotIn predicate on the "extra_of" field.
+func ExtraOfNotIn(vs ...string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNotIn(FieldExtraOf, vs...))
+}
+
+// ExtraOfGT applies the GT predicate on the "extra_of" field.
+func ExtraOfGT(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldGT(FieldExtraOf, v))
+}
+
+// ExtraOfGTE applies the GTE predicate on the "extra_of" field.
+func ExtraOfGTE(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldGTE(FieldExtraOf, v))
+}
+
+// ExtraOfLT applies the LT predicate on the "extra_of" field.
+func ExtraOfLT(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldLT(FieldExtraOf, v))
+}
+
+// ExtraOfLTE applies the LTE predicate on the "extra_of" field.
+func ExtraOfLTE(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldLTE(FieldExtraOf, v))
+}
+
+// ExtraOfContains applies the Contains predicate on the "extra_of" field.
+func ExtraOfContains(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldContains(FieldExtraOf, v))
+}
+
+// ExtraOfHasPrefix applies the HasPrefix predicate on the "extra_of" field.
+func ExtraOfHasPrefix(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldHasPrefix(FieldExtraOf, v))
+}
+
+// ExtraOfHasSuffix applies the HasSuffix predicate on the "extra_of" field.
+func ExtraOfHasSuffix(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldHasSuffix(FieldExtraOf, v))
+}
+
+// ExtraOfIsNil applies the IsNil predicate on the "extra_of" field.
+func ExtraOfIsNil() predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldIsNull(FieldExtraOf))
+}
+
+// ExtraOfNotNil applies the NotNil predicate on the "extra_of" field.
+func ExtraOfNotNil() predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNotNull(FieldExtraOf))
+}
+
+// ExtraOfEqualFold applies the EqualFold predicate on the "extra_of" field.
+func ExtraOfEqualFold(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEqualFold(FieldExtraOf, v))
+}
+
+// ExtraOfContainsFold applies the ContainsFold predicate on the "extra_of" field.
+func ExtraOfContainsFold(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldContainsFold(FieldExtraOf, v))
+}
+
+// RefundsEQ applies the EQ predicate on the "refunds" field.
+func RefundsEQ(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEQ(FieldRefunds, v))
+}
+
+// RefundsNEQ applies the NEQ predicate on the "refunds" field.
+func RefundsNEQ(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNEQ(FieldRefunds, v))
+}
+
+// RefundsIn applies the In predicate on the "refunds" field.
+func RefundsIn(vs ...string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldIn(FieldRefunds, vs...))
+}
+
+// RefundsNotIn applies the NotIn predicate on the "refunds" field.
+func RefundsNotIn(vs ...string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNotIn(FieldRefunds, vs...))
+}
+
+// RefundsGT applies the GT predicate on the "refunds" field.
+func RefundsGT(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldGT(FieldRefunds, v))
+}
+
+// RefundsGTE applies the GTE predicate on the "refunds" field.
+func RefundsGTE(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldGTE(FieldRefunds, v))
+}
+
+// RefundsLT applies the LT predicate on the "refunds" field.
+func RefundsLT(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldLT(FieldRefunds, v))
+}
+
+// RefundsLTE applies the LTE predicate on the "refunds" field.
+func RefundsLTE(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldLTE(FieldRefunds, v))
+}
+
+// RefundsContains applies the Contains predicate on the "refunds" field.
+func RefundsContains(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldContains(FieldRefunds, v))
+}
+
+// RefundsHasPrefix applies the HasPrefix predicate on the "refunds" field.
+func RefundsHasPrefix(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldHasPrefix(FieldRefunds, v))
+}
+
+// RefundsHasSuffix applies the HasSuffix predicate on the "refunds" field.
+func RefundsHasSuffix(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldHasSuffix(FieldRefunds, v))
+}
+
+// RefundsIsNil applies the IsNil predicate on the "refunds" field.
+func RefundsIsNil() predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldIsNull(FieldRefunds))
+}
+
+// RefundsNotNil applies the NotNil predicate on the "refunds" field.
+func RefundsNotNil() predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNotNull(FieldRefunds))
+}
+
+// RefundsEqualFold applies the EqualFold predicate on the "refunds" field.
+func RefundsEqualFold(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEqualFold(FieldRefunds, v))
+}
+
+// RefundsContainsFold applies the ContainsFold predicate on the "refunds" field.
+func RefundsContainsFold(v string) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldContainsFold(FieldRefunds, v))
 }
 
 // DateUpdatedEQ applies the EQ predicate on the "date_updated" field.

@@ -19,6 +19,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/departure"
+	"github.com/lesomnus/levyan/internal/ent/finding"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
@@ -69,6 +70,8 @@ type Client struct {
 	CreditNote *CreditNoteClient
 	// Departure is the client for interacting with the Departure builders.
 	Departure *DepartureClient
+	// Finding is the client for interacting with the Finding builders.
+	Finding *FindingClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
@@ -137,6 +140,7 @@ func (c *Client) init() {
 	c.Credit = NewCreditClient(c.config)
 	c.CreditNote = NewCreditNoteClient(c.config)
 	c.Departure = NewDepartureClient(c.config)
+	c.Finding = NewFindingClient(c.config)
 	c.Grant = NewGrantClient(c.config)
 	c.Holder = NewHolderClient(c.config)
 	c.Invoice = NewInvoiceClient(c.config)
@@ -262,6 +266,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Credit:         NewCreditClient(cfg),
 		CreditNote:     NewCreditNoteClient(cfg),
 		Departure:      NewDepartureClient(cfg),
+		Finding:        NewFindingClient(cfg),
 		Grant:          NewGrantClient(cfg),
 		Holder:         NewHolderClient(cfg),
 		Invoice:        NewInvoiceClient(cfg),
@@ -314,6 +319,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Credit:         NewCreditClient(cfg),
 		CreditNote:     NewCreditNoteClient(cfg),
 		Departure:      NewDepartureClient(cfg),
+		Finding:        NewFindingClient(cfg),
 		Grant:          NewGrantClient(cfg),
 		Holder:         NewHolderClient(cfg),
 		Invoice:        NewInvoiceClient(cfg),
@@ -415,11 +421,11 @@ func (c *Client) InTx() bool {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Access, c.Archived, c.Audit, c.BillingAccount, c.Checkout, c.Credit,
-		c.CreditNote, c.Departure, c.Grant, c.Holder, c.Invoice, c.InvoiceLine, c.Link,
-		c.Meter, c.Notice, c.NoticeCursor, c.Offer, c.Operator, c.Outbox, c.Owed,
-		c.PaymentAttempt, c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series,
-		c.ServiceKey, c.Statement, c.Subscription, c.Tenant, c.Workspace,
-		c.WorkspaceEvent,
+		c.CreditNote, c.Departure, c.Finding, c.Grant, c.Holder, c.Invoice,
+		c.InvoiceLine, c.Link, c.Meter, c.Notice, c.NoticeCursor, c.Offer, c.Operator,
+		c.Outbox, c.Owed, c.PaymentAttempt, c.Period, c.Point, c.Price, c.Reading,
+		c.RowSeal, c.Series, c.ServiceKey, c.Statement, c.Subscription, c.Tenant,
+		c.Workspace, c.WorkspaceEvent,
 	} {
 		n.Use(hooks...)
 	}
@@ -430,11 +436,11 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Access, c.Archived, c.Audit, c.BillingAccount, c.Checkout, c.Credit,
-		c.CreditNote, c.Departure, c.Grant, c.Holder, c.Invoice, c.InvoiceLine, c.Link,
-		c.Meter, c.Notice, c.NoticeCursor, c.Offer, c.Operator, c.Outbox, c.Owed,
-		c.PaymentAttempt, c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series,
-		c.ServiceKey, c.Statement, c.Subscription, c.Tenant, c.Workspace,
-		c.WorkspaceEvent,
+		c.CreditNote, c.Departure, c.Finding, c.Grant, c.Holder, c.Invoice,
+		c.InvoiceLine, c.Link, c.Meter, c.Notice, c.NoticeCursor, c.Offer, c.Operator,
+		c.Outbox, c.Owed, c.PaymentAttempt, c.Period, c.Point, c.Price, c.Reading,
+		c.RowSeal, c.Series, c.ServiceKey, c.Statement, c.Subscription, c.Tenant,
+		c.Workspace, c.WorkspaceEvent,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -459,6 +465,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CreditNote.mutate(ctx, m)
 	case *DepartureMutation:
 		return c.Departure.mutate(ctx, m)
+	case *FindingMutation:
+		return c.Finding.mutate(ctx, m)
 	case *GrantMutation:
 		return c.Grant.mutate(ctx, m)
 	case *HolderMutation:
@@ -1719,6 +1727,171 @@ func (c *DepartureClient) mutate(ctx context.Context, m *DepartureMutation) (Val
 		return (&DepartureDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Departure mutation op: %q", m.Op())
+	}
+}
+
+// FindingClient is a client for the Finding schema.
+type FindingClient struct {
+	config
+}
+
+// NewFindingClient returns a client for the Finding from the given config.
+func NewFindingClient(c config) *FindingClient {
+	return &FindingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `finding.Hooks(f(g(h())))`.
+func (c *FindingClient) Use(hooks ...Hook) {
+	c.hooks.Finding = append(c.hooks.Finding, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `finding.Intercept(f(g(h())))`.
+func (c *FindingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Finding = append(c.inters.Finding, interceptors...)
+}
+
+// Create returns a builder for creating a Finding entity.
+func (c *FindingClient) Create() *FindingCreate {
+	mutation := newFindingMutation(c.config, OpCreate)
+	return &FindingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Finding entities.
+func (c *FindingClient) CreateBulk(builders ...*FindingCreate) *FindingCreateBulk {
+	return &FindingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FindingClient) MapCreateBulk(slice any, setFunc func(*FindingCreate, int)) *FindingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FindingCreateBulk{err: fmt.Errorf("calling to FindingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FindingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FindingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Finding.
+func (c *FindingClient) Update() *FindingUpdate {
+	mutation := newFindingMutation(c.config, OpUpdate)
+	return &FindingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FindingClient) UpdateOne(_m *Finding) *FindingUpdateOne {
+	mutation := newFindingMutation(c.config, OpUpdateOne, withFinding(_m))
+	return &FindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *FindingClient) UpdateOneId(id uuid.UUID) *FindingUpdateOne {
+	mutation := newFindingMutation(c.config, OpUpdateOne, withFindingId(id))
+	return &FindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Finding.
+func (c *FindingClient) Delete() *FindingDelete {
+	mutation := newFindingMutation(c.config, OpDelete)
+	return &FindingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FindingClient) DeleteOne(_m *Finding) *FindingDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *FindingClient) DeleteOneId(id uuid.UUID) *FindingDeleteOne {
+	builder := c.Delete().Where(finding.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &FindingDeleteOne{builder}
+}
+
+// Query returns a query builder for Finding.
+func (c *FindingClient) Query() *FindingQuery {
+	return &FindingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFinding},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Finding entity by its id.
+func (c *FindingClient) Get(ctx context.Context, id uuid.UUID) (*Finding, error) {
+	return c.Query().Where(finding.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FindingClient) GetX(ctx context.Context, id uuid.UUID) *Finding {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProduct queries the product edge of a Finding.
+func (c *FindingClient) QueryProduct(_m *Finding) *TenantQuery {
+	query := (&TenantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(finding.Table, finding.FieldId, id),
+			sqlgraph.To(tenant.Table, tenant.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, finding.ProductTable, finding.ProductColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAcceptedBy queries the accepted_by edge of a Finding.
+func (c *FindingClient) QueryAcceptedBy(_m *Finding) *OperatorQuery {
+	query := (&OperatorClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(finding.Table, finding.FieldId, id),
+			sqlgraph.To(operator.Table, operator.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, finding.AcceptedByTable, finding.AcceptedByColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *FindingClient) Hooks() []Hook {
+	return c.hooks.Finding
+}
+
+// Interceptors returns the client interceptors.
+func (c *FindingClient) Interceptors() []Interceptor {
+	return c.inters.Finding
+}
+
+func (c *FindingClient) mutate(ctx context.Context, m *FindingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FindingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FindingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FindingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Finding mutation op: %q", m.Op())
 	}
 }
 
@@ -5755,14 +5928,14 @@ func (c *WorkspaceEventClient) mutate(ctx context.Context, m *WorkspaceEventMuta
 type (
 	hooks struct {
 		Access, Archived, Audit, BillingAccount, Checkout, Credit, CreditNote,
-		Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Notice,
+		Departure, Finding, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Notice,
 		NoticeCursor, Offer, Operator, Outbox, Owed, PaymentAttempt, Period, Point,
 		Price, Reading, RowSeal, Series, ServiceKey, Statement, Subscription, Tenant,
 		Workspace, WorkspaceEvent []ent.Hook
 	}
 	inters struct {
 		Access, Archived, Audit, BillingAccount, Checkout, Credit, CreditNote,
-		Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Notice,
+		Departure, Finding, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Notice,
 		NoticeCursor, Offer, Operator, Outbox, Owed, PaymentAttempt, Period, Point,
 		Price, Reading, RowSeal, Series, ServiceKey, Statement, Subscription, Tenant,
 		Workspace, WorkspaceEvent []ent.Interceptor

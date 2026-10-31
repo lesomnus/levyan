@@ -28,6 +28,8 @@ type Tx struct {
 	CreditNote *CreditNoteClient
 	// Departure is the client for interacting with the Departure builders.
 	Departure *DepartureClient
+	// Finding is the client for interacting with the Finding builders.
+	Finding *FindingClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
@@ -217,6 +219,7 @@ func (tx *Tx) init() {
 	tx.Credit = NewCreditClient(tx.config)
 	tx.CreditNote = NewCreditNoteClient(tx.config)
 	tx.Departure = NewDepartureClient(tx.config)
+	tx.Finding = NewFindingClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
 	tx.Holder = NewHolderClient(tx.config)
 	tx.Invoice = NewInvoiceClient(tx.config)

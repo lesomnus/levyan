@@ -59,6 +59,8 @@ func (e *PaymentAttempt) Proto() *levyan.PaymentAttempt {
 	if e.DateTwice != nil {
 		x.SetDateTwice(timestamppb.New(*e.DateTwice))
 	}
+	x.SetExtraOf(e.ExtraOf)
+	x.SetRefunds(e.Refunds)
 	x.SetDateUpdated(timestamppb.New(e.DateUpdated))
 	if e.DateErased != nil {
 		x.SetDateErased(timestamppb.New(*e.DateErased))

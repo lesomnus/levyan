@@ -155,6 +155,34 @@ func (_c *PaymentAttemptCreate) SetNillableDateTwice(v *time.Time) *PaymentAttem
 	return _c
 }
 
+// SetExtraOf sets the "extra_of" field.
+func (_c *PaymentAttemptCreate) SetExtraOf(v string) *PaymentAttemptCreate {
+	_c.mutation.SetExtraOf(v)
+	return _c
+}
+
+// SetNillableExtraOf sets the "extra_of" field if the given value is not nil.
+func (_c *PaymentAttemptCreate) SetNillableExtraOf(v *string) *PaymentAttemptCreate {
+	if v != nil {
+		_c.SetExtraOf(*v)
+	}
+	return _c
+}
+
+// SetRefunds sets the "refunds" field.
+func (_c *PaymentAttemptCreate) SetRefunds(v string) *PaymentAttemptCreate {
+	_c.mutation.SetRefunds(v)
+	return _c
+}
+
+// SetNillableRefunds sets the "refunds" field if the given value is not nil.
+func (_c *PaymentAttemptCreate) SetNillableRefunds(v *string) *PaymentAttemptCreate {
+	if v != nil {
+		_c.SetRefunds(*v)
+	}
+	return _c
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (_c *PaymentAttemptCreate) SetDateUpdated(v time.Time) *PaymentAttemptCreate {
 	_c.mutation.SetDateUpdated(v)
@@ -243,6 +271,7 @@ func (_c *PaymentAttemptCreate) Mutation() *PaymentAttemptMutation {
 
 // Save creates the PaymentAttempt in the database.
 func (_c *PaymentAttemptCreate) Save(ctx context.Context) (*PaymentAttempt, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -265,6 +294,18 @@ func (_c *PaymentAttemptCreate) Exec(ctx context.Context) error {
 func (_c *PaymentAttemptCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (_c *PaymentAttemptCreate) defaults() {
+	if _, ok := _c.mutation.ExtraOf(); !ok {
+		v := paymentattempt.DefaultExtraOf
+		_c.mutation.SetExtraOf(v)
+	}
+	if _, ok := _c.mutation.Refunds(); !ok {
+		v := paymentattempt.DefaultRefunds
+		_c.mutation.SetRefunds(v)
 	}
 }
 
@@ -446,6 +487,14 @@ func (_c *PaymentAttemptCreate) createSpec() (*PaymentAttempt, *sqlgraph.CreateS
 		_spec.SetField(paymentattempt.FieldDateTwice, field.TypeTime, value)
 		_node.DateTwice = &value
 	}
+	if value, ok := _c.mutation.ExtraOf(); ok {
+		_spec.SetField(paymentattempt.FieldExtraOf, field.TypeString, value)
+		_node.ExtraOf = value
+	}
+	if value, ok := _c.mutation.Refunds(); ok {
+		_spec.SetField(paymentattempt.FieldRefunds, field.TypeString, value)
+		_node.Refunds = value
+	}
 	if value, ok := _c.mutation.DateUpdated(); ok {
 		_spec.SetField(paymentattempt.FieldDateUpdated, field.TypeTime, value)
 		_node.DateUpdated = value
@@ -556,6 +605,7 @@ func (_c *PaymentAttemptCreateBulk) Save(ctx context.Context) ([]*PaymentAttempt
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PaymentAttemptMutation)
 				if !ok {

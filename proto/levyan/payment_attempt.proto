@@ -44,7 +44,8 @@ message PaymentAttempt {
   // The invoice it moves money for.
   Invoice invoice = 8 [(orm.edge) = {immutable: true}];
 
-  // For a refund, the credit note it gives back for.
+  // For a refund, the credit note it gives back for: none for one that gives
+  // back what a key was charged twice (`extra_of`).
   CreditNote credit_note = 9 [(orm.edge) = {
     nullable: true
     immutable: true
@@ -113,6 +114,28 @@ message PaymentAttempt {
   // by. Unset while the channel holds it as the ledger does. The one thing
   // that may still be written of an attempt once it has ended.
   google.protobuf.Timestamp date_twice = 28 [(orm.field) = {nullable: true}];
+
+  // For a refund of a payment the ledger does not account for -- what a key
+  // was charged past the payment its attempt settled by (`date_twice`) --
+  // the key of that charge's attempt, and the channel's id of the payment it
+  // gives back from: an operator's correction (`levyan-admin reconcile
+  // refund`), which no credit note says, since nothing of the invoice is
+  // given back. Empty for every other attempt, whose refund gives back from
+  // the payment its invoice's charge settled by.
+  string extra_of = 29 [
+    (orm.field) = {
+      immutable: true
+      default: ""
+    },
+    (payday.field) = {personal: false}
+  ];
+  string refunds = 30 [
+    (orm.field) = {
+      immutable: true
+      default: ""
+    },
+    (payday.field) = {personal: false}
+  ];
 
   google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
 
@@ -216,7 +239,8 @@ enum AttemptKind {
   // A charge of what an invoice has due.
   ATTEMPT_KIND_CHARGE = 1;
 
-  // A refund of what a credit note gives back.
+  // A refund of what a credit note gives back, or of what a key was charged
+  // past what the ledger accounts for (`PaymentAttempt.extra_of`).
   ATTEMPT_KIND_REFUND = 2;
 }
 

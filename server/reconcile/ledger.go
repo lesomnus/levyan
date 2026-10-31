@@ -193,9 +193,9 @@ func (r *Reconciler) ledgerRows(ctx context.Context, p *pass) (*ledgerRows, erro
 
 // invoices holds every invoice to the ledger: what was paid of it to what its
 // charges that succeeded collected, less what of that was more than was left
-// and is credit; what its credit paid of it to what its credit took; an open
-// one to something left to pay, and a paid one to nothing; its subtotal to
-// its lines, and each line to its statement. And every credit note to what
+// and is credit; what its credit paid of it to what its credit took; one
+// owed -- open, or uncollectible -- to something left to pay, and a paid one
+// to nothing; its subtotal to its lines, and each line to its statement. And every credit note to what
 // it gives back: what its refunds gave back, once none of them is out.
 func (r *Reconciler) invoices(ctx context.Context, p *pass) ([]Found, error) {
 	l, err := r.ledgerRows(ctx, p)
@@ -243,12 +243,15 @@ func (r *Reconciler) invoices(ctx context.Context, p *pass) ([]Found, error) {
 		}
 
 		left := invoices.Remaining(inv)
-		switch levyan.InvoiceState(inv.State) {
-		case levyan.InvoiceState_INVOICE_STATE_OPEN:
+		switch st := levyan.InvoiceState(inv.State); st {
+		case levyan.InvoiceState_INVOICE_STATE_OPEN, levyan.InvoiceState_INVOICE_STATE_UNCOLLECTIBLE:
+			// Owed -- open, or given up on by dunning (#11) -- and a charge
+			// that pays what is left settles it.
 			if left == 0 {
+				name := strings.ToLower(strings.TrimPrefix(st.String(), "INVOICE_STATE_"))
 				out = append(out, of(levyan.FindingKind_FINDING_KIND_INVOICE_STATE_DIFFERS,
-					fmt.Sprintf("invoice %s is open, and nothing of it is left to pay: %s due, %s paid, %s taken off", pdid.Id(inv.Id), money.String(inv.Due, inv.Currency), money.String(inv.Paid, inv.Currency), money.String(inv.Reduced, inv.Currency)),
-					fmt.Sprintf("state=open due=%d paid=%d reduced=%d", inv.Due, inv.Paid, inv.Reduced), 0))
+					fmt.Sprintf("invoice %s is %s, and nothing of it is left to pay: %s due, %s paid, %s taken off", pdid.Id(inv.Id), name, money.String(inv.Due, inv.Currency), money.String(inv.Paid, inv.Currency), money.String(inv.Reduced, inv.Currency)),
+					fmt.Sprintf("state=%s due=%d paid=%d reduced=%d", name, inv.Due, inv.Paid, inv.Reduced), 0))
 			}
 		case levyan.InvoiceState_INVOICE_STATE_PAID:
 			if left > 0 {

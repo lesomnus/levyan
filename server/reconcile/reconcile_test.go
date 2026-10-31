@@ -11,6 +11,10 @@ import (
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/mor"
 	"github.com/lesomnus/levyan/server/reconcile"
@@ -104,6 +108,7 @@ func TestAFindingIsWrittenOnce(t *testing.T) {
 	rep = w.reconcile()
 	x.Equal(1, rep.Resolved)
 	x.Equal(resolved, w.finding(f).State)
+	w.nothing()
 
 	w.srv.Duplicate(a.ChannelRef)
 	rep = w.reconcile()
@@ -131,6 +136,41 @@ func (w *world) giveBack(id string) {
 
 func refundAll(id string) mor.Refund {
 	return mor.Refund{Transaction: id, All: true, Reason: "by hand", Key: "byhand-" + id[len(id)-8:]}
+}
+
+// A finding is kept as the layer holds it, past the reconciler too: of a
+// kind there is, found open, and accepted by an operator with a reason.
+func TestAFindingIsHeldToWhatItMayBe(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	_, a, _ := w.charged()
+	w.srv.Duplicate(a.ChannelRef)
+	w.reconcile()
+	f := w.of(levyan.FindingKind_FINDING_KIND_TWICE)[0]
+
+	_, err := w.S.Ungated.Finding().Add(w.ctx, levyan.FindingAddRequest_builder{
+		Kind: "FINDING_KIND_NONSENSE", Subject: "x", Severity: levyan.FindingSeverity_FINDING_SEVERITY_ERROR, State: levyan.FindingState_FINDING_STATE_OPEN,
+	}.Build())
+	x.Equal(codes.InvalidArgument, status.Code(err))
+	_, err = w.S.Ungated.Finding().Add(w.ctx, levyan.FindingAddRequest_builder{
+		Kind: levyan.FindingKind_FINDING_KIND_TWICE.String(), Subject: "x", Severity: levyan.FindingSeverity_FINDING_SEVERITY_WARNING, State: levyan.FindingState_FINDING_STATE_OPEN,
+	}.Build())
+	x.Equal(codes.InvalidArgument, status.Code(err), "a key charged twice is critical")
+	_, err = w.S.Ungated.Finding().Add(w.ctx, levyan.FindingAddRequest_builder{
+		Kind: levyan.FindingKind_FINDING_KIND_TWICE.String(), Subject: "x", Severity: levyan.FindingSeverity_FINDING_SEVERITY_CRITICAL, State: levyan.FindingState_FINDING_STATE_ACCEPTED,
+	}.Build())
+	x.Equal(codes.InvalidArgument, status.Code(err), "accepted only once it is found")
+
+	_, err = w.S.Ungated.Finding().Patch(w.ctx, levyan.FindingPatchRequest_builder{
+		Ref:              levyan.FindingRef_builder{Id: f.Id[:]}.Build(),
+		State:            levyan.FindingState_FINDING_STATE_ACCEPTED.Enum(),
+		DateUpdatedForce: proto.Bool(true),
+	}.Build())
+	x.Equal(codes.InvalidArgument, status.Code(err), "by whom, and why")
+	_, err = w.S.Ungated.Finding().Apply(w.ctx, &levyan.FindingApplyRequest{})
+	x.Equal(codes.FailedPrecondition, status.Code(err))
+	x.Equal(open, w.finding(f).State)
 }
 
 // It is a loop of its own name, which a lease holds it by.

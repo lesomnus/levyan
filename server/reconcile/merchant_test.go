@@ -1,6 +1,7 @@
 package reconcile_test
 
 import (
+	"slices"
 	"testing"
 	"time"
 	"uuid"
@@ -13,6 +14,7 @@ import (
 	"github.com/lesomnus/levyan/internal/mor/paddle/paddletest"
 	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/reconcile"
+	"github.com/lesomnus/levyan/server/subscriptions"
 )
 
 // A deployment whose charges, refunds and notices went as they should finds
@@ -140,6 +142,7 @@ func TestAKeyMarkedChargedTwiceIsFoundByItsMark(t *testing.T) {
 	_, a, _ := w.charged()
 	dup := w.srv.Duplicate(a.ChannelRef)
 	w.heard("transaction.completed", dup)
+	w.heard("transaction.completed", dup)
 	w.take()
 	x.NotNil(w.attempt(a).DateTwice)
 
@@ -238,16 +241,20 @@ func TestAMirrorTheMerchantMovedOnFromIsAskedAgain(t *testing.T) {
 	ws := levyantest.Tenant()
 	account, ba := w.payer(ws)
 	w.to(on(2, 9))
+	w.srv.Behind(30 * 24 * time.Hour)
 	sub := w.subscribe(account, ba)
 	w.to(on(2, 9).Add(time.Hour))
 	w.srv.CancelNow(sub.MorSubscription)
+	_, err := subscriptions.Puller{In: w.S.Inbox, Now: w.srv.Now}.Pull(w.ctx)
+	x.NoError(err)
+	w.take()
 
 	w.to(on(2, 12))
 	w.reconcile()
 	w.nothing()
 	m, err := w.S.Ent.Subscription.Get(w.ctx, sub.Id)
 	x.NoError(err)
-	x.Equal(int32(levyan.SubscriptionStatus_SUBSCRIPTION_STATUS_ACTIVE), m.Status, "not asked of yet: checked lately")
+	x.Equal(int32(levyan.SubscriptionStatus_SUBSCRIPTION_STATUS_ACTIVE), m.Status, "neither its webhook nor its event came, and it was checked lately")
 
 	w.to(on(2, 9).Add(reconcile.DefaultMirror + time.Hour))
 	rep := w.reconcile()
@@ -266,9 +273,12 @@ func TestAMirrorTheMerchantMovedOnFromIsAskedAgain(t *testing.T) {
 	x.NoError(err)
 	x.Equal(int32(levyan.CollectionState_COLLECTION_STATE_CANCELED), b.Collection)
 
-	// The notice that never came, come at last -- and an older one after it:
-	// nothing is walked back.
-	for _, e := range w.srv.Events() {
+	// The notice that never came, come at last -- and an older one after it,
+	// and the newer again: nothing is walked back.
+	es := w.srv.Events()
+	slices.Reverse(es)
+	es = append(es, es...)
+	for _, e := range es {
 		if e[1] == "subscription.canceled" || e[1] == "subscription.created" {
 			h, body := w.srv.Deliver(e[0])
 			n, err := w.S.Inbox.Channel.Webhook(h, body)

@@ -8,6 +8,8 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	entinvoiceline "github.com/lesomnus/levyan/internal/ent/invoiceline"
+	entattempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/reconcile"
 )
 
@@ -128,4 +130,51 @@ func TestACreditBalanceIsHeldToItsRows(t *testing.T) {
 	rep := w.reconcile()
 	x.Zero(rep.Open)
 	x.Equal(2, rep.Found)
+
+	// What a movement of credit comes of is held to it: a credit note's, and
+	// an invoice that came to less than nothing's.
+	cn, err := w.S.Invoices.Credit(w.ctx, pdid.Id(inv.Id), invoices.Credit{Reason: levyan.CreditNoteReason_CREDIT_NOTE_REASON_CORRECTION, Amount: 1000})
+	x.NoError(err)
+	x.Equal(int64(1000), cn.Credited)
+	w.reconcile()
+	x.Zero(w.reconcile().Open, "what it credited is what the balance was given")
+	for kind, amount := range map[levyan.CreditKind]int64{levyan.CreditKind_CREDIT_KIND_CREDIT_NOTE: 500, levyan.CreditKind_CREDIT_KIND_NEGATIVE: 300} {
+		req := levyan.CreditAddRequest_builder{
+			Tenant:         levyan.TenantRef_builder{Id: inv.TenantId[:]}.Build(),
+			BillingAccount: levyan.BillingAccountRef_builder{Id: inv.BillingAccountId[:]}.Build(),
+			Invoice:        levyan.InvoiceRef_builder{Id: inv.Id[:]}.Build(),
+			Amount:         amount,
+			Currency:       "KRW",
+			Kind:           kind,
+		}.Build()
+		if kind == levyan.CreditKind_CREDIT_KIND_CREDIT_NOTE {
+			req.SetCreditNote(levyan.CreditNoteRef_builder{Id: cn.Id[:]}.Build())
+		}
+		_, err := w.S.Ungated.Credit().Add(w.ctx, req)
+		x.NoError(err)
+	}
+	w.reconcile()
+	got = w.findings()
+	n := got["credit_differs "+reconcile.Subject("CreditNote", cn.Id)]
+	x.NotNil(n)
+	x.Contains(n.Summary, "credits 1,000 KRW, and the credit balance was given 1,500 KRW of it")
+	i := got["credit_differs "+reconcile.Subject("Invoice", inv.Id)]
+	x.NotNil(i)
+	x.Contains(i.Summary, "came to 5,000 KRW, and the credit it owed the billing account is 300 KRW")
+}
+
+// A charge the ledger says succeeded for another amount than the merchant
+// charged of its key -- written past the servers -- is found.
+func TestAChargeOfAnotherAmountIsFound(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	_, a, _ := w.charged()
+	_, err := w.S.Db.ExecContext(w.ctx, "UPDATE "+entattempt.Table+" SET "+entattempt.FieldAmount+" = $1 WHERE "+entattempt.FieldAttemptKey+" = $2", 4000, a.AttemptKey)
+	x.NoError(err)
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_CHARGE_UNMATCHED)
+	x.Len(fs, 1)
+	x.Contains(fs[0].Summary, "charge "+a.AttemptKey+" of 4,000 KRW succeeded")
+	x.Contains(fs[0].Summary, "which charged 5,000 KRW of its key")
 }

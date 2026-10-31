@@ -114,3 +114,68 @@ func TestAGrantOfADestroyedWorkspaceIsFoundOnceItsRenewalIsPast(t *testing.T) {
 	w.reconcile()
 	w.nothing()
 }
+
+// The rules are each held to, `dunning` beside `payers.grace` (#11): a
+// workspace whose invoice is unpaid past its grace is restricted by the
+// loop of dunning, as the policy table says (`dunning.Policy.Dun`, which the
+// rule asks); ended by somebody, the restriction is found missing once the
+// rule has wanted it for longer than the loops take to give it, and the
+// operator follows that rule again.
+func TestTheDunningRuleIsHeldToToo(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	ws := levyantest.Tenant()
+	_, ba := w.payer(ws)
+	w.month(on(1, 1), ws)
+	w.run()
+	inv := w.only(ba)
+	a := w.charges(inv)[0]
+	x.Equal(failed, a.State, "no subscription to charge: a method to give anew")
+
+	// The grace of a method to replace is a week, and no retry.
+	w.to(w.srv.Now().Add(7*24*time.Hour + time.Hour))
+	x.NoError(w.S.Invoices.Dun(w.ctx, &w.S.Grants))
+	g, err := w.S.Ent.Grant.Query().Where(entgrant.Rule("dunning")).Only(w.ctx)
+	x.NoError(err)
+	x.Equal("loft.restricted", g.Key)
+	w.reconcile()
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING))
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT))
+
+	x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetValidUntil(w.srv.Now()).SetRenews(false).Exec(w.ctx))
+	w.to(w.srv.Now().Add(reconcile.Lag(time.Hour)))
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING)
+	x.Len(fs, 1)
+	x.Contains(fs[0].Subject, "/dunning/")
+
+	x.NoError(w.S.Reconciler.Rule(w.op, w.product, "dunning"))
+	w.reconcile()
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING))
+}
+
+// A grant of a rule the rule does not want -- given past it, of a workspace
+// that has a payer -- is left over, and found; followed again, the rule ends
+// it.
+func TestAGrantARuleDoesNotWantIsFound(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	ws := levyantest.Tenant()
+	w.payer(ws)
+	_, err := w.S.Grants.Give(w.ctx, grants.Give{
+		Product: w.product, Workspace: ws, Key: "loft.restricted", Value: entitle.On,
+		Source: levyan.GrantSource_GRANT_SOURCE_RULE, Rule: payers.RuleName, Desc: "given past the rule",
+	})
+	x.NoError(err)
+
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT)
+	x.Len(fs, 1)
+	x.Contains(fs[0].Summary, "is of rule payers.grace, which has wanted it neither now nor a while ago")
+
+	x.NoError(w.S.Reconciler.Rule(w.op, w.product, payers.RuleName))
+	w.reconcile()
+	w.nothing()
+}

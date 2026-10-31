@@ -57,6 +57,30 @@ func (f BillingAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BillingAccountMutation", m)
 }
 
+// The CreditFunc type is an adapter to allow the use of ordinary
+// function as Credit mutator.
+type CreditFunc func(context.Context, *ent.CreditMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CreditFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CreditMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CreditMutation", m)
+}
+
+// The CreditNoteFunc type is an adapter to allow the use of ordinary
+// function as CreditNote mutator.
+type CreditNoteFunc func(context.Context, *ent.CreditNoteMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CreditNoteFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CreditNoteMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CreditNoteMutation", m)
+}
+
 // The DepartureFunc type is an adapter to allow the use of ordinary
 // function as Departure mutator.
 type DepartureFunc func(context.Context, *ent.DepartureMutation) (ent.Value, error)
@@ -91,6 +115,30 @@ func (f HolderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HolderMutation", m)
+}
+
+// The InvoiceFunc type is an adapter to allow the use of ordinary
+// function as Invoice mutator.
+type InvoiceFunc func(context.Context, *ent.InvoiceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f InvoiceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.InvoiceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InvoiceMutation", m)
+}
+
+// The InvoiceLineFunc type is an adapter to allow the use of ordinary
+// function as InvoiceLine mutator.
+type InvoiceLineFunc func(context.Context, *ent.InvoiceLineMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f InvoiceLineFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.InvoiceLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InvoiceLineMutation", m)
 }
 
 // The LinkFunc type is an adapter to allow the use of ordinary
@@ -163,6 +211,18 @@ func (f OwedFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OwedMutation", m)
+}
+
+// The PaymentAttemptFunc type is an adapter to allow the use of ordinary
+// function as PaymentAttempt mutator.
+type PaymentAttemptFunc func(context.Context, *ent.PaymentAttemptMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PaymentAttemptFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PaymentAttemptMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PaymentAttemptMutation", m)
 }
 
 // The PeriodFunc type is an adapter to allow the use of ordinary

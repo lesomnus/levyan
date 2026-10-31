@@ -1,11 +1,14 @@
 package billing
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"math/big"
+	"slices"
 	"time"
 	"uuid"
 
@@ -217,6 +220,22 @@ func (c Closer) close(ctx context.Context, product *ent.Tenant, p rating.Period,
 		return nil, err
 	}
 
+	// What came to nothing for want of a price on a statement's channel and
+	// currency, while the meter was priced on another: said once a period,
+	// of each meter and terms, with how many workspaces.
+	unpriced := map[Unpriced]int{}
+	defer func() {
+		for _, k := range slices.SortedFunc(maps.Keys(unpriced), Unpriced.compare) {
+			log.From(ctx).WarnContext(ctx, "billing: a meter priced on another channel or currency than its statements' had no price on theirs for a stretch of the period, and came to nothing there",
+				slog.String("product", product.Alias),
+				slog.String("meter", k.Meter),
+				slog.String("channel", k.Channel),
+				slog.String("currency", k.Currency),
+				slog.Time("period", p.Start),
+				slog.Int("workspaces", unpriced[k]))
+		}
+	}()
+
 	var after uuid.UUID
 	for {
 		ws, err := c.db().Workspace.Query().
@@ -228,8 +247,12 @@ func (c Closer) close(ctx context.Context, product *ent.Tenant, p rating.Period,
 			return nil, err
 		}
 		for _, w := range ws {
-			if err := c.workspace(ctx, product, row, p, t, b, w); err != nil {
+			marked, err := c.workspace(ctx, product, row, p, t, b, w)
+			if err != nil {
 				return nil, fmt.Errorf("workspace %s: %w", w.Id, err)
+			}
+			for _, k := range marked {
+				unpriced[k]++
 			}
 			after = w.Id
 		}
@@ -280,39 +303,39 @@ func (c Closer) begin(ctx context.Context, product *ent.Tenant, p rating.Period,
 // workspace closes period `row` for workspace `w`, in a transaction that holds
 // the workspace's row: its statement, when the ledger says anything of it
 // over the period or late of an earlier one, and nothing when it has one.
-func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Period, p rating.Period, t Terms, b Book, w *ent.Workspace) error {
+func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Period, p rating.Period, t Terms, b Book, w *ent.Workspace) ([]Unpriced, error) {
 	tdrv, tx, err := dialect.BeginTx(ctx, c.Drv)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
 
 	s, err := enttx.Rebind(c.S, tdrv)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	db := ent.NewClient(ent.Driver(tdrv))
 	if err := ledger.Lock(ctx, db, c.Dialect == config.DialectPostgres, w.Id); err != nil {
-		return err
+		return nil, err
 	}
 
 	had, err := db.Statement.Query().Where(entstatement.TenantId(product.Id), entstatement.WorkspaceId(w.Id), entstatement.PeriodId(row.Id)).Exist(ctx)
 	if err != nil || had {
-		return err
+		return nil, err
 	}
 
 	// On the terms of who paid for the workspace over the period.
 	r := c.rater(db)
 	t, who, err := r.TermsFor(ctx, product.Id, w.Id, p, t)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	st, err := Write(ctx, r, b, product.Id, w.Id, p, t)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if st == nil {
-		return nil
+		return nil, nil
 	}
 
 	req := levyan.StatementAddRequest_builder{
@@ -336,10 +359,32 @@ func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Per
 		req.SetBillingAccount(levyan.BillingAccountRef_builder{Id: who.Account.Id[:]}.Build())
 	}
 	if _, err := s.Statement().Add(ctx, req); err != nil {
-		return err
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
-	return tx.Commit()
+	marked := []Unpriced{}
+	for _, l := range st.Lines {
+		if len(l.GetUnpriced()) > 0 && l.GetKind() == levyan.LineKind_LINE_KIND_USAGE {
+			marked = append(marked, Unpriced{Meter: l.GetKey(), Channel: t.Channel.String(), Currency: t.Currency})
+		}
+	}
+
+	return marked, nil
+}
+
+// Unpriced is a meter that had no price on a statement's channel and
+// currency for a stretch while it had one on another.
+type Unpriced struct {
+	Meter    string
+	Channel  string
+	Currency string
+}
+
+func (u Unpriced) compare(v Unpriced) int {
+	return cmp.Or(cmp.Compare(u.Meter, v.Meter), cmp.Compare(u.Channel, v.Channel), cmp.Compare(u.Currency, v.Currency))
 }
 
 // Statement is what a workspace's period comes to: its lines -- of its own

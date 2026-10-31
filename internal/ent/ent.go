@@ -13,15 +13,20 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/credit"
+	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/departure"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
+	"github.com/lesomnus/levyan/internal/ent/invoice"
+	"github.com/lesomnus/levyan/internal/ent/invoiceline"
 	"github.com/lesomnus/levyan/internal/ent/link"
 	"github.com/lesomnus/levyan/internal/ent/meter"
 	"github.com/lesomnus/levyan/internal/ent/offer"
 	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
 	"github.com/lesomnus/levyan/internal/ent/owed"
+	"github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	"github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/point"
 	"github.com/lesomnus/levyan/internal/ent/price"
@@ -99,15 +104,20 @@ func checkColumn(t, c string) error {
 			archived.Table:       archived.ValidColumn,
 			audit.Table:          audit.ValidColumn,
 			billingaccount.Table: billingaccount.ValidColumn,
+			credit.Table:         credit.ValidColumn,
+			creditnote.Table:     creditnote.ValidColumn,
 			departure.Table:      departure.ValidColumn,
 			grant.Table:          grant.ValidColumn,
 			holder.Table:         holder.ValidColumn,
+			invoice.Table:        invoice.ValidColumn,
+			invoiceline.Table:    invoiceline.ValidColumn,
 			link.Table:           link.ValidColumn,
 			meter.Table:          meter.ValidColumn,
 			offer.Table:          offer.ValidColumn,
 			operator.Table:       operator.ValidColumn,
 			outbox.Table:         outbox.ValidColumn,
 			owed.Table:           owed.ValidColumn,
+			paymentattempt.Table: paymentattempt.ValidColumn,
 			period.Table:         period.ValidColumn,
 			point.Table:          point.ValidColumn,
 			price.Table:          price.ValidColumn,

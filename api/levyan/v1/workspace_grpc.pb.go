@@ -39,7 +39,7 @@ const (
 type WorkspaceServiceClient interface {
 	// Arrive says a workspace was made, and by whom: its creator is its payer
 	// from when it was made, with the first billing account they made, if they
-	// have made one. Said again, it changes nothing.
+	// have made one. Said again, it changes nothing but its label.
 	Arrive(ctx context.Context, in *ArriveRequest, opts ...grpc.CallOption) (*ArriveResponse, error)
 	// Leave says an account is no longer in a workspace. If it paid for the
 	// workspace, the workspace has no payer from now; what was offered to it is
@@ -112,7 +112,7 @@ func (c *workspaceServiceClient) GetPayer(ctx context.Context, in *GetPayerReque
 type WorkspaceServiceServer interface {
 	// Arrive says a workspace was made, and by whom: its creator is its payer
 	// from when it was made, with the first billing account they made, if they
-	// have made one. Said again, it changes nothing.
+	// have made one. Said again, it changes nothing but its label.
 	Arrive(context.Context, *ArriveRequest) (*ArriveResponse, error)
 	// Leave says an account is no longer in a workspace. If it paid for the
 	// workspace, the workspace has no payer from now; what was offered to it is

@@ -15,15 +15,20 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/credit"
+	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/departure"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
+	"github.com/lesomnus/levyan/internal/ent/invoice"
+	"github.com/lesomnus/levyan/internal/ent/invoiceline"
 	"github.com/lesomnus/levyan/internal/ent/link"
 	"github.com/lesomnus/levyan/internal/ent/meter"
 	"github.com/lesomnus/levyan/internal/ent/offer"
 	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
 	"github.com/lesomnus/levyan/internal/ent/owed"
+	"github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	"github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/point"
 	"github.com/lesomnus/levyan/internal/ent/price"
@@ -50,15 +55,20 @@ const (
 	TypeArchived       = "Archived"
 	TypeAudit          = "Audit"
 	TypeBillingAccount = "BillingAccount"
+	TypeCredit         = "Credit"
+	TypeCreditNote     = "CreditNote"
 	TypeDeparture      = "Departure"
 	TypeGrant          = "Grant"
 	TypeHolder         = "Holder"
+	TypeInvoice        = "Invoice"
+	TypeInvoiceLine    = "InvoiceLine"
 	TypeLink           = "Link"
 	TypeMeter          = "Meter"
 	TypeOffer          = "Offer"
 	TypeOperator       = "Operator"
 	TypeOutbox         = "Outbox"
 	TypeOwed           = "Owed"
+	TypePaymentAttempt = "PaymentAttempt"
 	TypePeriod         = "Period"
 	TypePoint          = "Point"
 	TypePrice          = "Price"
@@ -1501,6 +1511,778 @@ func (m *BillingAccountMutation) OldField(ctx context.Context, name string) (ent
 	return nil, fmt.Errorf("unknown BillingAccount field %s", name)
 }
 
+// CreditMutation represents an operation that mutates the Credit nodes in the graph.
+type CreditMutation struct {
+	credit.Mutation
+	config
+	id       *uuid.UUID
+	done     bool
+	oldValue func(context.Context) (*Credit, error)
+}
+
+var _ ent.Mutation = (*CreditMutation)(nil)
+
+// creditOption allows management of the mutation configuration using functional options.
+type creditOption func(*CreditMutation)
+
+// newCreditMutation creates new mutation for the Credit entity.
+func newCreditMutation(c config, op Op, opts ...creditOption) *CreditMutation {
+	m := &CreditMutation{
+		Mutation: *credit.NewMutation(op),
+		config:   c,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// SetId sets the value of the id field. Note that this
+// operation is only accepted on creation of Credit entities.
+func (m *CreditMutation) SetId(id uuid.UUID) {
+	m.id = &id
+}
+
+// Id returns the Id value in the mutation. Note that the Id is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CreditMutation) Id() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// withCreditId sets the Id field of the mutation.
+func withCreditId(id uuid.UUID) creditOption {
+	return func(m *CreditMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Credit
+		)
+		m.oldValue = func(ctx context.Context) (*Credit, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Credit.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCredit sets the old Credit of the mutation.
+func withCredit(node *Credit) creditOption {
+	return func(m *CreditMutation) {
+		m.oldValue = func(context.Context) (*Credit, error) {
+			return node, nil
+		}
+		m.id = &node.Id
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CreditMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CreditMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// Ids queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CreditMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.Op().Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.Id()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.Op().Is(OpUpdate | OpDelete):
+		return m.Client().Credit.Query().Where(m.Predicates()...).Ids(ctx)
+	default:
+		return nil, fmt.Errorf("Ids is not allowed on %s operations", m.Op())
+	}
+}
+
+// OldAmount returns the old "amount" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldAmount(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// OldCurrency returns the old "currency" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// OldKind returns the old "kind" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldKind(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldKind requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// OldDateErased returns the old "date_erased" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldDateErased(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateErased is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateErased requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateErased: %w", err)
+	}
+	return oldValue.DateErased, nil
+}
+
+// OldDateCreated returns the old "date_created" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldDateCreated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCreated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCreated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCreated: %w", err)
+	}
+	return oldValue.DateCreated, nil
+}
+
+// OldTenantId returns the old "tenant_id" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldTenantId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTenantId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTenantId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantId: %w", err)
+	}
+	return oldValue.TenantId, nil
+}
+
+// OldBillingAccountId returns the old "billing_account_id" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldBillingAccountId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldBillingAccountId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldBillingAccountId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingAccountId: %w", err)
+	}
+	return oldValue.BillingAccountId, nil
+}
+
+// OldInvoiceId returns the old "invoice_id" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldInvoiceId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldInvoiceId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceId: %w", err)
+	}
+	return oldValue.InvoiceId, nil
+}
+
+// OldCreditNoteId returns the old "credit_note_id" field's value of the Credit entity.
+// If the Credit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditMutation) OldCreditNoteId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCreditNoteId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCreditNoteId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditNoteId: %w", err)
+	}
+	return oldValue.CreditNoteId, nil
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CreditMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case credit.FieldAmount:
+		return m.OldAmount(ctx)
+	case credit.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case credit.FieldKind:
+		return m.OldKind(ctx)
+	case credit.FieldDateErased:
+		return m.OldDateErased(ctx)
+	case credit.FieldDateCreated:
+		return m.OldDateCreated(ctx)
+	case credit.FieldTenantId:
+		return m.OldTenantId(ctx)
+	case credit.FieldBillingAccountId:
+		return m.OldBillingAccountId(ctx)
+	case credit.FieldInvoiceId:
+		return m.OldInvoiceId(ctx)
+	case credit.FieldCreditNoteId:
+		return m.OldCreditNoteId(ctx)
+	}
+	return nil, fmt.Errorf("unknown Credit field %s", name)
+}
+
+// CreditNoteMutation represents an operation that mutates the CreditNote nodes in the graph.
+type CreditNoteMutation struct {
+	creditnote.Mutation
+	config
+	id       *uuid.UUID
+	done     bool
+	oldValue func(context.Context) (*CreditNote, error)
+}
+
+var _ ent.Mutation = (*CreditNoteMutation)(nil)
+
+// creditnoteOption allows management of the mutation configuration using functional options.
+type creditnoteOption func(*CreditNoteMutation)
+
+// newCreditNoteMutation creates new mutation for the CreditNote entity.
+func newCreditNoteMutation(c config, op Op, opts ...creditnoteOption) *CreditNoteMutation {
+	m := &CreditNoteMutation{
+		Mutation: *creditnote.NewMutation(op),
+		config:   c,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// SetId sets the value of the id field. Note that this
+// operation is only accepted on creation of CreditNote entities.
+func (m *CreditNoteMutation) SetId(id uuid.UUID) {
+	m.id = &id
+}
+
+// Id returns the Id value in the mutation. Note that the Id is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CreditNoteMutation) Id() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// withCreditNoteId sets the Id field of the mutation.
+func withCreditNoteId(id uuid.UUID) creditnoteOption {
+	return func(m *CreditNoteMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CreditNote
+		)
+		m.oldValue = func(ctx context.Context) (*CreditNote, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CreditNote.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCreditNote sets the old CreditNote of the mutation.
+func withCreditNote(node *CreditNote) creditnoteOption {
+	return func(m *CreditNoteMutation) {
+		m.oldValue = func(context.Context) (*CreditNote, error) {
+			return node, nil
+		}
+		m.id = &node.Id
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CreditNoteMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CreditNoteMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// Ids queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CreditNoteMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.Op().Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.Id()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.Op().Is(OpUpdate | OpDelete):
+		return m.Client().CreditNote.Query().Where(m.Predicates()...).Ids(ctx)
+	default:
+		return nil, fmt.Errorf("Ids is not allowed on %s operations", m.Op())
+	}
+}
+
+// OldReason returns the old "reason" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldReason(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldReason requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// OldAmount returns the old "amount" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldAmount(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// OldTax returns the old "tax" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldTax(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTax is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTax requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTax: %w", err)
+	}
+	return oldValue.Tax, nil
+}
+
+// OldTotal returns the old "total" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldTotal(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// OldReduced returns the old "reduced" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldReduced(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldReduced is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldReduced requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReduced: %w", err)
+	}
+	return oldValue.Reduced, nil
+}
+
+// OldRefunded returns the old "refunded" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldRefunded(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldRefunded is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldRefunded requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRefunded: %w", err)
+	}
+	return oldValue.Refunded, nil
+}
+
+// OldCredited returns the old "credited" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldCredited(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCredited is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCredited requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredited: %w", err)
+	}
+	return oldValue.Credited, nil
+}
+
+// OldChannel returns the old "channel" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldChannel(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannel is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannel requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannel: %w", err)
+	}
+	return oldValue.Channel, nil
+}
+
+// OldCurrency returns the old "currency" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// OldNumber returns the old "number" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldNumber(ctx context.Context) (v *int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldNumber is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldNumber requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNumber: %w", err)
+	}
+	return oldValue.Number, nil
+}
+
+// OldDateIssued returns the old "date_issued" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldDateIssued(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateIssued is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateIssued requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateIssued: %w", err)
+	}
+	return oldValue.DateIssued, nil
+}
+
+// OldDocument returns the old "document" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldDocument(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDocument is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDocument requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDocument: %w", err)
+	}
+	return oldValue.Document, nil
+}
+
+// OldWords returns the old "words" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldWords(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldWords is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldWords requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWords: %w", err)
+	}
+	return oldValue.Words, nil
+}
+
+// OldDateUpdated returns the old "date_updated" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldDateUpdated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateUpdated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateUpdated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateUpdated: %w", err)
+	}
+	return oldValue.DateUpdated, nil
+}
+
+// OldDateErased returns the old "date_erased" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldDateErased(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateErased is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateErased requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateErased: %w", err)
+	}
+	return oldValue.DateErased, nil
+}
+
+// OldDateCreated returns the old "date_created" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldDateCreated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCreated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCreated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCreated: %w", err)
+	}
+	return oldValue.DateCreated, nil
+}
+
+// OldTenantId returns the old "tenant_id" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldTenantId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTenantId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTenantId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantId: %w", err)
+	}
+	return oldValue.TenantId, nil
+}
+
+// OldInvoiceId returns the old "invoice_id" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldInvoiceId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldInvoiceId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceId: %w", err)
+	}
+	return oldValue.InvoiceId, nil
+}
+
+// OldBillingAccountId returns the old "billing_account_id" field's value of the CreditNote entity.
+// If the CreditNote object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditNoteMutation) OldBillingAccountId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldBillingAccountId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldBillingAccountId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingAccountId: %w", err)
+	}
+	return oldValue.BillingAccountId, nil
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CreditNoteMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case creditnote.FieldReason:
+		return m.OldReason(ctx)
+	case creditnote.FieldAmount:
+		return m.OldAmount(ctx)
+	case creditnote.FieldTax:
+		return m.OldTax(ctx)
+	case creditnote.FieldTotal:
+		return m.OldTotal(ctx)
+	case creditnote.FieldReduced:
+		return m.OldReduced(ctx)
+	case creditnote.FieldRefunded:
+		return m.OldRefunded(ctx)
+	case creditnote.FieldCredited:
+		return m.OldCredited(ctx)
+	case creditnote.FieldChannel:
+		return m.OldChannel(ctx)
+	case creditnote.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case creditnote.FieldNumber:
+		return m.OldNumber(ctx)
+	case creditnote.FieldDateIssued:
+		return m.OldDateIssued(ctx)
+	case creditnote.FieldDocument:
+		return m.OldDocument(ctx)
+	case creditnote.FieldWords:
+		return m.OldWords(ctx)
+	case creditnote.FieldDateUpdated:
+		return m.OldDateUpdated(ctx)
+	case creditnote.FieldDateErased:
+		return m.OldDateErased(ctx)
+	case creditnote.FieldDateCreated:
+		return m.OldDateCreated(ctx)
+	case creditnote.FieldTenantId:
+		return m.OldTenantId(ctx)
+	case creditnote.FieldInvoiceId:
+		return m.OldInvoiceId(ctx)
+	case creditnote.FieldBillingAccountId:
+		return m.OldBillingAccountId(ctx)
+	}
+	return nil, fmt.Errorf("unknown CreditNote field %s", name)
+}
+
 // DepartureMutation represents an operation that mutates the Departure nodes in the graph.
 type DepartureMutation struct {
 	departure.Mutation
@@ -2467,6 +3249,1025 @@ func (m *HolderMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldTenantId(ctx)
 	}
 	return nil, fmt.Errorf("unknown Holder field %s", name)
+}
+
+// InvoiceMutation represents an operation that mutates the Invoice nodes in the graph.
+type InvoiceMutation struct {
+	invoice.Mutation
+	config
+	id       *uuid.UUID
+	done     bool
+	oldValue func(context.Context) (*Invoice, error)
+}
+
+var _ ent.Mutation = (*InvoiceMutation)(nil)
+
+// invoiceOption allows management of the mutation configuration using functional options.
+type invoiceOption func(*InvoiceMutation)
+
+// newInvoiceMutation creates new mutation for the Invoice entity.
+func newInvoiceMutation(c config, op Op, opts ...invoiceOption) *InvoiceMutation {
+	m := &InvoiceMutation{
+		Mutation: *invoice.NewMutation(op),
+		config:   c,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// SetId sets the value of the id field. Note that this
+// operation is only accepted on creation of Invoice entities.
+func (m *InvoiceMutation) SetId(id uuid.UUID) {
+	m.id = &id
+}
+
+// Id returns the Id value in the mutation. Note that the Id is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *InvoiceMutation) Id() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// withInvoiceId sets the Id field of the mutation.
+func withInvoiceId(id uuid.UUID) invoiceOption {
+	return func(m *InvoiceMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Invoice
+		)
+		m.oldValue = func(ctx context.Context) (*Invoice, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Invoice.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withInvoice sets the old Invoice of the mutation.
+func withInvoice(node *Invoice) invoiceOption {
+	return func(m *InvoiceMutation) {
+		m.oldValue = func(context.Context) (*Invoice, error) {
+			return node, nil
+		}
+		m.id = &node.Id
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m InvoiceMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m InvoiceMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// Ids queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *InvoiceMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.Op().Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.Id()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.Op().Is(OpUpdate | OpDelete):
+		return m.Client().Invoice.Query().Where(m.Predicates()...).Ids(ctx)
+	default:
+		return nil, fmt.Errorf("Ids is not allowed on %s operations", m.Op())
+	}
+}
+
+// OldDateStart returns the old "date_start" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateStart(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateStart is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateStart requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateStart: %w", err)
+	}
+	return oldValue.DateStart, nil
+}
+
+// OldDateEnd returns the old "date_end" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateEnd is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateEnd requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateEnd: %w", err)
+	}
+	return oldValue.DateEnd, nil
+}
+
+// OldChannel returns the old "channel" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldChannel(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannel is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannel requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannel: %w", err)
+	}
+	return oldValue.Channel, nil
+}
+
+// OldCurrency returns the old "currency" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// OldState returns the old "state" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldState(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldState requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// OldSubtotal returns the old "subtotal" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldSubtotal(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldSubtotal is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldSubtotal requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubtotal: %w", err)
+	}
+	return oldValue.Subtotal, nil
+}
+
+// OldTax returns the old "tax" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldTax(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTax is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTax requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTax: %w", err)
+	}
+	return oldValue.Tax, nil
+}
+
+// OldTaxRate returns the old "tax_rate" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldTaxRate(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTaxRate is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTaxRate requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxRate: %w", err)
+	}
+	return oldValue.TaxRate, nil
+}
+
+// OldTotal returns the old "total" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldTotal(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// OldCredited returns the old "credited" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldCredited(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCredited is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCredited requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredited: %w", err)
+	}
+	return oldValue.Credited, nil
+}
+
+// OldDue returns the old "due" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDue(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDue is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDue requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDue: %w", err)
+	}
+	return oldValue.Due, nil
+}
+
+// OldPaid returns the old "paid" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldPaid(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldPaid is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldPaid requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaid: %w", err)
+	}
+	return oldValue.Paid, nil
+}
+
+// OldReduced returns the old "reduced" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldReduced(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldReduced is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldReduced requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReduced: %w", err)
+	}
+	return oldValue.Reduced, nil
+}
+
+// OldNumber returns the old "number" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldNumber(ctx context.Context) (v *int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldNumber is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldNumber requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNumber: %w", err)
+	}
+	return oldValue.Number, nil
+}
+
+// OldDateFinalized returns the old "date_finalized" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateFinalized(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateFinalized is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateFinalized requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateFinalized: %w", err)
+	}
+	return oldValue.DateFinalized, nil
+}
+
+// OldDateIssued returns the old "date_issued" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateIssued(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateIssued is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateIssued requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateIssued: %w", err)
+	}
+	return oldValue.DateIssued, nil
+}
+
+// OldDocument returns the old "document" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDocument(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDocument is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDocument requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDocument: %w", err)
+	}
+	return oldValue.Document, nil
+}
+
+// OldDateDue returns the old "date_due" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateDue(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateDue is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateDue requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateDue: %w", err)
+	}
+	return oldValue.DateDue, nil
+}
+
+// OldDateSettled returns the old "date_settled" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateSettled(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateSettled is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateSettled requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateSettled: %w", err)
+	}
+	return oldValue.DateSettled, nil
+}
+
+// OldBillTo returns the old "bill_to" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldBillTo(ctx context.Context) (v *levyan.BillTo, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldBillTo is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldBillTo requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillTo: %w", err)
+	}
+	return oldValue.BillTo, nil
+}
+
+// OldChannelRef returns the old "channel_ref" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldChannelRef(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannelRef is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannelRef requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelRef: %w", err)
+	}
+	return oldValue.ChannelRef, nil
+}
+
+// OldChannelNumber returns the old "channel_number" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldChannelNumber(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannelNumber is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannelNumber requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelNumber: %w", err)
+	}
+	return oldValue.ChannelNumber, nil
+}
+
+// OldCarried returns the old "carried" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldCarried(ctx context.Context) (v uint32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCarried is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCarried requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCarried: %w", err)
+	}
+	return oldValue.Carried, nil
+}
+
+// OldReason returns the old "reason" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldReason requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// OldDateCarried returns the old "date_carried" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateCarried(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCarried is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCarried requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCarried: %w", err)
+	}
+	return oldValue.DateCarried, nil
+}
+
+// OldDateUpdated returns the old "date_updated" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateUpdated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateUpdated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateUpdated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateUpdated: %w", err)
+	}
+	return oldValue.DateUpdated, nil
+}
+
+// OldDateErased returns the old "date_erased" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateErased(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateErased is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateErased requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateErased: %w", err)
+	}
+	return oldValue.DateErased, nil
+}
+
+// OldDateCreated returns the old "date_created" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldDateCreated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCreated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCreated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCreated: %w", err)
+	}
+	return oldValue.DateCreated, nil
+}
+
+// OldTenantId returns the old "tenant_id" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldTenantId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTenantId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTenantId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantId: %w", err)
+	}
+	return oldValue.TenantId, nil
+}
+
+// OldBillingAccountId returns the old "billing_account_id" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldBillingAccountId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldBillingAccountId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldBillingAccountId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingAccountId: %w", err)
+	}
+	return oldValue.BillingAccountId, nil
+}
+
+// OldPeriodId returns the old "period_id" field's value of the Invoice entity.
+// If the Invoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceMutation) OldPeriodId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldPeriodId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldPeriodId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPeriodId: %w", err)
+	}
+	return oldValue.PeriodId, nil
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *InvoiceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case invoice.FieldDateStart:
+		return m.OldDateStart(ctx)
+	case invoice.FieldDateEnd:
+		return m.OldDateEnd(ctx)
+	case invoice.FieldChannel:
+		return m.OldChannel(ctx)
+	case invoice.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case invoice.FieldState:
+		return m.OldState(ctx)
+	case invoice.FieldSubtotal:
+		return m.OldSubtotal(ctx)
+	case invoice.FieldTax:
+		return m.OldTax(ctx)
+	case invoice.FieldTaxRate:
+		return m.OldTaxRate(ctx)
+	case invoice.FieldTotal:
+		return m.OldTotal(ctx)
+	case invoice.FieldCredited:
+		return m.OldCredited(ctx)
+	case invoice.FieldDue:
+		return m.OldDue(ctx)
+	case invoice.FieldPaid:
+		return m.OldPaid(ctx)
+	case invoice.FieldReduced:
+		return m.OldReduced(ctx)
+	case invoice.FieldNumber:
+		return m.OldNumber(ctx)
+	case invoice.FieldDateFinalized:
+		return m.OldDateFinalized(ctx)
+	case invoice.FieldDateIssued:
+		return m.OldDateIssued(ctx)
+	case invoice.FieldDocument:
+		return m.OldDocument(ctx)
+	case invoice.FieldDateDue:
+		return m.OldDateDue(ctx)
+	case invoice.FieldDateSettled:
+		return m.OldDateSettled(ctx)
+	case invoice.FieldBillTo:
+		return m.OldBillTo(ctx)
+	case invoice.FieldChannelRef:
+		return m.OldChannelRef(ctx)
+	case invoice.FieldChannelNumber:
+		return m.OldChannelNumber(ctx)
+	case invoice.FieldCarried:
+		return m.OldCarried(ctx)
+	case invoice.FieldReason:
+		return m.OldReason(ctx)
+	case invoice.FieldDateCarried:
+		return m.OldDateCarried(ctx)
+	case invoice.FieldDateUpdated:
+		return m.OldDateUpdated(ctx)
+	case invoice.FieldDateErased:
+		return m.OldDateErased(ctx)
+	case invoice.FieldDateCreated:
+		return m.OldDateCreated(ctx)
+	case invoice.FieldTenantId:
+		return m.OldTenantId(ctx)
+	case invoice.FieldBillingAccountId:
+		return m.OldBillingAccountId(ctx)
+	case invoice.FieldPeriodId:
+		return m.OldPeriodId(ctx)
+	}
+	return nil, fmt.Errorf("unknown Invoice field %s", name)
+}
+
+// InvoiceLineMutation represents an operation that mutates the InvoiceLine nodes in the graph.
+type InvoiceLineMutation struct {
+	invoiceline.Mutation
+	config
+	id       *uuid.UUID
+	done     bool
+	oldValue func(context.Context) (*InvoiceLine, error)
+}
+
+var _ ent.Mutation = (*InvoiceLineMutation)(nil)
+
+// invoicelineOption allows management of the mutation configuration using functional options.
+type invoicelineOption func(*InvoiceLineMutation)
+
+// newInvoiceLineMutation creates new mutation for the InvoiceLine entity.
+func newInvoiceLineMutation(c config, op Op, opts ...invoicelineOption) *InvoiceLineMutation {
+	m := &InvoiceLineMutation{
+		Mutation: *invoiceline.NewMutation(op),
+		config:   c,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// SetId sets the value of the id field. Note that this
+// operation is only accepted on creation of InvoiceLine entities.
+func (m *InvoiceLineMutation) SetId(id uuid.UUID) {
+	m.id = &id
+}
+
+// Id returns the Id value in the mutation. Note that the Id is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *InvoiceLineMutation) Id() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// withInvoiceLineId sets the Id field of the mutation.
+func withInvoiceLineId(id uuid.UUID) invoicelineOption {
+	return func(m *InvoiceLineMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *InvoiceLine
+		)
+		m.oldValue = func(ctx context.Context) (*InvoiceLine, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().InvoiceLine.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withInvoiceLine sets the old InvoiceLine of the mutation.
+func withInvoiceLine(node *InvoiceLine) invoicelineOption {
+	return func(m *InvoiceLineMutation) {
+		m.oldValue = func(context.Context) (*InvoiceLine, error) {
+			return node, nil
+		}
+		m.id = &node.Id
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m InvoiceLineMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m InvoiceLineMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// Ids queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *InvoiceLineMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.Op().Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.Id()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.Op().Is(OpUpdate | OpDelete):
+		return m.Client().InvoiceLine.Query().Where(m.Predicates()...).Ids(ctx)
+	default:
+		return nil, fmt.Errorf("Ids is not allowed on %s operations", m.Op())
+	}
+}
+
+// OldLabel returns the old "label" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// OldDateStart returns the old "date_start" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldDateStart(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateStart is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateStart requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateStart: %w", err)
+	}
+	return oldValue.DateStart, nil
+}
+
+// OldDateEnd returns the old "date_end" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldDateEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateEnd is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateEnd requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateEnd: %w", err)
+	}
+	return oldValue.DateEnd, nil
+}
+
+// OldDateErased returns the old "date_erased" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldDateErased(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateErased is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateErased requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateErased: %w", err)
+	}
+	return oldValue.DateErased, nil
+}
+
+// OldDateCreated returns the old "date_created" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldDateCreated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCreated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCreated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCreated: %w", err)
+	}
+	return oldValue.DateCreated, nil
+}
+
+// OldTotal returns the old "total" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldTotal(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// OldTenantId returns the old "tenant_id" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldTenantId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTenantId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTenantId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantId: %w", err)
+	}
+	return oldValue.TenantId, nil
+}
+
+// OldWorkspaceId returns the old "workspace_id" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldWorkspaceId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldWorkspaceId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldWorkspaceId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkspaceId: %w", err)
+	}
+	return oldValue.WorkspaceId, nil
+}
+
+// OldInvoiceId returns the old "invoice_id" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldInvoiceId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldInvoiceId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceId: %w", err)
+	}
+	return oldValue.InvoiceId, nil
+}
+
+// OldStatementId returns the old "statement_id" field's value of the InvoiceLine entity.
+// If the InvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InvoiceLineMutation) OldStatementId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldStatementId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldStatementId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatementId: %w", err)
+	}
+	return oldValue.StatementId, nil
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *InvoiceLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case invoiceline.FieldLabel:
+		return m.OldLabel(ctx)
+	case invoiceline.FieldDateStart:
+		return m.OldDateStart(ctx)
+	case invoiceline.FieldDateEnd:
+		return m.OldDateEnd(ctx)
+	case invoiceline.FieldDateErased:
+		return m.OldDateErased(ctx)
+	case invoiceline.FieldDateCreated:
+		return m.OldDateCreated(ctx)
+	case invoiceline.FieldTotal:
+		return m.OldTotal(ctx)
+	case invoiceline.FieldTenantId:
+		return m.OldTenantId(ctx)
+	case invoiceline.FieldWorkspaceId:
+		return m.OldWorkspaceId(ctx)
+	case invoiceline.FieldInvoiceId:
+		return m.OldInvoiceId(ctx)
+	case invoiceline.FieldStatementId:
+		return m.OldStatementId(ctx)
+	}
+	return nil, fmt.Errorf("unknown InvoiceLine field %s", name)
 }
 
 // LinkMutation represents an operation that mutates the Link nodes in the graph.
@@ -4042,6 +5843,525 @@ func (m *OwedMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldDateCreated(ctx)
 	}
 	return nil, fmt.Errorf("unknown Owed field %s", name)
+}
+
+// PaymentAttemptMutation represents an operation that mutates the PaymentAttempt nodes in the graph.
+type PaymentAttemptMutation struct {
+	paymentattempt.Mutation
+	config
+	id       *uuid.UUID
+	done     bool
+	oldValue func(context.Context) (*PaymentAttempt, error)
+}
+
+var _ ent.Mutation = (*PaymentAttemptMutation)(nil)
+
+// paymentattemptOption allows management of the mutation configuration using functional options.
+type paymentattemptOption func(*PaymentAttemptMutation)
+
+// newPaymentAttemptMutation creates new mutation for the PaymentAttempt entity.
+func newPaymentAttemptMutation(c config, op Op, opts ...paymentattemptOption) *PaymentAttemptMutation {
+	m := &PaymentAttemptMutation{
+		Mutation: *paymentattempt.NewMutation(op),
+		config:   c,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// SetId sets the value of the id field. Note that this
+// operation is only accepted on creation of PaymentAttempt entities.
+func (m *PaymentAttemptMutation) SetId(id uuid.UUID) {
+	m.id = &id
+}
+
+// Id returns the Id value in the mutation. Note that the Id is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PaymentAttemptMutation) Id() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// withPaymentAttemptId sets the Id field of the mutation.
+func withPaymentAttemptId(id uuid.UUID) paymentattemptOption {
+	return func(m *PaymentAttemptMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PaymentAttempt
+		)
+		m.oldValue = func(ctx context.Context) (*PaymentAttempt, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PaymentAttempt.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPaymentAttempt sets the old PaymentAttempt of the mutation.
+func withPaymentAttempt(node *PaymentAttempt) paymentattemptOption {
+	return func(m *PaymentAttemptMutation) {
+		m.oldValue = func(context.Context) (*PaymentAttempt, error) {
+			return node, nil
+		}
+		m.id = &node.Id
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PaymentAttemptMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PaymentAttemptMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// Ids queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PaymentAttemptMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.Op().Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.Id()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.Op().Is(OpUpdate | OpDelete):
+		return m.Client().PaymentAttempt.Query().Where(m.Predicates()...).Ids(ctx)
+	default:
+		return nil, fmt.Errorf("Ids is not allowed on %s operations", m.Op())
+	}
+}
+
+// OldKind returns the old "kind" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldKind(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldKind requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// OldAttemptKey returns the old "attempt_key" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldAttemptKey(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldAttemptKey is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldAttemptKey requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttemptKey: %w", err)
+	}
+	return oldValue.AttemptKey, nil
+}
+
+// OldChannel returns the old "channel" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldChannel(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannel is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannel requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannel: %w", err)
+	}
+	return oldValue.Channel, nil
+}
+
+// OldCurrency returns the old "currency" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldCurrency(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// OldAmount returns the old "amount" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldAmount(ctx context.Context) (v int64, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// OldState returns the old "state" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldState(ctx context.Context) (v int32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldState requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// OldSends returns the old "sends" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldSends(ctx context.Context) (v uint32, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldSends is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldSends requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSends: %w", err)
+	}
+	return oldValue.Sends, nil
+}
+
+// OldDateSent returns the old "date_sent" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDateSent(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateSent is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateSent requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateSent: %w", err)
+	}
+	return oldValue.DateSent, nil
+}
+
+// OldFailure returns the old "failure" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldFailure(ctx context.Context) (v *levyan.AttemptFailure, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldFailure is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldFailure requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailure: %w", err)
+	}
+	return oldValue.Failure, nil
+}
+
+// OldChannelRef returns the old "channel_ref" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldChannelRef(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannelRef is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannelRef requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelRef: %w", err)
+	}
+	return oldValue.ChannelRef, nil
+}
+
+// OldChannelNumber returns the old "channel_number" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldChannelNumber(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldChannelNumber is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldChannelNumber requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelNumber: %w", err)
+	}
+	return oldValue.ChannelNumber, nil
+}
+
+// OldDateResolved returns the old "date_resolved" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDateResolved(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateResolved is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateResolved requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateResolved: %w", err)
+	}
+	return oldValue.DateResolved, nil
+}
+
+// OldDatePaid returns the old "date_paid" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDatePaid(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDatePaid is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDatePaid requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDatePaid: %w", err)
+	}
+	return oldValue.DatePaid, nil
+}
+
+// OldRecorded returns the old "recorded" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldRecorded(ctx context.Context) (v bool, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldRecorded is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldRecorded requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecorded: %w", err)
+	}
+	return oldValue.Recorded, nil
+}
+
+// OldReference returns the old "reference" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldReference(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldReference is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldReference requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReference: %w", err)
+	}
+	return oldValue.Reference, nil
+}
+
+// OldDateUpdated returns the old "date_updated" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDateUpdated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateUpdated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateUpdated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateUpdated: %w", err)
+	}
+	return oldValue.DateUpdated, nil
+}
+
+// OldDateErased returns the old "date_erased" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDateErased(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateErased is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateErased requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateErased: %w", err)
+	}
+	return oldValue.DateErased, nil
+}
+
+// OldDateCreated returns the old "date_created" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDateCreated(ctx context.Context) (v time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateCreated is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateCreated requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateCreated: %w", err)
+	}
+	return oldValue.DateCreated, nil
+}
+
+// OldTenantId returns the old "tenant_id" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldTenantId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldTenantId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldTenantId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantId: %w", err)
+	}
+	return oldValue.TenantId, nil
+}
+
+// OldInvoiceId returns the old "invoice_id" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldInvoiceId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldInvoiceId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceId: %w", err)
+	}
+	return oldValue.InvoiceId, nil
+}
+
+// OldCreditNoteId returns the old "credit_note_id" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldCreditNoteId(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldCreditNoteId is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldCreditNoteId requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditNoteId: %w", err)
+	}
+	return oldValue.CreditNoteId, nil
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PaymentAttemptMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case paymentattempt.FieldKind:
+		return m.OldKind(ctx)
+	case paymentattempt.FieldAttemptKey:
+		return m.OldAttemptKey(ctx)
+	case paymentattempt.FieldChannel:
+		return m.OldChannel(ctx)
+	case paymentattempt.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case paymentattempt.FieldAmount:
+		return m.OldAmount(ctx)
+	case paymentattempt.FieldState:
+		return m.OldState(ctx)
+	case paymentattempt.FieldSends:
+		return m.OldSends(ctx)
+	case paymentattempt.FieldDateSent:
+		return m.OldDateSent(ctx)
+	case paymentattempt.FieldFailure:
+		return m.OldFailure(ctx)
+	case paymentattempt.FieldChannelRef:
+		return m.OldChannelRef(ctx)
+	case paymentattempt.FieldChannelNumber:
+		return m.OldChannelNumber(ctx)
+	case paymentattempt.FieldDateResolved:
+		return m.OldDateResolved(ctx)
+	case paymentattempt.FieldDatePaid:
+		return m.OldDatePaid(ctx)
+	case paymentattempt.FieldRecorded:
+		return m.OldRecorded(ctx)
+	case paymentattempt.FieldReference:
+		return m.OldReference(ctx)
+	case paymentattempt.FieldDateUpdated:
+		return m.OldDateUpdated(ctx)
+	case paymentattempt.FieldDateErased:
+		return m.OldDateErased(ctx)
+	case paymentattempt.FieldDateCreated:
+		return m.OldDateCreated(ctx)
+	case paymentattempt.FieldTenantId:
+		return m.OldTenantId(ctx)
+	case paymentattempt.FieldInvoiceId:
+		return m.OldInvoiceId(ctx)
+	case paymentattempt.FieldCreditNoteId:
+		return m.OldCreditNoteId(ctx)
+	}
+	return nil, fmt.Errorf("unknown PaymentAttempt field %s", name)
 }
 
 // PeriodMutation represents an operation that mutates the Period nodes in the graph.
@@ -6772,6 +9092,23 @@ func (m *WorkspaceMutation) OldKey(ctx context.Context) (v []byte, err error) {
 	return oldValue.Key, nil
 }
 
+// OldLabel returns the old "label" field's value of the Workspace entity.
+// If the Workspace object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkspaceMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
 // OldDateErased returns the old "date_erased" field's value of the Workspace entity.
 // If the Workspace object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
@@ -6830,6 +9167,8 @@ func (m *WorkspaceMutation) OldField(ctx context.Context, name string) (ent.Valu
 	switch name {
 	case workspace.FieldKey:
 		return m.OldKey(ctx)
+	case workspace.FieldLabel:
+		return m.OldLabel(ctx)
 	case workspace.FieldDateErased:
 		return m.OldDateErased(ctx)
 	case workspace.FieldDateCreated:

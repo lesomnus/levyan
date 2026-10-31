@@ -187,6 +187,137 @@ var (
 			},
 		},
 	}
+	// CreditColumns holds the columns for the "credit" table.
+	CreditColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeInt32},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "billing_account_id", Type: field.TypeUuid},
+		{Name: "invoice_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "credit_note_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// CreditTable holds the schema information for the "credit" table.
+	CreditTable = &schema.Table{
+		Name:       "credit",
+		Columns:    CreditColumns,
+		PrimaryKey: []*schema.Column{CreditColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "credit_tenant_tenant",
+				Columns:    []*schema.Column{CreditColumns[6]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "credit_billingaccount_billing_account",
+				Columns:    []*schema.Column{CreditColumns[7]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "credit_invoice_invoice",
+				Columns:    []*schema.Column{CreditColumns[8]},
+				RefColumns: []*schema.Column{InvoiceColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "credit_creditnote_credit_note",
+				Columns:    []*schema.Column{CreditColumns[9]},
+				RefColumns: []*schema.Column{CreditnoteColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "credit_page",
+				Unique:  false,
+				Columns: []*schema.Column{CreditColumns[6], CreditColumns[5], CreditColumns[0]},
+			},
+			{
+				Name:    "credit_billing",
+				Unique:  false,
+				Columns: []*schema.Column{CreditColumns[6], CreditColumns[7], CreditColumns[5]},
+			},
+		},
+	}
+	// CreditnoteColumns holds the columns for the "creditnote" table.
+	CreditnoteColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "reason", Type: field.TypeInt32},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "tax", Type: field.TypeInt64},
+		{Name: "total", Type: field.TypeInt64},
+		{Name: "reduced", Type: field.TypeInt64},
+		{Name: "refunded", Type: field.TypeInt64},
+		{Name: "credited", Type: field.TypeInt64},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "number", Type: field.TypeInt64, Nullable: true},
+		{Name: "date_issued", Type: field.TypeTime, Nullable: true},
+		{Name: "document", Type: field.TypeString},
+		{Name: "words", Type: field.TypeString},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "invoice_id", Type: field.TypeUuid},
+		{Name: "billing_account_id", Type: field.TypeUuid},
+	}
+	// CreditnoteTable holds the schema information for the "creditnote" table.
+	CreditnoteTable = &schema.Table{
+		Name:       "creditnote",
+		Columns:    CreditnoteColumns,
+		PrimaryKey: []*schema.Column{CreditnoteColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "creditnote_tenant_tenant",
+				Columns:    []*schema.Column{CreditnoteColumns[17]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "creditnote_invoice_invoice",
+				Columns:    []*schema.Column{CreditnoteColumns[18]},
+				RefColumns: []*schema.Column{InvoiceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "creditnote_billingaccount_billing_account",
+				Columns:    []*schema.Column{CreditnoteColumns[19]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "creditnote_page",
+				Unique:  false,
+				Columns: []*schema.Column{CreditnoteColumns[17], CreditnoteColumns[16], CreditnoteColumns[0]},
+			},
+			{
+				Name:    "creditnote_invoice",
+				Unique:  false,
+				Columns: []*schema.Column{CreditnoteColumns[18], CreditnoteColumns[16]},
+			},
+			{
+				Name:    "creditnote_billing",
+				Unique:  false,
+				Columns: []*schema.Column{CreditnoteColumns[19], CreditnoteColumns[16]},
+			},
+			{
+				Name:    "creditnote_number",
+				Unique:  true,
+				Columns: []*schema.Column{CreditnoteColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
 	// DepartureColumns holds the columns for the "departure" table.
 	DepartureColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -320,6 +451,158 @@ var (
 				Name:    "holder_by_account",
 				Unique:  false,
 				Columns: []*schema.Column{HolderColumns[8], HolderColumns[9]},
+			},
+		},
+	}
+	// InvoiceColumns holds the columns for the "invoice" table.
+	InvoiceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "date_start", Type: field.TypeTime, Nullable: true},
+		{Name: "date_end", Type: field.TypeTime, Nullable: true},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "state", Type: field.TypeInt32},
+		{Name: "subtotal", Type: field.TypeInt64},
+		{Name: "tax", Type: field.TypeInt64},
+		{Name: "tax_rate", Type: field.TypeString},
+		{Name: "total", Type: field.TypeInt64},
+		{Name: "credited", Type: field.TypeInt64},
+		{Name: "due", Type: field.TypeInt64},
+		{Name: "paid", Type: field.TypeInt64},
+		{Name: "reduced", Type: field.TypeInt64},
+		{Name: "number", Type: field.TypeInt64, Nullable: true},
+		{Name: "date_finalized", Type: field.TypeTime, Nullable: true},
+		{Name: "date_issued", Type: field.TypeTime, Nullable: true},
+		{Name: "document", Type: field.TypeString},
+		{Name: "date_due", Type: field.TypeTime, Nullable: true},
+		{Name: "date_settled", Type: field.TypeTime, Nullable: true},
+		{Name: "bill_to", Type: field.TypeJson, Nullable: true},
+		{Name: "channel_ref", Type: field.TypeString},
+		{Name: "channel_number", Type: field.TypeString},
+		{Name: "carried", Type: field.TypeUint32},
+		{Name: "reason", Type: field.TypeString},
+		{Name: "date_carried", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "billing_account_id", Type: field.TypeUuid},
+		{Name: "period_id", Type: field.TypeUuid},
+	}
+	// InvoiceTable holds the schema information for the "invoice" table.
+	InvoiceTable = &schema.Table{
+		Name:       "invoice",
+		Columns:    InvoiceColumns,
+		PrimaryKey: []*schema.Column{InvoiceColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "invoice_tenant_tenant",
+				Columns:    []*schema.Column{InvoiceColumns[29]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "invoice_billingaccount_billing_account",
+				Columns:    []*schema.Column{InvoiceColumns[30]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "invoice_period_period",
+				Columns:    []*schema.Column{InvoiceColumns[31]},
+				RefColumns: []*schema.Column{PeriodColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "invoice_page",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceColumns[29], InvoiceColumns[1], InvoiceColumns[0]},
+			},
+			{
+				Name:    "invoice_billing",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceColumns[30], InvoiceColumns[1], InvoiceColumns[0]},
+			},
+			{
+				Name:    "invoice_state",
+				Unique:  false,
+				Columns: []*schema.Column{InvoiceColumns[5], InvoiceColumns[2]},
+			},
+			{
+				Name:    "invoice_number",
+				Unique:  true,
+				Columns: []*schema.Column{InvoiceColumns[14]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
+	// InvoicelineColumns holds the columns for the "invoiceline" table.
+	InvoicelineColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "label", Type: field.TypeString},
+		{Name: "date_start", Type: field.TypeTime, Nullable: true},
+		{Name: "date_end", Type: field.TypeTime, Nullable: true},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "total", Type: field.TypeInt64},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "invoice_id", Type: field.TypeUuid},
+		{Name: "statement_id", Type: field.TypeUuid},
+	}
+	// InvoicelineTable holds the schema information for the "invoiceline" table.
+	InvoicelineTable = &schema.Table{
+		Name:       "invoiceline",
+		Columns:    InvoicelineColumns,
+		PrimaryKey: []*schema.Column{InvoicelineColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "invoiceline_tenant_tenant",
+				Columns:    []*schema.Column{InvoicelineColumns[7]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "invoiceline_workspace_workspace",
+				Columns:    []*schema.Column{InvoicelineColumns[8]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "invoiceline_invoice_invoice",
+				Columns:    []*schema.Column{InvoicelineColumns[9]},
+				RefColumns: []*schema.Column{InvoiceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "invoiceline_statement_statement",
+				Columns:    []*schema.Column{InvoicelineColumns[10]},
+				RefColumns: []*schema.Column{StatementColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "invoiceline_invoice",
+				Unique:  false,
+				Columns: []*schema.Column{InvoicelineColumns[9], InvoicelineColumns[2], InvoicelineColumns[0]},
+			},
+			{
+				Name:    "invoiceline_statement",
+				Unique:  true,
+				Columns: []*schema.Column{InvoicelineColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "invoiceline_page",
+				Unique:  false,
+				Columns: []*schema.Column{InvoicelineColumns[7], InvoicelineColumns[2], InvoicelineColumns[0]},
 			},
 		},
 	}
@@ -546,6 +829,82 @@ var (
 				Name:    "owed_owed",
 				Unique:  false,
 				Columns: []*schema.Column{OwedColumns[3], OwedColumns[0]},
+			},
+		},
+	}
+	// PaymentattemptColumns holds the columns for the "paymentattempt" table.
+	PaymentattemptColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "kind", Type: field.TypeInt32},
+		{Name: "attempt_key", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "state", Type: field.TypeInt32},
+		{Name: "sends", Type: field.TypeUint32},
+		{Name: "date_sent", Type: field.TypeTime, Nullable: true},
+		{Name: "failure", Type: field.TypeJson, Nullable: true},
+		{Name: "channel_ref", Type: field.TypeString},
+		{Name: "channel_number", Type: field.TypeString},
+		{Name: "date_resolved", Type: field.TypeTime, Nullable: true},
+		{Name: "date_paid", Type: field.TypeTime, Nullable: true},
+		{Name: "recorded", Type: field.TypeBool},
+		{Name: "reference", Type: field.TypeString},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "invoice_id", Type: field.TypeUuid},
+		{Name: "credit_note_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// PaymentattemptTable holds the schema information for the "paymentattempt" table.
+	PaymentattemptTable = &schema.Table{
+		Name:       "paymentattempt",
+		Columns:    PaymentattemptColumns,
+		PrimaryKey: []*schema.Column{PaymentattemptColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "paymentattempt_tenant_tenant",
+				Columns:    []*schema.Column{PaymentattemptColumns[19]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "paymentattempt_invoice_invoice",
+				Columns:    []*schema.Column{PaymentattemptColumns[20]},
+				RefColumns: []*schema.Column{InvoiceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "paymentattempt_creditnote_credit_note",
+				Columns:    []*schema.Column{PaymentattemptColumns[21]},
+				RefColumns: []*schema.Column{CreditnoteColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "paymentattempt_page",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentattemptColumns[19], PaymentattemptColumns[18], PaymentattemptColumns[0]},
+			},
+			{
+				Name:    "paymentattempt_invoice",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentattemptColumns[20], PaymentattemptColumns[18]},
+			},
+			{
+				Name:    "paymentattempt_state",
+				Unique:  false,
+				Columns: []*schema.Column{PaymentattemptColumns[6], PaymentattemptColumns[18]},
+			},
+			{
+				Name:    "paymentattempt_once",
+				Unique:  true,
+				Columns: []*schema.Column{PaymentattemptColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
 			},
 		},
 	}
@@ -986,6 +1345,7 @@ var (
 	WorkspaceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
 		{Name: "key", Type: field.TypeBytes},
+		{Name: "label", Type: field.TypeString},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
 		{Name: "tenant_id", Type: field.TypeUuid},
@@ -998,7 +1358,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "workspace_tenant_tenant",
-				Columns:    []*schema.Column{WorkspaceColumns[4]},
+				Columns:    []*schema.Column{WorkspaceColumns[5]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1007,12 +1367,12 @@ var (
 			{
 				Name:    "workspace_page",
 				Unique:  false,
-				Columns: []*schema.Column{WorkspaceColumns[4], WorkspaceColumns[3], WorkspaceColumns[0]},
+				Columns: []*schema.Column{WorkspaceColumns[5], WorkspaceColumns[4], WorkspaceColumns[0]},
 			},
 			{
 				Name:    "workspace_keyed",
 				Unique:  true,
-				Columns: []*schema.Column{WorkspaceColumns[1], WorkspaceColumns[4]},
+				Columns: []*schema.Column{WorkspaceColumns[1], WorkspaceColumns[5]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
@@ -1025,15 +1385,20 @@ var (
 		ArchivedTable,
 		AuditTable,
 		BillingaccountTable,
+		CreditTable,
+		CreditnoteTable,
 		DepartureTable,
 		GrantTable,
 		HolderTable,
+		InvoiceTable,
+		InvoicelineTable,
 		LinkTable,
 		MeterTable,
 		OfferTable,
 		OperatorTable,
 		OutboxTable,
 		OwedTable,
+		PaymentattemptTable,
 		PeriodTable,
 		PointTable,
 		PriceTable,
@@ -1060,6 +1425,19 @@ func init() {
 	BillingaccountTable.Annotation = &entsql.Annotation{
 		Table: "billingaccount",
 	}
+	CreditTable.ForeignKeys[0].RefTable = TenantTable
+	CreditTable.ForeignKeys[1].RefTable = BillingaccountTable
+	CreditTable.ForeignKeys[2].RefTable = InvoiceTable
+	CreditTable.ForeignKeys[3].RefTable = CreditnoteTable
+	CreditTable.Annotation = &entsql.Annotation{
+		Table: "credit",
+	}
+	CreditnoteTable.ForeignKeys[0].RefTable = TenantTable
+	CreditnoteTable.ForeignKeys[1].RefTable = InvoiceTable
+	CreditnoteTable.ForeignKeys[2].RefTable = BillingaccountTable
+	CreditnoteTable.Annotation = &entsql.Annotation{
+		Table: "creditnote",
+	}
 	DepartureTable.Annotation = &entsql.Annotation{
 		Table: "departure",
 	}
@@ -1071,6 +1449,19 @@ func init() {
 	HolderTable.ForeignKeys[0].RefTable = TenantTable
 	HolderTable.Annotation = &entsql.Annotation{
 		Table: "holder",
+	}
+	InvoiceTable.ForeignKeys[0].RefTable = TenantTable
+	InvoiceTable.ForeignKeys[1].RefTable = BillingaccountTable
+	InvoiceTable.ForeignKeys[2].RefTable = PeriodTable
+	InvoiceTable.Annotation = &entsql.Annotation{
+		Table: "invoice",
+	}
+	InvoicelineTable.ForeignKeys[0].RefTable = TenantTable
+	InvoicelineTable.ForeignKeys[1].RefTable = WorkspaceTable
+	InvoicelineTable.ForeignKeys[2].RefTable = InvoiceTable
+	InvoicelineTable.ForeignKeys[3].RefTable = StatementTable
+	InvoicelineTable.Annotation = &entsql.Annotation{
+		Table: "invoiceline",
 	}
 	LinkTable.ForeignKeys[0].RefTable = TenantTable
 	LinkTable.ForeignKeys[1].RefTable = WorkspaceTable
@@ -1096,6 +1487,12 @@ func init() {
 	}
 	OwedTable.Annotation = &entsql.Annotation{
 		Table: "owed",
+	}
+	PaymentattemptTable.ForeignKeys[0].RefTable = TenantTable
+	PaymentattemptTable.ForeignKeys[1].RefTable = InvoiceTable
+	PaymentattemptTable.ForeignKeys[2].RefTable = CreditnoteTable
+	PaymentattemptTable.Annotation = &entsql.Annotation{
+		Table: "paymentattempt",
 	}
 	PeriodTable.ForeignKeys[0].RefTable = TenantTable
 	PeriodTable.Annotation = &entsql.Annotation{

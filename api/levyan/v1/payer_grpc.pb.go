@@ -31,6 +31,9 @@ const (
 	PayerService_ListLinks_FullMethodName            = "/levyan.v1.PayerService/ListLinks"
 	PayerService_Use_FullMethodName                  = "/levyan.v1.PayerService/Use"
 	PayerService_Stop_FullMethodName                 = "/levyan.v1.PayerService/Stop"
+	PayerService_ListInvoices_FullMethodName         = "/levyan.v1.PayerService/ListInvoices"
+	PayerService_GetInvoice_FullMethodName           = "/levyan.v1.PayerService/GetInvoice"
+	PayerService_ListCreditNotes_FullMethodName      = "/levyan.v1.PayerService/ListCreditNotes"
 )
 
 // PayerServiceClient is the client API for PayerService service.
@@ -86,6 +89,13 @@ type PayerServiceClient interface {
 	// Stop stops paying for a workspace, as the period now open ends: from
 	// then on it has no payer, unless somebody accepts first.
 	Stop(ctx context.Context, in *StopRequest, opts ...grpc.CallOption) (*StopResponse, error)
+	// ListInvoices is the invoices of the account's billing accounts, of the
+	// product's workspaces, once each is finalized: the latest first.
+	ListInvoices(ctx context.Context, in *ListInvoicesRequest, opts ...grpc.CallOption) (*ListInvoicesResponse, error)
+	// GetInvoice is one of them, with its lines and its credit notes.
+	GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*GetInvoiceResponse, error)
+	// ListCreditNotes is the credit notes of them.
+	ListCreditNotes(ctx context.Context, in *ListCreditNotesRequest, opts ...grpc.CallOption) (*ListCreditNotesResponse, error)
 }
 
 type payerServiceClient struct {
@@ -186,6 +196,36 @@ func (c *payerServiceClient) Stop(ctx context.Context, in *StopRequest, opts ...
 	return out, nil
 }
 
+func (c *payerServiceClient) ListInvoices(ctx context.Context, in *ListInvoicesRequest, opts ...grpc.CallOption) (*ListInvoicesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInvoicesResponse)
+	err := c.cc.Invoke(ctx, PayerService_ListInvoices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *payerServiceClient) GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*GetInvoiceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInvoiceResponse)
+	err := c.cc.Invoke(ctx, PayerService_GetInvoice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *payerServiceClient) ListCreditNotes(ctx context.Context, in *ListCreditNotesRequest, opts ...grpc.CallOption) (*ListCreditNotesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListCreditNotesResponse)
+	err := c.cc.Invoke(ctx, PayerService_ListCreditNotes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PayerServiceServer is the server API for PayerService service.
 // All implementations must embed UnimplementedPayerServiceServer
 // for forward compatibility.
@@ -239,6 +279,13 @@ type PayerServiceServer interface {
 	// Stop stops paying for a workspace, as the period now open ends: from
 	// then on it has no payer, unless somebody accepts first.
 	Stop(context.Context, *StopRequest) (*StopResponse, error)
+	// ListInvoices is the invoices of the account's billing accounts, of the
+	// product's workspaces, once each is finalized: the latest first.
+	ListInvoices(context.Context, *ListInvoicesRequest) (*ListInvoicesResponse, error)
+	// GetInvoice is one of them, with its lines and its credit notes.
+	GetInvoice(context.Context, *GetInvoiceRequest) (*GetInvoiceResponse, error)
+	// ListCreditNotes is the credit notes of them.
+	ListCreditNotes(context.Context, *ListCreditNotesRequest) (*ListCreditNotesResponse, error)
 	mustEmbedUnimplementedPayerServiceServer()
 }
 
@@ -275,6 +322,15 @@ func (UnimplementedPayerServiceServer) Use(context.Context, *UseRequest) (*UseRe
 }
 func (UnimplementedPayerServiceServer) Stop(context.Context, *StopRequest) (*StopResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Stop not implemented")
+}
+func (UnimplementedPayerServiceServer) ListInvoices(context.Context, *ListInvoicesRequest) (*ListInvoicesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInvoices not implemented")
+}
+func (UnimplementedPayerServiceServer) GetInvoice(context.Context, *GetInvoiceRequest) (*GetInvoiceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInvoice not implemented")
+}
+func (UnimplementedPayerServiceServer) ListCreditNotes(context.Context, *ListCreditNotesRequest) (*ListCreditNotesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCreditNotes not implemented")
 }
 func (UnimplementedPayerServiceServer) mustEmbedUnimplementedPayerServiceServer() {}
 func (UnimplementedPayerServiceServer) testEmbeddedByValue()                      {}
@@ -459,6 +515,60 @@ func _PayerService_Stop_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PayerService_ListInvoices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInvoicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).ListInvoices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_ListInvoices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).ListInvoices(ctx, req.(*ListInvoicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PayerService_GetInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInvoiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).GetInvoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_GetInvoice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).GetInvoice(ctx, req.(*GetInvoiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PayerService_ListCreditNotes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCreditNotesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PayerServiceServer).ListCreditNotes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PayerService_ListCreditNotes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PayerServiceServer).ListCreditNotes(ctx, req.(*ListCreditNotesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PayerService_ServiceDesc is the grpc.ServiceDesc for PayerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -501,6 +611,18 @@ var PayerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Stop",
 			Handler:    _PayerService_Stop_Handler,
+		},
+		{
+			MethodName: "ListInvoices",
+			Handler:    _PayerService_ListInvoices_Handler,
+		},
+		{
+			MethodName: "GetInvoice",
+			Handler:    _PayerService_GetInvoice_Handler,
+		},
+		{
+			MethodName: "ListCreditNotes",
+			Handler:    _PayerService_ListCreditNotes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

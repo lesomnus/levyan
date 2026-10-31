@@ -29,6 +29,12 @@ func BillingAccountOrErr(p BillingAccount, err error) BillingAccount {
 	}
 }
 
+// Credit is the predicate function for credit builders.
+type Credit func(*sql.Selector)
+
+// CreditNote is the predicate function for creditnote builders.
+type CreditNote func(*sql.Selector)
+
 // Departure is the predicate function for departure builders.
 type Departure func(*sql.Selector)
 
@@ -37,6 +43,23 @@ type Grant func(*sql.Selector)
 
 // Holder is the predicate function for holder builders.
 type Holder func(*sql.Selector)
+
+// Invoice is the predicate function for invoice builders.
+type Invoice func(*sql.Selector)
+
+// InvoiceOrErr calls the predicate only if the error is not nit.
+func InvoiceOrErr(p Invoice, err error) Invoice {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// InvoiceLine is the predicate function for invoiceline builders.
+type InvoiceLine func(*sql.Selector)
 
 // Link is the predicate function for link builders.
 type Link func(*sql.Selector)
@@ -55,6 +78,20 @@ type Outbox func(*sql.Selector)
 
 // Owed is the predicate function for owed builders.
 type Owed func(*sql.Selector)
+
+// PaymentAttempt is the predicate function for paymentattempt builders.
+type PaymentAttempt func(*sql.Selector)
+
+// PaymentAttemptOrErr calls the predicate only if the error is not nit.
+func PaymentAttemptOrErr(p PaymentAttempt, err error) PaymentAttempt {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // Period is the predicate function for period builders.
 type Period func(*sql.Selector)

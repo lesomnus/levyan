@@ -25,6 +25,7 @@ message WorkspaceAddRequest {
   bytes id = 1;
   TenantRef tenant = 2;
   bytes key = 8 [features.field_presence = IMPLICIT];
+  string label = 9 [features.field_presence = IMPLICIT];
   google.protobuf.Timestamp date_created = 15;
 }
 
@@ -49,12 +50,14 @@ message WorkspaceSelect {
   bool all = 1;
   TenantSelect tenant = 2;
   bool key = 8;
+  bool label = 9;
   bool date_erased = 14;
   bool date_created = 15;
 }
 
 message WorkspacePatchRequest {
   WorkspaceRef ref = 1;
+  string label = 18;
 }
 
 message WorkspaceApplyRequest {

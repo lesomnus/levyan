@@ -21,6 +21,8 @@ type Workspace struct {
 	Id uuid.UUID `json:"id,omitempty"`
 	// Key holds the value of the "key" field.
 	Key []byte `json:"key,omitempty"`
+	// Label holds the value of the "label" field.
+	Label string `json:"label,omitempty"`
 	// DateErased holds the value of the "date_erased" field.
 	DateErased *time.Time `json:"date_erased,omitempty"`
 	// DateCreated holds the value of the "date_created" field.
@@ -60,6 +62,8 @@ func (*Workspace) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case workspace.FieldKey:
 			values[i] = new([]byte)
+		case workspace.FieldLabel:
+			values[i] = new(sql.NullString)
 		case workspace.FieldDateErased, workspace.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case workspace.FieldId, workspace.FieldTenantId:
@@ -93,6 +97,12 @@ func (_m *Workspace) assignValues(columns []string, values []any) error {
 				if _m.Key == nil {
 					_m.Key = []byte{}
 				}
+			}
+		case workspace.FieldLabel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field label", values[i])
+			} else if value.Valid {
+				_m.Label = value.String
 			}
 		case workspace.FieldDateErased:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -156,6 +166,9 @@ func (_m *Workspace) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.Id))
 	builder.WriteString("key=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Key))
+	builder.WriteString(", ")
+	builder.WriteString("label=")
+	builder.WriteString(_m.Label)
 	builder.WriteString(", ")
 	if v := _m.DateErased; v != nil {
 		builder.WriteString("date_erased=")

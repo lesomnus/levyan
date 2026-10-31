@@ -163,6 +163,17 @@ message Line {
 
   // For a correction: what was billed for the meter over that period before.
   string billed = 10;
+
+  // Each stretch of the period the meter had no price on the channel and
+  // currency the line is priced on while it had one on another: what came to
+  // nothing for want of a price, and not because the meter is free there.
+  repeated Stretch unpriced = 11;
+}
+
+// Stretch is a stretch of time, from `from` to the moment before `to`.
+message Stretch {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2;
 }
 
 // LineKind is what a line is.

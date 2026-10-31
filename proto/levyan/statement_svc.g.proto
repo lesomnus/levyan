@@ -7,6 +7,7 @@ import "levyan/payday/tenant_svc.g.proto";
 import "levyan/period_svc.g.proto";
 import "levyan/statement.proto";
 import "levyan/workspace_svc.g.proto";
+import "patch/patch.proto";
 
 option go_package = "github.com/lesomnus/levyan";
 
@@ -15,6 +16,10 @@ service StatementService {
   rpc Add(StatementAddRequest) returns (Statement);
   // Get retrieves a Statement
   rpc Get(StatementGetRequest) returns (Statement);
+  // Patch updates an existing Statement
+  rpc Patch(StatementPatchRequest) returns (Statement);
+  // Apply applies a patch document to an existing Statement
+  rpc Apply(StatementApplyRequest) returns (Statement);
   // List reads Statements a page at a time.
   rpc List(StatementListRequest) returns (StatementListResponse);
 }
@@ -74,6 +79,15 @@ message StatementSelect {
   bool payer = 20;
   BillingAccountSelect billing_account = 21;
   bool first_unit = 22;
+}
+
+message StatementPatchRequest {
+  StatementRef ref = 1;
+}
+
+message StatementApplyRequest {
+  StatementRef ref = 1;
+  patch.Patch patch = 2;
 }
 
 message StatementListRequest {

@@ -72,7 +72,7 @@ func Register(g grpc.ServiceRegistrar, d Deps) {
 	levyanv1.RegisterBillingServiceServer(g, Billing{S: d.S, Db: d.Db, Now: d.Now, Free: d.Free})
 	pdpb.RegisterGrantServiceServer(g, Grants{S: d.S, W: d.W})
 	levyanv1.RegisterWorkspaceServiceServer(g, Workspaces{S: d.S, P: d.P})
-	levyanv1.RegisterPayerServiceServer(g, Payers{S: d.S, P: d.P})
+	levyanv1.RegisterPayerServiceServer(g, Payers{S: d.S, P: d.P, Db: d.Db})
 }
 
 // page is how many rows one read through the stack asks for at a time.

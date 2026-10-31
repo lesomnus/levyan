@@ -50,6 +50,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 	version := pdcmd.NewCmdVersion()
 	product, key, meter, price, gap := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice(), newCmdGap()
 	period, statement, grant := newCmdPeriod(), newCmdStatement(), newCmdGrant()
+	invoice := newCmdInvoice()
 
 	return &xli.Command{
 		Name:  "levyan-admin",
@@ -73,11 +74,12 @@ func Cmd(c *cmd.Config) *xli.Command {
 			period,
 			statement,
 			grant,
+			invoice,
 		},
 
 		// What asks the entry point reads none of a deployment's
 		// configuration: an operator runs it from their own machine.
-		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant), xli.RequireSubcommand()),
+		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant, invoice), xli.RequireSubcommand()),
 	}
 }
 
@@ -659,6 +661,28 @@ func newCmdPrice() *xli.Command {
 					}
 					for _, v := range vs {
 						printPrice(self, v)
+					}
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "check",
+				Brief: "which meters a statement of the product would come to nothing for, for want of a price on its channel and currency, before a period closes",
+				Args:  arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					var vs []admin.Unpriced
+					if err := c.do(ctx, http.MethodGet, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/unpriced", nil, &vs); err != nil {
+						return err
+					}
+					if len(vs) == 0 {
+						self.Printf("every meter priced anywhere is priced on every channel and currency in use\n")
+					}
+					for _, v := range vs {
+						self.Printf("%s\tno price on %s %s\tpriced on %s\n", v.Meter, v.Channel, v.Currency, strings.Join(v.Priced, ", "))
 					}
 					return next(ctx)
 				}),

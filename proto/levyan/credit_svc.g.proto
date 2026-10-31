@@ -1,0 +1,97 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/billing_account_svc.g.proto";
+import "levyan/credit.proto";
+import "levyan/credit_note_svc.g.proto";
+import "levyan/invoice_svc.g.proto";
+import "levyan/payday/tenant_svc.g.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service CreditService {
+  // Add creates a new Credit
+  rpc Add(CreditAddRequest) returns (Credit);
+  // Get retrieves a Credit
+  rpc Get(CreditGetRequest) returns (Credit);
+  // List reads Credits a page at a time.
+  rpc List(CreditListRequest) returns (CreditListResponse);
+}
+
+message CreditAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  BillingAccountRef billing_account = 8;
+  int64 amount = 9 [features.field_presence = IMPLICIT];
+  string currency = 10 [features.field_presence = IMPLICIT];
+  CreditKind kind = 11 [features.field_presence = IMPLICIT];
+  InvoiceRef invoice = 12;
+  CreditNoteRef credit_note = 16;
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message CreditGetRequest {
+  CreditRef ref = 1;
+  CreditSelect select = 2;
+}
+
+message CreditRef {
+  oneof key {
+    bytes id = 1;
+  }
+}
+
+message CreditSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  BillingAccountSelect billing_account = 8;
+  bool amount = 9;
+  bool currency = 10;
+  bool kind = 11;
+  InvoiceSelect invoice = 12;
+  CreditNoteSelect credit_note = 16;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message CreditListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated CreditFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message CreditListResponse {
+  repeated Credit items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message CreditFilter {
+  CreditRef ref = 1;
+  BillingAccountRef billing_account = 2;
+}

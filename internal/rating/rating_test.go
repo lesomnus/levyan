@@ -286,3 +286,52 @@ func TestTheTotalIsRoundedOnceAndDown(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, n)
 }
+
+// A stretch nothing was in force on the line a customer is priced by, while
+// a version of the meter's price was on another line, is said: it came to
+// nothing for want of a price, and not because the meter is free (#9). A
+// meter priced on no line at the time is not sold then, and nothing is said
+// of it.
+func TestAStretchPricedElsewhereIsSaid(t *testing.T) {
+	x := require.New(t)
+	m := meter(stock, twa)
+	u := stockUsage(daily(1, 32, 10))
+
+	// Priced on the merchant of record from the 1st, and on the gateway --
+	// the customer's line -- only from the 11th.
+	mor := version(perUnit(0, 5, 1), day(1), day(1))
+	mor.Channel = levyan.Channel_CHANNEL_MOR
+	gateway := version(perUnit(0, 5, 1), day(11), day(11))
+	l := rate(t, m, u, pricing.Book{mor, gateway}, day(1))
+	x.Equal([]rating.Stretch{{From: day(1), To: day(11)}}, l.Unpriced)
+	x.Len(l.Parts, 1, "the gateway's part, from the 11th")
+
+	// In another currency on the customer's channel, the same.
+	usd := version(perUnit(0, 5, 1), day(1), day(1))
+	usd.Currency = "USD"
+	l = rate(t, m, u, pricing.Book{usd}, day(1))
+	x.Equal([]rating.Stretch{{From: day(1), To: jan.End}}, l.Unpriced)
+	x.Empty(l.Parts)
+	x.Zero(l.Amount.Sign())
+
+	// Priced nowhere until the 21st, and then only elsewhere: the stretch
+	// before is not sold anywhere, and only the rest is said.
+	late := version(perUnit(0, 5, 1), day(21), day(21))
+	late.Channel = levyan.Channel_CHANNEL_MOR
+	l = rate(t, m, u, pricing.Book{late}, day(1))
+	x.Equal([]rating.Stretch{{From: day(21), To: jan.End}}, l.Unpriced)
+
+	// Priced on its own line, and nowhere else: nothing to say.
+	own := version(perUnit(0, 5, 1), day(1), day(1))
+	l = rate(t, m, u, pricing.Book{own}, day(1))
+	x.Empty(l.Unpriced)
+
+	// And a meter priced on no line at all is not sold: nothing is said.
+	l = rate(t, m, u, pricing.Book{}, day(1))
+	x.Empty(l.Unpriced)
+
+	// Only while it was a customer's: one that began on the 16th is said
+	// from then.
+	l = rate(t, m, u, pricing.Book{usd}, day(16))
+	x.Equal([]rating.Stretch{{From: day(16), To: jan.End}}, l.Unpriced)
+}

@@ -29,6 +29,7 @@ type ArriveRequest struct {
 	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
 	xxx_hidden_Creator   string                 `protobuf:"bytes,2,opt,name=creator"`
 	xxx_hidden_Created   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created"`
+	xxx_hidden_Label     string                 `protobuf:"bytes,4,opt,name=label"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -79,6 +80,13 @@ func (x *ArriveRequest) GetCreated() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ArriveRequest) GetLabel() string {
+	if x != nil {
+		return x.xxx_hidden_Label
+	}
+	return ""
+}
+
 func (x *ArriveRequest) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
@@ -89,6 +97,10 @@ func (x *ArriveRequest) SetCreator(v string) {
 
 func (x *ArriveRequest) SetCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_Created = v
+}
+
+func (x *ArriveRequest) SetLabel(v string) {
+	x.xxx_hidden_Label = v
 }
 
 func (x *ArriveRequest) HasCreated() bool {
@@ -111,6 +123,11 @@ type ArriveRequest_builder struct {
 	// When it was made; unset is now. Never after now, and what a workspace
 	// made before levyan heard of it is billed from.
 	Created *timestamppb.Timestamp
+	// What the product calls it, for an invoice to name it by: its name
+	// there, at most 100 characters. Said again, it is what the workspace is
+	// called from then on; an invoice keeps what each of its lines was written
+	// with. Empty leaves it as it was.
+	Label string
 }
 
 func (b0 ArriveRequest_builder) Build() *ArriveRequest {
@@ -120,6 +137,7 @@ func (b0 ArriveRequest_builder) Build() *ArriveRequest {
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Creator = b.Creator
 	x.xxx_hidden_Created = b.Created
+	x.xxx_hidden_Label = b.Label
 	return m0
 }
 
@@ -787,11 +805,12 @@ var File_levyan_v1_workspace_proto protoreflect.FileDescriptor
 
 const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\n" +
-	"\x19levyan/v1/workspace.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15levyan/v1/payer.proto\"}\n" +
+	"\x19levyan/v1/workspace.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15levyan/v1/payer.proto\"\x93\x01\n" +
 	"\rArriveRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12\x18\n" +
 	"\acreator\x18\x02 \x01(\tR\acreator\x124\n" +
-	"\acreated\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"8\n" +
+	"\acreated\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x12\x14\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\"8\n" +
 	"\x0eArriveResponse\x12&\n" +
 	"\x05payer\x18\x01 \x01(\v2\x10.levyan.v1.PayerR\x05payer\"F\n" +
 	"\fLeaveRequest\x12\x1c\n" +

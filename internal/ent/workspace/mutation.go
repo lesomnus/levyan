@@ -18,6 +18,7 @@ type Mutation struct {
 	op            ent.Op
 	typ           string
 	key           *[]byte
+	label         *string
 	date_erased   *time.Time
 	date_created  *time.Time
 	clearedFields map[string]struct{}
@@ -58,6 +59,27 @@ func (m *Mutation) Key() (r []byte, exists bool) {
 // ResetKey resets all changes to the "key" field.
 func (m *Mutation) ResetKey() {
 	m.key = nil
+}
+
+// SetLabel sets the "label" field.
+func (m *Mutation) SetLabel(s string) {
+	m.label = &s
+	delete(m.exprs, FieldLabel)
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *Mutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *Mutation) ResetLabel() {
+	m.label = nil
+	delete(m.exprs, FieldLabel)
 }
 
 // SetDateErased sets the "date_erased" field.
@@ -209,9 +231,12 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.key != nil {
 		fields = append(fields, FieldKey)
+	}
+	if m.label != nil || m.exprs[FieldLabel] != nil {
+		fields = append(fields, FieldLabel)
 	}
 	if m.date_erased != nil || m.exprs[FieldDateErased] != nil {
 		fields = append(fields, FieldDateErased)
@@ -238,6 +263,8 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case FieldKey:
 		return m.Key()
+	case FieldLabel:
+		return m.Label()
 	case FieldDateErased:
 		return m.DateErased()
 	case FieldDateCreated:
@@ -272,6 +299,16 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
+		return nil
+	case FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
 		return nil
 	case FieldDateErased:
 		v, ok := value.(time.Time)
@@ -327,6 +364,8 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 	switch name {
 	case FieldKey:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
+	case FieldLabel:
+		m.ResetLabel()
 	case FieldDateErased:
 		m.ResetDateErased()
 	case FieldDateCreated:
@@ -354,6 +393,9 @@ func (m *Mutation) FieldExpr(name string) (sql.Querier, bool) {
 // SetFieldExpr.
 func (m *Mutation) ExprFields() []string {
 	var fields []string
+	if _, ok := m.exprs[FieldLabel]; ok {
+		fields = append(fields, FieldLabel)
+	}
 	if _, ok := m.exprs[FieldDateErased]; ok {
 		fields = append(fields, FieldDateErased)
 	}
@@ -422,6 +464,9 @@ func (m *Mutation) ResetField(name string) error {
 	switch name {
 	case FieldKey:
 		m.ResetKey()
+		return nil
+	case FieldLabel:
+		m.ResetLabel()
 		return nil
 	case FieldDateErased:
 		m.ResetDateErased()

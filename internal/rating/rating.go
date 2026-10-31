@@ -33,6 +33,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/lesomnus/payday/pdid"
@@ -98,6 +99,20 @@ type Line struct {
 	// customer, and what each came to; a stretch nothing was in force is in
 	// none.
 	Parts []Part
+
+	// Unpriced are the stretches of the period, while it was a customer's,
+	// that nothing was in force on the line it is priced by while a version
+	// of the meter's price was on another line -- another channel, another
+	// currency: what came to nothing for want of a price, and not because
+	// the meter is sold for nothing (#9). A meter priced on no line at the
+	// time is not sold then, and is in none.
+	Unpriced []Stretch
+}
+
+// Stretch is a stretch of time, [From, To).
+type Stretch struct {
+	From time.Time
+	To   time.Time
 }
 
 // Part is one stretch of a period priced by one version.
@@ -200,6 +215,7 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, sinc
 	unit := whole(m, u, p)
 	for _, s := range book.Timeline(line, since, p.Start, p.End) {
 		if !s.Priced {
+			out.Unpriced = append(out.Unpriced, elsewhere(book, line, since, latest(s.From, since), s.To)...)
 			continue
 		}
 		v := s.Version
@@ -250,6 +266,47 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, sinc
 	}
 
 	return out, nil
+}
+
+// elsewhere is what of [from, to) a version of `line`'s meter was in force
+// on another line of `book` -- another channel or currency -- for a
+// customer since `since`, as stretches one after another.
+func elsewhere(book pricing.Book, line pricing.Line, since, from, to time.Time) []Stretch {
+	if !from.Before(to) {
+		return nil
+	}
+
+	others := map[pricing.Line]bool{}
+	for _, v := range book {
+		if l := v.Line(); l.Meter == line.Meter && l != line {
+			others[l] = true
+		}
+	}
+
+	var in []Stretch
+	for l := range others {
+		for _, s := range book.Timeline(l, since, from, to) {
+			if s.Priced {
+				in = append(in, Stretch{From: s.From, To: s.To})
+			}
+		}
+	}
+	if len(in) == 0 {
+		return nil
+	}
+
+	slices.SortFunc(in, func(a, b Stretch) int { return a.From.Compare(b.From) })
+	out := []Stretch{in[0]}
+	for _, s := range in[1:] {
+		last := &out[len(out)-1]
+		if !s.From.After(last.To) {
+			last.To = latest(last.To, s.To)
+			continue
+		}
+		out = append(out, s)
+	}
+
+	return out
 }
 
 // banded is a part of a stock's period priced by bands: the time each value

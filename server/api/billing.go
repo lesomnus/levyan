@@ -262,6 +262,9 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 		}
 		out.SetParts(append(out.GetParts(), part))
 	}
+	for _, s := range l.GetUnpriced() {
+		out.SetUnpriced(append(out.GetUnpriced(), levyanv1.Stretch_builder{From: stamp(s.GetFrom()), To: stamp(s.GetTo())}.Build()))
+	}
 
 	return out
 }

@@ -1,0 +1,156 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/billing_account_svc.g.proto";
+import "levyan/credit_note.proto";
+import "levyan/invoice_svc.g.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "patch/patch.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service CreditNoteService {
+  // Add creates a new CreditNote
+  rpc Add(CreditNoteAddRequest) returns (CreditNote);
+  // Get retrieves a CreditNote
+  rpc Get(CreditNoteGetRequest) returns (CreditNote);
+  // Patch updates an existing CreditNote
+  rpc Patch(CreditNotePatchRequest) returns (CreditNote);
+  // Apply applies a patch document to an existing CreditNote
+  rpc Apply(CreditNoteApplyRequest) returns (CreditNote);
+  // List reads CreditNotes a page at a time.
+  rpc List(CreditNoteListRequest) returns (CreditNoteListResponse);
+}
+
+message CreditNoteAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  InvoiceRef invoice = 8;
+  BillingAccountRef billing_account = 9;
+  CreditNoteReason reason = 10 [features.field_presence = IMPLICIT];
+  int64 amount = 11 [features.field_presence = IMPLICIT];
+  int64 tax = 12 [features.field_presence = IMPLICIT];
+  int64 total = 16 [features.field_presence = IMPLICIT];
+  int64 reduced = 17 [features.field_presence = IMPLICIT];
+  int64 refunded = 18 [features.field_presence = IMPLICIT];
+  int64 credited = 19 [features.field_presence = IMPLICIT];
+  string channel = 20 [features.field_presence = IMPLICIT];
+  string currency = 21 [features.field_presence = IMPLICIT];
+  int64 number = 22;
+  google.protobuf.Timestamp date_issued = 23;
+  string document = 24 [features.field_presence = IMPLICIT];
+  string words = 25 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message CreditNoteGetRequest {
+  CreditNoteRef ref = 1;
+  CreditNoteSelect select = 2;
+}
+
+message CreditNoteRef {
+  oneof key {
+    bytes id = 1;
+    CreditNoteRefByNumber number = 22;
+  }
+}
+
+message CreditNoteRefByNumber {
+  int64 number = 22;
+}
+
+message CreditNoteSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  InvoiceSelect invoice = 8;
+  BillingAccountSelect billing_account = 9;
+  bool reason = 10;
+  bool amount = 11;
+  bool tax = 12;
+  bool total = 16;
+  bool reduced = 17;
+  bool refunded = 18;
+  bool credited = 19;
+  bool channel = 20;
+  bool currency = 21;
+  bool number = 22;
+  bool date_issued = 23;
+  bool document = 24;
+  bool words = 25;
+  bool date_updated = 13;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message CreditNotePatchRequest {
+  CreditNoteRef ref = 1;
+  google.protobuf.Timestamp date_issued = 46;
+  // Clear date_issued instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_issued clears.
+  bool date_issued_null = 47;
+  string document = 48;
+  // The version this update requires the stored date_updated to be.
+  // It is a precondition, not a write: the update applies only if the row
+  // still holds this value, and the server stamps the new version itself.
+  // Setting it together with date_updated_force is an error --
+  // the version is the token every client's compare-and-swap is measured
+  // against, so it is not the caller's to choose.
+  google.protobuf.Timestamp date_updated = 26;
+  // Update whatever the stored date_updated is, with no precondition.
+  // The server still stamps a new version, so other clients' tokens are
+  // invalidated as usual; this declines the check for THIS update only.
+  // One of date_updated or this must be set. An omitted version is
+  // refused rather than assumed, because an unset field cannot be told
+  // apart from a caller who never considered locking at all.
+  bool date_updated_force = 27;
+}
+
+message CreditNoteApplyRequest {
+  CreditNoteRef ref = 1;
+  patch.Patch patch = 2;
+}
+
+message CreditNoteListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated CreditNoteFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message CreditNoteListResponse {
+  repeated CreditNote items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message CreditNoteFilter {
+  CreditNoteRef ref = 1;
+  InvoiceRef invoice = 2;
+  BillingAccountRef billing_account = 3;
+}

@@ -5,6 +5,7 @@ edition = "2023";
 package levyan.v1;
 
 import "google/protobuf/timestamp.proto";
+import "levyan/v1/invoice.proto";
 import "levyan/v1/price_book.proto";
 
 option features.field_presence = IMPLICIT;
@@ -67,6 +68,16 @@ service PayerService {
   // Stop stops paying for a workspace, as the period now open ends: from
   // then on it has no payer, unless somebody accepts first.
   rpc Stop(StopRequest) returns (StopResponse);
+
+  // ListInvoices is the invoices of the account's billing accounts, of the
+  // product's workspaces, once each is finalized: the latest first.
+  rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse);
+
+  // GetInvoice is one of them, with its lines and its credit notes.
+  rpc GetInvoice(GetInvoiceRequest) returns (GetInvoiceResponse);
+
+  // ListCreditNotes is the credit notes of them.
+  rpc ListCreditNotes(ListCreditNotesRequest) returns (ListCreditNotesResponse);
 }
 
 message ListBillingAccountsRequest {}

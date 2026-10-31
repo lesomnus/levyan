@@ -15,6 +15,7 @@ package cmd
 import (
 	"fmt"
 	"maps"
+	"math/big"
 	"slices"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/keyring"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/payers"
 )
 
@@ -81,6 +83,46 @@ type Config struct {
 
 	// Payers is who pays for products' workspaces (#4).
 	Payers PayersConfig `yaml:"payers"`
+
+	// Invoices is what billing accounts are asked to pay (#9).
+	Invoices InvoicesConfig `yaml:"invoices"`
+}
+
+// InvoicesConfig is what billing accounts are asked to pay, and how often
+// the loop `levyan.invoices.collect` keeps it.
+type InvoicesConfig struct {
+	// Every is how often statements are invoiced, drafts decided, a
+	// seller's documents issued and what is due moved: ten minutes when
+	// unset, as often as a merchant of record lets a charge whose answer
+	// never came be asked about.
+	Every time.Duration `yaml:"every"`
+
+	// Tax is the seller's tax, as a percentage of an invoice's subtotal, on
+	// a channel levyan sells on itself -- not a merchant of record, which
+	// adds its own: 10 when unset, Korea's VAT (부가가치세법 제30조). It may
+	// be a fraction, `7.5`; `0` is none.
+	Tax *string `yaml:"tax"`
+}
+
+// CollectEvery is [InvoicesConfig.Every], or its default.
+func (c InvoicesConfig) CollectEvery() time.Duration {
+	if c.Every <= 0 {
+		return invoices.DefaultEvery
+	}
+	return c.Every
+}
+
+// TaxOf is [InvoicesConfig.Tax] as a rate of the subtotal, or its default.
+func (c InvoicesConfig) TaxOf() (*big.Rat, error) {
+	if c.Tax == nil {
+		return invoices.DefaultTax, nil
+	}
+	v, ok := new(big.Rat).SetString(strings.TrimSuffix(strings.TrimSpace(*c.Tax), "%"))
+	if !ok || v.Sign() < 0 || v.Cmp(big.NewRat(100, 1)) > 0 {
+		return nil, fmt.Errorf("%q is not a percentage from 0 to 100", *c.Tax)
+	}
+
+	return v.Quo(v, big.NewRat(100, 1)), nil
 }
 
 // AuthConfig is who levyan asks about the people it bills.

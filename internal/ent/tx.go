@@ -20,12 +20,20 @@ type Tx struct {
 	Audit *AuditClient
 	// BillingAccount is the client for interacting with the BillingAccount builders.
 	BillingAccount *BillingAccountClient
+	// Credit is the client for interacting with the Credit builders.
+	Credit *CreditClient
+	// CreditNote is the client for interacting with the CreditNote builders.
+	CreditNote *CreditNoteClient
 	// Departure is the client for interacting with the Departure builders.
 	Departure *DepartureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
 	Holder *HolderClient
+	// Invoice is the client for interacting with the Invoice builders.
+	Invoice *InvoiceClient
+	// InvoiceLine is the client for interacting with the InvoiceLine builders.
+	InvoiceLine *InvoiceLineClient
 	// Link is the client for interacting with the Link builders.
 	Link *LinkClient
 	// Meter is the client for interacting with the Meter builders.
@@ -38,6 +46,8 @@ type Tx struct {
 	Outbox *OutboxClient
 	// Owed is the client for interacting with the Owed builders.
 	Owed *OwedClient
+	// PaymentAttempt is the client for interacting with the PaymentAttempt builders.
+	PaymentAttempt *PaymentAttemptClient
 	// Period is the client for interacting with the Period builders.
 	Period *PeriodClient
 	// Point is the client for interacting with the Point builders.
@@ -193,15 +203,20 @@ func (tx *Tx) init() {
 	tx.Archived = NewArchivedClient(tx.config)
 	tx.Audit = NewAuditClient(tx.config)
 	tx.BillingAccount = NewBillingAccountClient(tx.config)
+	tx.Credit = NewCreditClient(tx.config)
+	tx.CreditNote = NewCreditNoteClient(tx.config)
 	tx.Departure = NewDepartureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
 	tx.Holder = NewHolderClient(tx.config)
+	tx.Invoice = NewInvoiceClient(tx.config)
+	tx.InvoiceLine = NewInvoiceLineClient(tx.config)
 	tx.Link = NewLinkClient(tx.config)
 	tx.Meter = NewMeterClient(tx.config)
 	tx.Offer = NewOfferClient(tx.config)
 	tx.Operator = NewOperatorClient(tx.config)
 	tx.Outbox = NewOutboxClient(tx.config)
 	tx.Owed = NewOwedClient(tx.config)
+	tx.PaymentAttempt = NewPaymentAttemptClient(tx.config)
 	tx.Period = NewPeriodClient(tx.config)
 	tx.Point = NewPointClient(tx.config)
 	tx.Price = NewPriceClient(tx.config)

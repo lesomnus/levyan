@@ -971,6 +971,7 @@ type Line struct {
 	xxx_hidden_Amount   string                 `protobuf:"bytes,8,opt,name=amount"`
 	xxx_hidden_Parts    *[]*LinePart           `protobuf:"bytes,9,rep,name=parts"`
 	xxx_hidden_Billed   string                 `protobuf:"bytes,10,opt,name=billed"`
+	xxx_hidden_Unpriced *[]*Stretch            `protobuf:"bytes,11,rep,name=unpriced"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1072,6 +1073,15 @@ func (x *Line) GetBilled() string {
 	return ""
 }
 
+func (x *Line) GetUnpriced() []*Stretch {
+	if x != nil {
+		if x.xxx_hidden_Unpriced != nil {
+			return *x.xxx_hidden_Unpriced
+		}
+	}
+	return nil
+}
+
 func (x *Line) SetMeter(v string) {
 	x.xxx_hidden_Meter = v
 }
@@ -1112,6 +1122,10 @@ func (x *Line) SetBilled(v string) {
 	x.xxx_hidden_Billed = v
 }
 
+func (x *Line) SetUnpriced(v []*Stretch) {
+	x.xxx_hidden_Unpriced = &v
+}
+
 func (x *Line) HasCorrects() bool {
 	if x == nil {
 		return false
@@ -1146,6 +1160,10 @@ type Line_builder struct {
 	Parts []*LinePart
 	// For a correction: what was billed for the meter over that period before.
 	Billed string
+	// Each stretch of the period the meter had no price on the channel and
+	// currency the line is priced on while it had one on another: what came to
+	// nothing for want of a price, and not because the meter is free there.
+	Unpriced []*Stretch
 }
 
 func (b0 Line_builder) Build() *Line {
@@ -1162,6 +1180,101 @@ func (b0 Line_builder) Build() *Line {
 	x.xxx_hidden_Amount = b.Amount
 	x.xxx_hidden_Parts = &b.Parts
 	x.xxx_hidden_Billed = b.Billed
+	x.xxx_hidden_Unpriced = &b.Unpriced
+	return m0
+}
+
+// Stretch is a stretch of time, from `from` to the moment before `to`.
+type Stretch struct {
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_From *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=from"`
+	xxx_hidden_To   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=to"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Stretch) Reset() {
+	*x = Stretch{}
+	mi := &file_levyan_v1_billing_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Stretch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Stretch) ProtoMessage() {}
+
+func (x *Stretch) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_billing_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Stretch) GetFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_From
+	}
+	return nil
+}
+
+func (x *Stretch) GetTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_To
+	}
+	return nil
+}
+
+func (x *Stretch) SetFrom(v *timestamppb.Timestamp) {
+	x.xxx_hidden_From = v
+}
+
+func (x *Stretch) SetTo(v *timestamppb.Timestamp) {
+	x.xxx_hidden_To = v
+}
+
+func (x *Stretch) HasFrom() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_From != nil
+}
+
+func (x *Stretch) HasTo() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_To != nil
+}
+
+func (x *Stretch) ClearFrom() {
+	x.xxx_hidden_From = nil
+}
+
+func (x *Stretch) ClearTo() {
+	x.xxx_hidden_To = nil
+}
+
+type Stretch_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	From *timestamppb.Timestamp
+	To   *timestamppb.Timestamp
+}
+
+func (b0 Stretch_builder) Build() *Stretch {
+	m0 := &Stretch{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_From = b.From
+	x.xxx_hidden_To = b.To
 	return m0
 }
 
@@ -1182,7 +1295,7 @@ type LinePart struct {
 
 func (x *LinePart) Reset() {
 	*x = LinePart{}
-	mi := &file_levyan_v1_billing_proto_msgTypes[10]
+	mi := &file_levyan_v1_billing_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1194,7 +1307,7 @@ func (x *LinePart) String() string {
 func (*LinePart) ProtoMessage() {}
 
 func (x *LinePart) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_billing_proto_msgTypes[10]
+	mi := &file_levyan_v1_billing_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1364,7 +1477,7 @@ type BandShare struct {
 
 func (x *BandShare) Reset() {
 	*x = BandShare{}
-	mi := &file_levyan_v1_billing_proto_msgTypes[11]
+	mi := &file_levyan_v1_billing_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1376,7 +1489,7 @@ func (x *BandShare) String() string {
 func (*BandShare) ProtoMessage() {}
 
 func (x *BandShare) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_billing_proto_msgTypes[11]
+	mi := &file_levyan_v1_billing_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1512,7 +1625,7 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12%\n" +
 	"\x05lines\x18\x06 \x03(\v2\x0f.levyan.v1.LineR\x05lines\x12\x14\n" +
 	"\x05total\x18\a \x01(\x03R\x05total\x122\n" +
-	"\x06closed\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x06closed\"\xb1\x02\n" +
+	"\x06closed\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x06closed\"\xe1\x02\n" +
 	"\x04Line\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\tR\x05meter\x12\x12\n" +
 	"\x04unit\x18\x02 \x01(\tR\x04unit\x12'\n" +
@@ -1524,7 +1637,11 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\x06amount\x18\b \x01(\tR\x06amount\x12)\n" +
 	"\x05parts\x18\t \x03(\v2\x13.levyan.v1.LinePartR\x05parts\x12\x16\n" +
 	"\x06billed\x18\n" +
-	" \x01(\tR\x06billed\"\x8e\x02\n" +
+	" \x01(\tR\x06billed\x12.\n" +
+	"\bunpriced\x18\v \x03(\v2\x12.levyan.v1.StretchR\bunpriced\"e\n" +
+	"\aStretch\x12.\n" +
+	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
+	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\x8e\x02\n" +
 	"\bLinePart\x12\x14\n" +
 	"\x05price\x18\x01 \x01(\tR\x05price\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
@@ -1549,7 +1666,7 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\x0eListStatements\x12 .levyan.v1.ListStatementsRequest\x1a!.levyan.v1.ListStatementsResponseB8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_v1_billing_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_levyan_v1_billing_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_levyan_v1_billing_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_levyan_v1_billing_proto_goTypes = []any{
 	(LineKind)(0),                  // 0: levyan.v1.LineKind
 	(*GetUsageRequest)(nil),        // 1: levyan.v1.GetUsageRequest
@@ -1562,42 +1679,46 @@ var file_levyan_v1_billing_proto_goTypes = []any{
 	(*ListStatementsResponse)(nil), // 8: levyan.v1.ListStatementsResponse
 	(*Statement)(nil),              // 9: levyan.v1.Statement
 	(*Line)(nil),                   // 10: levyan.v1.Line
-	(*LinePart)(nil),               // 11: levyan.v1.LinePart
-	(*BandShare)(nil),              // 12: levyan.v1.BandShare
-	(*timestamppb.Timestamp)(nil),  // 13: google.protobuf.Timestamp
-	(Channel)(0),                   // 14: levyan.v1.Channel
+	(*Stretch)(nil),                // 11: levyan.v1.Stretch
+	(*LinePart)(nil),               // 12: levyan.v1.LinePart
+	(*BandShare)(nil),              // 13: levyan.v1.BandShare
+	(*timestamppb.Timestamp)(nil),  // 14: google.protobuf.Timestamp
+	(Channel)(0),                   // 15: levyan.v1.Channel
 }
 var file_levyan_v1_billing_proto_depIdxs = []int32{
 	3,  // 0: levyan.v1.GetUsageResponse.usage:type_name -> levyan.v1.Usage
 	4,  // 1: levyan.v1.Usage.period:type_name -> levyan.v1.Period
-	13, // 2: levyan.v1.Usage.as_of:type_name -> google.protobuf.Timestamp
-	14, // 3: levyan.v1.Usage.channel:type_name -> levyan.v1.Channel
+	14, // 2: levyan.v1.Usage.as_of:type_name -> google.protobuf.Timestamp
+	15, // 3: levyan.v1.Usage.channel:type_name -> levyan.v1.Channel
 	10, // 4: levyan.v1.Usage.lines:type_name -> levyan.v1.Line
-	13, // 5: levyan.v1.Period.start:type_name -> google.protobuf.Timestamp
-	13, // 6: levyan.v1.Period.end:type_name -> google.protobuf.Timestamp
+	14, // 5: levyan.v1.Period.start:type_name -> google.protobuf.Timestamp
+	14, // 6: levyan.v1.Period.end:type_name -> google.protobuf.Timestamp
 	9,  // 7: levyan.v1.GetStatementResponse.statement:type_name -> levyan.v1.Statement
 	9,  // 8: levyan.v1.ListStatementsResponse.statements:type_name -> levyan.v1.Statement
 	4,  // 9: levyan.v1.Statement.period:type_name -> levyan.v1.Period
-	14, // 10: levyan.v1.Statement.channel:type_name -> levyan.v1.Channel
+	15, // 10: levyan.v1.Statement.channel:type_name -> levyan.v1.Channel
 	10, // 11: levyan.v1.Statement.lines:type_name -> levyan.v1.Line
-	13, // 12: levyan.v1.Statement.closed:type_name -> google.protobuf.Timestamp
+	14, // 12: levyan.v1.Statement.closed:type_name -> google.protobuf.Timestamp
 	0,  // 13: levyan.v1.Line.kind:type_name -> levyan.v1.LineKind
 	4,  // 14: levyan.v1.Line.corrects:type_name -> levyan.v1.Period
-	11, // 15: levyan.v1.Line.parts:type_name -> levyan.v1.LinePart
-	13, // 16: levyan.v1.LinePart.from:type_name -> google.protobuf.Timestamp
-	13, // 17: levyan.v1.LinePart.to:type_name -> google.protobuf.Timestamp
-	12, // 18: levyan.v1.LinePart.bands:type_name -> levyan.v1.BandShare
-	1,  // 19: levyan.v1.BillingService.GetUsage:input_type -> levyan.v1.GetUsageRequest
-	5,  // 20: levyan.v1.BillingService.GetStatement:input_type -> levyan.v1.GetStatementRequest
-	7,  // 21: levyan.v1.BillingService.ListStatements:input_type -> levyan.v1.ListStatementsRequest
-	2,  // 22: levyan.v1.BillingService.GetUsage:output_type -> levyan.v1.GetUsageResponse
-	6,  // 23: levyan.v1.BillingService.GetStatement:output_type -> levyan.v1.GetStatementResponse
-	8,  // 24: levyan.v1.BillingService.ListStatements:output_type -> levyan.v1.ListStatementsResponse
-	22, // [22:25] is the sub-list for method output_type
-	19, // [19:22] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	12, // 15: levyan.v1.Line.parts:type_name -> levyan.v1.LinePart
+	11, // 16: levyan.v1.Line.unpriced:type_name -> levyan.v1.Stretch
+	14, // 17: levyan.v1.Stretch.from:type_name -> google.protobuf.Timestamp
+	14, // 18: levyan.v1.Stretch.to:type_name -> google.protobuf.Timestamp
+	14, // 19: levyan.v1.LinePart.from:type_name -> google.protobuf.Timestamp
+	14, // 20: levyan.v1.LinePart.to:type_name -> google.protobuf.Timestamp
+	13, // 21: levyan.v1.LinePart.bands:type_name -> levyan.v1.BandShare
+	1,  // 22: levyan.v1.BillingService.GetUsage:input_type -> levyan.v1.GetUsageRequest
+	5,  // 23: levyan.v1.BillingService.GetStatement:input_type -> levyan.v1.GetStatementRequest
+	7,  // 24: levyan.v1.BillingService.ListStatements:input_type -> levyan.v1.ListStatementsRequest
+	2,  // 25: levyan.v1.BillingService.GetUsage:output_type -> levyan.v1.GetUsageResponse
+	6,  // 26: levyan.v1.BillingService.GetStatement:output_type -> levyan.v1.GetStatementResponse
+	8,  // 27: levyan.v1.BillingService.ListStatements:output_type -> levyan.v1.ListStatementsResponse
+	25, // [25:28] is the sub-list for method output_type
+	22, // [22:25] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_billing_proto_init() }
@@ -1612,7 +1733,7 @@ func file_levyan_v1_billing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_v1_billing_proto_rawDesc), len(file_levyan_v1_billing_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

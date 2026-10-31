@@ -1,0 +1,177 @@
+edition = "2023";
+
+// What a billing account is asked to pay: its invoices, their lines, and the
+// credit notes that take some of an invoice back.
+package levyan.v1;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/v1/billing.proto";
+import "levyan/v1/price_book.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
+
+message ListInvoicesRequest {
+  // Of one of the account's billing accounts, by its identifier; empty is
+  // of every one.
+  string billing_account = 1;
+
+  // How many to answer with: 20 when unset, and at most 100.
+  int32 page_size = 2;
+
+  // Where to carry on from: the `next_page_token` of the answer before.
+  string page_token = 3;
+}
+
+message ListInvoicesResponse {
+  // The latest first, without their lines: `GetInvoice` has those.
+  repeated Invoice invoices = 1;
+
+  string next_page_token = 2;
+}
+
+message GetInvoiceRequest {
+  // The invoice, by its identifier.
+  string id = 1;
+}
+
+message GetInvoiceResponse {
+  // With its lines.
+  Invoice invoice = 1;
+
+  // Its credit notes, the earliest first.
+  repeated CreditNote credit_notes = 2;
+}
+
+message ListCreditNotesRequest {
+  // Of one of the account's billing accounts; empty is of every one.
+  string billing_account = 1;
+
+  // Of one invoice; empty is of every one.
+  string invoice = 2;
+}
+
+message ListCreditNotesResponse {
+  // The earliest first.
+  repeated CreditNote credit_notes = 1;
+}
+
+// Invoice is what a billing account is asked to pay for a product's period:
+// every statement of the workspaces it paid for over the period, a line each.
+// One that came to less than its channel collects waits for the next period,
+// and is then the invoice of both. Once finalized it is never changed:
+// what moves after is how it is settled, and a correction is a credit note.
+//
+// Every amount is a whole number of the currency's minor unit.
+message Invoice {
+  string id = 1;
+
+  // The billing account it bills.
+  string billing_account = 2;
+
+  InvoiceState state = 3;
+
+  // From the first moment it covers to the first after.
+  google.protobuf.Timestamp start = 4;
+  google.protobuf.Timestamp end = 5;
+
+  Channel channel = 6;
+  string currency = 7;
+
+  // What its lines come to; a seller's tax on that, on a channel levyan
+  // sells on itself (none on a merchant of record, whose tax is its own);
+  // and the two.
+  int64 subtotal = 8;
+  int64 tax = 9;
+  int64 total = 10;
+
+  // What of the total the billing account's credit paid, and what was then
+  // asked of the channel.
+  int64 credited = 11;
+  int64 due = 12;
+
+  // What was paid of what was due, what credit notes took off it, and what
+  // is left.
+  int64 paid = 13;
+  int64 reduced = 14;
+  int64 remaining = 15;
+
+  // Its number, on a channel levyan sells on itself, where it is the legal
+  // invoice; 0 on a merchant of record's, which the MoR numbers itself.
+  int64 number = 16;
+
+  // When it was finalized, when it is due where its channel says one, and
+  // when it was settled.
+  google.protobuf.Timestamp finalized = 17;
+  google.protobuf.Timestamp due_date = 18;
+  google.protobuf.Timestamp settled = 19;
+
+  // On a merchant of record, its invoice number once it collected.
+  string channel_number = 20;
+
+  // Its lines, in the order of their periods: in `GetInvoice`'s answer.
+  repeated InvoiceLine lines = 21;
+}
+
+// InvoiceState is where an invoice is, value for value levyan's own.
+enum InvoiceState {
+  INVOICE_STATE_UNSPECIFIED = 0;
+  INVOICE_STATE_DRAFT = 1;
+  INVOICE_STATE_OPEN = 2;
+  INVOICE_STATE_PAID = 3;
+  INVOICE_STATE_UNCOLLECTIBLE = 4;
+  INVOICE_STATE_VOID = 5;
+  INVOICE_STATE_WRITTEN_OFF = 6;
+}
+
+// InvoiceLine is one statement on an invoice: what one workspace came to over
+// one period.
+message InvoiceLine {
+  // The statement, by its identifier as `BillingService.GetStatement` takes
+  // it.
+  string statement = 1;
+
+  // The workspace, as the product names it, and what the product called it
+  // when the line was written.
+  string workspace = 2;
+  string label = 3;
+
+  Period period = 4;
+
+  // What the statement comes to.
+  int64 total = 5;
+}
+
+// CreditNote takes some or all of a finalized invoice back: off what was
+// still due first, then given back through the channel or kept as the
+// billing account's credit, to be taken off its next invoices.
+message CreditNote {
+  string id = 1;
+  string invoice = 2;
+
+  CreditNoteReason reason = 3;
+
+  // What it takes back of the invoice's subtotal, its tax, and the two.
+  int64 amount = 4;
+  int64 tax = 5;
+  int64 total = 6;
+
+  // Of its total: taken off what was due, given back, and credited.
+  int64 reduced = 7;
+  int64 refunded = 8;
+  int64 credited = 9;
+
+  // Its number, on a channel levyan sells on itself; 0 on any other.
+  int64 number = 10;
+
+  google.protobuf.Timestamp created = 11;
+}
+
+// CreditNoteReason is why a credit note takes back, value for value levyan's
+// own.
+enum CreditNoteReason {
+  CREDIT_NOTE_REASON_UNSPECIFIED = 0;
+  CREDIT_NOTE_REASON_CORRECTION = 1;
+  CREDIT_NOTE_REASON_REFUND = 2;
+  CREDIT_NOTE_REASON_CANCELLATION = 3;
+}

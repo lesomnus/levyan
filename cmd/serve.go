@@ -36,6 +36,7 @@ import (
 	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/book"
 	"github.com/lesomnus/levyan/server/grants"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
@@ -114,6 +115,12 @@ type Server struct {
 	// `levyan.periods.close`, and by an operator's hand through the
 	// operator's entry point.
 	Closer billing.Closer
+
+	// Invoices is what billing accounts are asked to pay, and the money it
+	// moves (#9), through the server with no wall: by the loop
+	// `levyan.invoices.collect`, and by an operator's hand. Its Collectors
+	// are how each channel is collected, which a deployment wires, or a test.
+	Invoices invoices.Invoices
 
 	// Grants gives and ends what products' workspaces are granted, through
 	// the server with no wall: by the loop `levyan.grants.renew`, and by an
@@ -253,7 +260,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// already let the caller name; `pd.Gate` is outermost, so nothing behind
 	// it asks again. A key's verifier is cleared on the way out of both
 	// (`pd.Secret`), so that nothing answers with it.
-	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), pd.GateBuild())
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -264,7 +271,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// book and of grants on it, since an operator's price is held to them as
 	// a product's would be. It still keeps the trail: going around the wall
 	// is not going around the record of having done so.
-	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels))
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -289,6 +296,21 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	s.Free = c.Payers.FreeOf()
 	s.Closer = billing.Closer{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Periods.GraceAfter(), Free: s.Free}
 	s.Spin = append(s.Spin, billing.ClosePeriods(s.Closer, c.Periods.CloseEvery()))
+
+	// The loop that invoices what the close wrote, and moves what is due
+	// (`levyan.invoices.collect`): each statement with a billing account on
+	// one invoice of it, each draft decided once its period is closed, the
+	// legal documents of a seller issued, and attempts sent and asked about
+	// -- through the server with no wall, as the deployment. What collects on
+	// each channel is wired beside it; a channel nothing collects on keeps
+	// its drafts, and asks nothing of anybody.
+	tax, err := c.Invoices.TaxOf()
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("invoices.tax: %w", err)
+	}
+	s.Invoices = invoices.Invoices{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Collectors: map[levyan.Channel]invoices.Collector{}, Tax: tax}
+	s.Spin = append(s.Spin, invoices.Collects(&s.Invoices, c.Invoices.CollectEvery()))
 
 	// The loop that keeps what products' workspaces are granted
 	// (`levyan.grants.renew`): what the rules want given and what they no

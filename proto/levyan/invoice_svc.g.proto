@@ -1,0 +1,229 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/billing_account_svc.g.proto";
+import "levyan/invoice.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/period_svc.g.proto";
+import "patch/patch.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service InvoiceService {
+  // Add creates a new Invoice
+  rpc Add(InvoiceAddRequest) returns (Invoice);
+  // Get retrieves a Invoice
+  rpc Get(InvoiceGetRequest) returns (Invoice);
+  // Patch updates an existing Invoice
+  rpc Patch(InvoicePatchRequest) returns (Invoice);
+  // Apply applies a patch document to an existing Invoice
+  rpc Apply(InvoiceApplyRequest) returns (Invoice);
+  // List reads Invoices a page at a time.
+  rpc List(InvoiceListRequest) returns (InvoiceListResponse);
+}
+
+message InvoiceAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  BillingAccountRef billing_account = 8;
+  PeriodRef period = 9;
+  google.protobuf.Timestamp date_start = 10;
+  google.protobuf.Timestamp date_end = 11;
+  string channel = 12 [features.field_presence = IMPLICIT];
+  string currency = 16 [features.field_presence = IMPLICIT];
+  InvoiceState state = 17 [features.field_presence = IMPLICIT];
+  int64 subtotal = 18 [features.field_presence = IMPLICIT];
+  int64 tax = 19 [features.field_presence = IMPLICIT];
+  string tax_rate = 20 [features.field_presence = IMPLICIT];
+  int64 total = 21 [features.field_presence = IMPLICIT];
+  int64 credited = 22 [features.field_presence = IMPLICIT];
+  int64 due = 23 [features.field_presence = IMPLICIT];
+  int64 paid = 24 [features.field_presence = IMPLICIT];
+  int64 reduced = 25 [features.field_presence = IMPLICIT];
+  int64 number = 26;
+  google.protobuf.Timestamp date_finalized = 27;
+  google.protobuf.Timestamp date_issued = 28;
+  string document = 29 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_due = 30;
+  google.protobuf.Timestamp date_settled = 31;
+  BillTo bill_to = 32;
+  string channel_ref = 33 [features.field_presence = IMPLICIT];
+  string channel_number = 34 [features.field_presence = IMPLICIT];
+  uint32 carried = 35 [features.field_presence = IMPLICIT];
+  string reason = 36 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_carried = 37;
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message InvoiceGetRequest {
+  InvoiceRef ref = 1;
+  InvoiceSelect select = 2;
+}
+
+message InvoiceRef {
+  oneof key {
+    bytes id = 1;
+    InvoiceRefByNumber number = 26;
+  }
+}
+
+message InvoiceRefByNumber {
+  int64 number = 26;
+}
+
+message InvoiceSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  BillingAccountSelect billing_account = 8;
+  PeriodSelect period = 9;
+  bool date_start = 10;
+  bool date_end = 11;
+  bool channel = 12;
+  bool currency = 16;
+  bool state = 17;
+  bool subtotal = 18;
+  bool tax = 19;
+  bool tax_rate = 20;
+  bool total = 21;
+  bool credited = 22;
+  bool due = 23;
+  bool paid = 24;
+  bool reduced = 25;
+  bool number = 26;
+  bool date_finalized = 27;
+  bool date_issued = 28;
+  bool document = 29;
+  bool date_due = 30;
+  bool date_settled = 31;
+  bool bill_to = 32;
+  bool channel_ref = 33;
+  bool channel_number = 34;
+  bool carried = 35;
+  bool reason = 36;
+  bool date_carried = 37;
+  bool date_updated = 13;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message InvoicePatchRequest {
+  InvoiceRef ref = 1;
+  google.protobuf.Timestamp date_end = 22;
+  InvoiceState state = 34;
+  int64 subtotal = 36;
+  int64 tax = 38;
+  string tax_rate = 40;
+  int64 total = 42;
+  int64 credited = 44;
+  int64 due = 46;
+  int64 paid = 48;
+  int64 reduced = 50;
+  int64 number = 52;
+  // Clear number instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and number clears.
+  bool number_null = 53;
+  google.protobuf.Timestamp date_finalized = 54;
+  // Clear date_finalized instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_finalized clears.
+  bool date_finalized_null = 55;
+  google.protobuf.Timestamp date_issued = 56;
+  // Clear date_issued instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_issued clears.
+  bool date_issued_null = 57;
+  string document = 58;
+  google.protobuf.Timestamp date_due = 60;
+  // Clear date_due instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_due clears.
+  bool date_due_null = 61;
+  google.protobuf.Timestamp date_settled = 62;
+  // Clear date_settled instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_settled clears.
+  bool date_settled_null = 63;
+  BillTo bill_to = 64;
+  // Clear bill_to instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and bill_to clears.
+  bool bill_to_null = 65;
+  string channel_ref = 66;
+  string channel_number = 68;
+  uint32 carried = 70;
+  string reason = 72;
+  google.protobuf.Timestamp date_carried = 74;
+  // Clear date_carried instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_carried clears.
+  bool date_carried_null = 75;
+  // The version this update requires the stored date_updated to be.
+  // It is a precondition, not a write: the update applies only if the row
+  // still holds this value, and the server stamps the new version itself.
+  // Setting it together with date_updated_force is an error --
+  // the version is the token every client's compare-and-swap is measured
+  // against, so it is not the caller's to choose.
+  google.protobuf.Timestamp date_updated = 26;
+  // Update whatever the stored date_updated is, with no precondition.
+  // The server still stamps a new version, so other clients' tokens are
+  // invalidated as usual; this declines the check for THIS update only.
+  // One of date_updated or this must be set. An omitted version is
+  // refused rather than assumed, because an unset field cannot be told
+  // apart from a caller who never considered locking at all.
+  bool date_updated_force = 27;
+}
+
+message InvoiceApplyRequest {
+  InvoiceRef ref = 1;
+  patch.Patch patch = 2;
+}
+
+message InvoiceListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated InvoiceFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message InvoiceListResponse {
+  repeated Invoice items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message InvoiceFilter {
+  InvoiceRef ref = 1;
+  BillingAccountRef billing_account = 2;
+}

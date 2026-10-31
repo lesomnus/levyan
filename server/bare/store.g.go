@@ -12,15 +12,20 @@ import (
 	archived "github.com/lesomnus/levyan/internal/ent/archived"
 	audit "github.com/lesomnus/levyan/internal/ent/audit"
 	billingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
+	credit "github.com/lesomnus/levyan/internal/ent/credit"
+	creditnote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	departure "github.com/lesomnus/levyan/internal/ent/departure"
 	grant "github.com/lesomnus/levyan/internal/ent/grant"
 	holder "github.com/lesomnus/levyan/internal/ent/holder"
+	invoice "github.com/lesomnus/levyan/internal/ent/invoice"
+	invoiceline "github.com/lesomnus/levyan/internal/ent/invoiceline"
 	link "github.com/lesomnus/levyan/internal/ent/link"
 	meter "github.com/lesomnus/levyan/internal/ent/meter"
 	offer "github.com/lesomnus/levyan/internal/ent/offer"
 	operator "github.com/lesomnus/levyan/internal/ent/operator"
 	outbox "github.com/lesomnus/levyan/internal/ent/outbox"
 	owed "github.com/lesomnus/levyan/internal/ent/owed"
+	paymentattempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	period "github.com/lesomnus/levyan/internal/ent/period"
 	point "github.com/lesomnus/levyan/internal/ent/point"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
@@ -383,10 +388,16 @@ func snapshotOrNil(v proto.Message) proto.Message {
 // say about.
 type Scope interface {
 	BillingAccountScope(ctx context.Context) (predicate.BillingAccount, error)
-	DepartureScope(ctx context.Context) (predicate.Departure, error)
 	TenantScope(ctx context.Context) (predicate.Tenant, error)
+	PeriodScope(ctx context.Context) (predicate.Period, error)
+	InvoiceScope(ctx context.Context) (predicate.Invoice, error)
+	CreditNoteScope(ctx context.Context) (predicate.CreditNote, error)
+	CreditScope(ctx context.Context) (predicate.Credit, error)
+	DepartureScope(ctx context.Context) (predicate.Departure, error)
 	WorkspaceScope(ctx context.Context) (predicate.Workspace, error)
 	GrantScope(ctx context.Context) (predicate.Grant, error)
+	StatementScope(ctx context.Context) (predicate.Statement, error)
+	InvoiceLineScope(ctx context.Context) (predicate.InvoiceLine, error)
 	OfferScope(ctx context.Context) (predicate.Offer, error)
 	LinkScope(ctx context.Context) (predicate.Link, error)
 	MeterScope(ctx context.Context) (predicate.Meter, error)
@@ -398,13 +409,12 @@ type Scope interface {
 	OutboxScope(ctx context.Context) (predicate.Outbox, error)
 	OwedScope(ctx context.Context) (predicate.Owed, error)
 	RowSealScope(ctx context.Context) (predicate.RowSeal, error)
-	PeriodScope(ctx context.Context) (predicate.Period, error)
+	PaymentAttemptScope(ctx context.Context) (predicate.PaymentAttempt, error)
 	SeriesScope(ctx context.Context) (predicate.Series, error)
 	PointScope(ctx context.Context) (predicate.Point, error)
 	PriceScope(ctx context.Context) (predicate.Price, error)
 	ReadingScope(ctx context.Context) (predicate.Reading, error)
 	ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error)
-	StatementScope(ctx context.Context) (predicate.Statement, error)
 }
 
 // Unscoped is a [Scope] that narrows nothing. Embed it and write out the
@@ -422,16 +432,34 @@ var _ Scope = Unscoped{}
 func (Unscoped) BillingAccountScope(_ context.Context) (predicate.BillingAccount, error) {
 	return nil, nil
 }
-func (Unscoped) DepartureScope(_ context.Context) (predicate.Departure, error) {
+func (Unscoped) TenantScope(_ context.Context) (predicate.Tenant, error) {
 	return nil, nil
 }
-func (Unscoped) TenantScope(_ context.Context) (predicate.Tenant, error) {
+func (Unscoped) PeriodScope(_ context.Context) (predicate.Period, error) {
+	return nil, nil
+}
+func (Unscoped) InvoiceScope(_ context.Context) (predicate.Invoice, error) {
+	return nil, nil
+}
+func (Unscoped) CreditNoteScope(_ context.Context) (predicate.CreditNote, error) {
+	return nil, nil
+}
+func (Unscoped) CreditScope(_ context.Context) (predicate.Credit, error) {
+	return nil, nil
+}
+func (Unscoped) DepartureScope(_ context.Context) (predicate.Departure, error) {
 	return nil, nil
 }
 func (Unscoped) WorkspaceScope(_ context.Context) (predicate.Workspace, error) {
 	return nil, nil
 }
 func (Unscoped) GrantScope(_ context.Context) (predicate.Grant, error) {
+	return nil, nil
+}
+func (Unscoped) StatementScope(_ context.Context) (predicate.Statement, error) {
+	return nil, nil
+}
+func (Unscoped) InvoiceLineScope(_ context.Context) (predicate.InvoiceLine, error) {
 	return nil, nil
 }
 func (Unscoped) OfferScope(_ context.Context) (predicate.Offer, error) {
@@ -467,7 +495,7 @@ func (Unscoped) OwedScope(_ context.Context) (predicate.Owed, error) {
 func (Unscoped) RowSealScope(_ context.Context) (predicate.RowSeal, error) {
 	return nil, nil
 }
-func (Unscoped) PeriodScope(_ context.Context) (predicate.Period, error) {
+func (Unscoped) PaymentAttemptScope(_ context.Context) (predicate.PaymentAttempt, error) {
 	return nil, nil
 }
 func (Unscoped) SeriesScope(_ context.Context) (predicate.Series, error) {
@@ -483,9 +511,6 @@ func (Unscoped) ReadingScope(_ context.Context) (predicate.Reading, error) {
 	return nil, nil
 }
 func (Unscoped) ServiceKeyScope(_ context.Context) (predicate.ServiceKey, error) {
-	return nil, nil
-}
-func (Unscoped) StatementScope(_ context.Context) (predicate.Statement, error) {
 	return nil, nil
 }
 
@@ -528,26 +553,6 @@ func (ss Scopes) BillingAccountScope(ctx context.Context) (predicate.BillingAcco
 	return billingaccount.And(ps...), nil
 }
 
-func (ss Scopes) DepartureScope(ctx context.Context) (predicate.Departure, error) {
-	ps := make([]predicate.Departure, 0, len(ss))
-	for _, s := range ss {
-		p, err := s.DepartureScope(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if p == nil {
-			continue
-		}
-
-		ps = append(ps, p)
-	}
-	if len(ps) == 0 {
-		return nil, nil
-	}
-
-	return departure.And(ps...), nil
-}
-
 func (ss Scopes) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 	ps := make([]predicate.Tenant, 0, len(ss))
 	for _, s := range ss {
@@ -566,6 +571,106 @@ func (ss Scopes) TenantScope(ctx context.Context) (predicate.Tenant, error) {
 	}
 
 	return tenant.And(ps...), nil
+}
+
+func (ss Scopes) PeriodScope(ctx context.Context) (predicate.Period, error) {
+	ps := make([]predicate.Period, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.PeriodScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return period.And(ps...), nil
+}
+
+func (ss Scopes) InvoiceScope(ctx context.Context) (predicate.Invoice, error) {
+	ps := make([]predicate.Invoice, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.InvoiceScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return invoice.And(ps...), nil
+}
+
+func (ss Scopes) CreditNoteScope(ctx context.Context) (predicate.CreditNote, error) {
+	ps := make([]predicate.CreditNote, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.CreditNoteScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return creditnote.And(ps...), nil
+}
+
+func (ss Scopes) CreditScope(ctx context.Context) (predicate.Credit, error) {
+	ps := make([]predicate.Credit, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.CreditScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return credit.And(ps...), nil
+}
+
+func (ss Scopes) DepartureScope(ctx context.Context) (predicate.Departure, error) {
+	ps := make([]predicate.Departure, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.DepartureScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return departure.And(ps...), nil
 }
 
 func (ss Scopes) WorkspaceScope(ctx context.Context) (predicate.Workspace, error) {
@@ -606,6 +711,46 @@ func (ss Scopes) GrantScope(ctx context.Context) (predicate.Grant, error) {
 	}
 
 	return grant.And(ps...), nil
+}
+
+func (ss Scopes) StatementScope(ctx context.Context) (predicate.Statement, error) {
+	ps := make([]predicate.Statement, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.StatementScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return statement.And(ps...), nil
+}
+
+func (ss Scopes) InvoiceLineScope(ctx context.Context) (predicate.InvoiceLine, error) {
+	ps := make([]predicate.InvoiceLine, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.InvoiceLineScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return invoiceline.And(ps...), nil
 }
 
 func (ss Scopes) OfferScope(ctx context.Context) (predicate.Offer, error) {
@@ -828,10 +973,10 @@ func (ss Scopes) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
 	return rowseal.And(ps...), nil
 }
 
-func (ss Scopes) PeriodScope(ctx context.Context) (predicate.Period, error) {
-	ps := make([]predicate.Period, 0, len(ss))
+func (ss Scopes) PaymentAttemptScope(ctx context.Context) (predicate.PaymentAttempt, error) {
+	ps := make([]predicate.PaymentAttempt, 0, len(ss))
 	for _, s := range ss {
-		p, err := s.PeriodScope(ctx)
+		p, err := s.PaymentAttemptScope(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -845,7 +990,7 @@ func (ss Scopes) PeriodScope(ctx context.Context) (predicate.Period, error) {
 		return nil, nil
 	}
 
-	return period.And(ps...), nil
+	return paymentattempt.And(ps...), nil
 }
 
 func (ss Scopes) SeriesScope(ctx context.Context) (predicate.Series, error) {
@@ -946,26 +1091,6 @@ func (ss Scopes) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, err
 	}
 
 	return servicekey.And(ps...), nil
-}
-
-func (ss Scopes) StatementScope(ctx context.Context) (predicate.Statement, error) {
-	ps := make([]predicate.Statement, 0, len(ss))
-	for _, s := range ss {
-		p, err := s.StatementScope(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if p == nil {
-			continue
-		}
-
-		ps = append(ps, p)
-	}
-	if len(ps) == 0 {
-		return nil, nil
-	}
-
-	return statement.And(ps...), nil
 }
 
 // Minter decides the key a row is stored under. It is asked once per Add,
@@ -1103,7 +1228,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. BillingAccount, Departure, Grant, Holder, Link, Meter, Offer, Operator, Period, Point, Price, Reading, Series, ServiceKey, Statement and Workspace free the names they held when a row
+// check. BillingAccount, Credit, CreditNote, Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement and Workspace free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -1144,14 +1269,26 @@ func (s Server) WithDriver(drv dialect.Driver) (levyan.Server, error) {
 func (s Server) BillingAccount() levyan.BillingAccountServiceServer {
 	return BillingAccountServiceServer{Store: s.Store}
 }
+func (s Server) Tenant() levyan.TenantServiceServer   { return TenantServiceServer{Store: s.Store} }
+func (s Server) Period() levyan.PeriodServiceServer   { return PeriodServiceServer{Store: s.Store} }
+func (s Server) Invoice() levyan.InvoiceServiceServer { return InvoiceServiceServer{Store: s.Store} }
+func (s Server) CreditNote() levyan.CreditNoteServiceServer {
+	return CreditNoteServiceServer{Store: s.Store}
+}
+func (s Server) Credit() levyan.CreditServiceServer { return CreditServiceServer{Store: s.Store} }
 func (s Server) Departure() levyan.DepartureServiceServer {
 	return DepartureServiceServer{Store: s.Store}
 }
-func (s Server) Tenant() levyan.TenantServiceServer { return TenantServiceServer{Store: s.Store} }
 func (s Server) Workspace() levyan.WorkspaceServiceServer {
 	return WorkspaceServiceServer{Store: s.Store}
 }
-func (s Server) Grant() levyan.GrantServiceServer       { return GrantServiceServer{Store: s.Store} }
+func (s Server) Grant() levyan.GrantServiceServer { return GrantServiceServer{Store: s.Store} }
+func (s Server) Statement() levyan.StatementServiceServer {
+	return StatementServiceServer{Store: s.Store}
+}
+func (s Server) InvoiceLine() levyan.InvoiceLineServiceServer {
+	return InvoiceLineServiceServer{Store: s.Store}
+}
 func (s Server) Offer() levyan.OfferServiceServer       { return OfferServiceServer{Store: s.Store} }
 func (s Server) Link() levyan.LinkServiceServer         { return LinkServiceServer{Store: s.Store} }
 func (s Server) Meter() levyan.MeterServiceServer       { return MeterServiceServer{Store: s.Store} }
@@ -1163,14 +1300,13 @@ func (s Server) Holder() levyan.HolderServiceServer     { return HolderServiceSe
 func (s Server) Outbox() levyan.OutboxServiceServer     { return OutboxServiceServer{Store: s.Store} }
 func (s Server) Owed() levyan.OwedServiceServer         { return OwedServiceServer{Store: s.Store} }
 func (s Server) RowSeal() levyan.RowSealServiceServer   { return RowSealServiceServer{Store: s.Store} }
-func (s Server) Period() levyan.PeriodServiceServer     { return PeriodServiceServer{Store: s.Store} }
-func (s Server) Series() levyan.SeriesServiceServer     { return SeriesServiceServer{Store: s.Store} }
-func (s Server) Point() levyan.PointServiceServer       { return PointServiceServer{Store: s.Store} }
-func (s Server) Price() levyan.PriceServiceServer       { return PriceServiceServer{Store: s.Store} }
-func (s Server) Reading() levyan.ReadingServiceServer   { return ReadingServiceServer{Store: s.Store} }
+func (s Server) PaymentAttempt() levyan.PaymentAttemptServiceServer {
+	return PaymentAttemptServiceServer{Store: s.Store}
+}
+func (s Server) Series() levyan.SeriesServiceServer   { return SeriesServiceServer{Store: s.Store} }
+func (s Server) Point() levyan.PointServiceServer     { return PointServiceServer{Store: s.Store} }
+func (s Server) Price() levyan.PriceServiceServer     { return PriceServiceServer{Store: s.Store} }
+func (s Server) Reading() levyan.ReadingServiceServer { return ReadingServiceServer{Store: s.Store} }
 func (s Server) ServiceKey() levyan.ServiceKeyServiceServer {
 	return ServiceKeyServiceServer{Store: s.Store}
-}
-func (s Server) Statement() levyan.StatementServiceServer {
-	return StatementServiceServer{Store: s.Store}
 }

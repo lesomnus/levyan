@@ -5,6 +5,7 @@ package bare
 
 import (
 	context "context"
+	errors "errors"
 	levyan "github.com/lesomnus/levyan"
 	ent "github.com/lesomnus/levyan/internal/ent"
 	billingaccount "github.com/lesomnus/levyan/internal/ent/billingaccount"
@@ -12,10 +13,13 @@ import (
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
 	statement "github.com/lesomnus/levyan/internal/ent/statement"
 	workspace "github.com/lesomnus/levyan/internal/ent/workspace"
+	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	ent1 "github.com/protobuf-orm/ent"
 	dialect "github.com/protobuf-orm/ent/dialect"
 	sql "github.com/protobuf-orm/ent/dialect/sql"
 	sqlgraph "github.com/protobuf-orm/ent/dialect/sql/sqlgraph"
+	ormpatch "github.com/protobuf-orm/protobuf-orm/ormpatch"
+	entpatch "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/entpatch"
 	entuuid "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/entuuid"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -442,6 +446,186 @@ func StatementSelectInit(q *ent.StatementQuery, m *levyan.StatementSelect) {
 	if m != nil {
 		StatementSelect(q, m)
 	}
+}
+
+func (s StatementServiceServer) Patch(ctx context.Context, req *levyan.StatementPatchRequest) (*levyan.Statement, error) {
+	doc, err := ormpatch.FromPatchRequest(statementOrmEntity, req.ProtoReflect(), nil)
+	if err != nil {
+		if _, ok := status.FromError(err); ok {
+			return nil, err
+		}
+		if errors.Is(err, ormpatch.ErrRequestLayout) {
+			return nil, status.Errorf(codes.Internal, "%s", err)
+		}
+		if errors.Is(err, ormpatch.ErrUnsupported) {
+			return nil, status.Errorf(codes.Unimplemented, "%s", err)
+		}
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+	}
+
+	return s.apply(ctx, req.GetRef(), doc, levyan.StatementService_Patch_FullMethodName)
+}
+
+func StatementGetKey(ctx context.Context, db *ent.Client, ref *levyan.StatementRef) (uuid.UUID, error) {
+	var z uuid.UUID
+	if ref.HasId() {
+		if v, err := entuuid.FromBytes(ref.GetId()); err != nil {
+			return z, status.Errorf(codes.InvalidArgument, "id: %s", err)
+		} else {
+			return v, nil
+		}
+	}
+
+	p, err := StatementPick(ref)
+	if err != nil {
+		return z, err
+	}
+
+	v, err := db.Statement.Query().Where(p).OnlyId(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return z, status.Error(codes.NotFound, "Statement not found")
+		}
+		return z, err
+	}
+
+	return v, nil
+}
+
+var statementOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_statement_proto, "Statement")
+
+var statementPatchColumns = entpatch.Columns{
+	1: statement.FieldId, 2: statement.TenantColumn, 3: statement.WorkspaceColumn, 8: statement.PeriodColumn, 9: statement.FieldDateStart, 10: statement.FieldDateEnd, 11: statement.FieldChannel, 12: statement.FieldCurrency, 14: statement.FieldDateErased, 15: statement.FieldDateCreated, 16: statement.FieldLines, 17: statement.FieldTotal, 18: statement.FieldExact, 19: statement.FieldRating, 20: statement.FieldPayer, 21: statement.BillingAccountColumn, 22: statement.FieldFirstUnit}
+
+func (s StatementServiceServer) Apply(ctx context.Context, req *levyan.StatementApplyRequest) (*levyan.Statement, error) {
+	if !req.HasPatch() {
+		return nil, status.Errorf(codes.InvalidArgument, "%s", ormpatch.ErrNoPatch)
+	}
+	return s.apply(ctx, req.GetRef(), req.GetPatch(), levyan.StatementService_Apply_FullMethodName)
+}
+
+func (s StatementServiceServer) apply(ctx context.Context, ref *levyan.StatementRef, doc *patchpb.Patch, by string) (*levyan.Statement, error) {
+	plan := &ormpatch.Plan{Entity: statementOrmEntity}
+	if doc != nil {
+		v, err := ormpatch.Compile(statementOrmEntity, doc)
+		if err != nil {
+			if errors.Is(err, ormpatch.ErrUnsupported) {
+				return nil, status.Errorf(codes.Unimplemented, "%s", err)
+			}
+			return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+		}
+		plan = v
+	}
+
+	pred, mod, err := entpatch.Build(plan, statementPatchColumns, s.Db.Dialect())
+	if err != nil {
+		if errors.Is(err, entpatch.ErrValue) {
+			return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+		}
+		return nil, status.Errorf(codes.Internal, "%s", err)
+	}
+
+	tx, err := ent1.JoinTx[*ent.Client, *ent.Tx](ctx, s.Db, true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Close()
+
+	st := s
+	st.Db = tx.Db
+
+	k, err := StatementGetKey(ctx, st.Db, ref)
+	if err != nil {
+		return nil, err
+	}
+	at := &levyan.StatementRef{}
+	at.SetId(k[:])
+	p, err := s.narrow(ctx, statement.IdEQ(k))
+	if err != nil {
+		return nil, err
+	}
+
+	var previous *levyan.Statement
+	images := snapshotOptions(s.Rec, by)
+	if images.Previous && mod != nil {
+		u, err := st.snapshot(ctx, p, true)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return nil, status.Error(codes.NotFound, "resource not found")
+			}
+			return nil, err
+		}
+		previous = s.image(u.Proto())
+	}
+	if mod == nil {
+		q := st.Db.Statement.Query().Where(p)
+		if pred != nil {
+			q.Where(predicate.Statement(pred))
+		}
+		if ok, err := q.Exist(ctx); err != nil {
+			return nil, err
+		} else if !ok {
+			return nil, func() error {
+				if ok, err := st.Db.Statement.Query().Where(p).Exist(ctx); err != nil {
+					return err
+				} else if !ok {
+					return status.Error(codes.NotFound, "Statement not found")
+				}
+				return status.Error(codes.FailedPrecondition, "a test in the patch did not hold")
+			}()
+		}
+	} else {
+		q := st.Db.Statement.Update().Where(p)
+		if pred != nil {
+			q.Where(predicate.Statement(pred))
+		}
+		q.Modify(mod)
+		tx.Writing()
+		if n, err := q.Save(ctx); err != nil {
+			if err, ok := err.(*ent.ConstraintError); ok {
+				if sqlgraph.IsUniqueConstraintError(err) {
+					return nil, status.Error(codes.AlreadyExists, "Statement already exists")
+				}
+				if sqlgraph.IsForeignKeyConstraintError(err) {
+					return nil, status.Error(codes.NotFound, "Statement: referenced entity not found")
+				}
+			}
+			return nil, err
+		} else if n == 0 {
+			return nil, func() error {
+				if ok, err := st.Db.Statement.Query().Where(p).Exist(ctx); err != nil {
+					return err
+				} else if !ok {
+					return status.Error(codes.NotFound, "Statement not found")
+				}
+				return status.Error(codes.FailedPrecondition, "a test in the patch did not hold")
+			}()
+		}
+	}
+
+	out, err := st.Get(ctx, at.Pick())
+	if err != nil {
+		return nil, err
+	}
+	if mod != nil {
+		var value *levyan.Statement
+		if images.Value {
+			value = s.image(out)
+		}
+		if err := record(ctx, s.Rec, st.Db, Change{
+			By:       by,
+			Key:      k,
+			Patch:    doc,
+			Previous: previous, Value: value,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // StatementPick answers with the predicate this reference selects on,

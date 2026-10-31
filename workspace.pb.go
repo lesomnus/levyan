@@ -33,8 +33,8 @@ const (
 // beside the wall that keeps a product to its own.
 //
 // Written the first time anything is heard of it, through the servers, and
-// never changed or erased: what it was billed outlives the workspace at the
-// product, as a seller's records outlive its customers. Every write of the
+// never changed but for its label, nor erased: what it was billed outlives
+// the workspace at the product, as a seller's records outlive its customers. Every write of the
 // ledger for a workspace holds its row until the write is done
 // (`server/ledger`), which is what makes "measured in a period that was closed
 // already" a question with one answer.
@@ -43,6 +43,7 @@ type Workspace struct {
 	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Key         []byte                 `protobuf:"bytes,8,opt,name=key"`
+	xxx_hidden_Label       string                 `protobuf:"bytes,9,opt,name=label"`
 	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
 	unknownFields          protoimpl.UnknownFields
@@ -95,6 +96,13 @@ func (x *Workspace) GetKey() []byte {
 	return nil
 }
 
+func (x *Workspace) GetLabel() string {
+	if x != nil {
+		return x.xxx_hidden_Label
+	}
+	return ""
+}
+
 func (x *Workspace) GetDateErased() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateErased
@@ -125,6 +133,10 @@ func (x *Workspace) SetKey(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Key = v
+}
+
+func (x *Workspace) SetLabel(v string) {
+	x.xxx_hidden_Label = v
 }
 
 func (x *Workspace) SetDateErased(v *timestamppb.Timestamp) {
@@ -178,6 +190,12 @@ type Workspace_builder struct {
 	// tenant there, as sixteen bytes. What a product sends as `workspace`, and
 	// as `payday.tenant` on a flow, is the canonical text of it.
 	Key []byte
+	// What the product calls it, for a bill to name it by: its name there, as
+	// the product says it as the workspace arrives (#9). An invoice keeps the
+	// label each of its lines was written with. Empty is a workspace named by
+	// its identifier. It is an organisation's name and nobody's, as payday's
+	// own tenant's name is.
+	Label string
 	// Never stamped: there is no Erase. The rows of its ledger and its
 	// statements name it for as long as they are kept.
 	DateErased *timestamppb.Timestamp
@@ -192,6 +210,7 @@ func (b0 Workspace_builder) Build() *Workspace {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_Label = b.Label
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
@@ -201,11 +220,12 @@ var File_levyan_workspace_proto protoreflect.FileDescriptor
 
 const file_levyan_workspace_proto_rawDesc = "" +
 	"\n" +
-	"\x16levyan/workspace.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x8e\x03\n" +
+	"\x16levyan/workspace.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xac\x03\n" +
 	"\tWorkspace\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12\x18\n" +
-	"\x03key\x18\b \x01(\fB\x06\xea\x82\x16\x02@\x01R\x03key\x12D\n" +
+	"\x03key\x18\b \x01(\fB\x06\xea\x82\x16\x02@\x01R\x03key\x12\x1c\n" +
+	"\x05label\x18\t \x01(\tB\x06\xaa\xc1\x16\x02\x18\x00R\x05label\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\x89\x01\xca\xfc\x15W\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +

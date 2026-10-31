@@ -42,6 +42,12 @@ func Line(l rating.Line) *levyan.StatementLine {
 		}
 		out.SetParts(append(out.GetParts(), part))
 	}
+	for _, s := range l.Unpriced {
+		out.SetUnpriced(append(out.GetUnpriced(), levyan.StatementUnpriced_builder{
+			From: timestamppb.New(s.From),
+			To:   timestamppb.New(s.To),
+		}.Build()))
+	}
 
 	return out
 }

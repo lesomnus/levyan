@@ -27,10 +27,16 @@ import (
 
 type Server interface {
 	BillingAccount() BillingAccountServiceServer
-	Departure() DepartureServiceServer
 	Tenant() TenantServiceServer
+	Period() PeriodServiceServer
+	Invoice() InvoiceServiceServer
+	CreditNote() CreditNoteServiceServer
+	Credit() CreditServiceServer
+	Departure() DepartureServiceServer
 	Workspace() WorkspaceServiceServer
 	Grant() GrantServiceServer
+	Statement() StatementServiceServer
+	InvoiceLine() InvoiceLineServiceServer
 	Offer() OfferServiceServer
 	Link() LinkServiceServer
 	Meter() MeterServiceServer
@@ -42,13 +48,12 @@ type Server interface {
 	Outbox() OutboxServiceServer
 	Owed() OwedServiceServer
 	RowSeal() RowSealServiceServer
-	Period() PeriodServiceServer
+	PaymentAttempt() PaymentAttemptServiceServer
 	Series() SeriesServiceServer
 	Point() PointServiceServer
 	Price() PriceServiceServer
 	Reading() ReadingServiceServer
 	ServiceKey() ServiceKeyServiceServer
-	Statement() StatementServiceServer
 }
 
 // RegisterServer registers every service of `s` with `g`.
@@ -57,10 +62,16 @@ type Server interface {
 // server which is not gRPC's own can be handed the same set of services.
 func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterBillingAccountServiceServer(g, s.BillingAccount())
-	RegisterDepartureServiceServer(g, s.Departure())
 	RegisterTenantServiceServer(g, s.Tenant())
+	RegisterPeriodServiceServer(g, s.Period())
+	RegisterInvoiceServiceServer(g, s.Invoice())
+	RegisterCreditNoteServiceServer(g, s.CreditNote())
+	RegisterCreditServiceServer(g, s.Credit())
+	RegisterDepartureServiceServer(g, s.Departure())
 	RegisterWorkspaceServiceServer(g, s.Workspace())
 	RegisterGrantServiceServer(g, s.Grant())
+	RegisterStatementServiceServer(g, s.Statement())
+	RegisterInvoiceLineServiceServer(g, s.InvoiceLine())
 	RegisterOfferServiceServer(g, s.Offer())
 	RegisterLinkServiceServer(g, s.Link())
 	RegisterMeterServiceServer(g, s.Meter())
@@ -72,21 +83,26 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterOutboxServiceServer(g, s.Outbox())
 	RegisterOwedServiceServer(g, s.Owed())
 	RegisterRowSealServiceServer(g, s.RowSeal())
-	RegisterPeriodServiceServer(g, s.Period())
+	RegisterPaymentAttemptServiceServer(g, s.PaymentAttempt())
 	RegisterSeriesServiceServer(g, s.Series())
 	RegisterPointServiceServer(g, s.Point())
 	RegisterPriceServiceServer(g, s.Price())
 	RegisterReadingServiceServer(g, s.Reading())
 	RegisterServiceKeyServiceServer(g, s.ServiceKey())
-	RegisterStatementServiceServer(g, s.Statement())
 }
 
 type UnimplementedServer struct {
 	BillingAccountServer BillingAccountServiceServer
-	DepartureServer      DepartureServiceServer
 	TenantServer         TenantServiceServer
+	PeriodServer         PeriodServiceServer
+	InvoiceServer        InvoiceServiceServer
+	CreditNoteServer     CreditNoteServiceServer
+	CreditServer         CreditServiceServer
+	DepartureServer      DepartureServiceServer
 	WorkspaceServer      WorkspaceServiceServer
 	GrantServer          GrantServiceServer
+	StatementServer      StatementServiceServer
+	InvoiceLineServer    InvoiceLineServiceServer
 	OfferServer          OfferServiceServer
 	LinkServer           LinkServiceServer
 	MeterServer          MeterServiceServer
@@ -98,26 +114,37 @@ type UnimplementedServer struct {
 	OutboxServer         OutboxServiceServer
 	OwedServer           OwedServiceServer
 	RowSealServer        RowSealServiceServer
-	PeriodServer         PeriodServiceServer
+	PaymentAttemptServer PaymentAttemptServiceServer
 	SeriesServer         SeriesServiceServer
 	PointServer          PointServiceServer
 	PriceServer          PriceServiceServer
 	ReadingServer        ReadingServiceServer
 	ServiceKeyServer     ServiceKeyServiceServer
-	StatementServer      StatementServiceServer
 }
 
 func (UnimplementedServer) BillingAccount() BillingAccountServiceServer {
 	return UnimplementedBillingAccountServiceServer{}
 }
+func (UnimplementedServer) Tenant() TenantServiceServer   { return UnimplementedTenantServiceServer{} }
+func (UnimplementedServer) Period() PeriodServiceServer   { return UnimplementedPeriodServiceServer{} }
+func (UnimplementedServer) Invoice() InvoiceServiceServer { return UnimplementedInvoiceServiceServer{} }
+func (UnimplementedServer) CreditNote() CreditNoteServiceServer {
+	return UnimplementedCreditNoteServiceServer{}
+}
+func (UnimplementedServer) Credit() CreditServiceServer { return UnimplementedCreditServiceServer{} }
 func (UnimplementedServer) Departure() DepartureServiceServer {
 	return UnimplementedDepartureServiceServer{}
 }
-func (UnimplementedServer) Tenant() TenantServiceServer { return UnimplementedTenantServiceServer{} }
 func (UnimplementedServer) Workspace() WorkspaceServiceServer {
 	return UnimplementedWorkspaceServiceServer{}
 }
 func (UnimplementedServer) Grant() GrantServiceServer { return UnimplementedGrantServiceServer{} }
+func (UnimplementedServer) Statement() StatementServiceServer {
+	return UnimplementedStatementServiceServer{}
+}
+func (UnimplementedServer) InvoiceLine() InvoiceLineServiceServer {
+	return UnimplementedInvoiceLineServiceServer{}
+}
 func (UnimplementedServer) Offer() OfferServiceServer { return UnimplementedOfferServiceServer{} }
 func (UnimplementedServer) Link() LinkServiceServer   { return UnimplementedLinkServiceServer{} }
 func (UnimplementedServer) Meter() MeterServiceServer { return UnimplementedMeterServiceServer{} }
@@ -133,7 +160,9 @@ func (UnimplementedServer) Holder() HolderServiceServer   { return Unimplemented
 func (UnimplementedServer) Outbox() OutboxServiceServer   { return UnimplementedOutboxServiceServer{} }
 func (UnimplementedServer) Owed() OwedServiceServer       { return UnimplementedOwedServiceServer{} }
 func (UnimplementedServer) RowSeal() RowSealServiceServer { return UnimplementedRowSealServiceServer{} }
-func (UnimplementedServer) Period() PeriodServiceServer   { return UnimplementedPeriodServiceServer{} }
+func (UnimplementedServer) PaymentAttempt() PaymentAttemptServiceServer {
+	return UnimplementedPaymentAttemptServiceServer{}
+}
 func (UnimplementedServer) Series() SeriesServiceServer   { return UnimplementedSeriesServiceServer{} }
 func (UnimplementedServer) Point() PointServiceServer     { return UnimplementedPointServiceServer{} }
 func (UnimplementedServer) Price() PriceServiceServer     { return UnimplementedPriceServiceServer{} }
@@ -141,16 +170,19 @@ func (UnimplementedServer) Reading() ReadingServiceServer { return Unimplemented
 func (UnimplementedServer) ServiceKey() ServiceKeyServiceServer {
 	return UnimplementedServiceKeyServiceServer{}
 }
-func (UnimplementedServer) Statement() StatementServiceServer {
-	return UnimplementedStatementServiceServer{}
-}
 
 type StaticServer struct {
 	BillingAccountServer BillingAccountServiceServer
-	DepartureServer      DepartureServiceServer
 	TenantServer         TenantServiceServer
+	PeriodServer         PeriodServiceServer
+	InvoiceServer        InvoiceServiceServer
+	CreditNoteServer     CreditNoteServiceServer
+	CreditServer         CreditServiceServer
+	DepartureServer      DepartureServiceServer
 	WorkspaceServer      WorkspaceServiceServer
 	GrantServer          GrantServiceServer
+	StatementServer      StatementServiceServer
+	InvoiceLineServer    InvoiceLineServiceServer
 	OfferServer          OfferServiceServer
 	LinkServer           LinkServiceServer
 	MeterServer          MeterServiceServer
@@ -162,20 +194,25 @@ type StaticServer struct {
 	OutboxServer         OutboxServiceServer
 	OwedServer           OwedServiceServer
 	RowSealServer        RowSealServiceServer
-	PeriodServer         PeriodServiceServer
+	PaymentAttemptServer PaymentAttemptServiceServer
 	SeriesServer         SeriesServiceServer
 	PointServer          PointServiceServer
 	PriceServer          PriceServiceServer
 	ReadingServer        ReadingServiceServer
 	ServiceKeyServer     ServiceKeyServiceServer
-	StatementServer      StatementServiceServer
 }
 
 func (s StaticServer) BillingAccount() BillingAccountServiceServer { return s.BillingAccountServer }
-func (s StaticServer) Departure() DepartureServiceServer           { return s.DepartureServer }
 func (s StaticServer) Tenant() TenantServiceServer                 { return s.TenantServer }
+func (s StaticServer) Period() PeriodServiceServer                 { return s.PeriodServer }
+func (s StaticServer) Invoice() InvoiceServiceServer               { return s.InvoiceServer }
+func (s StaticServer) CreditNote() CreditNoteServiceServer         { return s.CreditNoteServer }
+func (s StaticServer) Credit() CreditServiceServer                 { return s.CreditServer }
+func (s StaticServer) Departure() DepartureServiceServer           { return s.DepartureServer }
 func (s StaticServer) Workspace() WorkspaceServiceServer           { return s.WorkspaceServer }
 func (s StaticServer) Grant() GrantServiceServer                   { return s.GrantServer }
+func (s StaticServer) Statement() StatementServiceServer           { return s.StatementServer }
+func (s StaticServer) InvoiceLine() InvoiceLineServiceServer       { return s.InvoiceLineServer }
 func (s StaticServer) Offer() OfferServiceServer                   { return s.OfferServer }
 func (s StaticServer) Link() LinkServiceServer                     { return s.LinkServer }
 func (s StaticServer) Meter() MeterServiceServer                   { return s.MeterServer }
@@ -187,20 +224,25 @@ func (s StaticServer) Holder() HolderServiceServer                 { return s.Ho
 func (s StaticServer) Outbox() OutboxServiceServer                 { return s.OutboxServer }
 func (s StaticServer) Owed() OwedServiceServer                     { return s.OwedServer }
 func (s StaticServer) RowSeal() RowSealServiceServer               { return s.RowSealServer }
-func (s StaticServer) Period() PeriodServiceServer                 { return s.PeriodServer }
+func (s StaticServer) PaymentAttempt() PaymentAttemptServiceServer { return s.PaymentAttemptServer }
 func (s StaticServer) Series() SeriesServiceServer                 { return s.SeriesServer }
 func (s StaticServer) Point() PointServiceServer                   { return s.PointServer }
 func (s StaticServer) Price() PriceServiceServer                   { return s.PriceServer }
 func (s StaticServer) Reading() ReadingServiceServer               { return s.ReadingServer }
 func (s StaticServer) ServiceKey() ServiceKeyServiceServer         { return s.ServiceKeyServer }
-func (s StaticServer) Statement() StatementServiceServer           { return s.StatementServer }
 
 type Client interface {
 	BillingAccount() BillingAccountServiceClient
-	Departure() DepartureServiceClient
 	Tenant() TenantServiceClient
+	Period() PeriodServiceClient
+	Invoice() InvoiceServiceClient
+	CreditNote() CreditNoteServiceClient
+	Credit() CreditServiceClient
+	Departure() DepartureServiceClient
 	Workspace() WorkspaceServiceClient
 	Grant() GrantServiceClient
+	Statement() StatementServiceClient
+	InvoiceLine() InvoiceLineServiceClient
 	Offer() OfferServiceClient
 	Link() LinkServiceClient
 	Meter() MeterServiceClient
@@ -212,22 +254,27 @@ type Client interface {
 	Outbox() OutboxServiceClient
 	Owed() OwedServiceClient
 	RowSeal() RowSealServiceClient
-	Period() PeriodServiceClient
+	PaymentAttempt() PaymentAttemptServiceClient
 	Series() SeriesServiceClient
 	Point() PointServiceClient
 	Price() PriceServiceClient
 	Reading() ReadingServiceClient
 	ServiceKey() ServiceKeyServiceClient
-	Statement() StatementServiceClient
 }
 
 func NewClient(c *grpc.ClientConn) Client {
 	return &client{
 		_BillingAccount: NewBillingAccountServiceClient(c),
-		_Departure:      NewDepartureServiceClient(c),
 		_Tenant:         NewTenantServiceClient(c),
+		_Period:         NewPeriodServiceClient(c),
+		_Invoice:        NewInvoiceServiceClient(c),
+		_CreditNote:     NewCreditNoteServiceClient(c),
+		_Credit:         NewCreditServiceClient(c),
+		_Departure:      NewDepartureServiceClient(c),
 		_Workspace:      NewWorkspaceServiceClient(c),
 		_Grant:          NewGrantServiceClient(c),
+		_Statement:      NewStatementServiceClient(c),
+		_InvoiceLine:    NewInvoiceLineServiceClient(c),
 		_Offer:          NewOfferServiceClient(c),
 		_Link:           NewLinkServiceClient(c),
 		_Meter:          NewMeterServiceClient(c),
@@ -239,22 +286,27 @@ func NewClient(c *grpc.ClientConn) Client {
 		_Outbox:         NewOutboxServiceClient(c),
 		_Owed:           NewOwedServiceClient(c),
 		_RowSeal:        NewRowSealServiceClient(c),
-		_Period:         NewPeriodServiceClient(c),
+		_PaymentAttempt: NewPaymentAttemptServiceClient(c),
 		_Series:         NewSeriesServiceClient(c),
 		_Point:          NewPointServiceClient(c),
 		_Price:          NewPriceServiceClient(c),
 		_Reading:        NewReadingServiceClient(c),
 		_ServiceKey:     NewServiceKeyServiceClient(c),
-		_Statement:      NewStatementServiceClient(c),
 	}
 }
 
 type client struct {
 	_BillingAccount BillingAccountServiceClient
-	_Departure      DepartureServiceClient
 	_Tenant         TenantServiceClient
+	_Period         PeriodServiceClient
+	_Invoice        InvoiceServiceClient
+	_CreditNote     CreditNoteServiceClient
+	_Credit         CreditServiceClient
+	_Departure      DepartureServiceClient
 	_Workspace      WorkspaceServiceClient
 	_Grant          GrantServiceClient
+	_Statement      StatementServiceClient
+	_InvoiceLine    InvoiceLineServiceClient
 	_Offer          OfferServiceClient
 	_Link           LinkServiceClient
 	_Meter          MeterServiceClient
@@ -266,20 +318,25 @@ type client struct {
 	_Outbox         OutboxServiceClient
 	_Owed           OwedServiceClient
 	_RowSeal        RowSealServiceClient
-	_Period         PeriodServiceClient
+	_PaymentAttempt PaymentAttemptServiceClient
 	_Series         SeriesServiceClient
 	_Point          PointServiceClient
 	_Price          PriceServiceClient
 	_Reading        ReadingServiceClient
 	_ServiceKey     ServiceKeyServiceClient
-	_Statement      StatementServiceClient
 }
 
 func (c *client) BillingAccount() BillingAccountServiceClient { return c._BillingAccount }
-func (c *client) Departure() DepartureServiceClient           { return c._Departure }
 func (c *client) Tenant() TenantServiceClient                 { return c._Tenant }
+func (c *client) Period() PeriodServiceClient                 { return c._Period }
+func (c *client) Invoice() InvoiceServiceClient               { return c._Invoice }
+func (c *client) CreditNote() CreditNoteServiceClient         { return c._CreditNote }
+func (c *client) Credit() CreditServiceClient                 { return c._Credit }
+func (c *client) Departure() DepartureServiceClient           { return c._Departure }
 func (c *client) Workspace() WorkspaceServiceClient           { return c._Workspace }
 func (c *client) Grant() GrantServiceClient                   { return c._Grant }
+func (c *client) Statement() StatementServiceClient           { return c._Statement }
+func (c *client) InvoiceLine() InvoiceLineServiceClient       { return c._InvoiceLine }
 func (c *client) Offer() OfferServiceClient                   { return c._Offer }
 func (c *client) Link() LinkServiceClient                     { return c._Link }
 func (c *client) Meter() MeterServiceClient                   { return c._Meter }
@@ -291,13 +348,12 @@ func (c *client) Holder() HolderServiceClient                 { return c._Holder
 func (c *client) Outbox() OutboxServiceClient                 { return c._Outbox }
 func (c *client) Owed() OwedServiceClient                     { return c._Owed }
 func (c *client) RowSeal() RowSealServiceClient               { return c._RowSeal }
-func (c *client) Period() PeriodServiceClient                 { return c._Period }
+func (c *client) PaymentAttempt() PaymentAttemptServiceClient { return c._PaymentAttempt }
 func (c *client) Series() SeriesServiceClient                 { return c._Series }
 func (c *client) Point() PointServiceClient                   { return c._Point }
 func (c *client) Price() PriceServiceClient                   { return c._Price }
 func (c *client) Reading() ReadingServiceClient               { return c._Reading }
 func (c *client) ServiceKey() ServiceKeyServiceClient         { return c._ServiceKey }
-func (c *client) Statement() StatementServiceClient           { return c._Statement }
 
 // Middleware is a server that delegates to another server.
 type Middleware interface {

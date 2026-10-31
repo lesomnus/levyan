@@ -22,7 +22,8 @@ const (
 	// Declined is the card's fault: refused by its company, over its limit,
 	// stopped, lost, expired, or a billing key the PG no longer has. Nothing
 	// was charged. A charge is answered with a [Failed] payment rather than
-	// this error; a registration, with this error.
+	// this error, whose [Failure] says which kind of decline it is
+	// ([Decline]); a registration, with this error.
 	Declined
 
 	// Invalid is a request that was wrong, or that the PG will not do as

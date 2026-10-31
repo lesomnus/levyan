@@ -348,7 +348,7 @@ func (c *Channel) Charge(ctx context.Context, ch pg.Charge) (pg.Payment, error) 
 			Status:  pg.Failed,
 			Amount:  ch.Amount,
 			Balance: money.Zero(ch.Amount.Currency),
-			Failure: &pg.Failure{Kind: pg.Declined, Code: e.Code, Message: e.Message},
+			Failure: &pg.Failure{Kind: pg.Declined, Decline: decline(e.Code), Code: e.Code, Message: e.Message},
 		}, nil
 	case errors.As(err, &e) && e.Code == "DUPLICATED_ORDER_ID":
 		// Approved before, under another key or none: the charge is the

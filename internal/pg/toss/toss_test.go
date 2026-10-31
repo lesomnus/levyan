@@ -147,19 +147,54 @@ func TestADeclinedChargeIsAFailedPaymentAndNoError(t *testing.T) {
 	require.Equal(t, pg.Failed, p.Status)
 	require.Equal(t, "order-0001", p.Order)
 	require.Equal(t, won(15_000), p.Amount)
-	require.Equal(t, &pg.Failure{Kind: pg.Declined, Code: "REJECT_CARD_PAYMENT", Message: "카드 사용이 거절되었습니다."}, p.Failure)
+	require.Equal(t, &pg.Failure{Kind: pg.Declined, Decline: pg.DeclineTemporary, Code: "REJECT_CARD_PAYMENT", Message: "카드 사용이 거절되었습니다."}, p.Failure)
 	require.Equal(t, 0, srv.Approved())
 
 	q, err := ch.Payment(ctx, "order-0001")
 	require.NoError(t, err)
 	require.Equal(t, pg.Failed, q.Status)
-	require.Equal(t, pg.Declined, q.Failure.Kind)
+	require.Equal(t, p.Failure, q.Failure, "asked afterwards, the same decline of the same kind")
 
 	// Tried again, it is another charge: another order.
 	p, err = ch.Charge(ctx, charge(m, "order-0001-2", 15_000))
 	require.NoError(t, err)
 	require.Equal(t, pg.Paid, p.Status)
 	require.Equal(t, 1, srv.Approved())
+}
+
+// A decline says which kind it is, charged and asked about after, and keeps
+// Toss's code beside it: what dunning (#11) sets its policy by.
+func TestADeclineSaysWhichKindItIs(t *testing.T) {
+	srv, ch := setup(t)
+	ctx := t.Context()
+	m := register(t, srv, ch)
+
+	for i, tc := range []struct {
+		code string
+		want pg.Decline
+	}{
+		{"REJECT_CARD_PAYMENT", pg.DeclineTemporary},
+		{"EXCEED_MAX_ONE_DAY_AMOUNT", pg.DeclineTemporary},
+		{"INVALID_CARD_EXPIRATION", pg.DeclineReplace},
+		{"INVALID_CARD_LOST_OR_STOLEN", pg.DeclineReplace},
+		{"KYC_BLOCKED", pg.DeclineFraud},
+		{"FDS_ERROR", pg.DeclineFraud},
+		{"REJECT_CARD_COMPANY", pg.DeclineOther},
+	} {
+		order := fmt.Sprintf("order-%04d", i+1)
+		srv.Decline(tc.code)
+		p, err := ch.Charge(ctx, charge(m, order, 15_000))
+		require.NoError(t, err, tc.code)
+		require.Equal(t, pg.Failed, p.Status, tc.code)
+		require.Equal(t, pg.Declined, p.Failure.Kind, tc.code)
+		require.Equal(t, tc.want, p.Failure.Decline, tc.code)
+		require.Equal(t, tc.code, p.Failure.Code)
+
+		q, err := ch.Payment(ctx, order)
+		require.NoError(t, err, tc.code)
+		require.Equal(t, p.Failure, q.Failure, tc.code)
+	}
+	require.Equal(t, 0, srv.Approved())
 }
 
 // Toss charged the card and its answer was lost (levyan#1, scenario 5): the
@@ -618,7 +653,8 @@ func TestARemovedMethodChargesNothing(t *testing.T) {
 	p, err := ch.Charge(ctx, charge(m, "order-0001", 15_000))
 	require.NoError(t, err)
 	require.Equal(t, pg.Failed, p.Status)
-	require.Equal(t, pg.Declined, p.Failure.Kind, "the payer registers another")
+	require.Equal(t, pg.Declined, p.Failure.Kind)
+	require.Equal(t, pg.DeclineReplace, p.Failure.Decline, "the payer registers another")
 	require.Equal(t, "NOT_FOUND_BILLING", p.Failure.Code)
 	require.Equal(t, 0, srv.Approved())
 }

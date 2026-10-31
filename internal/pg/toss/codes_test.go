@@ -136,7 +136,14 @@ func TestAPaymentIsReadAsLevyanHasOne(t *testing.T) {
 	require.Equal(t, "t1", v.Cancels[0].ID, "oldest first")
 	require.Equal(t, "t2", v.Cancels[1].ID)
 
-	for code, want := range map[string]pg.Kind{"REJECT_CARD_PAYMENT": pg.Declined, "COMMON_ERROR": pg.Unknown} {
+	for code, want := range map[string]pg.Failure{
+		"REJECT_CARD_PAYMENT":   {Kind: pg.Declined, Decline: pg.DeclineTemporary},
+		"INVALID_STOPPED_CARD":  {Kind: pg.Declined, Decline: pg.DeclineReplace},
+		"FDS_ERROR":             {Kind: pg.Declined, Decline: pg.DeclineFraud},
+		"INVALID_REJECT_CARD":   {Kind: pg.Declined, Decline: pg.DeclineOther},
+		"CARD_PROCESSING_ERROR": {Kind: pg.Unknown}, // the card company's own: no decline
+		"COMMON_ERROR":          {Kind: pg.Unknown},
+	} {
 		p := payment{Status: "ABORTED", TotalAmount: "1000", BalanceAmount: "1000"}
 		p.Failure = &struct {
 			Code    string `json:"code"`
@@ -145,9 +152,101 @@ func TestAPaymentIsReadAsLevyanHasOne(t *testing.T) {
 		v, err := p.read()
 		require.NoError(t, err)
 		require.Equal(t, pg.Failed, v.Status)
-		require.Equal(t, want, v.Failure.Kind, code)
+		want.Code, want.Message = code, "…"
+		require.Equal(t, &want, v.Failure, code)
 	}
+
+	v, err = payment{Status: "ABORTED", TotalAmount: "1000", BalanceAmount: "1000"}.read()
+	require.NoError(t, err)
+	require.Equal(t, &pg.Failure{Kind: pg.Unknown}, v.Failure, "a failure Toss says nothing of is the PG's own")
 
 	_, err = payment{Status: "A_STATUS_TOSS_ADDS_TOMORROW"}.read()
 	require.Error(t, err, "a status levyan cannot place is no payment to act on")
+}
+
+// Every one of Toss's codes for a charge the card refused is the kind of
+// decline its words say (codes.go): what Toss's documentation lists, kind by
+// kind, and nothing else.
+func TestEveryDeclineIsTheKindItsWordsSay(t *testing.T) {
+	want := map[pg.Decline][]string{
+		pg.DeclineTemporary: {
+			"REJECT_CARD_PAYMENT",               // 한도초과 혹은 잔액부족
+			"REJECT_ACCOUNT_PAYMENT",            // 잔액부족
+			"EXCEED_MAX_DAILY_PAYMENT_COUNT",    // 하루 결제 가능 횟수를 초과
+			"EXCEED_MAX_PAYMENT_AMOUNT",         // 하루 결제 가능 금액을 초과
+			"EXCEED_MAX_ONE_DAY_AMOUNT",         // 일일 한도를 초과
+			"EXCEED_MAX_MONTHLY_PAYMENT_AMOUNT", // 당월 결제 가능금액을 초과
+			"EXCEED_MAX_AMOUNT",                 // 거래금액 한도를 초과
+			"EXCEED_UNKNOWN_CASE",               // 한도 초과
+			"EXCEED_MAX_ONE_DAY_WITHDRAW_AMOUNT",
+			"EXCEED_MAX_ONE_TIME_WITHDRAW_AMOUNT",
+			"RESTRICTED_TRANSFER_ACCOUNT", // 등록 후 12시간 뒤부터
+		},
+		pg.DeclineReplace: {
+			"INVALID_CARD_EXPIRATION",     // 유효기간
+			"INVALID_CARD_LOST_OR_STOLEN", // 분실 혹은 도난
+			"INVALID_STOPPED_CARD",        // 정지된 카드
+			"INVALID_CARD_NUMBER",
+			"INVALID_CARD",
+			"INVALID_CARD_PASSWORD",
+			"INVALID_CARD_IDENTITY",
+			"NOT_SUPPORTED_CARD_TYPE",
+			"NOT_REGISTERED_CARD_COMPANY",
+			"EXCEED_MAX_AUTH_COUNT", // 최대 인증 횟수를 초과, 카드사로 문의
+			"NOT_FOUND_BILLING",
+			"INVALID_BILL_KEY_REQUEST",
+			"INVALID_BILLING_AUTH",
+			"REJECT_TOSSPAY_INVALID_ACCOUNT",
+			"INVALID_ACCOUNT_INFO_RE_REGISTER",
+		},
+		pg.DeclineFraud: {
+			"FDS_ERROR",   // 위험거래가 감지되어 결제가 제한
+			"KYC_BLOCKED", // KYC 결제 차단
+		},
+		pg.DeclineOther: {
+			"REJECT_CARD_COMPANY", // 결제 승인이 거절
+			"INVALID_REJECT_CARD", // 카드 사용이 거절, 카드사 문의
+			"NOT_ALLOWED_POINT_USE",
+			"INVALID_PASSWORD",
+			"PAY_PROCESS_CANCELED",
+			"PAY_PROCESS_ABORTED",
+		},
+	}
+
+	got := map[string]pg.Decline{}
+	for d, cs := range want {
+		for _, c := range cs {
+			require.NotContains(t, got, c, "%s is listed twice", c)
+			got[c] = d
+		}
+	}
+	require.Equal(t, got, declines)
+
+	for code, d := range declines {
+		require.Equal(t, d, decline(code), code)
+		for _, status := range []int{400, 403, 404} {
+			require.Equal(t, pg.Declined, kind(status, code), "%s at %d: a decline is the card's, whatever the status", code, status)
+		}
+		require.NotContains(t, codes, code, "%s is a decline and something else", code)
+	}
+}
+
+// A decline the table does not place is the zero kind, Other, and keeps its
+// code; and a code the tables do not have is no decline at all, but read as
+// it was before the kinds came: by its status, and the PG's own in a payment.
+func TestADeclineNothingPlacesIsOther(t *testing.T) {
+	require.Equal(t, pg.DeclineOther, pg.Decline(0), "the zero Decline")
+	require.Equal(t, pg.DeclineOther, decline("A_DECLINE_TOSS_ADDS_TOMORROW"))
+	require.Equal(t, pg.DeclineOther, decline(""))
+
+	require.Equal(t, pg.Invalid, kind(403, "A_DECLINE_TOSS_ADDS_TOMORROW"), "a 4xx levyan cannot read is an operator's, as before")
+	require.Equal(t, &pg.Failure{Kind: pg.Unknown, Code: "A_DECLINE_TOSS_ADDS_TOMORROW", Message: "…"}, failure("A_DECLINE_TOSS_ADDS_TOMORROW", "…"))
+
+	f := pg.Failure{Kind: pg.Declined, Code: "A_DECLINE_TOSS_ADDS_TOMORROW"}
+	require.Equal(t, pg.DeclineOther, f.Decline, "a Declined failure no channel placed is Other")
+	require.Equal(t, "A_DECLINE_TOSS_ADDS_TOMORROW", f.Code)
+
+	for d, s := range map[pg.Decline]string{pg.DeclineOther: "other", pg.DeclineTemporary: "temporary", pg.DeclineReplace: "replace", pg.DeclineFraud: "fraud", 9: "decline 9"} {
+		require.Equal(t, s, d.String())
+	}
 }

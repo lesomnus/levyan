@@ -128,6 +128,7 @@ func TestLive(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, pg.Failed, p.Status)
 		require.Equal(t, pg.Declined, p.Failure.Kind)
+		require.Equal(t, pg.DeclineTemporary, p.Failure.Decline)
 		require.Equal(t, "REJECT_CARD_PAYMENT", p.Failure.Code)
 
 		q, err := ch.Payment(t.Context(), o)

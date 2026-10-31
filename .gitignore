@@ -1,0 +1,5 @@
+.gen/
+dist/
+node_modules/
+*.db
+*-checkpoints.pem

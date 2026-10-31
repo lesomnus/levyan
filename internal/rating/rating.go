@@ -6,7 +6,7 @@
 // the versions and the period, it answers the same however often it is asked,
 // which is what a closed period rated again for its correction relies on.
 //
-// # The rules (levyan#6, the owner's)
+// # The rules (levyan#6: Claude's, the lead's, which the owner may overturn)
 //
 //   - A period is what the product's zone makes a calendar month. Its usage is
 //     the meter's aggregation over the **whole** period ([usage.Average],

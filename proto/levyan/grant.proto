@@ -1,0 +1,250 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Grant is one thing a workspace of a product was given, for a window of
+// time: a key, a value, and when it begins and ends -- what payday's
+// `GrantService` serves the product, which keeps a copy and checks it in the
+// transaction of the write it decides (payday#185, #7).
+//
+// It is **state**: every change to a grant is the whole of it again at a
+// greater `version`, and a grant is taken away by ending it -- `valid_until`
+// moved to now -- never by deleting it. So the product applies what it hears
+// once, in any order, and a copy that missed something is put right by the
+// next thing it hears of the grant. Its identifier is never another grant's:
+// the row is never deleted, and what has ended stays ended.
+//
+// Every grant ends. One that is meant to last `renews`: its end is
+// `grants.horizon` from now, and `levyan.grants.renew` moves it on while the
+// grant lasts, so that a product that stops hearing from levyan keeps it
+// until then and no longer (`server/grants`). One whose giver said when it
+// ends -- an operator's `--until` -- ends then, and is not renewed.
+//
+// What a grant gives is **positive**: a feature, or how much of something.
+// The copy reads a key no grant gives as not entitled, so a gap in levyan --
+// a grant not renewed, a stream that never came back -- takes away exactly
+// what grants give. A restriction is therefore a grant that restricts when it
+// is there (`loft.restricted` ON), and never the absence of one: an app's core
+// writes are never held to a grant's presence, or a gap in levyan would stop
+// every workspace at once (docs/design.md, "권한 부여와 앱으로 보내는 스트림").
+//
+// Written through the servers, so the trail says who gave each and who ended
+// it: an operator by their row, the deployment's own rules as the deployment.
+message Grant {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is a grant of.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it is given to: the product's own tenant, which the
+  // product names by its identifier (`Workspace.key`). The set it is in.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // Why it was given, as whoever gave it says: "파일럿, 2027년 3월까지".
+  string desc = 6 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // What it gives: lower case words of letters, digits and `_` joined by
+  // dots, the product's name first -- `loft.export`, `loft.restricted` -- as
+  // payday's `entitle.CheckKey` says.
+  string key = 8 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // What it gives of its key. A grant gives one value for as long as it
+  // lasts: another value is another grant.
+  GrantValue value = 9 [(orm.field) = {immutable: true}];
+
+  // How much, for a value of LIMIT: the whole of what the workspace may hold
+  // while the grant decides its key, zero or more -- a total and never an
+  // amount to add to another grant's. Zero for any other value.
+  int64 limit = 10 [(orm.field) = {immutable: true}];
+
+  // When it begins: unset is the moment it is given.
+  google.protobuf.Timestamp valid_from = 11 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // When it ends, which every grant says: the moment it is in force no
+  // longer. Moved on by a renewal, and to now when it is ended; never later
+  // once it has passed, but for a grant that `renews` and was not renewed in
+  // time, which is renewed when it can be. An Add says it: the server
+  // refuses one that does not, rather than letting the default end a grant
+  // as it is given (`server/grants`).
+  google.protobuf.Timestamp valid_until = 12 [(orm.field) = {default: ""}];
+
+  // Stamped with every change, as `version` is moved on.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Stamped once the grant has been over for long enough that the product
+  // has stopped being told of it (`grants.Listed`): the row stays, for the
+  // trail and for what was given when, and is in no list from then on.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was given.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // Orders its states: 1 as it is given, and one more with every change of
+  // it, which the server says rather than the request (`server/grants`).
+  uint64 version = 16;
+
+  // Where it comes from.
+  GrantSource source = 17 [(orm.field) = {immutable: true}];
+
+  // For a grant of a rule, which rule: `payers.grace`. Empty for any other.
+  string rule = 18 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // Renewed while it lasts: its end is `grants.horizon` from its last
+  // renewal, and moved on by `levyan.grants.renew`. Unset on a grant whose
+  // end is its own, and on one that has been ended.
+  bool renews = 19;
+
+  option (orm.message) = {
+    rpc: {crud: true}
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A workspace's grants, in the order they were given.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // What a renewal looks for: grants that renew, by when they end.
+        name: "renewal"
+        refs: [
+          {
+            name: "renews"
+            number: 19
+          },
+          {
+            name: "valid_until"
+            number: 12
+          }
+        ]
+      },
+      {
+        // A rule's grants of a product, by key.
+        name: "rule"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "rule"
+            number: 18
+          },
+          {
+            name: "key"
+            number: 8
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 18
+    tenanted: {
+      via: "tenant"
+      agrees: ["workspace.tenant"]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      with: [{name: "workspace"}]
+      by: [
+        {name: "ref"},
+        {name: "workspace"}
+      ]
+      size: 100
+      max: 500
+    }
+  };
+}
+
+// GrantValue is what a grant gives of its key: payday's `EntitlementGrant`
+// value, of which a grant says exactly one.
+enum GrantValue {
+  GRANT_VALUE_UNSPECIFIED = 0;
+
+  // A feature, switched on.
+  GRANT_VALUE_ON = 1;
+
+  // How much of something may be held: `Grant.limit`.
+  GRANT_VALUE_LIMIT = 2;
+
+  // No bound at all, which is a value and not the absence of one.
+  GRANT_VALUE_UNLIMITED = 3;
+}
+
+// GrantSource is where a grant comes from.
+enum GrantSource {
+  GRANT_SOURCE_UNSPECIFIED = 0;
+
+  // An operator, by hand (`levyan-admin grant add`).
+  GRANT_SOURCE_OPERATOR = 1;
+
+  // A rule of levyan's, from what it knows of the workspace's billing: a
+  // workspace without a payer past its grace, say (`server/grants`, `Rule`).
+  GRANT_SOURCE_RULE = 2;
+
+  // A contract with the customer, given by an operator.
+  GRANT_SOURCE_CONTRACT = 3;
+
+  // A trial, given by an operator.
+  GRANT_SOURCE_TRIAL = 4;
+}

@@ -30,7 +30,7 @@ require (
 	github.com/lesomnus/levyan/api v0.0.0-00010101000000-000000000000
 	github.com/lesomnus/mkot/otlp v0.0.0-20261013182918-46d8b05a79b3
 	github.com/lesomnus/otx v0.0.0-20261013182912-d2af55df512e
-	github.com/lesomnus/payday v0.0.0-20261031012431-027b311316c2
+	github.com/lesomnus/payday v0.0.0-20261031085636-0d342d896262
 	github.com/lesomnus/protobuf-patch v0.0.0-20260803175157-e1b7a0c2804f
 	github.com/lesomnus/xli v0.0.0-20261006051808-dadaa2417a76
 	github.com/lesomnus/xli/cfg v0.1.2

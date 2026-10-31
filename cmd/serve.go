@@ -24,12 +24,14 @@ import (
 	"github.com/lesomnus/payday/trail"
 	"github.com/lesomnus/payday/watch"
 	"github.com/lesomnus/payday/web"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
 	"github.com/lesomnus/levyan/server/bare"
 	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/book"
+	"github.com/lesomnus/levyan/server/grants"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/pd"
@@ -103,6 +105,12 @@ type Server struct {
 	// operator's entry point.
 	Closer billing.Closer
 
+	// Grants gives and ends what products' workspaces are granted, through
+	// the server with no wall: by the loop `levyan.grants.renew`, and by an
+	// operator's hand through the operator's entry point. Its Rules are the
+	// hook billing state gives grants by (`grants.Rule`).
+	Grants grants.Grants
+
 	// Spin is whatever this deployment has to run besides answering requests,
 	// each a loop with a name of its own (`spin.Called`), run under
 	// `spin.lease` by the serve command: in one process of the deployment, but
@@ -133,6 +141,13 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		db.Close()
 		return nil, err
 	}
+	if b == nil {
+		// What a product is granted is streamed to it (`payday.GrantService`
+		// Watch), from the outbox through the broker; a deployment that
+		// publishes nowhere would answer every product's stream with nothing.
+		db.Close()
+		return nil, errors.New("watch.broker: levyan streams what it grants to products, so it publishes: `memory` for one process, `postgres` for more")
+	}
 
 	w := watch.New(b)
 
@@ -147,9 +162,17 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 		db.Close()
 		return nil, err
 	}
+
+	// A grant's change is in the outbox always, whatever `watch.outbox` says
+	// of the rest: written in the transaction that makes it and published by
+	// the drain once it is committed, which is what a product's stream of its
+	// grants is fed by (`server/api`). So a grant an operator gives through
+	// `levyan-admin`, another process, reaches the stream as one the loop
+	// gives does, and none is lost between the commit and the publish.
 	rec := bare.Recorders{
 		pd.Recorder(content),
-		pd.ResourceRecorder(w, c.Watch.Outbox, nil, resource.RecorderOptions{}),
+		pd.ResourceRecorder(w, c.Watch.Outbox, not(isGrant), resource.RecorderOptions{}),
+		pd.ResourceRecorder(nil, true, isGrant, resource.RecorderOptions{}),
 		pd.AccessRecorder(),
 	}
 
@@ -174,7 +197,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// already let the caller name; `pd.Gate` is outermost, so nothing behind
 	// it asks again. A key's verifier is cleared on the way out of both
 	// (`pd.Secret`), so that nothing answers with it.
-	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), pd.GateBuild())
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -182,10 +205,10 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 
 	// And the same servers with no wall and no gate, which is what the
 	// deployment does its own work through -- the same rules of the price
-	// book on it, since an operator's price is held to them as a product's
-	// would be. It still keeps the trail: going around the wall is not going
-	// around the record of having done so.
-	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock))
+	// book and of grants on it, since an operator's price is held to them as
+	// a product's would be. It still keeps the trail: going around the wall
+	// is not going around the record of having done so.
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock))
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -199,10 +222,9 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	s.Access = &access.Writer{Sink: pd.AccessSink(client)}
 	s.Spin = append(s.Spin, s.Access)
 
-	if c.Watch.Outbox && b != nil {
-		// The loop that makes an event durable.
-		s.Spin = append(s.Spin, pd.Drain(client, b, c.Watch.Every()))
-	}
+	// The loop that publishes what the outbox holds -- every grant's change,
+	// and the rest when `watch.outbox` says so -- once it is committed.
+	s.Spin = append(s.Spin, pd.Drain(client, b, c.Watch.Every()))
 
 	// The loop that closes a product's period once it has waited out its
 	// grace for what comes late (`levyan.periods.close`): a statement of each
@@ -210,6 +232,14 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// closed for every workspace of a product and by no caller of it.
 	s.Closer = billing.Closer{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Grace: c.Periods.GraceAfter()}
 	s.Spin = append(s.Spin, billing.ClosePeriods(s.Closer, c.Periods.CloseEvery()))
+
+	// The loop that keeps what products' workspaces are granted
+	// (`levyan.grants.renew`): what the rules want given and what they no
+	// longer want ended, the grants that renew renewed before they end, and
+	// those over for long enough erased out of every list -- through the
+	// server with no wall, as the deployment.
+	s.Grants = grants.Grants{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Horizon: c.Grants.HorizonOf()}
+	s.Spin = append(s.Spin, grants.Renewals(&s.Grants, c.Grants.RenewEvery()))
 
 	// The loop that looks for readings that should have come and have not
 	// (`levyan.readings.gaps`): a workspace that has been sending a stock
@@ -400,4 +430,27 @@ func (s *Server) serveHttp(ctx context.Context, c Config, g *grpc.Server) (func(
 	log.From(ctx).InfoContext(ctx, "http", slog.String("addr", l.Addr().String()))
 
 	return func() { srv.Close() }, nil
+}
+
+// grantName is a grant's message, as an event of a change names its type.
+var grantName = (&levyan.Grant{}).ProtoReflect().Descriptor().FullName()
+
+// isGrant selects the events of a change of a grant.
+func isGrant(_ context.Context, e *pdpb.WatchEvent) (bool, error) {
+	var name protoreflect.FullName
+	if v := e.GetValue(); v != nil {
+		name = v.MessageName()
+	} else {
+		name = e.GetPrevious().MessageName()
+	}
+
+	return name == grantName, nil
+}
+
+// not is the events `f` does not select.
+func not(f resource.Select) resource.Select {
+	return func(ctx context.Context, e *pdpb.WatchEvent) (bool, error) {
+		ok, err := f(ctx, e)
+		return !ok, err
+	}
 }

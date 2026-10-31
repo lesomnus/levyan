@@ -12,6 +12,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
+	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
 	"github.com/lesomnus/levyan/internal/ent/meter"
 	"github.com/lesomnus/levyan/internal/ent/operator"
@@ -93,6 +94,7 @@ func checkColumn(t, c string) error {
 			access.Table:     access.ValidColumn,
 			archived.Table:   archived.ValidColumn,
 			audit.Table:      audit.ValidColumn,
+			grant.Table:      grant.ValidColumn,
 			holder.Table:     holder.ValidColumn,
 			meter.Table:      meter.ValidColumn,
 			operator.Table:   operator.ValidColumn,

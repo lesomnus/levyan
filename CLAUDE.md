@@ -6,9 +6,18 @@ apps' tenants for what they hold and use. Most of it is **generated from
 then write the part no schema can state.
 
 `README.md` is how to run it (in Korean), `docs/design.md` why it is shaped
-this way (in Korean, condensed from levyan#1, which says whose each decision
-is). Code comments, commits and this file are English; issues, PRs and the
-docs are Korean.
+this way (in Korean, condensed from levyan#1). Code comments, commits and this
+file are English; issues, PRs and the docs are Korean.
+
+Whose a decision is, is said wherever one is written down -- docs, PRs, code
+comments -- with one of three labels, and never more than it was:
+
+- **대표**, the owner: only what the owner decided, which is levyan#1's
+  "정한 것 (2026-10-31, 대표)" table (docs/design.md §2).
+- **Claude**, the lead: what Claude decided carrying out the owner's plan
+  ("남은 작업 모두 진행해줘") -- what a sub-issue was handed with. The owner
+  may overturn it, and it is never written as the owner's.
+- **구현에서 정한 것**: what the agent implementing a sub-issue chose.
 
 ## Regenerate after touching the schema
 
@@ -22,13 +31,9 @@ A generated file that was not regenerated **compiles perfectly and is wrong**.
 If you edited anything under `proto/`, you are not done until `pd gen --check`
 exits 0. `pd gen` fetches the buf it pins; there is no page and no `--ts`.
 
-**`pd gen` deletes the API's generated Go** (`api/levyan/v1/*.pb.go`), and so
-does `pd gen --check`: payday sweeps away generated Go it did not write
-anywhere in the tree, and does not stop at the api module's go.mod. So the API
-is generated after it, always -- `scripts/gen.sh` does both, and CI runs
-`scripts/api.sh --check` after `pd gen --check`. A build after `pd gen` alone
-fails to compile `server/api`, which is how it is noticed; the fix belongs in
-payday's sweep.
+The API (`api/`) is a module of its own, which `pd gen` and `pd gen --check`
+leave alone (payday#189): `scripts/api.sh` is its generation, and runs the buf
+`pd gen` fetched.
 
 ## The API apps call (`api/`)
 
@@ -36,11 +41,11 @@ payday's sweep.
 generated from `proto/`, names nothing of payday's, and lives in a Go module of
 its own (`github.com/lesomnus/levyan/api`) that requires gRPC and protobuf and
 nothing else. That is so that an app calling levyan is never held to the payday
-levyan is built with -- the way loft is held to roster's (docs/design.md §7).
+levyan is built with -- the way loft is held to roster's (docs/design.md §8).
 The root module uses it through `replace ./api`.
 
 ```sh
-scripts/api.sh            # after editing api/levyan/v1/*.proto, and after every pd gen
+scripts/api.sh            # after editing api/levyan/v1/*.proto
 scripts/api.sh --check    # what CI runs: generated Go current, nothing of payday's required
 scripts/api.sh --breaking origin/main
 ```
@@ -163,8 +168,10 @@ that test.
 is refused. A new RPC is closed until it is added there. The kinds:
 
 - **product** — a `ServiceKey` frame, which sees its own tenant and nothing else:
-  `levyan.v1`, and the receiver of its flows
-  (`opentelemetry.proto.collector.metrics.v1.MetricsService/Export`);
+  `levyan.v1`, the receiver of its flows
+  (`opentelemetry.proto.collector.metrics.v1.MetricsService/Export`), and
+  payday's `payday.GrantService` (`Watch`, `List`), what its workspaces are
+  granted;
 - **payer** — not yet: an account, in no tenant, once payday says how an account
   calls (payday#184);
 - operators never call here.
@@ -194,7 +201,7 @@ a generated one.
 
 ## The ledger
 
-What products send of their workspaces (`server/ledger`, docs/design.md §8):
+What products send of their workspaces (`server/ledger`, docs/design.md §9):
 a stock's **readings** (`levyan.v1.MeteringService/Record`) and a flow's
 **points** (OpenTelemetry's `MetricsService/Export`, `server/otlp`). Both are
 rows that are never changed: every field immutable, no Patch, no Erase.
@@ -241,7 +248,7 @@ test).
 
 ## Rating and closing periods
 
-What a workspace's period comes to (`server/billing`, docs/design.md §9). The
+What a workspace's period comes to (`server/billing`, docs/design.md §10). The
 arithmetic is pure and has tests of its own, by hand: `internal/usage` (what a
 stretch held or did) and `internal/rating` (what it comes to under the versions
 in force). Keep it there; `server/billing` only reads the ledger into it.
@@ -279,7 +286,7 @@ in force). Keep it there; `server/billing` only reads the ledger into it.
 
 ## The PG channel (`internal/pg`)
 
-What levyan asks of a PG it sells through (docs/design.md §10): the
+What levyan asks of a PG it sells through (docs/design.md §11): the
 interface, `pg.Channel`, and one candidate's adapter, `internal/pg/toss`.
 **Which PG is the owner's decision and is not made**; nothing but the wiring
 names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
@@ -300,6 +307,45 @@ names `toss`, and the fake (`internal/pg/toss/tosstest`) is what tests use.
   inbox, `Recheck` asks the PG, and only that answer is believed. Two answers
   are ordered by `Payment.Progress`, never by time.
 
+## Grants
+
+What a product's workspaces are granted (`server/grants`, docs/design.md §12,
+#7): a key, a value and a window, which the product keeps a copy of with
+payday's `entitle.Follower` and checks in the transaction of the write each
+decides (payday#185). levyan is the source; the contract is payday's
+`payday.GrantService`, served in `server/api/grants.go`.
+
+- **State, never a delta.** Every change of a grant is all of it again at a
+  greater `version`, which the layer (`grants.Layer`, on both stacks) says --
+  1 on Add, the row's plus one on Patch -- and no request does. What changes
+  is its end and whether it renews, nothing else: another value is another
+  grant. A grant is taken away by ending it (`valid_until` now), never by
+  deleting it; one over for `grants.Listed` is soft-erased out of every list.
+- **Every write of a grant holds its row first** (`FOR UPDATE` on PostgreSQL),
+  and a grant given holds its workspace's (`ledger.Lock`): the layer reads the
+  row it patches, and two changes read at once would be one version. Write a
+  grant through `grants.Grants` (Give, End, Renew, Retire, Follow), never a
+  Patch of your own.
+- **Every grant ends.** One with no end of its own renews: `grants.horizon`
+  (a week) from its last renewal, renewed once less than half is left. One
+  given with `--until` ends then.
+- **Positive grants only.** The copy reads a missing grant as not entitled, so
+  a restriction is a grant that restricts when present (`loft.restricted`
+  ON), and an app's core writes are never held to a grant's presence.
+- **Its changes are always in the outbox**, whatever `watch.outbox` says of
+  the rest (`cmd.Build`'s second resource recorder), and the drain
+  (`payday.outbox`) publishes them; `Watch` subscribes before `ready`, reads
+  each changed grant through the walled stack, and is cut off
+  (ResourceExhausted) when the broker cuts its subscription for falling
+  behind. So `watch.broker: none` is refused, and two processes need the
+  `postgres` broker.
+- **Sources.** An operator's (`levyan-admin grant add|end|ls`: operator,
+  contract or trial, one giver -- a second grant of a key is refused unless
+  `--replace`) and a rule's (`grants.Rule`, the hook billing state plugs
+  into: `cmd.Server.Grants.Rules`). A rule's grants are its own by its name:
+  kept while wanted, given again when the value changes, ended when no longer
+  wanted, and never an operator's to end.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -312,6 +358,9 @@ process's access writer.
 
 levyan's own:
 
+- `levyan.grants.renew` (`grants.Renewals`) gives what the rules want and ends
+  what they no longer want, renews the grants that are due, and erases those
+  over for `grants.Listed`, through `Ungated` as the deployment.
 - `levyan.periods.close` (`billing.ClosePeriods`) closes every period that has
   ended and waited out `periods.grace`, through `Ungated` as the deployment;
   an operator's `period close` is the same through their frame.
@@ -319,7 +368,8 @@ levyan's own:
   stopped sending a stock meter's readings, in the log and in the gauge
   `levyan.readings.gaps`.
 
-A pass of either that fails is logged and the next tries again.
+A pass of any of them that fails is logged and the next tries again. And
+payday's `payday.outbox` always runs: it is what streams a grant's change.
 
 ## Configuration and secrets
 

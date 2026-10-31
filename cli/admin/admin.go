@@ -49,7 +49,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 	l := cfg.New(cmd.Name, c)
 	version := pdcmd.NewCmdVersion()
 	product, key, meter, price, gap := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice(), newCmdGap()
-	period, statement := newCmdPeriod(), newCmdStatement()
+	period, statement, grant := newCmdPeriod(), newCmdStatement(), newCmdGrant()
 
 	return &xli.Command{
 		Name:  "levyan-admin",
@@ -72,11 +72,12 @@ func Cmd(c *cmd.Config) *xli.Command {
 			gap,
 			period,
 			statement,
+			grant,
 		},
 
 		// What asks the entry point reads none of a deployment's
 		// configuration: an operator runs it from their own machine.
-		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement), xli.RequireSubcommand()),
+		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant), xli.RequireSubcommand()),
 	}
 }
 
@@ -869,6 +870,156 @@ func newCmdStatement() *xli.Command {
 						self.Printf("  %s\t%s %s\tincluded %s, billable %s\t%s\t%s\n", l.Meter, l.Usage, l.Unit, l.Included, l.Billable, l.Amount, what)
 					}
 					self.Printf("  total\t%s exactly, %s\trated by version %d\n", v.Exact, money.String(v.Total, v.Currency), v.Rating)
+					return next(ctx)
+				}),
+			},
+		},
+		Handler: xli.RequireSubcommand(),
+	}
+}
+
+func printGrant(self *xli.Command, v admin.Grant) {
+	value := v.Value
+	if v.Limit != nil {
+		value = "limit " + strconv.FormatInt(*v.Limit, 10)
+	}
+	until := "until " + when(v.Until)
+	if v.Renews {
+		until += ", renewed"
+	}
+	from := v.Source
+	if v.Rule != "" {
+		from += " " + v.Rule
+	}
+	extra := ""
+	if v.Erased != nil {
+		extra = "\terased " + when(*v.Erased)
+	}
+	if v.Desc != "" {
+		extra += "\t" + v.Desc
+	}
+	self.Printf("%s\t%s\t%s\t%s\tfrom %s %s\t%s\tv%d%s\n", v.Id, v.Workspace, v.Key, value, when(v.From), until, from, v.Version, extra)
+}
+
+func newCmdGrant() *xli.Command {
+	return &xli.Command{
+		Name:  "grant",
+		Brief: "what a product's workspaces are given by hand: give, end, list",
+		Commands: xli.Commands{
+			{
+				Name:  "add",
+				Brief: "give a workspace a feature on, a limit or no bound of a key, renewed while it lasts unless --until says when it ends",
+				Flags: flg.Flags{
+					&flg.String{Name: "workspace", Brief: "the workspace, by the identifier of its payday tenant"},
+					&flg.Switch{Name: "on", Brief: "a feature, on"},
+					&flg.Int64{Name: "limit", Brief: "how much may be held: the whole of it, never an amount to add"},
+					&flg.Switch{Name: "unlimited", Brief: "no bound at all"},
+					&flg.String{Name: "from", Brief: "when it begins, as 2006-01-02 or RFC 3339; now by default"},
+					&flg.String{Name: "until", Brief: "when it ends; by default it is renewed while it lasts, and ends when it is ended"},
+					&flg.String{Name: "source", Brief: "whose word it is: operator, contract or trial; operator by default"},
+					&flg.String{Name: "desc", Brief: "why it is given"},
+					&flg.Switch{Name: "replace", Brief: "end what was given of the key by hand, where this begins"},
+					&flg.Switch{Name: "yes", Brief: "do it"},
+				},
+				Args: arg.Args{productArg, &arg.String{Name: "KEY", Brief: "what it gives: loft.export"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "grant add"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+
+					on, _ := flg.Find[bool](self, "on")
+					unlimited, _ := flg.Find[bool](self, "unlimited")
+					limit, limited := flg.Find[int64](self, "limit")
+					body := map[string]any{
+						"workspace": str(self, "workspace"), "key": argOf(self, "KEY"),
+						"source": str(self, "source"), "desc": str(self, "desc"),
+					}
+					n := 0
+					if on {
+						body["value"], n = "on", n+1
+					}
+					if unlimited {
+						body["value"], n = "unlimited", n+1
+					}
+					if limited {
+						body["value"], body["limit"], n = "limit", limit, n+1
+					}
+					if n != 1 {
+						return errors.New("grant add: one of --on, --limit N and --unlimited")
+					}
+					if v, _ := flg.Find[bool](self, "replace"); v {
+						body["replace"] = true
+					}
+					for _, k := range []string{"from", "until"} {
+						if v := str(self, k); v != "" {
+							t, err := instant(v)
+							if err != nil {
+								return fmt.Errorf("--%s: %w", k, err)
+							}
+							body[k] = t
+						}
+					}
+
+					var v admin.Grant
+					if err := c.do(ctx, http.MethodPost, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/grants", body, &v); err != nil {
+						return err
+					}
+					printGrant(self, v)
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "end",
+				Brief: "end a grant now: in force no longer, and never again",
+				Flags: flg.Flags{&flg.Switch{Name: "yes", Brief: "do it"}},
+				Args:  arg.Args{&arg.String{Name: "ID", Brief: "the grant, as `grant ls` lists it"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "grant end"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					var v admin.Grant
+					if err := c.do(ctx, http.MethodPost, "/admin/grants/"+url.PathEscape(argOf(self, "ID"))+"/end", map[string]string{}, &v); err != nil {
+						return err
+					}
+					printGrant(self, v)
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "ls",
+				Brief: "a product's grants, the latest given first: in force, to come, and ended within two days",
+				Flags: flg.Flags{
+					&flg.String{Name: "workspace", Brief: "of one workspace, by the identifier of its payday tenant"},
+					&flg.Switch{Name: "all", Brief: "and those ended before, erased out of every list"},
+				},
+				Args: arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					q := url.Values{}
+					if v := str(self, "workspace"); v != "" {
+						q.Set("workspace", v)
+					}
+					if v, _ := flg.Find[bool](self, "all"); v {
+						q.Set("all", "true")
+					}
+					var vs []admin.Grant
+					if err := c.do(ctx, http.MethodGet, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/grants?"+q.Encode(), nil, &vs); err != nil {
+						return err
+					}
+					for _, v := range vs {
+						printGrant(self, v)
+					}
 					return next(ctx)
 				}),
 			},

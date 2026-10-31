@@ -152,6 +152,67 @@ var (
 			},
 		},
 	}
+	// GrantColumns holds the columns for the "grant" table.
+	GrantColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "desc", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "value", Type: field.TypeInt32},
+		{Name: "limit", Type: field.TypeInt64},
+		{Name: "valid_from", Type: field.TypeTime, Nullable: true},
+		{Name: "valid_until", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "version", Type: field.TypeUint64},
+		{Name: "source", Type: field.TypeInt32},
+		{Name: "rule", Type: field.TypeString},
+		{Name: "renews", Type: field.TypeBool},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+	}
+	// GrantTable holds the schema information for the "grant" table.
+	GrantTable = &schema.Table{
+		Name:       "grant",
+		Columns:    GrantColumns,
+		PrimaryKey: []*schema.Column{GrantColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "grant_tenant_tenant",
+				Columns:    []*schema.Column{GrantColumns[14]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "grant_workspace_workspace",
+				Columns:    []*schema.Column{GrantColumns[15]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "grant_page",
+				Unique:  false,
+				Columns: []*schema.Column{GrantColumns[14], GrantColumns[9], GrantColumns[0]},
+			},
+			{
+				Name:    "grant_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{GrantColumns[15], GrantColumns[9], GrantColumns[0]},
+			},
+			{
+				Name:    "grant_renewal",
+				Unique:  false,
+				Columns: []*schema.Column{GrantColumns[13], GrantColumns[6]},
+			},
+			{
+				Name:    "grant_rule",
+				Unique:  false,
+				Columns: []*schema.Column{GrantColumns[14], GrantColumns[12], GrantColumns[2]},
+			},
+		},
+	}
 	// HolderColumns holds the columns for the "holder" table.
 	HolderColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -771,6 +832,7 @@ var (
 		AccessTable,
 		ArchivedTable,
 		AuditTable,
+		GrantTable,
 		HolderTable,
 		MeterTable,
 		OperatorTable,
@@ -798,6 +860,11 @@ func init() {
 	}
 	AuditTable.Annotation = &entsql.Annotation{
 		Table: "audit",
+	}
+	GrantTable.ForeignKeys[0].RefTable = TenantTable
+	GrantTable.ForeignKeys[1].RefTable = WorkspaceTable
+	GrantTable.Annotation = &entsql.Annotation{
+		Table: "grant",
 	}
 	HolderTable.ForeignKeys[0].RefTable = TenantTable
 	HolderTable.Annotation = &entsql.Annotation{

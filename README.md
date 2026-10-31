@@ -11,8 +11,9 @@ payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. �
 - **금액 계산.** 통화의 최소 단위 정수로, 무료량을 빼고, 끝에서 한 번 내림한다. 통화가 다른 금액은 더하지 않는다.
 - **계량.** 제품이 보낸 보유량(읽은 값)과 흐름(OpenTelemetry 누적 Sum)을 바뀌지 않는 원장에 남긴다. 같은 값이 두 번 와도 한 행이고, 같은 시각에 다른 값이 오면 거부하고 로그에 남긴다. 이미 닫힌 기간에 대한 늦은 값도 받아서 정정 대상으로 표시한다. 와야 할 보유량이 오지 않으면 경보를 낸다.
 - **금액 계산과 기간 닫기.** 기간은 제품의 zone에서의 달력 월이다. 기간이 끝나고 유예(48시간)가 지나면 닫고, 워크스페이스마다 내역(Statement)을 쓴다. 내역은 바꾸지 않는다. 늦은 값은 다음 내역의 정정 줄이 된다. 제품은 지금 기간의 사용량과 예상 금액, 그리고 내역을 읽는다.
+- **권한 부여.** 워크스페이스마다 Grant(키, 값, 유효 기간)를 주고, payday의 `GrantService`로 제품에게 스트림과 목록을 준다. 제품은 자기 DB에 사본을 두고 검사한다. 운영자는 손으로 주고 끝낸다. 끝이 없는 Grant는 7일 앞까지 유효하고 루프가 갱신한다.
 
-결제 계정과 권한 부여는 다음 하위 이슈(#4, #7)에서 온다. 그때까지 내역은 제품의 기본 채널과 통화로 매긴다.
+결제 계정은 다음 하위 이슈(#4)에서 온다. 그때까지 내역은 제품의 기본 채널과 통화로 매긴다. 앱이 할 일은 [docs/apps.md](docs/apps.md)에 있다.
 
 ## 두 바이너리
 
@@ -170,6 +171,22 @@ curl -sX POST http://localhost:8080/levyan.v1.BillingService/GetUsage \
 
 `GetUsage`는 지금 기간을 지금 닫는다면 내역이 무엇일지를 답한다. 각 미터의 최신 값이 기간 끝까지 이어진다고 보고 계산한 예상 금액이며, 닫기와 같은 계산이다. `ListStatements`와 `GetStatement`는 닫은 기간의 내역이다.
 
+### 권한 부여
+
+운영자는 워크스페이스에 손으로 Grant를 준다. 파일럿 고객과 계약 고객에게 쓴다. 워크스페이스는 제품 쪽 payday tenant id다. `--until`이 없으면 7일(`grants.horizon`) 앞까지 유효하고, `levyan serve`의 루프(`levyan.grants.renew`)가 반이 남을 때마다 갱신한다. trail에는 그 운영자가 남는다.
+
+```sh
+admin grant add --workspace <id> --on --source trial --desc '파일럿' --yes loft loft.export
+admin grant add --workspace <id> --limit 20 --until 2027-06-30 --source contract --yes loft loft.seats
+admin grant add --workspace <id> --limit 30 --replace --source contract --yes loft loft.seats  # 앞의 것을 이것의 시작에서 끝낸다
+admin grant ls --workspace <id> loft
+admin grant end --yes <grant id>
+```
+
+값은 `--on`, `--limit N`, `--unlimited` 중 하나다. 한도는 더할 양이 아니라 전체다. 빼앗는 것은 끝내는 것이다. 끝난 Grant는 48시간 동안 제품의 목록에 남고, 그 뒤에는 목록에서 빠진다(`grant ls --all`로 본다). 규칙이 준 Grant는 규칙의 것이라 운영자가 끝내지 않는다.
+
+제품은 payday의 `payday.GrantService`(`Watch`, `List`)를 같은 주소에서 같은 키로 부른다. payday의 `entitle.Follower`가 그것으로 사본을 둔다([docs/apps.md](docs/apps.md)). levyan은 Grant의 변경을 늘 outbox에 쓰고, drain 루프(`payday.outbox`)가 broker로 낸다. 그래서 `watch.broker: none`으로는 시작하지 않는다.
+
 ## 배포
 
 이미지는 `ghcr.io/lesomnus/levyan:edge`이고, `main`에서만 올라간다. 두 바이너리가 다 들어 있다. 기본 엔트리포인트는 `levyan serve`이고, 운영자의 문은 `--entrypoint /usr/local/bin/levyan-admin`으로 띄운다.
@@ -194,6 +211,6 @@ go test ./...                                             # SQLite
 PDTEST_POSTGRES='postgres://…?sslmode=disable' go test ./... # PostgreSQL
 ```
 
-`pd gen`은 자기가 고정한 buf를 받아서 쓰고, `scripts/api.sh`도 그 buf를 쓴다. `pd gen`은 API의 생성 코드(`api/levyan/v1/*.pb.go`)를 지우므로 API는 늘 그 뒤에 생성한다. `scripts/gen.sh`가 둘을 차례로 한다. 이 저장소에는 페이지(TS)가 없으므로 node는 필요 없다.
+`pd gen`은 자기가 고정한 buf를 받아서 쓰고, `scripts/api.sh`도 그 buf를 쓴다. API(`api/`)는 따로 된 모듈이라 `pd gen`이 건드리지 않는다(payday#189). `scripts/gen.sh`가 둘을 차례로 한다. 이 저장소에는 페이지(TS)가 없으므로 node는 필요 없다.
 
 `CLAUDE.md`는 이 저장소에서 일하는 법을 영어로 적은 것이다.

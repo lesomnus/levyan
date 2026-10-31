@@ -73,6 +73,10 @@ func init() {
 	// And what they do, as OpenTelemetry Sums, into the same ledger
 	// (`server/otlp`).
 	allow(Product, "opentelemetry.proto.collector.metrics.v1.MetricsService", "Export")
+
+	// What its workspaces are granted, which it keeps a copy of: payday's
+	// contract, its stream and its list (`server/api`, #7).
+	allow(Product, "payday.GrantService", "Watch", "List")
 }
 
 // Policy is the table, asked.

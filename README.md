@@ -46,31 +46,31 @@ go run ./cmd/levyan serve &             # 제품이 부르는 곳, :50051
 
 ```sh
 export LEVYAN_ADMIN_KEY="\${file:$HOME/.config/levyan-dev.key}"
-A="go run ./cmd/levyan-admin"
+admin() { go run ./cmd/levyan-admin "$@"; }   # bash에서도 zsh에서도
 
-$A product add --name Loft --yes loft
-$A key issue --alias loft-dev --yes loft      # 키는 이때 한 번만 나온다
+admin product add --name Loft --yes loft
+admin key issue --alias loft-dev --yes loft      # 키는 이때 한 번만 나온다
 
-$A meter add --unit '{asset}' --kind stock --aggregation time_weighted_average \
+admin meter add --unit '{asset}' --kind stock --aggregation time_weighted_average \
   --name '활성 자산' --yes loft loft.assets.active
-$A meter add --unit d --kind stock --aggregation last --unbounded-zero \
+admin meter add --unit d --kind stock --aggregation last --unbounded-zero \
   --name '이력 보존 기간' --yes loft loft.history.keep
 
 # 무료 100개, 그 뒤로 개당 50원. 2027-01-01부터.
-$A price add --channel pg_kr --currency KRW --included 100 --unit-price 50 \
+admin price add --channel pg_kr --currency KRW --included 100 --unit-price 50 \
   --effective 2027-01-01 --desc '처음 가격' --yes loft loft.assets.active
 
 # 인상: 새 고객은 3월부터, 기존 고객은 5월부터(두 달 고지).
-$A price add --channel pg_kr --currency KRW --included 100 --unit-price 70 \
+admin price add --channel pg_kr --currency KRW --included 100 --unit-price 70 \
   --effective 2027-03-01 --existing 2027-05-01 --desc '인상' --yes loft loft.assets.active
 
 # 보존 기간: 1년까지 0원, 3년까지 10,000원, 그 위(영원히 포함) 30,000원.
-$A price add --channel pg_kr --currency KRW \
+admin price add --channel pg_kr --currency KRW \
   --band 365:0 --band 1095:10000 --band :30000 --effective 2027-01-01 --yes loft loft.history.keep
 
-$A product show loft
-$A price ls loft
-$A price timeline --channel pg_kr --currency KRW --since 2027-01-15 \
+admin product show loft
+admin price ls loft
+admin price timeline --channel pg_kr --currency KRW --since 2027-01-15 \
   --from 2027-01-15 --to 2027-07-01 loft loft.assets.active
 ```
 

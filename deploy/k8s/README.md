@@ -25,14 +25,17 @@ resources:
 ## 오버레이가 가져올 것
 
 1. **namespace.** `pod-security.kubernetes.io/enforce: restricted` 라벨을 권합니다.
-2. **Secret 셋.**
+2. **Secret.** 앞의 셋은 늘 두고, 뒤의 둘은 그것을 쓰는 배포만 둡니다.
 
    | Secret | 키 | 내용 | 만드는 법 |
    | --- | --- | --- | --- |
    | `levyan` | `db-dsn` | levyan의 DB 주소. 예: `postgres://levyan:…@db:5432/levyan?sslmode=require` | |
    | `levyan-keys` | `digest.key` | 감사 기록이 행마다 남기는 지문(HMAC)의 키. `levyan trail rows`가 이것으로 DB에서 직접 바뀐 행을 찾습니다. 잃으면 이전 지문을 검증할 수 없으니 **백업에 함께 넣되 DB 백업과는 따로** 둡니다 | `openssl rand -base64 32` |
    | `levyan-admin` | 운영자 이름마다 파일 하나(`operator`) | 운영자 키, 32자 이상. 운영자를 더하면 `admin.keys`에도 이름을 더합니다 | `openssl rand -hex 32` |
-   | `levyan-paddle` (MoR을 쓸 때) | `api-key`, `webhook-secret` | Paddle의 API 키와 알림 대상의 비밀. 둘 다 Paddle이 한 번만 보여 줍니다. 웹훅을 받지 않는 배포는 `webhook-secret`을 두지 않습니다 | Paddle 대시보드 |
+   | `levyan-roster` (roster를 쓸 때) | `key` | levyan이 roster를 부르는 키. 배포 키(`rk_…`, `auth.roster.directory`와 함께)나 디렉터리의 키(`rt_…`)이고, 그 역할에는 roster의 `standing.Methods`가 있어야 합니다(루트 README의 "지불자") | roster 운영자 |
+   | `levyan-paddle` (MoR을 쓸 때) | `api_key`, `webhook_secret` | Paddle의 API 키와 알림 대상의 비밀. 둘 다 Paddle이 한 번만 보여 줍니다. 웹훅을 받지 않는 배포는 `webhook_secret`을 두지 않습니다 | Paddle 대시보드 |
+
+   base는 `levyan-roster`와 `levyan-paddle`을 세 컨테이너(`migrate`, `levyan`, `levyan-admin`)의 `/run/secrets/levyan-roster/`와 `/run/secrets/levyan-paddle/`에 붙이고, `config.yaml`의 주석이 그 경로를 가리킵니다. 셋 모두 서버를 짓고, roster가 있는 서버는 지을 때 그 키를 읽기 때문입니다(`migrate`도). 둘 다 `optional`이므로 roster나 MoR을 쓰지 않는 배포는 그 Secret을 두지 않을 뿐, 오버레이에서 패치할 것이 없습니다.
 
 3. **설정.** base의 `config.yaml`을 복사해 채우고 바꿔 끼웁니다.
 
@@ -44,7 +47,7 @@ resources:
          - levyan.yaml=config.yaml
    ```
 
-   채울 것은 텔레메트리(`otel:`)와, 정해지면 감사 기록의 보존 기간(`audit.retain`, `audit.by`)입니다. 보존 기간이 없으면 감사 기록은 지워지지 않습니다. 돈의 기록이니 배포가 보존을 정하기 전까지는 그게 맞습니다.
+   채울 것은 텔레메트리(`otel:`)와, 정해지면 감사 기록의 보존 기간(`audit.retain`, `audit.by`)입니다. 보존 기간이 없으면 감사 기록은 지워지지 않습니다. 돈의 기록이니 배포가 보존을 정하기 전까지는 그게 맞습니다. roster를 쓰면 `auth:` 블록의 주석을 풀어 roster의 주소와 디렉터리를 적습니다. 키는 위 2의 `levyan-roster`입니다.
 
 4. **NetworkPolicy 좁히기.** `from`을 levyan을 부르는 제품의 파드로 좁힙니다. 키가 제품을 알아보지만, 네트워크가 그 앞의 두 번째 벽입니다.
 
@@ -61,7 +64,7 @@ resources:
                  matchLabels: { app.kubernetes.io/name: loft }
    ```
 
-5. **MoR(Paddle)을 쓸 때.** `config.yaml`의 `mor:` 블록을 채우고 `levyan-paddle` Secret을 `levyan` 컨테이너의 `/run/secrets/levyan-paddle`에 붙입니다. 그 MoR 채널의 수금이 시작하는 때(`invoices.mor.live_from`, RFC 3339, 예: `2026-12-01T00:00:00+09:00`)도 함께 적습니다. 없으면 levyan은 뜨지 않습니다. 그 전에 끝난 기간의 초안은 그림자로 닫혀 청구되지 않으므로, 지금이나 그 뒤의 때로 둡니다. 웹훅을 받으려면 두 번째 리스너(`server.http.addr`, 예: `:8080`)를 열고, 그 포트를 Service와 NetworkPolicy에 더하고, Paddle이 닿는 입구에서 `POST /webhooks/mor/paddle`만 그리로 보냅니다. Paddle이 닿지 않는 배포(스테이징)는 웹훅 비밀을 적지 않습니다. 그러면 levyan이 1분마다 Paddle의 이벤트 목록을 읽습니다. 그때 파드는 Paddle의 API(`sandbox-api.paddle.com` 또는 `api.paddle.com`)로 나갈 수 있어야 합니다.
+5. **MoR(Paddle)을 쓸 때.** `config.yaml`의 `mor:` 블록을 채우고 `levyan-paddle` Secret을 만듭니다. base가 그것을 `/run/secrets/levyan-paddle/`에 붙입니다(위 2). 그 MoR 채널의 수금이 시작하는 때(`invoices.mor.live_from`, RFC 3339, 예: `2026-12-01T00:00:00+09:00`)도 함께 적습니다. 없으면 levyan은 뜨지 않습니다. 그 전에 끝난 기간의 초안은 그림자로 닫혀 청구되지 않으므로, 지금이나 그 뒤의 때로 둡니다. 웹훅을 받으려면 두 번째 리스너(`server.http.addr`, 예: `:8080`)를 열고, 그 포트를 Service와 NetworkPolicy에 더하고, Paddle이 닿는 입구에서 `POST /webhooks/mor/paddle`만 그리로 보냅니다. Paddle이 닿지 않는 배포(스테이징)는 웹훅 비밀을 적지 않습니다. 그러면 levyan이 1분마다 Paddle의 이벤트 목록을 읽습니다. 그때 파드는 Paddle의 API(`sandbox-api.paddle.com` 또는 `api.paddle.com`)로 나갈 수 있어야 합니다.
 
 6. **이미지 고정.** `images:`에서 digest로 고정합니다. CI가 main에서 올린 `ghcr.io/lesomnus/levyan:edge`의 digest와 그 revision 라벨을 확인하고 씁니다.
 

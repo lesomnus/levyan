@@ -25,8 +25,9 @@ spin:
 
 # The roster whose accounts pay (#4): every call an account makes, relayed by
 # a product, is held to what roster says of it now, and with no roster named
-# none is served. The key is levyan's at roster, from a Secret an overlay
-# brings; its role holds roster's `standing.Methods`.
+# none is served. The key is levyan's at roster, in the Secret
+# `levyan-roster`, which the base mounts where this names it (README.md); its
+# role holds roster's `standing.Methods`.
 #
 # auth:
 #   roster:
@@ -35,17 +36,17 @@ spin:
 #     directory: loft
 
 # The merchant of record (#12): Paddle, with its key and its webhook secret
-# from a Secret an overlay brings (README.md). Without the block there is
-# none, and nothing is received or pulled. Webhooks come to the second
-# listener, which an overlay opens (`server.http.addr`) and lets Paddle
-# reach; a deployment Paddle cannot reach names no webhook secret, and reads
-# Paddle's events alone.
+# in the Secret `levyan-paddle`, which the base mounts where this names them
+# (README.md). Without the block there is none, and nothing is received or
+# pulled. Webhooks come to the second listener, which an overlay opens
+# (`server.http.addr`) and lets Paddle reach; a deployment Paddle cannot
+# reach names no webhook secret, and reads Paddle's events alone.
 #
 # mor:
 #   kind: paddle
 #   environment: sandbox
-#   api_key: "${file:/run/secrets/levyan-paddle/api-key}"
-#   webhook_secret: "${file:/run/secrets/levyan-paddle/webhook-secret}"
+#   api_key: "${file:/run/secrets/levyan-paddle/api_key}"
+#   webhook_secret: "${file:/run/secrets/levyan-paddle/webhook_secret}"
 #   client_token: "test_…"
 #   plans: {KRW: "pri_…", USD: "pri_…"}
 #

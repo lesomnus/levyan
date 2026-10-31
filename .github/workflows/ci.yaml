@@ -252,10 +252,31 @@ jobs:
           docker run --rm --entrypoint /usr/local/bin/levyan-admin levyan:ci version
       # The reference deployment builds, and the file it hands every process is
       # one this build reads: a manifest or a setting that broke would
-      # otherwise be found by the first deployment to apply it.
+      # otherwise be found by the first deployment to apply it. And what a
+      # deployment brings only if it has a roster or a merchant of record is
+      # mounted where config.yaml names it (#32).
       - name: the reference deployment builds and its configuration is read
         run: |
-          kubectl kustomize deploy/k8s > /dev/null
+          kubectl kustomize deploy/k8s > "${RUNNER_TEMP}/k8s.yaml"
+          # mounted SECRET DIR FILE: config.yaml names DIR/FILE, and SECRET is
+          # mounted there, read-only, in every container that builds the
+          # server -- the migration too, since a server with a roster reads
+          # its key as it is built. Optional, since a deployment without it
+          # has no such Secret; 0440, as the base's other Secrets are, for the
+          # pod's group to read.
+          mounted() {
+            grep -qF "\${file:$2/$3}" deploy/k8s/config.yaml || { echo "config.yaml names no $2/$3"; return 1; }
+            for c in migrate levyan levyan-admin; do
+              S="$1" D="$2" C="${c}" yq -e '
+                select(.kind == "Deployment") | .spec.template.spec as $s |
+                ($s.volumes[] | select(.secret.secretName == strenv(S) and .secret.optional == true and .secret.defaultMode == 288) | .name) as $v |
+                ($s.initContainers + $s.containers)[] | select(.name == strenv(C)) |
+                .volumeMounts[] | select(.name == $v and .mountPath == strenv(D) and .readOnly == true)
+              ' "${RUNNER_TEMP}/k8s.yaml" > /dev/null || { echo "${c} mounts no ${1} at ${2}"; return 1; }
+            done
+          }
+          mounted levyan-roster /run/secrets/levyan-roster key
+          mounted levyan-paddle /run/secrets/levyan-paddle api_key
           d="$(mktemp -d)"
           mkdir -p "$d/levyan" "$d/levyan-admin"
           openssl rand -base64 32 > "$d/levyan/digest.key"

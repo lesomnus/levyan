@@ -83,7 +83,9 @@ spec:
 
       # The tables brought into this build's shape, before anything serves.
       # The digest's key beside it: a row a migration rewrites beneath the
-      # servers is put on the trail with it.
+      # servers is put on the trail with it. And roster's key and the
+      # merchant's, as in the two below: the migration builds the server as
+      # they do, and a server with a roster reads its key as it is built.
       initContainers:
         - name: migrate
           image: ghcr.io/lesomnus/levyan
@@ -106,6 +108,8 @@ spec:
           volumeMounts:
             - { name: config, mountPath: /etc/levyan, readOnly: true }
             - { name: keys, mountPath: /run/secrets/levyan, readOnly: true }
+            - { name: roster, mountPath: /run/secrets/levyan-roster, readOnly: true }
+            - { name: paddle, mountPath: /run/secrets/levyan-paddle, readOnly: true }
             - { name: tmp, mountPath: /tmp }
 
       containers:
@@ -140,6 +144,8 @@ spec:
           volumeMounts:
             - { name: config, mountPath: /etc/levyan, readOnly: true }
             - { name: keys, mountPath: /run/secrets/levyan, readOnly: true }
+            - { name: roster, mountPath: /run/secrets/levyan-roster, readOnly: true }
+            - { name: paddle, mountPath: /run/secrets/levyan-paddle, readOnly: true }
             - { name: tmp, mountPath: /tmp }
 
         # The operator's entry point, in the same pod as the server it stands
@@ -170,6 +176,8 @@ spec:
             - { name: config, mountPath: /etc/levyan, readOnly: true }
             - { name: keys, mountPath: /run/secrets/levyan, readOnly: true }
             - { name: operators, mountPath: /run/secrets/levyan-admin, readOnly: true }
+            - { name: roster, mountPath: /run/secrets/levyan-roster, readOnly: true }
+            - { name: paddle, mountPath: /run/secrets/levyan-paddle, readOnly: true }
             - { name: tmp, mountPath: /tmp }
 
       volumes:
@@ -181,6 +189,16 @@ spec:
         # A file per operator, named as `admin.keys` names them.
         - name: operators
           secret: { secretName: levyan-admin, defaultMode: 288 }
+        # The key levyan calls roster with, `key` (`auth.roster.key`): in all
+        # three, since each builds the server -- and none, for a deployment
+        # with no roster.
+        - name: roster
+          secret: { secretName: levyan-roster, optional: true, defaultMode: 288 }
+        # The merchant of record's API key and webhook secret, `api_key` and
+        # `webhook_secret` (`mor:`), in all three for the same reason -- and
+        # none, for a deployment with no merchant of record.
+        - name: paddle
+          secret: { secretName: levyan-paddle, optional: true, defaultMode: 288 }
         # Somewhere writable, since the root is not.
         - name: tmp
           emptyDir: {}

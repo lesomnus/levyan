@@ -61,7 +61,7 @@ resources:
                  matchLabels: { app.kubernetes.io/name: loft }
    ```
 
-5. **MoR(Paddle)을 쓸 때.** `config.yaml`의 `mor:` 블록을 채우고 `levyan-paddle` Secret을 `levyan` 컨테이너의 `/run/secrets/levyan-paddle`에 붙입니다. 웹훅을 받으려면 두 번째 리스너(`server.http.addr`, 예: `:8080`)를 열고, 그 포트를 Service와 NetworkPolicy에 더하고, Paddle이 닿는 입구에서 `POST /webhooks/mor/paddle`만 그리로 보냅니다. Paddle이 닿지 않는 배포(스테이징)는 웹훅 비밀을 적지 않습니다. 그러면 levyan이 1분마다 Paddle의 이벤트 목록을 읽습니다. 그때 파드는 Paddle의 API(`sandbox-api.paddle.com` 또는 `api.paddle.com`)로 나갈 수 있어야 합니다.
+5. **MoR(Paddle)을 쓸 때.** `config.yaml`의 `mor:` 블록을 채우고 `levyan-paddle` Secret을 `levyan` 컨테이너의 `/run/secrets/levyan-paddle`에 붙입니다. 그 MoR 채널의 수금이 시작하는 때(`invoices.mor.live_from`, RFC 3339, 예: `2026-12-01T00:00:00+09:00`)도 함께 적습니다. 없으면 levyan은 뜨지 않습니다. 그 전에 끝난 기간의 초안은 그림자로 닫혀 청구되지 않으므로, 지금이나 그 뒤의 때로 둡니다. 웹훅을 받으려면 두 번째 리스너(`server.http.addr`, 예: `:8080`)를 열고, 그 포트를 Service와 NetworkPolicy에 더하고, Paddle이 닿는 입구에서 `POST /webhooks/mor/paddle`만 그리로 보냅니다. Paddle이 닿지 않는 배포(스테이징)는 웹훅 비밀을 적지 않습니다. 그러면 levyan이 1분마다 Paddle의 이벤트 목록을 읽습니다. 그때 파드는 Paddle의 API(`sandbox-api.paddle.com` 또는 `api.paddle.com`)로 나갈 수 있어야 합니다.
 
 6. **이미지 고정.** `images:`에서 digest로 고정합니다. CI가 main에서 올린 `ghcr.io/lesomnus/levyan:edge`의 digest와 그 revision 라벨을 확인하고 씁니다.
 

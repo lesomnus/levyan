@@ -33,6 +33,9 @@ func (Holder) Fields() []ent.Field {
 		field.Time("date_created").
 			Immutable().
 			Optional(),
+		field.Uuid("account").
+			Nillable().
+			Optional(),
 		field.Uuid("tenant_id").
 			Immutable(),
 	}
@@ -56,6 +59,8 @@ func (Holder) Indexes() []ent.Index {
 			Annotations(entsql.IndexWhere("date_erased IS NULL")),
 		index.Fields("tenant_id", "date_created", "id").
 			StorageKey("holder_page"),
+		index.Fields("account", "tenant_id").
+			StorageKey("holder_by_account"),
 	}
 }
 

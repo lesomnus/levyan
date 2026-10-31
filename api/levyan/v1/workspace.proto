@@ -1,0 +1,95 @@
+edition = "2023";
+
+// What a product says of its workspaces' payers: a workspace made, an
+// account gone from one, and an account asked to pay for one.
+package levyan.v1;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/v1/payer.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan/api/levyan/v1;levyanv1";
+
+// WorkspaceService is what a product tells levyan of who pays for its
+// workspaces, and asks of it. Every call is the calling product's own, as
+// `PriceBookService`'s are, and every workspace is the canonical text of the
+// identifier of the product's own payday tenant; every account is roster's.
+service WorkspaceService {
+  // Arrive says a workspace was made, and by whom: its creator is its payer
+  // from when it was made, with the first billing account they made, if they
+  // have made one. Said again, it changes nothing.
+  rpc Arrive(ArriveRequest) returns (ArriveResponse);
+
+  // Leave says an account is no longer in a workspace. If it paid for the
+  // workspace, the workspace has no payer from now; what was offered to it is
+  // withdrawn. Said again, it changes nothing.
+  rpc Leave(LeaveRequest) returns (LeaveResponse);
+
+  // Offer asks an account to pay for a workspace, which it answers as itself
+  // (`PayerService/Accept`). It withdraws what was offered before.
+  rpc Offer(OfferRequest) returns (OfferResponse);
+
+  // GetPayer is who pays for a workspace now and next, what is offered, and
+  // since when it has had no payer.
+  rpc GetPayer(GetPayerRequest) returns (GetPayerResponse);
+}
+
+message ArriveRequest {
+  string workspace = 1;
+
+  // Its creator: the canonical text of their account's identifier at roster.
+  string creator = 2;
+
+  // When it was made; unset is now. Never after now, and what a workspace
+  // made before levyan heard of it is billed from.
+  google.protobuf.Timestamp created = 3;
+}
+
+message ArriveResponse {
+  Payer payer = 1;
+}
+
+message LeaveRequest {
+  string workspace = 1;
+  string account = 2;
+}
+
+message LeaveResponse {
+  Payer payer = 1;
+}
+
+message OfferRequest {
+  string workspace = 1;
+  string account = 2;
+}
+
+message OfferResponse {
+  Offer offer = 1;
+}
+
+message GetPayerRequest {
+  string workspace = 1;
+}
+
+message GetPayerResponse {
+  Payer payer = 1;
+}
+
+// Payer is who pays for a workspace.
+message Payer {
+  string workspace = 1;
+
+  // Who pays now, unset when nobody does; and who will from the end of the
+  // period, unset when that is who pays now, or nobody.
+  Link current = 2;
+  Link next = 3;
+
+  // What is offered and not answered.
+  Offer offer = 4;
+
+  // Since when it has had nobody paying for it, and from when it is
+  // restricted for that: `payers.grace` after. Unset while it has a payer,
+  // and for a workspace that never had one.
+  google.protobuf.Timestamp payerless_since = 5;
+  google.protobuf.Timestamp restricted_from = 6;
+}

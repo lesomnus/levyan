@@ -2,6 +2,7 @@ edition = "2023";
 package levyan;
 
 import "google/protobuf/timestamp.proto";
+import "levyan/billing_account_svc.g.proto";
 import "levyan/payday/tenant_svc.g.proto";
 import "levyan/period_svc.g.proto";
 import "levyan/statement.proto";
@@ -32,6 +33,9 @@ message StatementAddRequest {
   int64 total = 17 [features.field_presence = IMPLICIT];
   string exact = 18 [features.field_presence = IMPLICIT];
   uint32 rating = 19 [features.field_presence = IMPLICIT];
+  bytes payer = 20;
+  BillingAccountRef billing_account = 21;
+  bool first_unit = 22 [features.field_presence = IMPLICIT];
 }
 
 message StatementGetRequest {
@@ -67,6 +71,9 @@ message StatementSelect {
   bool total = 17;
   bool exact = 18;
   bool rating = 19;
+  bool payer = 20;
+  BillingAccountSelect billing_account = 21;
+  bool first_unit = 22;
 }
 
 message StatementListRequest {

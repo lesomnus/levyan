@@ -12,9 +12,13 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
+	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/departure"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
+	"github.com/lesomnus/levyan/internal/ent/link"
 	"github.com/lesomnus/levyan/internal/ent/meter"
+	"github.com/lesomnus/levyan/internal/ent/offer"
 	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
 	"github.com/lesomnus/levyan/internal/ent/owed"
@@ -91,25 +95,29 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			access.Table:     access.ValidColumn,
-			archived.Table:   archived.ValidColumn,
-			audit.Table:      audit.ValidColumn,
-			grant.Table:      grant.ValidColumn,
-			holder.Table:     holder.ValidColumn,
-			meter.Table:      meter.ValidColumn,
-			operator.Table:   operator.ValidColumn,
-			outbox.Table:     outbox.ValidColumn,
-			owed.Table:       owed.ValidColumn,
-			period.Table:     period.ValidColumn,
-			point.Table:      point.ValidColumn,
-			price.Table:      price.ValidColumn,
-			reading.Table:    reading.ValidColumn,
-			rowseal.Table:    rowseal.ValidColumn,
-			series.Table:     series.ValidColumn,
-			servicekey.Table: servicekey.ValidColumn,
-			statement.Table:  statement.ValidColumn,
-			tenant.Table:     tenant.ValidColumn,
-			workspace.Table:  workspace.ValidColumn,
+			access.Table:         access.ValidColumn,
+			archived.Table:       archived.ValidColumn,
+			audit.Table:          audit.ValidColumn,
+			billingaccount.Table: billingaccount.ValidColumn,
+			departure.Table:      departure.ValidColumn,
+			grant.Table:          grant.ValidColumn,
+			holder.Table:         holder.ValidColumn,
+			link.Table:           link.ValidColumn,
+			meter.Table:          meter.ValidColumn,
+			offer.Table:          offer.ValidColumn,
+			operator.Table:       operator.ValidColumn,
+			outbox.Table:         outbox.ValidColumn,
+			owed.Table:           owed.ValidColumn,
+			period.Table:         period.ValidColumn,
+			point.Table:          point.ValidColumn,
+			price.Table:          price.ValidColumn,
+			reading.Table:        reading.ValidColumn,
+			rowseal.Table:        rowseal.ValidColumn,
+			series.Table:         series.ValidColumn,
+			servicekey.Table:     servicekey.ValidColumn,
+			statement.Table:      statement.ValidColumn,
+			tenant.Table:         tenant.ValidColumn,
+			workspace.Table:      workspace.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

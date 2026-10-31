@@ -45,6 +45,30 @@ func (f AuditFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AuditMutation", m)
 }
 
+// The BillingAccountFunc type is an adapter to allow the use of ordinary
+// function as BillingAccount mutator.
+type BillingAccountFunc func(context.Context, *ent.BillingAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BillingAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BillingAccountMutation", m)
+}
+
+// The DepartureFunc type is an adapter to allow the use of ordinary
+// function as Departure mutator.
+type DepartureFunc func(context.Context, *ent.DepartureMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DepartureFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DepartureMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DepartureMutation", m)
+}
+
 // The GrantFunc type is an adapter to allow the use of ordinary
 // function as Grant mutator.
 type GrantFunc func(context.Context, *ent.GrantMutation) (ent.Value, error)
@@ -69,6 +93,18 @@ func (f HolderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HolderMutation", m)
 }
 
+// The LinkFunc type is an adapter to allow the use of ordinary
+// function as Link mutator.
+type LinkFunc func(context.Context, *ent.LinkMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LinkFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LinkMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LinkMutation", m)
+}
+
 // The MeterFunc type is an adapter to allow the use of ordinary
 // function as Meter mutator.
 type MeterFunc func(context.Context, *ent.MeterMutation) (ent.Value, error)
@@ -79,6 +115,18 @@ func (f MeterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MeterMutation", m)
+}
+
+// The OfferFunc type is an adapter to allow the use of ordinary
+// function as Offer mutator.
+type OfferFunc func(context.Context, *ent.OfferMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OfferFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OfferMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OfferMutation", m)
 }
 
 // The OperatorFunc type is an adapter to allow the use of ordinary

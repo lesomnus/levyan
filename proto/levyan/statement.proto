@@ -2,6 +2,7 @@ edition = "2023";
 
 package levyan;
 
+import "levyan/billing_account.proto";
 import "levyan/payday/tenant.proto";
 import "levyan/period.proto";
 import "levyan/workspace.proto";
@@ -54,9 +55,10 @@ message Statement {
     default: ""
   }];
 
-  // What it is priced on and in: the product's, until billing accounts say
-  // whose a workspace is (#4). The channel is a value of `Channel` by its
-  // name, as the product's is (see `Tenant.channel` for why a name).
+  // What it is priced on and in: the billing account the workspace was paid
+  // for with over the period, and the product's for a workspace with none
+  // (#4). The channel is a value of `Channel` by its name, as the product's
+  // is (see `Tenant.channel` for why a name).
   string channel = 11 [
     (orm.field) = {immutable: true},
     (payday.field) = {personal: false}
@@ -90,6 +92,29 @@ message Statement {
   // The version of the rating that wrote it (`rating.Version`): what an
   // amount here was worked out by.
   uint32 rating = 19 [(orm.field) = {immutable: true}];
+
+  // Who paid for the workspace over the period, and with which billing
+  // account: the link in force through it, of which a period has one at most.
+  // Unset for a workspace with no payer, and on a statement written before
+  // payers were (#4).
+  bytes payer = 20 [
+    (orm.field) = {
+      type: TYPE_UUID
+      nullable: true
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+  BillingAccount billing_account = 21 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // Rated from the first unit: what its prices include was not this
+  // workspace's, which is none of its payer's first `payers.free`. Unset on a
+  // workspace whose allowances its prices include -- every workspace with no
+  // payer, and every statement written before payers were counted (#4).
+  bool first_unit = 22 [(orm.field) = {immutable: true}];
 
   option (orm.message) = {
     rpc: {

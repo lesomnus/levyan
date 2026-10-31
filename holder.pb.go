@@ -44,6 +44,7 @@ type Holder struct {
 	xxx_hidden_DateUpdated *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Account     []byte                 `protobuf:"bytes,9,opt,name=account"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -136,6 +137,13 @@ func (x *Holder) GetDateCreated() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Holder) GetAccount() []byte {
+	if x != nil {
+		return x.xxx_hidden_Account
+	}
+	return nil
+}
+
 func (x *Holder) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -173,6 +181,13 @@ func (x *Holder) SetDateErased(v *timestamppb.Timestamp) {
 
 func (x *Holder) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
+}
+
+func (x *Holder) SetAccount(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Account = v
 }
 
 func (x *Holder) HasTenant() bool {
@@ -258,6 +273,9 @@ type Holder_builder struct {
 	// the alias comes free again.
 	DateErased  *timestamppb.Timestamp
 	DateCreated *timestamppb.Timestamp
+	// The account this holder is a membership of: one of roster's directory.
+	// Null on every holder levyan has.
+	Account []byte
 }
 
 func (b0 Holder_builder) Build() *Holder {
@@ -273,6 +291,7 @@ func (b0 Holder_builder) Build() *Holder {
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
+	x.xxx_hidden_Account = b.Account
 	return m0
 }
 
@@ -280,7 +299,7 @@ var File_levyan_payday_holder_proto protoreflect.FileDescriptor
 
 const file_levyan_payday_holder_proto_rawDesc = "" +
 	"\n" +
-	"\x1alevyan/payday/holder.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\x1a\x1alevyan/payday/tenant.proto\"\x99\x05\n" +
+	"\x1alevyan/payday/holder.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\x1a\x1alevyan/payday/tenant.proto\"\xe4\x05\n" +
 	"\x06Holder\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12\x1c\n" +
@@ -291,17 +310,22 @@ const file_levyan_payday_holder_proto_rawDesc = "" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated\x1a9\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated\x12\"\n" +
+	"\aaccount\x18\t \x01(\fB\b\xea\x82\x16\x04\x10@8\x01R\aaccount\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x9c\x01\xca\xfc\x15S\x12\x02\x10\x01\x1a\x1f\x12\x04slug\x1a\t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\xc3\x01\xca\xfc\x15z\x12\x02\x10\x01\x1a\x1f\x12\x04slug\x1a\t\n" +
 	"\x05alias\x10\x04\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x020\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
-	"\x02id\x10\x01\x8a\xbb\x16A\b\x0229\n" +
+	"\x02id\x10\x01\x1a%\x12\n" +
+	"by_account\x1a\v\n" +
+	"\aaccount\x10\t\x1a\n" +
+	"\n" +
+	"\x06tenant\x10\x02\x8a\xbb\x16A\b\x0229\n" +
 	"\x10\n" +
 	"\x0e\n" +
 	"\fdate_created\n" +

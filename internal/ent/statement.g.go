@@ -47,5 +47,16 @@ func (e *Statement) Proto() *levyan.Statement {
 	x.SetTotal(e.Total)
 	x.SetExact(e.Exact)
 	x.SetRating(e.Rating)
+	if e.Payer != nil {
+		x.SetPayer(e.Payer[:])
+	}
+	if v := e.Edges.BillingAccount; v != nil {
+		x.SetBillingAccount(v.Proto())
+	} else if v := e.BillingAccountId; v != *new(uuid.UUID) {
+		r := &levyan.BillingAccount{}
+		r.SetId(v[:])
+		x.SetBillingAccount(r)
+	}
+	x.SetFirstUnit(e.FirstUnit)
 	return x
 }

@@ -134,6 +134,9 @@ func (_u *StatementUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.LinesCleared() {
 		_spec.ClearField(statement.FieldLines, field.TypeJson)
 	}
+	if _u.mutation.PayerCleared() {
+		_spec.ClearField(statement.FieldPayer, field.TypeUuid)
+	}
 	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -290,6 +293,9 @@ func (_u *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, er
 	}
 	if _u.mutation.LinesCleared() {
 		_spec.ClearField(statement.FieldLines, field.TypeJson)
+	}
+	if _u.mutation.PayerCleared() {
+		_spec.ClearField(statement.FieldPayer, field.TypeUuid)
 	}
 	_spec.AddModifiers(_u.modifiers...)
 	_node = &Statement{config: _u.config}

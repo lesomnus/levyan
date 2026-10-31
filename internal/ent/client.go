@@ -14,9 +14,13 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
+	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/departure"
 	"github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/ent/holder"
+	"github.com/lesomnus/levyan/internal/ent/link"
 	"github.com/lesomnus/levyan/internal/ent/meter"
+	"github.com/lesomnus/levyan/internal/ent/offer"
 	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/outbox"
 	"github.com/lesomnus/levyan/internal/ent/owed"
@@ -45,12 +49,20 @@ type Client struct {
 	Archived *ArchivedClient
 	// Audit is the client for interacting with the Audit builders.
 	Audit *AuditClient
+	// BillingAccount is the client for interacting with the BillingAccount builders.
+	BillingAccount *BillingAccountClient
+	// Departure is the client for interacting with the Departure builders.
+	Departure *DepartureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
 	Holder *HolderClient
+	// Link is the client for interacting with the Link builders.
+	Link *LinkClient
 	// Meter is the client for interacting with the Meter builders.
 	Meter *MeterClient
+	// Offer is the client for interacting with the Offer builders.
+	Offer *OfferClient
 	// Operator is the client for interacting with the Operator builders.
 	Operator *OperatorClient
 	// Outbox is the client for interacting with the Outbox builders.
@@ -90,9 +102,13 @@ func (c *Client) init() {
 	c.Access = NewAccessClient(c.config)
 	c.Archived = NewArchivedClient(c.config)
 	c.Audit = NewAuditClient(c.config)
+	c.BillingAccount = NewBillingAccountClient(c.config)
+	c.Departure = NewDepartureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
 	c.Holder = NewHolderClient(c.config)
+	c.Link = NewLinkClient(c.config)
 	c.Meter = NewMeterClient(c.config)
+	c.Offer = NewOfferClient(c.config)
 	c.Operator = NewOperatorClient(c.config)
 	c.Outbox = NewOutboxClient(c.config)
 	c.Owed = NewOwedClient(c.config)
@@ -196,27 +212,31 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Access:     NewAccessClient(cfg),
-		Archived:   NewArchivedClient(cfg),
-		Audit:      NewAuditClient(cfg),
-		Grant:      NewGrantClient(cfg),
-		Holder:     NewHolderClient(cfg),
-		Meter:      NewMeterClient(cfg),
-		Operator:   NewOperatorClient(cfg),
-		Outbox:     NewOutboxClient(cfg),
-		Owed:       NewOwedClient(cfg),
-		Period:     NewPeriodClient(cfg),
-		Point:      NewPointClient(cfg),
-		Price:      NewPriceClient(cfg),
-		Reading:    NewReadingClient(cfg),
-		RowSeal:    NewRowSealClient(cfg),
-		Series:     NewSeriesClient(cfg),
-		ServiceKey: NewServiceKeyClient(cfg),
-		Statement:  NewStatementClient(cfg),
-		Tenant:     NewTenantClient(cfg),
-		Workspace:  NewWorkspaceClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Access:         NewAccessClient(cfg),
+		Archived:       NewArchivedClient(cfg),
+		Audit:          NewAuditClient(cfg),
+		BillingAccount: NewBillingAccountClient(cfg),
+		Departure:      NewDepartureClient(cfg),
+		Grant:          NewGrantClient(cfg),
+		Holder:         NewHolderClient(cfg),
+		Link:           NewLinkClient(cfg),
+		Meter:          NewMeterClient(cfg),
+		Offer:          NewOfferClient(cfg),
+		Operator:       NewOperatorClient(cfg),
+		Outbox:         NewOutboxClient(cfg),
+		Owed:           NewOwedClient(cfg),
+		Period:         NewPeriodClient(cfg),
+		Point:          NewPointClient(cfg),
+		Price:          NewPriceClient(cfg),
+		Reading:        NewReadingClient(cfg),
+		RowSeal:        NewRowSealClient(cfg),
+		Series:         NewSeriesClient(cfg),
+		ServiceKey:     NewServiceKeyClient(cfg),
+		Statement:      NewStatementClient(cfg),
+		Tenant:         NewTenantClient(cfg),
+		Workspace:      NewWorkspaceClient(cfg),
 	}, nil
 }
 
@@ -234,27 +254,31 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Access:     NewAccessClient(cfg),
-		Archived:   NewArchivedClient(cfg),
-		Audit:      NewAuditClient(cfg),
-		Grant:      NewGrantClient(cfg),
-		Holder:     NewHolderClient(cfg),
-		Meter:      NewMeterClient(cfg),
-		Operator:   NewOperatorClient(cfg),
-		Outbox:     NewOutboxClient(cfg),
-		Owed:       NewOwedClient(cfg),
-		Period:     NewPeriodClient(cfg),
-		Point:      NewPointClient(cfg),
-		Price:      NewPriceClient(cfg),
-		Reading:    NewReadingClient(cfg),
-		RowSeal:    NewRowSealClient(cfg),
-		Series:     NewSeriesClient(cfg),
-		ServiceKey: NewServiceKeyClient(cfg),
-		Statement:  NewStatementClient(cfg),
-		Tenant:     NewTenantClient(cfg),
-		Workspace:  NewWorkspaceClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Access:         NewAccessClient(cfg),
+		Archived:       NewArchivedClient(cfg),
+		Audit:          NewAuditClient(cfg),
+		BillingAccount: NewBillingAccountClient(cfg),
+		Departure:      NewDepartureClient(cfg),
+		Grant:          NewGrantClient(cfg),
+		Holder:         NewHolderClient(cfg),
+		Link:           NewLinkClient(cfg),
+		Meter:          NewMeterClient(cfg),
+		Offer:          NewOfferClient(cfg),
+		Operator:       NewOperatorClient(cfg),
+		Outbox:         NewOutboxClient(cfg),
+		Owed:           NewOwedClient(cfg),
+		Period:         NewPeriodClient(cfg),
+		Point:          NewPointClient(cfg),
+		Price:          NewPriceClient(cfg),
+		Reading:        NewReadingClient(cfg),
+		RowSeal:        NewRowSealClient(cfg),
+		Series:         NewSeriesClient(cfg),
+		ServiceKey:     NewServiceKeyClient(cfg),
+		Statement:      NewStatementClient(cfg),
+		Tenant:         NewTenantClient(cfg),
+		Workspace:      NewWorkspaceClient(cfg),
 	}, nil
 }
 
@@ -330,9 +354,10 @@ func (c *Client) InTx() bool {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Access, c.Archived, c.Audit, c.Grant, c.Holder, c.Meter, c.Operator, c.Outbox,
-		c.Owed, c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series,
-		c.ServiceKey, c.Statement, c.Tenant, c.Workspace,
+		c.Access, c.Archived, c.Audit, c.BillingAccount, c.Departure, c.Grant, c.Holder,
+		c.Link, c.Meter, c.Offer, c.Operator, c.Outbox, c.Owed, c.Period, c.Point,
+		c.Price, c.Reading, c.RowSeal, c.Series, c.ServiceKey, c.Statement, c.Tenant,
+		c.Workspace,
 	} {
 		n.Use(hooks...)
 	}
@@ -342,9 +367,10 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Access, c.Archived, c.Audit, c.Grant, c.Holder, c.Meter, c.Operator, c.Outbox,
-		c.Owed, c.Period, c.Point, c.Price, c.Reading, c.RowSeal, c.Series,
-		c.ServiceKey, c.Statement, c.Tenant, c.Workspace,
+		c.Access, c.Archived, c.Audit, c.BillingAccount, c.Departure, c.Grant, c.Holder,
+		c.Link, c.Meter, c.Offer, c.Operator, c.Outbox, c.Owed, c.Period, c.Point,
+		c.Price, c.Reading, c.RowSeal, c.Series, c.ServiceKey, c.Statement, c.Tenant,
+		c.Workspace,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -359,12 +385,20 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Archived.mutate(ctx, m)
 	case *AuditMutation:
 		return c.Audit.mutate(ctx, m)
+	case *BillingAccountMutation:
+		return c.BillingAccount.mutate(ctx, m)
+	case *DepartureMutation:
+		return c.Departure.mutate(ctx, m)
 	case *GrantMutation:
 		return c.Grant.mutate(ctx, m)
 	case *HolderMutation:
 		return c.Holder.mutate(ctx, m)
+	case *LinkMutation:
+		return c.Link.mutate(ctx, m)
 	case *MeterMutation:
 		return c.Meter.mutate(ctx, m)
+	case *OfferMutation:
+		return c.Offer.mutate(ctx, m)
 	case *OperatorMutation:
 		return c.Operator.mutate(ctx, m)
 	case *OutboxMutation:
@@ -795,6 +829,272 @@ func (c *AuditClient) mutate(ctx context.Context, m *AuditMutation) (Value, erro
 	}
 }
 
+// BillingAccountClient is a client for the BillingAccount schema.
+type BillingAccountClient struct {
+	config
+}
+
+// NewBillingAccountClient returns a client for the BillingAccount from the given config.
+func NewBillingAccountClient(c config) *BillingAccountClient {
+	return &BillingAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingaccount.Hooks(f(g(h())))`.
+func (c *BillingAccountClient) Use(hooks ...Hook) {
+	c.hooks.BillingAccount = append(c.hooks.BillingAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingaccount.Intercept(f(g(h())))`.
+func (c *BillingAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingAccount = append(c.inters.BillingAccount, interceptors...)
+}
+
+// Create returns a builder for creating a BillingAccount entity.
+func (c *BillingAccountClient) Create() *BillingAccountCreate {
+	mutation := newBillingAccountMutation(c.config, OpCreate)
+	return &BillingAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingAccount entities.
+func (c *BillingAccountClient) CreateBulk(builders ...*BillingAccountCreate) *BillingAccountCreateBulk {
+	return &BillingAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingAccountClient) MapCreateBulk(slice any, setFunc func(*BillingAccountCreate, int)) *BillingAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingAccountCreateBulk{err: fmt.Errorf("calling to BillingAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingAccount.
+func (c *BillingAccountClient) Update() *BillingAccountUpdate {
+	mutation := newBillingAccountMutation(c.config, OpUpdate)
+	return &BillingAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingAccountClient) UpdateOne(_m *BillingAccount) *BillingAccountUpdateOne {
+	mutation := newBillingAccountMutation(c.config, OpUpdateOne, withBillingAccount(_m))
+	return &BillingAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *BillingAccountClient) UpdateOneId(id uuid.UUID) *BillingAccountUpdateOne {
+	mutation := newBillingAccountMutation(c.config, OpUpdateOne, withBillingAccountId(id))
+	return &BillingAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingAccount.
+func (c *BillingAccountClient) Delete() *BillingAccountDelete {
+	mutation := newBillingAccountMutation(c.config, OpDelete)
+	return &BillingAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingAccountClient) DeleteOne(_m *BillingAccount) *BillingAccountDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *BillingAccountClient) DeleteOneId(id uuid.UUID) *BillingAccountDeleteOne {
+	builder := c.Delete().Where(billingaccount.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &BillingAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingAccount.
+func (c *BillingAccountClient) Query() *BillingAccountQuery {
+	return &BillingAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingAccount entity by its id.
+func (c *BillingAccountClient) Get(ctx context.Context, id uuid.UUID) (*BillingAccount, error) {
+	return c.Query().Where(billingaccount.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingAccountClient) GetX(ctx context.Context, id uuid.UUID) *BillingAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BillingAccountClient) Hooks() []Hook {
+	return c.hooks.BillingAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingAccountClient) Interceptors() []Interceptor {
+	return c.inters.BillingAccount
+}
+
+func (c *BillingAccountClient) mutate(ctx context.Context, m *BillingAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown BillingAccount mutation op: %q", m.Op())
+	}
+}
+
+// DepartureClient is a client for the Departure schema.
+type DepartureClient struct {
+	config
+}
+
+// NewDepartureClient returns a client for the Departure from the given config.
+func NewDepartureClient(c config) *DepartureClient {
+	return &DepartureClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `departure.Hooks(f(g(h())))`.
+func (c *DepartureClient) Use(hooks ...Hook) {
+	c.hooks.Departure = append(c.hooks.Departure, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `departure.Intercept(f(g(h())))`.
+func (c *DepartureClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Departure = append(c.inters.Departure, interceptors...)
+}
+
+// Create returns a builder for creating a Departure entity.
+func (c *DepartureClient) Create() *DepartureCreate {
+	mutation := newDepartureMutation(c.config, OpCreate)
+	return &DepartureCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Departure entities.
+func (c *DepartureClient) CreateBulk(builders ...*DepartureCreate) *DepartureCreateBulk {
+	return &DepartureCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DepartureClient) MapCreateBulk(slice any, setFunc func(*DepartureCreate, int)) *DepartureCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DepartureCreateBulk{err: fmt.Errorf("calling to DepartureClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DepartureCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DepartureCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Departure.
+func (c *DepartureClient) Update() *DepartureUpdate {
+	mutation := newDepartureMutation(c.config, OpUpdate)
+	return &DepartureUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DepartureClient) UpdateOne(_m *Departure) *DepartureUpdateOne {
+	mutation := newDepartureMutation(c.config, OpUpdateOne, withDeparture(_m))
+	return &DepartureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *DepartureClient) UpdateOneId(id uuid.UUID) *DepartureUpdateOne {
+	mutation := newDepartureMutation(c.config, OpUpdateOne, withDepartureId(id))
+	return &DepartureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Departure.
+func (c *DepartureClient) Delete() *DepartureDelete {
+	mutation := newDepartureMutation(c.config, OpDelete)
+	return &DepartureDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DepartureClient) DeleteOne(_m *Departure) *DepartureDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *DepartureClient) DeleteOneId(id uuid.UUID) *DepartureDeleteOne {
+	builder := c.Delete().Where(departure.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &DepartureDeleteOne{builder}
+}
+
+// Query returns a query builder for Departure.
+func (c *DepartureClient) Query() *DepartureQuery {
+	return &DepartureQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDeparture},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Departure entity by its id.
+func (c *DepartureClient) Get(ctx context.Context, id uuid.UUID) (*Departure, error) {
+	return c.Query().Where(departure.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DepartureClient) GetX(ctx context.Context, id uuid.UUID) *Departure {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DepartureClient) Hooks() []Hook {
+	return c.hooks.Departure
+}
+
+// Interceptors returns the client interceptors.
+func (c *DepartureClient) Interceptors() []Interceptor {
+	return c.inters.Departure
+}
+
+func (c *DepartureClient) mutate(ctx context.Context, m *DepartureMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DepartureCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DepartureUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DepartureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DepartureDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Departure mutation op: %q", m.Op())
+	}
+}
+
 // GrantClient is a client for the Grant schema.
 type GrantClient struct {
 	config
@@ -1109,6 +1409,203 @@ func (c *HolderClient) mutate(ctx context.Context, m *HolderMutation) (Value, er
 	}
 }
 
+// LinkClient is a client for the Link schema.
+type LinkClient struct {
+	config
+}
+
+// NewLinkClient returns a client for the Link from the given config.
+func NewLinkClient(c config) *LinkClient {
+	return &LinkClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `link.Hooks(f(g(h())))`.
+func (c *LinkClient) Use(hooks ...Hook) {
+	c.hooks.Link = append(c.hooks.Link, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `link.Intercept(f(g(h())))`.
+func (c *LinkClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Link = append(c.inters.Link, interceptors...)
+}
+
+// Create returns a builder for creating a Link entity.
+func (c *LinkClient) Create() *LinkCreate {
+	mutation := newLinkMutation(c.config, OpCreate)
+	return &LinkCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Link entities.
+func (c *LinkClient) CreateBulk(builders ...*LinkCreate) *LinkCreateBulk {
+	return &LinkCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LinkClient) MapCreateBulk(slice any, setFunc func(*LinkCreate, int)) *LinkCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LinkCreateBulk{err: fmt.Errorf("calling to LinkClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LinkCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LinkCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Link.
+func (c *LinkClient) Update() *LinkUpdate {
+	mutation := newLinkMutation(c.config, OpUpdate)
+	return &LinkUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LinkClient) UpdateOne(_m *Link) *LinkUpdateOne {
+	mutation := newLinkMutation(c.config, OpUpdateOne, withLink(_m))
+	return &LinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *LinkClient) UpdateOneId(id uuid.UUID) *LinkUpdateOne {
+	mutation := newLinkMutation(c.config, OpUpdateOne, withLinkId(id))
+	return &LinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Link.
+func (c *LinkClient) Delete() *LinkDelete {
+	mutation := newLinkMutation(c.config, OpDelete)
+	return &LinkDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LinkClient) DeleteOne(_m *Link) *LinkDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *LinkClient) DeleteOneId(id uuid.UUID) *LinkDeleteOne {
+	builder := c.Delete().Where(link.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &LinkDeleteOne{builder}
+}
+
+// Query returns a query builder for Link.
+func (c *LinkClient) Query() *LinkQuery {
+	return &LinkQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLink},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Link entity by its id.
+func (c *LinkClient) Get(ctx context.Context, id uuid.UUID) (*Link, error) {
+	return c.Query().Where(link.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LinkClient) GetX(ctx context.Context, id uuid.UUID) *Link {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTenant queries the tenant edge of a Link.
+func (c *LinkClient) QueryTenant(_m *Link) *TenantQuery {
+	query := (&TenantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(link.Table, link.FieldId, id),
+			sqlgraph.To(tenant.Table, tenant.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, link.TenantTable, link.TenantColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkspace queries the workspace edge of a Link.
+func (c *LinkClient) QueryWorkspace(_m *Link) *WorkspaceQuery {
+	query := (&WorkspaceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(link.Table, link.FieldId, id),
+			sqlgraph.To(workspace.Table, workspace.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, link.WorkspaceTable, link.WorkspaceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingAccount queries the billing_account edge of a Link.
+func (c *LinkClient) QueryBillingAccount(_m *Link) *BillingAccountQuery {
+	query := (&BillingAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(link.Table, link.FieldId, id),
+			sqlgraph.To(billingaccount.Table, billingaccount.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, link.BillingAccountTable, link.BillingAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOffer queries the offer edge of a Link.
+func (c *LinkClient) QueryOffer(_m *Link) *OfferQuery {
+	query := (&OfferClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(link.Table, link.FieldId, id),
+			sqlgraph.To(offer.Table, offer.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, link.OfferTable, link.OfferColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LinkClient) Hooks() []Hook {
+	return c.hooks.Link
+}
+
+// Interceptors returns the client interceptors.
+func (c *LinkClient) Interceptors() []Interceptor {
+	return c.inters.Link
+}
+
+func (c *LinkClient) mutate(ctx context.Context, m *LinkMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LinkCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LinkUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LinkDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Link mutation op: %q", m.Op())
+	}
+}
+
 // MeterClient is a client for the Meter schema.
 type MeterClient struct {
 	config
@@ -1255,6 +1752,171 @@ func (c *MeterClient) mutate(ctx context.Context, m *MeterMutation) (Value, erro
 		return (&MeterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Meter mutation op: %q", m.Op())
+	}
+}
+
+// OfferClient is a client for the Offer schema.
+type OfferClient struct {
+	config
+}
+
+// NewOfferClient returns a client for the Offer from the given config.
+func NewOfferClient(c config) *OfferClient {
+	return &OfferClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `offer.Hooks(f(g(h())))`.
+func (c *OfferClient) Use(hooks ...Hook) {
+	c.hooks.Offer = append(c.hooks.Offer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `offer.Intercept(f(g(h())))`.
+func (c *OfferClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Offer = append(c.inters.Offer, interceptors...)
+}
+
+// Create returns a builder for creating a Offer entity.
+func (c *OfferClient) Create() *OfferCreate {
+	mutation := newOfferMutation(c.config, OpCreate)
+	return &OfferCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Offer entities.
+func (c *OfferClient) CreateBulk(builders ...*OfferCreate) *OfferCreateBulk {
+	return &OfferCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OfferClient) MapCreateBulk(slice any, setFunc func(*OfferCreate, int)) *OfferCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OfferCreateBulk{err: fmt.Errorf("calling to OfferClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OfferCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OfferCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Offer.
+func (c *OfferClient) Update() *OfferUpdate {
+	mutation := newOfferMutation(c.config, OpUpdate)
+	return &OfferUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OfferClient) UpdateOne(_m *Offer) *OfferUpdateOne {
+	mutation := newOfferMutation(c.config, OpUpdateOne, withOffer(_m))
+	return &OfferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneId returns an update builder for the given id.
+func (c *OfferClient) UpdateOneId(id uuid.UUID) *OfferUpdateOne {
+	mutation := newOfferMutation(c.config, OpUpdateOne, withOfferId(id))
+	return &OfferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Offer.
+func (c *OfferClient) Delete() *OfferDelete {
+	mutation := newOfferMutation(c.config, OpDelete)
+	return &OfferDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OfferClient) DeleteOne(_m *Offer) *OfferDeleteOne {
+	return c.DeleteOneId(_m.Id)
+}
+
+// DeleteOneId returns a builder for deleting the given entity by its id.
+func (c *OfferClient) DeleteOneId(id uuid.UUID) *OfferDeleteOne {
+	builder := c.Delete().Where(offer.Id(id))
+	builder.mutation.id = &id
+	builder.mutation.SetOp(OpDeleteOne)
+	return &OfferDeleteOne{builder}
+}
+
+// Query returns a query builder for Offer.
+func (c *OfferClient) Query() *OfferQuery {
+	return &OfferQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOffer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Offer entity by its id.
+func (c *OfferClient) Get(ctx context.Context, id uuid.UUID) (*Offer, error) {
+	return c.Query().Where(offer.Id(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OfferClient) GetX(ctx context.Context, id uuid.UUID) *Offer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTenant queries the tenant edge of a Offer.
+func (c *OfferClient) QueryTenant(_m *Offer) *TenantQuery {
+	query := (&TenantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(offer.Table, offer.FieldId, id),
+			sqlgraph.To(tenant.Table, tenant.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, offer.TenantTable, offer.TenantColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkspace queries the workspace edge of a Offer.
+func (c *OfferClient) QueryWorkspace(_m *Offer) *WorkspaceQuery {
+	query := (&WorkspaceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(offer.Table, offer.FieldId, id),
+			sqlgraph.To(workspace.Table, workspace.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, offer.WorkspaceTable, offer.WorkspaceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OfferClient) Hooks() []Hook {
+	return c.hooks.Offer
+}
+
+// Interceptors returns the client interceptors.
+func (c *OfferClient) Interceptors() []Interceptor {
+	return c.inters.Offer
+}
+
+func (c *OfferClient) mutate(ctx context.Context, m *OfferMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OfferCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OfferUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OfferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OfferDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Offer mutation op: %q", m.Op())
 	}
 }
 
@@ -2952,6 +3614,22 @@ func (c *StatementClient) QueryPeriod(_m *Statement) *PeriodQuery {
 	return query
 }
 
+// QueryBillingAccount queries the billing_account edge of a Statement.
+func (c *StatementClient) QueryBillingAccount(_m *Statement) *BillingAccountQuery {
+	query := (&BillingAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.Id
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldId, id),
+			sqlgraph.To(billingaccount.Table, billingaccount.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, statement.BillingAccountTable, statement.BillingAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *StatementClient) Hooks() []Hook {
 	return c.hooks.Statement
@@ -3262,13 +3940,13 @@ func (c *WorkspaceClient) mutate(ctx context.Context, m *WorkspaceMutation) (Val
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Access, Archived, Audit, Grant, Holder, Meter, Operator, Outbox, Owed, Period,
-		Point, Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
-		Workspace []ent.Hook
+		Access, Archived, Audit, BillingAccount, Departure, Grant, Holder, Link, Meter,
+		Offer, Operator, Outbox, Owed, Period, Point, Price, Reading, RowSeal, Series,
+		ServiceKey, Statement, Tenant, Workspace []ent.Hook
 	}
 	inters struct {
-		Access, Archived, Audit, Grant, Holder, Meter, Operator, Outbox, Owed, Period,
-		Point, Price, Reading, RowSeal, Series, ServiceKey, Statement, Tenant,
-		Workspace []ent.Interceptor
+		Access, Archived, Audit, BillingAccount, Departure, Grant, Holder, Link, Meter,
+		Offer, Operator, Outbox, Owed, Period, Point, Price, Reading, RowSeal, Series,
+		ServiceKey, Statement, Tenant, Workspace []ent.Interceptor
 	}
 )

@@ -34,18 +34,26 @@ const (
 	FieldExact = "exact"
 	// FieldRating holds the string denoting the rating field in the database.
 	FieldRating = "rating"
+	// FieldPayer holds the string denoting the payer field in the database.
+	FieldPayer = "payer"
+	// FieldFirstUnit holds the string denoting the first_unit field in the database.
+	FieldFirstUnit = "first_unit"
 	// FieldTenantId holds the string denoting the tenant_id field in the database.
 	FieldTenantId = "tenant_id"
 	// FieldWorkspaceId holds the string denoting the workspace_id field in the database.
 	FieldWorkspaceId = "workspace_id"
 	// FieldPeriodId holds the string denoting the period_id field in the database.
 	FieldPeriodId = "period_id"
+	// FieldBillingAccountId holds the string denoting the billing_account_id field in the database.
+	FieldBillingAccountId = "billing_account_id"
 	// EdgeTenant holds the string denoting the tenant edge name in mutations.
 	EdgeTenant = "tenant"
 	// EdgeWorkspace holds the string denoting the workspace edge name in mutations.
 	EdgeWorkspace = "workspace"
 	// EdgePeriod holds the string denoting the period edge name in mutations.
 	EdgePeriod = "period"
+	// EdgeBillingAccount holds the string denoting the billing_account edge name in mutations.
+	EdgeBillingAccount = "billing_account"
 	// Table holds the table name of the statement in the database.
 	Table = "statement"
 	// TenantTable is the table that holds the tenant relation/edge.
@@ -69,6 +77,13 @@ const (
 	PeriodInverseTable = "period"
 	// PeriodColumn is the table column denoting the period relation/edge.
 	PeriodColumn = "period_id"
+	// BillingAccountTable is the table that holds the billing_account relation/edge.
+	BillingAccountTable = "statement"
+	// BillingAccountInverseTable is the table name for the BillingAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "billingaccount" package.
+	BillingAccountInverseTable = "billingaccount"
+	// BillingAccountColumn is the table column denoting the billing_account relation/edge.
+	BillingAccountColumn = "billing_account_id"
 )
 
 // Columns holds all SQL columns for statement fields.
@@ -84,9 +99,12 @@ var Columns = []string{
 	FieldTotal,
 	FieldExact,
 	FieldRating,
+	FieldPayer,
+	FieldFirstUnit,
 	FieldTenantId,
 	FieldWorkspaceId,
 	FieldPeriodId,
+	FieldBillingAccountId,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -159,6 +177,16 @@ func ByRating(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRating, opts...).ToFunc()
 }
 
+// ByPayer orders the results by the payer field.
+func ByPayer(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPayer, opts...).ToFunc()
+}
+
+// ByFirstUnit orders the results by the first_unit field.
+func ByFirstUnit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFirstUnit, opts...).ToFunc()
+}
+
 // ByTenantId orders the results by the tenant_id field.
 func ByTenantId(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTenantId, opts...).ToFunc()
@@ -172,6 +200,11 @@ func ByWorkspaceId(opts ...sql.OrderTermOption) OrderOption {
 // ByPeriodId orders the results by the period_id field.
 func ByPeriodId(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPeriodId, opts...).ToFunc()
+}
+
+// ByBillingAccountId orders the results by the billing_account_id field.
+func ByBillingAccountId(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingAccountId, opts...).ToFunc()
 }
 
 // ByTenantField orders the results by tenant field.
@@ -194,6 +227,13 @@ func ByPeriodField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPeriodStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByBillingAccountField orders the results by billing_account field.
+func ByBillingAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingAccountStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newTenantStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldId),
@@ -213,5 +253,12 @@ func newPeriodStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldId),
 		sqlgraph.To(PeriodInverseTable, FieldId),
 		sqlgraph.Edge(sqlgraph.M2O, false, PeriodTable, PeriodColumn),
+	)
+}
+func newBillingAccountStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldId),
+		sqlgraph.To(BillingAccountInverseTable, FieldId),
+		sqlgraph.Edge(sqlgraph.M2O, false, BillingAccountTable, BillingAccountColumn),
 	)
 }

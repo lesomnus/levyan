@@ -16,29 +16,33 @@ import (
 
 // Mutation represents an operation that mutates the Statement nodes in the graph.
 type Mutation struct {
-	op               ent.Op
-	typ              string
-	date_start       *time.Time
-	date_end         *time.Time
-	channel          *string
-	currency         *string
-	date_erased      *time.Time
-	date_created     *time.Time
-	lines            **levyan.StatementLines
-	total            *int64
-	addtotal         *int64
-	exact            *string
-	rating           *uint32
-	addrating        *int32
-	clearedFields    map[string]struct{}
-	exprs            map[string]sql.Querier
-	tenant           *uuid.UUID
-	clearedtenant    bool
-	workspace        *uuid.UUID
-	clearedworkspace bool
-	period           *uuid.UUID
-	clearedperiod    bool
-	predicates       []predicate.Statement
+	op                     ent.Op
+	typ                    string
+	date_start             *time.Time
+	date_end               *time.Time
+	channel                *string
+	currency               *string
+	date_erased            *time.Time
+	date_created           *time.Time
+	lines                  **levyan.StatementLines
+	total                  *int64
+	addtotal               *int64
+	exact                  *string
+	rating                 *uint32
+	addrating              *int32
+	payer                  *uuid.UUID
+	first_unit             *bool
+	clearedFields          map[string]struct{}
+	exprs                  map[string]sql.Querier
+	tenant                 *uuid.UUID
+	clearedtenant          bool
+	workspace              *uuid.UUID
+	clearedworkspace       bool
+	period                 *uuid.UUID
+	clearedperiod          bool
+	billing_account        *uuid.UUID
+	clearedbilling_account bool
+	predicates             []predicate.Statement
 }
 
 // NewMutation creates a new Mutation for the Statement entity.
@@ -358,6 +362,58 @@ func (m *Mutation) ResetRating() {
 	m.addrating = nil
 }
 
+// SetPayer sets the "payer" field.
+func (m *Mutation) SetPayer(u uuid.UUID) {
+	m.payer = &u
+	delete(m.clearedFields, FieldPayer)
+}
+
+// Payer returns the value of the "payer" field in the mutation.
+func (m *Mutation) Payer() (r uuid.UUID, exists bool) {
+	v := m.payer
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearPayer clears the value of the "payer" field.
+func (m *Mutation) ClearPayer() {
+	m.payer = nil
+	m.clearedFields[FieldPayer] = struct{}{}
+}
+
+// PayerCleared returns if the "payer" field was cleared in this mutation.
+func (m *Mutation) PayerCleared() bool {
+	_, ok := m.clearedFields[FieldPayer]
+	return ok
+}
+
+// ResetPayer resets all changes to the "payer" field.
+func (m *Mutation) ResetPayer() {
+	m.payer = nil
+	delete(m.clearedFields, FieldPayer)
+}
+
+// SetFirstUnit sets the "first_unit" field.
+func (m *Mutation) SetFirstUnit(b bool) {
+	m.first_unit = &b
+}
+
+// FirstUnit returns the value of the "first_unit" field in the mutation.
+func (m *Mutation) FirstUnit() (r bool, exists bool) {
+	v := m.first_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFirstUnit resets all changes to the "first_unit" field.
+func (m *Mutation) ResetFirstUnit() {
+	m.first_unit = nil
+}
+
 // SetTenantId sets the "tenant_id" field.
 func (m *Mutation) SetTenantId(u uuid.UUID) {
 	m.tenant = &u
@@ -413,6 +469,39 @@ func (m *Mutation) PeriodId() (r uuid.UUID, exists bool) {
 // ResetPeriodId resets all changes to the "period_id" field.
 func (m *Mutation) ResetPeriodId() {
 	m.period = nil
+}
+
+// SetBillingAccountId sets the "billing_account_id" field.
+func (m *Mutation) SetBillingAccountId(u uuid.UUID) {
+	m.billing_account = &u
+	delete(m.clearedFields, FieldBillingAccountId)
+}
+
+// BillingAccountId returns the value of the "billing_account_id" field in the mutation.
+func (m *Mutation) BillingAccountId() (r uuid.UUID, exists bool) {
+	v := m.billing_account
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearBillingAccountId clears the value of the "billing_account_id" field.
+func (m *Mutation) ClearBillingAccountId() {
+	m.billing_account = nil
+	m.clearedFields[FieldBillingAccountId] = struct{}{}
+}
+
+// BillingAccountIdCleared returns if the "billing_account_id" field was cleared in this mutation.
+func (m *Mutation) BillingAccountIdCleared() bool {
+	_, ok := m.clearedFields[FieldBillingAccountId]
+	return ok
+}
+
+// ResetBillingAccountId resets all changes to the "billing_account_id" field.
+func (m *Mutation) ResetBillingAccountId() {
+	m.billing_account = nil
+	delete(m.clearedFields, FieldBillingAccountId)
 }
 
 // ClearTenant clears the "tenant" edge to the Tenant entity.
@@ -496,6 +585,33 @@ func (m *Mutation) ResetPeriod() {
 	m.clearedperiod = false
 }
 
+// ClearBillingAccount clears the "billing_account" edge to the BillingAccount entity.
+func (m *Mutation) ClearBillingAccount() {
+	m.clearedbilling_account = true
+	m.clearedFields[FieldBillingAccountId] = struct{}{}
+}
+
+// BillingAccountCleared reports if the "billing_account" edge to the BillingAccount entity was cleared.
+func (m *Mutation) BillingAccountCleared() bool {
+	return m.BillingAccountIdCleared() || m.clearedbilling_account
+}
+
+// BillingAccountIds returns the "billing_account" edge Ids in the mutation.
+// Note that Ids always returns len(Ids) <= 1 for unique edges, and you should use
+// BillingAccountId instead. It exists only for internal usage by the builders.
+func (m *Mutation) BillingAccountIds() (ids []uuid.UUID) {
+	if id := m.billing_account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBillingAccount resets all changes to the "billing_account" edge.
+func (m *Mutation) ResetBillingAccount() {
+	m.billing_account = nil
+	m.clearedbilling_account = false
+}
+
 // Where appends a list predicates to the Mutation builder.
 func (m *Mutation) Where(ps ...predicate.Statement) {
 	m.predicates = append(m.predicates, ps...)
@@ -530,7 +646,7 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 16)
 	if m.date_start != nil {
 		fields = append(fields, FieldDateStart)
 	}
@@ -561,6 +677,12 @@ func (m *Mutation) Fields() []string {
 	if m.rating != nil {
 		fields = append(fields, FieldRating)
 	}
+	if m.payer != nil {
+		fields = append(fields, FieldPayer)
+	}
+	if m.first_unit != nil {
+		fields = append(fields, FieldFirstUnit)
+	}
 	if m.tenant != nil {
 		fields = append(fields, FieldTenantId)
 	}
@@ -569,6 +691,9 @@ func (m *Mutation) Fields() []string {
 	}
 	if m.period != nil {
 		fields = append(fields, FieldPeriodId)
+	}
+	if m.billing_account != nil {
+		fields = append(fields, FieldBillingAccountId)
 	}
 	return fields
 }
@@ -604,12 +729,18 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.Exact()
 	case FieldRating:
 		return m.Rating()
+	case FieldPayer:
+		return m.Payer()
+	case FieldFirstUnit:
+		return m.FirstUnit()
 	case FieldTenantId:
 		return m.TenantId()
 	case FieldWorkspaceId:
 		return m.WorkspaceId()
 	case FieldPeriodId:
 		return m.PeriodId()
+	case FieldBillingAccountId:
+		return m.BillingAccountId()
 	}
 	return nil, false
 }
@@ -729,6 +860,26 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetRating(v)
 		return nil
+	case FieldPayer:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPayer(v)
+		return nil
+	case FieldFirstUnit:
+		v, ok := value.(bool)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFirstUnit(v)
+		return nil
 	case FieldTenantId:
 		v, ok := value.(uuid.UUID)
 		if !ok {
@@ -758,6 +909,16 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPeriodId(v)
+		return nil
+	case FieldBillingAccountId:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingAccountId(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Statement field %s", name)
@@ -801,11 +962,17 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldRating:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
+	case FieldPayer:
+		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
+	case FieldFirstUnit:
+		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldTenantId:
 		return fmt.Errorf("field %s cannot be assigned an expression: it holds an edge, which is set through the edge", name)
 	case FieldWorkspaceId:
 		return fmt.Errorf("field %s cannot be assigned an expression: it holds an edge, which is set through the edge", name)
 	case FieldPeriodId:
+		return fmt.Errorf("field %s cannot be assigned an expression: it holds an edge, which is set through the edge", name)
+	case FieldBillingAccountId:
 		return fmt.Errorf("field %s cannot be assigned an expression: it holds an edge, which is set through the edge", name)
 	default:
 		return fmt.Errorf("unknown Statement field %s", name)
@@ -902,6 +1069,12 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldLines) {
 		fields = append(fields, FieldLines)
 	}
+	if m.FieldCleared(FieldPayer) {
+		fields = append(fields, FieldPayer)
+	}
+	if m.FieldCleared(FieldBillingAccountId) {
+		fields = append(fields, FieldBillingAccountId)
+	}
 	return fields
 }
 
@@ -930,6 +1103,12 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldLines:
 		m.ClearLines()
+		return nil
+	case FieldPayer:
+		m.ClearPayer()
+		return nil
+	case FieldBillingAccountId:
+		m.ClearBillingAccountId()
 		return nil
 	}
 	return fmt.Errorf("unknown Statement nullable field %s", name)
@@ -969,6 +1148,12 @@ func (m *Mutation) ResetField(name string) error {
 	case FieldRating:
 		m.ResetRating()
 		return nil
+	case FieldPayer:
+		m.ResetPayer()
+		return nil
+	case FieldFirstUnit:
+		m.ResetFirstUnit()
+		return nil
 	case FieldTenantId:
 		m.ResetTenantId()
 		return nil
@@ -978,13 +1163,16 @@ func (m *Mutation) ResetField(name string) error {
 	case FieldPeriodId:
 		m.ResetPeriodId()
 		return nil
+	case FieldBillingAccountId:
+		m.ResetBillingAccountId()
+		return nil
 	}
 	return fmt.Errorf("unknown Statement field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *Mutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.tenant != nil {
 		edges = append(edges, EdgeTenant)
 	}
@@ -993,6 +1181,9 @@ func (m *Mutation) AddedEdges() []string {
 	}
 	if m.period != nil {
 		edges = append(edges, EdgePeriod)
+	}
+	if m.billing_account != nil {
+		edges = append(edges, EdgeBillingAccount)
 	}
 	return edges
 }
@@ -1013,13 +1204,17 @@ func (m *Mutation) AddedIds(name string) []ent.Value {
 		if id := m.period; id != nil {
 			return []ent.Value{*id}
 		}
+	case EdgeBillingAccount:
+		if id := m.billing_account; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *Mutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	return edges
 }
 
@@ -1031,7 +1226,7 @@ func (m *Mutation) RemovedIds(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *Mutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedtenant {
 		edges = append(edges, EdgeTenant)
 	}
@@ -1040,6 +1235,9 @@ func (m *Mutation) ClearedEdges() []string {
 	}
 	if m.clearedperiod {
 		edges = append(edges, EdgePeriod)
+	}
+	if m.clearedbilling_account {
+		edges = append(edges, EdgeBillingAccount)
 	}
 	return edges
 }
@@ -1054,6 +1252,8 @@ func (m *Mutation) EdgeCleared(name string) bool {
 		return m.clearedworkspace
 	case EdgePeriod:
 		return m.clearedperiod
+	case EdgeBillingAccount:
+		return m.clearedbilling_account
 	}
 	return false
 }
@@ -1071,6 +1271,9 @@ func (m *Mutation) ClearEdge(name string) error {
 	case EdgePeriod:
 		m.ClearPeriod()
 		return nil
+	case EdgeBillingAccount:
+		m.ClearBillingAccount()
+		return nil
 	}
 	return fmt.Errorf("unknown Statement unique edge %s", name)
 }
@@ -1087,6 +1290,9 @@ func (m *Mutation) ResetEdge(name string) error {
 		return nil
 	case EdgePeriod:
 		m.ResetPeriod()
+		return nil
+	case EdgeBillingAccount:
+		m.ResetBillingAccount()
 		return nil
 	}
 	return fmt.Errorf("unknown Statement edge %s", name)

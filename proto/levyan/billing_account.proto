@@ -1,0 +1,172 @@
+edition = "2023";
+
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// BillingAccount is what an account of roster's pays with: one card and one
+// invoice -- who receives it, and the business it is billed to -- in one
+// country, sold through the channel that country is sold through (#4). An
+// account may hold several (one for the company, one of its own), and a
+// workspace is paid for with one of them at a time (`Link`).
+//
+// It is the account's, and no product's: global. What reads it is the
+// account's own calls (`levyan.v1.PayerService`), which read only the billing
+// accounts it owns (`pd.AccountReads`), and the deployment's work; the
+// generated methods are nobody's (`server/policy`).
+//
+// Its country, and so its channel and its currency, never change: billed
+// elsewhere is another billing account, and a workspace moves to it at a
+// period's end, as any change of who pays does. The card itself is the
+// channel's to keep, and comes with the channel's adapter (#10, #12).
+//
+// What says who a person is, is declared `personal`. When roster has nobody by
+// the account any more, those fields are replaced (`date_forgotten`) and the
+// row stays, with the business it billed, which is the record tax law keeps.
+message BillingAccount {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // What its owner calls it: "회사용".
+  string name = 5 [(payday.field) = {personal: true}];
+
+  // The account it is of: roster's, by its identifier.
+  bytes owner = 8 [
+    (orm.field) = {
+      type: TYPE_UUID
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+
+  // The country it is billed in, ISO 3166-1 alpha-2 in capitals: KR.
+  string country = 9 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // The channel that country is sold through, by its name -- `CHANNEL_PG_KR`
+  // for KR, `CHANNEL_MOR` for every other -- and the currency a statement on
+  // it is priced in. Both are the server's to say, from the country. A name
+  // and not the enum, for the reason `Tenant.channel` is one.
+  string channel = 10 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+  string currency = 11 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: false}
+  ];
+
+  // Who receives what it is billed: a person's name, where it goes, and the
+  // address it is billed at.
+  string recipient = 12 [(payday.field) = {personal: true}];
+  string email = 16 [(payday.field) = {personal: true}];
+  string address = 17 [(payday.field) = {personal: true}];
+
+  // The business it is billed to, for a tax invoice; unset for a person.
+  BillingBusiness business = 18 [
+    (orm.field) = {nullable: true},
+    (payday.field) = {personal: true}
+  ];
+
+  // When what says who its owner is was replaced, roster having nobody by
+  // them any more; unset while it has.
+  google.protobuf.Timestamp date_forgotten = 19 [(orm.field) = {nullable: true}];
+
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase. A billing account somebody was billed
+  // with is kept, for as long as what it was billed is.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // An account's billing accounts, in the order it made them.
+        name: "owner"
+        refs: [
+          {
+            name: "owner"
+            number: 8
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 19
+    global: {}
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "owner"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}
+
+// BillingBusiness is the business a billing account is billed to: what a Korean
+// tax invoice names it by.
+message BillingBusiness {
+  // Its registration number: 123-45-67890.
+  string registration = 1;
+
+  // Its name, and who represents it.
+  string name = 2;
+  string representative = 3;
+
+  // Where it does business.
+  string address = 4;
+
+  // What it does: its kind (업태) and its item (종목).
+  string kind = 5;
+  string item = 6;
+
+  // Where its tax invoices go.
+  string email = 7;
+}

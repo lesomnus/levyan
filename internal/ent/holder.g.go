@@ -28,5 +28,8 @@ func (e *Holder) Proto() *levyan.Holder {
 		x.SetDateErased(timestamppb.New(*e.DateErased))
 	}
 	x.SetDateCreated(timestamppb.New(e.DateCreated))
+	if e.Account != nil {
+		x.SetAccount(e.Account[:])
+	}
 	return x
 }

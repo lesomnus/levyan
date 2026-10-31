@@ -26,9 +26,13 @@ import (
 )
 
 type Server interface {
+	BillingAccount() BillingAccountServiceServer
+	Departure() DepartureServiceServer
 	Tenant() TenantServiceServer
 	Workspace() WorkspaceServiceServer
 	Grant() GrantServiceServer
+	Offer() OfferServiceServer
+	Link() LinkServiceServer
 	Meter() MeterServiceServer
 	Operator() OperatorServiceServer
 	Access() AccessServiceServer
@@ -52,9 +56,13 @@ type Server interface {
 // It takes a [grpc.ServiceRegistrar] rather than a *grpc.Server so that a
 // server which is not gRPC's own can be handed the same set of services.
 func RegisterServer(g grpc.ServiceRegistrar, s Server) {
+	RegisterBillingAccountServiceServer(g, s.BillingAccount())
+	RegisterDepartureServiceServer(g, s.Departure())
 	RegisterTenantServiceServer(g, s.Tenant())
 	RegisterWorkspaceServiceServer(g, s.Workspace())
 	RegisterGrantServiceServer(g, s.Grant())
+	RegisterOfferServiceServer(g, s.Offer())
+	RegisterLinkServiceServer(g, s.Link())
 	RegisterMeterServiceServer(g, s.Meter())
 	RegisterOperatorServiceServer(g, s.Operator())
 	RegisterAccessServiceServer(g, s.Access())
@@ -74,32 +82,44 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 }
 
 type UnimplementedServer struct {
-	TenantServer     TenantServiceServer
-	WorkspaceServer  WorkspaceServiceServer
-	GrantServer      GrantServiceServer
-	MeterServer      MeterServiceServer
-	OperatorServer   OperatorServiceServer
-	AccessServer     AccessServiceServer
-	ArchivedServer   ArchivedServiceServer
-	AuditServer      AuditServiceServer
-	HolderServer     HolderServiceServer
-	OutboxServer     OutboxServiceServer
-	OwedServer       OwedServiceServer
-	RowSealServer    RowSealServiceServer
-	PeriodServer     PeriodServiceServer
-	SeriesServer     SeriesServiceServer
-	PointServer      PointServiceServer
-	PriceServer      PriceServiceServer
-	ReadingServer    ReadingServiceServer
-	ServiceKeyServer ServiceKeyServiceServer
-	StatementServer  StatementServiceServer
+	BillingAccountServer BillingAccountServiceServer
+	DepartureServer      DepartureServiceServer
+	TenantServer         TenantServiceServer
+	WorkspaceServer      WorkspaceServiceServer
+	GrantServer          GrantServiceServer
+	OfferServer          OfferServiceServer
+	LinkServer           LinkServiceServer
+	MeterServer          MeterServiceServer
+	OperatorServer       OperatorServiceServer
+	AccessServer         AccessServiceServer
+	ArchivedServer       ArchivedServiceServer
+	AuditServer          AuditServiceServer
+	HolderServer         HolderServiceServer
+	OutboxServer         OutboxServiceServer
+	OwedServer           OwedServiceServer
+	RowSealServer        RowSealServiceServer
+	PeriodServer         PeriodServiceServer
+	SeriesServer         SeriesServiceServer
+	PointServer          PointServiceServer
+	PriceServer          PriceServiceServer
+	ReadingServer        ReadingServiceServer
+	ServiceKeyServer     ServiceKeyServiceServer
+	StatementServer      StatementServiceServer
 }
 
+func (UnimplementedServer) BillingAccount() BillingAccountServiceServer {
+	return UnimplementedBillingAccountServiceServer{}
+}
+func (UnimplementedServer) Departure() DepartureServiceServer {
+	return UnimplementedDepartureServiceServer{}
+}
 func (UnimplementedServer) Tenant() TenantServiceServer { return UnimplementedTenantServiceServer{} }
 func (UnimplementedServer) Workspace() WorkspaceServiceServer {
 	return UnimplementedWorkspaceServiceServer{}
 }
 func (UnimplementedServer) Grant() GrantServiceServer { return UnimplementedGrantServiceServer{} }
+func (UnimplementedServer) Offer() OfferServiceServer { return UnimplementedOfferServiceServer{} }
+func (UnimplementedServer) Link() LinkServiceServer   { return UnimplementedLinkServiceServer{} }
 func (UnimplementedServer) Meter() MeterServiceServer { return UnimplementedMeterServiceServer{} }
 func (UnimplementedServer) Operator() OperatorServiceServer {
 	return UnimplementedOperatorServiceServer{}
@@ -126,51 +146,63 @@ func (UnimplementedServer) Statement() StatementServiceServer {
 }
 
 type StaticServer struct {
-	TenantServer     TenantServiceServer
-	WorkspaceServer  WorkspaceServiceServer
-	GrantServer      GrantServiceServer
-	MeterServer      MeterServiceServer
-	OperatorServer   OperatorServiceServer
-	AccessServer     AccessServiceServer
-	ArchivedServer   ArchivedServiceServer
-	AuditServer      AuditServiceServer
-	HolderServer     HolderServiceServer
-	OutboxServer     OutboxServiceServer
-	OwedServer       OwedServiceServer
-	RowSealServer    RowSealServiceServer
-	PeriodServer     PeriodServiceServer
-	SeriesServer     SeriesServiceServer
-	PointServer      PointServiceServer
-	PriceServer      PriceServiceServer
-	ReadingServer    ReadingServiceServer
-	ServiceKeyServer ServiceKeyServiceServer
-	StatementServer  StatementServiceServer
+	BillingAccountServer BillingAccountServiceServer
+	DepartureServer      DepartureServiceServer
+	TenantServer         TenantServiceServer
+	WorkspaceServer      WorkspaceServiceServer
+	GrantServer          GrantServiceServer
+	OfferServer          OfferServiceServer
+	LinkServer           LinkServiceServer
+	MeterServer          MeterServiceServer
+	OperatorServer       OperatorServiceServer
+	AccessServer         AccessServiceServer
+	ArchivedServer       ArchivedServiceServer
+	AuditServer          AuditServiceServer
+	HolderServer         HolderServiceServer
+	OutboxServer         OutboxServiceServer
+	OwedServer           OwedServiceServer
+	RowSealServer        RowSealServiceServer
+	PeriodServer         PeriodServiceServer
+	SeriesServer         SeriesServiceServer
+	PointServer          PointServiceServer
+	PriceServer          PriceServiceServer
+	ReadingServer        ReadingServiceServer
+	ServiceKeyServer     ServiceKeyServiceServer
+	StatementServer      StatementServiceServer
 }
 
-func (s StaticServer) Tenant() TenantServiceServer         { return s.TenantServer }
-func (s StaticServer) Workspace() WorkspaceServiceServer   { return s.WorkspaceServer }
-func (s StaticServer) Grant() GrantServiceServer           { return s.GrantServer }
-func (s StaticServer) Meter() MeterServiceServer           { return s.MeterServer }
-func (s StaticServer) Operator() OperatorServiceServer     { return s.OperatorServer }
-func (s StaticServer) Access() AccessServiceServer         { return s.AccessServer }
-func (s StaticServer) Archived() ArchivedServiceServer     { return s.ArchivedServer }
-func (s StaticServer) Audit() AuditServiceServer           { return s.AuditServer }
-func (s StaticServer) Holder() HolderServiceServer         { return s.HolderServer }
-func (s StaticServer) Outbox() OutboxServiceServer         { return s.OutboxServer }
-func (s StaticServer) Owed() OwedServiceServer             { return s.OwedServer }
-func (s StaticServer) RowSeal() RowSealServiceServer       { return s.RowSealServer }
-func (s StaticServer) Period() PeriodServiceServer         { return s.PeriodServer }
-func (s StaticServer) Series() SeriesServiceServer         { return s.SeriesServer }
-func (s StaticServer) Point() PointServiceServer           { return s.PointServer }
-func (s StaticServer) Price() PriceServiceServer           { return s.PriceServer }
-func (s StaticServer) Reading() ReadingServiceServer       { return s.ReadingServer }
-func (s StaticServer) ServiceKey() ServiceKeyServiceServer { return s.ServiceKeyServer }
-func (s StaticServer) Statement() StatementServiceServer   { return s.StatementServer }
+func (s StaticServer) BillingAccount() BillingAccountServiceServer { return s.BillingAccountServer }
+func (s StaticServer) Departure() DepartureServiceServer           { return s.DepartureServer }
+func (s StaticServer) Tenant() TenantServiceServer                 { return s.TenantServer }
+func (s StaticServer) Workspace() WorkspaceServiceServer           { return s.WorkspaceServer }
+func (s StaticServer) Grant() GrantServiceServer                   { return s.GrantServer }
+func (s StaticServer) Offer() OfferServiceServer                   { return s.OfferServer }
+func (s StaticServer) Link() LinkServiceServer                     { return s.LinkServer }
+func (s StaticServer) Meter() MeterServiceServer                   { return s.MeterServer }
+func (s StaticServer) Operator() OperatorServiceServer             { return s.OperatorServer }
+func (s StaticServer) Access() AccessServiceServer                 { return s.AccessServer }
+func (s StaticServer) Archived() ArchivedServiceServer             { return s.ArchivedServer }
+func (s StaticServer) Audit() AuditServiceServer                   { return s.AuditServer }
+func (s StaticServer) Holder() HolderServiceServer                 { return s.HolderServer }
+func (s StaticServer) Outbox() OutboxServiceServer                 { return s.OutboxServer }
+func (s StaticServer) Owed() OwedServiceServer                     { return s.OwedServer }
+func (s StaticServer) RowSeal() RowSealServiceServer               { return s.RowSealServer }
+func (s StaticServer) Period() PeriodServiceServer                 { return s.PeriodServer }
+func (s StaticServer) Series() SeriesServiceServer                 { return s.SeriesServer }
+func (s StaticServer) Point() PointServiceServer                   { return s.PointServer }
+func (s StaticServer) Price() PriceServiceServer                   { return s.PriceServer }
+func (s StaticServer) Reading() ReadingServiceServer               { return s.ReadingServer }
+func (s StaticServer) ServiceKey() ServiceKeyServiceServer         { return s.ServiceKeyServer }
+func (s StaticServer) Statement() StatementServiceServer           { return s.StatementServer }
 
 type Client interface {
+	BillingAccount() BillingAccountServiceClient
+	Departure() DepartureServiceClient
 	Tenant() TenantServiceClient
 	Workspace() WorkspaceServiceClient
 	Grant() GrantServiceClient
+	Offer() OfferServiceClient
+	Link() LinkServiceClient
 	Meter() MeterServiceClient
 	Operator() OperatorServiceClient
 	Access() AccessServiceClient
@@ -191,69 +223,81 @@ type Client interface {
 
 func NewClient(c *grpc.ClientConn) Client {
 	return &client{
-		_Tenant:     NewTenantServiceClient(c),
-		_Workspace:  NewWorkspaceServiceClient(c),
-		_Grant:      NewGrantServiceClient(c),
-		_Meter:      NewMeterServiceClient(c),
-		_Operator:   NewOperatorServiceClient(c),
-		_Access:     NewAccessServiceClient(c),
-		_Archived:   NewArchivedServiceClient(c),
-		_Audit:      NewAuditServiceClient(c),
-		_Holder:     NewHolderServiceClient(c),
-		_Outbox:     NewOutboxServiceClient(c),
-		_Owed:       NewOwedServiceClient(c),
-		_RowSeal:    NewRowSealServiceClient(c),
-		_Period:     NewPeriodServiceClient(c),
-		_Series:     NewSeriesServiceClient(c),
-		_Point:      NewPointServiceClient(c),
-		_Price:      NewPriceServiceClient(c),
-		_Reading:    NewReadingServiceClient(c),
-		_ServiceKey: NewServiceKeyServiceClient(c),
-		_Statement:  NewStatementServiceClient(c),
+		_BillingAccount: NewBillingAccountServiceClient(c),
+		_Departure:      NewDepartureServiceClient(c),
+		_Tenant:         NewTenantServiceClient(c),
+		_Workspace:      NewWorkspaceServiceClient(c),
+		_Grant:          NewGrantServiceClient(c),
+		_Offer:          NewOfferServiceClient(c),
+		_Link:           NewLinkServiceClient(c),
+		_Meter:          NewMeterServiceClient(c),
+		_Operator:       NewOperatorServiceClient(c),
+		_Access:         NewAccessServiceClient(c),
+		_Archived:       NewArchivedServiceClient(c),
+		_Audit:          NewAuditServiceClient(c),
+		_Holder:         NewHolderServiceClient(c),
+		_Outbox:         NewOutboxServiceClient(c),
+		_Owed:           NewOwedServiceClient(c),
+		_RowSeal:        NewRowSealServiceClient(c),
+		_Period:         NewPeriodServiceClient(c),
+		_Series:         NewSeriesServiceClient(c),
+		_Point:          NewPointServiceClient(c),
+		_Price:          NewPriceServiceClient(c),
+		_Reading:        NewReadingServiceClient(c),
+		_ServiceKey:     NewServiceKeyServiceClient(c),
+		_Statement:      NewStatementServiceClient(c),
 	}
 }
 
 type client struct {
-	_Tenant     TenantServiceClient
-	_Workspace  WorkspaceServiceClient
-	_Grant      GrantServiceClient
-	_Meter      MeterServiceClient
-	_Operator   OperatorServiceClient
-	_Access     AccessServiceClient
-	_Archived   ArchivedServiceClient
-	_Audit      AuditServiceClient
-	_Holder     HolderServiceClient
-	_Outbox     OutboxServiceClient
-	_Owed       OwedServiceClient
-	_RowSeal    RowSealServiceClient
-	_Period     PeriodServiceClient
-	_Series     SeriesServiceClient
-	_Point      PointServiceClient
-	_Price      PriceServiceClient
-	_Reading    ReadingServiceClient
-	_ServiceKey ServiceKeyServiceClient
-	_Statement  StatementServiceClient
+	_BillingAccount BillingAccountServiceClient
+	_Departure      DepartureServiceClient
+	_Tenant         TenantServiceClient
+	_Workspace      WorkspaceServiceClient
+	_Grant          GrantServiceClient
+	_Offer          OfferServiceClient
+	_Link           LinkServiceClient
+	_Meter          MeterServiceClient
+	_Operator       OperatorServiceClient
+	_Access         AccessServiceClient
+	_Archived       ArchivedServiceClient
+	_Audit          AuditServiceClient
+	_Holder         HolderServiceClient
+	_Outbox         OutboxServiceClient
+	_Owed           OwedServiceClient
+	_RowSeal        RowSealServiceClient
+	_Period         PeriodServiceClient
+	_Series         SeriesServiceClient
+	_Point          PointServiceClient
+	_Price          PriceServiceClient
+	_Reading        ReadingServiceClient
+	_ServiceKey     ServiceKeyServiceClient
+	_Statement      StatementServiceClient
 }
 
-func (c *client) Tenant() TenantServiceClient         { return c._Tenant }
-func (c *client) Workspace() WorkspaceServiceClient   { return c._Workspace }
-func (c *client) Grant() GrantServiceClient           { return c._Grant }
-func (c *client) Meter() MeterServiceClient           { return c._Meter }
-func (c *client) Operator() OperatorServiceClient     { return c._Operator }
-func (c *client) Access() AccessServiceClient         { return c._Access }
-func (c *client) Archived() ArchivedServiceClient     { return c._Archived }
-func (c *client) Audit() AuditServiceClient           { return c._Audit }
-func (c *client) Holder() HolderServiceClient         { return c._Holder }
-func (c *client) Outbox() OutboxServiceClient         { return c._Outbox }
-func (c *client) Owed() OwedServiceClient             { return c._Owed }
-func (c *client) RowSeal() RowSealServiceClient       { return c._RowSeal }
-func (c *client) Period() PeriodServiceClient         { return c._Period }
-func (c *client) Series() SeriesServiceClient         { return c._Series }
-func (c *client) Point() PointServiceClient           { return c._Point }
-func (c *client) Price() PriceServiceClient           { return c._Price }
-func (c *client) Reading() ReadingServiceClient       { return c._Reading }
-func (c *client) ServiceKey() ServiceKeyServiceClient { return c._ServiceKey }
-func (c *client) Statement() StatementServiceClient   { return c._Statement }
+func (c *client) BillingAccount() BillingAccountServiceClient { return c._BillingAccount }
+func (c *client) Departure() DepartureServiceClient           { return c._Departure }
+func (c *client) Tenant() TenantServiceClient                 { return c._Tenant }
+func (c *client) Workspace() WorkspaceServiceClient           { return c._Workspace }
+func (c *client) Grant() GrantServiceClient                   { return c._Grant }
+func (c *client) Offer() OfferServiceClient                   { return c._Offer }
+func (c *client) Link() LinkServiceClient                     { return c._Link }
+func (c *client) Meter() MeterServiceClient                   { return c._Meter }
+func (c *client) Operator() OperatorServiceClient             { return c._Operator }
+func (c *client) Access() AccessServiceClient                 { return c._Access }
+func (c *client) Archived() ArchivedServiceClient             { return c._Archived }
+func (c *client) Audit() AuditServiceClient                   { return c._Audit }
+func (c *client) Holder() HolderServiceClient                 { return c._Holder }
+func (c *client) Outbox() OutboxServiceClient                 { return c._Outbox }
+func (c *client) Owed() OwedServiceClient                     { return c._Owed }
+func (c *client) RowSeal() RowSealServiceClient               { return c._RowSeal }
+func (c *client) Period() PeriodServiceClient                 { return c._Period }
+func (c *client) Series() SeriesServiceClient                 { return c._Series }
+func (c *client) Point() PointServiceClient                   { return c._Point }
+func (c *client) Price() PriceServiceClient                   { return c._Price }
+func (c *client) Reading() ReadingServiceClient               { return c._Reading }
+func (c *client) ServiceKey() ServiceKeyServiceClient         { return c._ServiceKey }
+func (c *client) Statement() StatementServiceClient           { return c._Statement }
 
 // Middleware is a server that delegates to another server.
 type Middleware interface {
@@ -325,7 +369,7 @@ func SinkOf(s Server) Server {
 //		Overlay
 //	}
 //
-//	func (s Server) Tenant() TenantServiceServer { ... }
+//	func (s Server) BillingAccount() BillingAccountServiceServer { ... }
 type Overlay struct {
 	Server
 }

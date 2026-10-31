@@ -18,12 +18,20 @@ type Tx struct {
 	Archived *ArchivedClient
 	// Audit is the client for interacting with the Audit builders.
 	Audit *AuditClient
+	// BillingAccount is the client for interacting with the BillingAccount builders.
+	BillingAccount *BillingAccountClient
+	// Departure is the client for interacting with the Departure builders.
+	Departure *DepartureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
 	// Holder is the client for interacting with the Holder builders.
 	Holder *HolderClient
+	// Link is the client for interacting with the Link builders.
+	Link *LinkClient
 	// Meter is the client for interacting with the Meter builders.
 	Meter *MeterClient
+	// Offer is the client for interacting with the Offer builders.
+	Offer *OfferClient
 	// Operator is the client for interacting with the Operator builders.
 	Operator *OperatorClient
 	// Outbox is the client for interacting with the Outbox builders.
@@ -184,9 +192,13 @@ func (tx *Tx) init() {
 	tx.Access = NewAccessClient(tx.config)
 	tx.Archived = NewArchivedClient(tx.config)
 	tx.Audit = NewAuditClient(tx.config)
+	tx.BillingAccount = NewBillingAccountClient(tx.config)
+	tx.Departure = NewDepartureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
 	tx.Holder = NewHolderClient(tx.config)
+	tx.Link = NewLinkClient(tx.config)
 	tx.Meter = NewMeterClient(tx.config)
+	tx.Offer = NewOfferClient(tx.config)
 	tx.Operator = NewOperatorClient(tx.config)
 	tx.Outbox = NewOutboxClient(tx.config)
 	tx.Owed = NewOwedClient(tx.config)

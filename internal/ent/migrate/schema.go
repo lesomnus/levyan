@@ -152,6 +152,69 @@ var (
 			},
 		},
 	}
+	// BillingaccountColumns holds the columns for the "billingaccount" table.
+	BillingaccountColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "owner", Type: field.TypeUuid},
+		{Name: "country", Type: field.TypeString},
+		{Name: "channel", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "recipient", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString},
+		{Name: "address", Type: field.TypeString},
+		{Name: "business", Type: field.TypeJson, Nullable: true},
+		{Name: "date_forgotten", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+	}
+	// BillingaccountTable holds the schema information for the "billingaccount" table.
+	BillingaccountTable = &schema.Table{
+		Name:       "billingaccount",
+		Columns:    BillingaccountColumns,
+		PrimaryKey: []*schema.Column{BillingaccountColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingaccount_page",
+				Unique:  false,
+				Columns: []*schema.Column{BillingaccountColumns[13], BillingaccountColumns[0]},
+			},
+			{
+				Name:    "billingaccount_owner",
+				Unique:  false,
+				Columns: []*schema.Column{BillingaccountColumns[2], BillingaccountColumns[13], BillingaccountColumns[0]},
+			},
+		},
+	}
+	// DepartureColumns holds the columns for the "departure" table.
+	DepartureColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "account", Type: field.TypeUuid},
+		{Name: "reason", Type: field.TypeInt32},
+		{Name: "date_heard", Type: field.TypeTime, Nullable: true},
+		{Name: "date_settled", Type: field.TypeTime, Nullable: true},
+		{Name: "date_back", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+	}
+	// DepartureTable holds the schema information for the "departure" table.
+	DepartureTable = &schema.Table{
+		Name:       "departure",
+		Columns:    DepartureColumns,
+		PrimaryKey: []*schema.Column{DepartureColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "departure_account",
+				Unique:  true,
+				Columns: []*schema.Column{DepartureColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
 	// GrantColumns holds the columns for the "grant" table.
 	GrantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -223,6 +286,7 @@ var (
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "account", Type: field.TypeUuid, Nullable: true},
 		{Name: "tenant_id", Type: field.TypeUuid},
 	}
 	// HolderTable holds the schema information for the "holder" table.
@@ -233,7 +297,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "holder_tenant_tenant",
-				Columns:    []*schema.Column{HolderColumns[8]},
+				Columns:    []*schema.Column{HolderColumns[9]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -242,7 +306,7 @@ var (
 			{
 				Name:    "holder_slug",
 				Unique:  true,
-				Columns: []*schema.Column{HolderColumns[1], HolderColumns[8]},
+				Columns: []*schema.Column{HolderColumns[1], HolderColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
@@ -250,7 +314,77 @@ var (
 			{
 				Name:    "holder_page",
 				Unique:  false,
-				Columns: []*schema.Column{HolderColumns[8], HolderColumns[7], HolderColumns[0]},
+				Columns: []*schema.Column{HolderColumns[9], HolderColumns[7], HolderColumns[0]},
+			},
+			{
+				Name:    "holder_by_account",
+				Unique:  false,
+				Columns: []*schema.Column{HolderColumns[8], HolderColumns[9]},
+			},
+		},
+	}
+	// LinkColumns holds the columns for the "link" table.
+	LinkColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "payer", Type: field.TypeUuid},
+		{Name: "date_start", Type: field.TypeTime, Nullable: true},
+		{Name: "date_end", Type: field.TypeTime, Nullable: true},
+		{Name: "began", Type: field.TypeInt32},
+		{Name: "ended", Type: field.TypeInt32},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "billing_account_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "offer_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// LinkTable holds the schema information for the "link" table.
+	LinkTable = &schema.Table{
+		Name:       "link",
+		Columns:    LinkColumns,
+		PrimaryKey: []*schema.Column{LinkColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "link_tenant_tenant",
+				Columns:    []*schema.Column{LinkColumns[9]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "link_workspace_workspace",
+				Columns:    []*schema.Column{LinkColumns[10]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "link_billingaccount_billing_account",
+				Columns:    []*schema.Column{LinkColumns[11]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "link_offer_offer",
+				Columns:    []*schema.Column{LinkColumns[12]},
+				RefColumns: []*schema.Column{OfferColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "link_page",
+				Unique:  false,
+				Columns: []*schema.Column{LinkColumns[9], LinkColumns[8], LinkColumns[0]},
+			},
+			{
+				Name:    "link_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{LinkColumns[10], LinkColumns[2]},
+			},
+			{
+				Name:    "link_payer",
+				Unique:  false,
+				Columns: []*schema.Column{LinkColumns[9], LinkColumns[1], LinkColumns[2]},
 			},
 		},
 	}
@@ -295,6 +429,55 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
+			},
+		},
+	}
+	// OfferColumns holds the columns for the "offer" table.
+	OfferColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "account", Type: field.TypeUuid},
+		{Name: "answer", Type: field.TypeInt32},
+		{Name: "date_answered", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+	}
+	// OfferTable holds the schema information for the "offer" table.
+	OfferTable = &schema.Table{
+		Name:       "offer",
+		Columns:    OfferColumns,
+		PrimaryKey: []*schema.Column{OfferColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "offer_tenant_tenant",
+				Columns:    []*schema.Column{OfferColumns[7]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "offer_workspace_workspace",
+				Columns:    []*schema.Column{OfferColumns[8]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "offer_page",
+				Unique:  false,
+				Columns: []*schema.Column{OfferColumns[7], OfferColumns[6], OfferColumns[0]},
+			},
+			{
+				Name:    "offer_account",
+				Unique:  false,
+				Columns: []*schema.Column{OfferColumns[7], OfferColumns[1], OfferColumns[2]},
+			},
+			{
+				Name:    "offer_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{OfferColumns[8], OfferColumns[6], OfferColumns[0]},
 			},
 		},
 	}
@@ -714,9 +897,12 @@ var (
 		{Name: "total", Type: field.TypeInt64},
 		{Name: "exact", Type: field.TypeString},
 		{Name: "rating", Type: field.TypeUint32},
+		{Name: "payer", Type: field.TypeUuid, Nullable: true},
+		{Name: "first_unit", Type: field.TypeBool},
 		{Name: "tenant_id", Type: field.TypeUuid},
 		{Name: "workspace_id", Type: field.TypeUuid},
 		{Name: "period_id", Type: field.TypeUuid},
+		{Name: "billing_account_id", Type: field.TypeUuid, Nullable: true},
 	}
 	// StatementTable holds the schema information for the "statement" table.
 	StatementTable = &schema.Table{
@@ -726,33 +912,39 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "statement_tenant_tenant",
-				Columns:    []*schema.Column{StatementColumns[11]},
+				Columns:    []*schema.Column{StatementColumns[13]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "statement_workspace_workspace",
-				Columns:    []*schema.Column{StatementColumns[12]},
+				Columns:    []*schema.Column{StatementColumns[14]},
 				RefColumns: []*schema.Column{WorkspaceColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "statement_period_period",
-				Columns:    []*schema.Column{StatementColumns[13]},
+				Columns:    []*schema.Column{StatementColumns[15]},
 				RefColumns: []*schema.Column{PeriodColumns[0]},
 				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "statement_billingaccount_billing_account",
+				Columns:    []*schema.Column{StatementColumns[16]},
+				RefColumns: []*schema.Column{BillingaccountColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "statement_page",
 				Unique:  false,
-				Columns: []*schema.Column{StatementColumns[11], StatementColumns[1], StatementColumns[0]},
+				Columns: []*schema.Column{StatementColumns[13], StatementColumns[1], StatementColumns[0]},
 			},
 			{
 				Name:    "statement_closed",
 				Unique:  true,
-				Columns: []*schema.Column{StatementColumns[11], StatementColumns[12], StatementColumns[13]},
+				Columns: []*schema.Column{StatementColumns[13], StatementColumns[14], StatementColumns[15]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "date_erased IS NULL",
 				},
@@ -760,7 +952,7 @@ var (
 			{
 				Name:    "statement_workspace",
 				Unique:  false,
-				Columns: []*schema.Column{StatementColumns[12], StatementColumns[1], StatementColumns[0]},
+				Columns: []*schema.Column{StatementColumns[14], StatementColumns[1], StatementColumns[0]},
 			},
 		},
 	}
@@ -832,9 +1024,13 @@ var (
 		AccessTable,
 		ArchivedTable,
 		AuditTable,
+		BillingaccountTable,
+		DepartureTable,
 		GrantTable,
 		HolderTable,
+		LinkTable,
 		MeterTable,
+		OfferTable,
 		OperatorTable,
 		OutboxTable,
 		OwedTable,
@@ -861,6 +1057,12 @@ func init() {
 	AuditTable.Annotation = &entsql.Annotation{
 		Table: "audit",
 	}
+	BillingaccountTable.Annotation = &entsql.Annotation{
+		Table: "billingaccount",
+	}
+	DepartureTable.Annotation = &entsql.Annotation{
+		Table: "departure",
+	}
 	GrantTable.ForeignKeys[0].RefTable = TenantTable
 	GrantTable.ForeignKeys[1].RefTable = WorkspaceTable
 	GrantTable.Annotation = &entsql.Annotation{
@@ -870,9 +1072,21 @@ func init() {
 	HolderTable.Annotation = &entsql.Annotation{
 		Table: "holder",
 	}
+	LinkTable.ForeignKeys[0].RefTable = TenantTable
+	LinkTable.ForeignKeys[1].RefTable = WorkspaceTable
+	LinkTable.ForeignKeys[2].RefTable = BillingaccountTable
+	LinkTable.ForeignKeys[3].RefTable = OfferTable
+	LinkTable.Annotation = &entsql.Annotation{
+		Table: "link",
+	}
 	MeterTable.ForeignKeys[0].RefTable = TenantTable
 	MeterTable.Annotation = &entsql.Annotation{
 		Table: "meter",
+	}
+	OfferTable.ForeignKeys[0].RefTable = TenantTable
+	OfferTable.ForeignKeys[1].RefTable = WorkspaceTable
+	OfferTable.Annotation = &entsql.Annotation{
+		Table: "offer",
 	}
 	OperatorTable.Annotation = &entsql.Annotation{
 		Table: "operator",
@@ -920,6 +1134,7 @@ func init() {
 	StatementTable.ForeignKeys[0].RefTable = TenantTable
 	StatementTable.ForeignKeys[1].RefTable = WorkspaceTable
 	StatementTable.ForeignKeys[2].RefTable = PeriodTable
+	StatementTable.ForeignKeys[3].RefTable = BillingaccountTable
 	StatementTable.Annotation = &entsql.Annotation{
 		Table: "statement",
 	}

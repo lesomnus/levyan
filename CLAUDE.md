@@ -267,10 +267,13 @@ in force). Keep it there; `server/billing` only reads the ledger into it.
   is unique on (product, workspace, period), and a close that stopped goes on
   where it stopped. Never read the ledger for a close before the row is
   written -- it is what makes a row late.
-- **A statement is never changed**: every field immutable, no Patch, no
-  Erase. A correction is a line on a later statement: the corrected period
-  rated again from the ledger as it is, less what was billed for it (its own
-  line and every correction since), for each period a late row speaks for.
+- **A statement is never changed**: every field immutable, no Erase. Its
+  Patch exists only because an invoice's line has an edge to it, and
+  protobuf-orm writes `<Entity>GetKey` beside a Patch alone; it changes
+  nothing and nobody is given it. A correction is a line on a later
+  statement: the corrected period rated again from the ledger as it is, less
+  what was billed for it (its own line and every correction since), for each
+  period a late row speaks for.
   A correction already made comes to nothing by the same arithmetic, so
   nothing records which late rows were handled.
 - **Exact until the total.** Amounts are `big.Rat` and are stored as
@@ -282,6 +285,13 @@ in force). Keep it there; `server/billing` only reads the ledger into it.
   to work out an amount.
 - A statement says the rating's version (`rating.Version`). A change to what
   any usage comes to -- `usage.Hold` included -- is a new version.
+- **Unpriced is said, not silent.** A stretch of a line's period with no
+  version in force on the statement's channel and currency, while the meter
+  has one on another, is `Line.Unpriced` (`rating.Rate`), kept on the
+  statement's line and in the API's; the close logs each (product, meter,
+  channel, currency) once a period, and `levyan-admin price check` lists them
+  before a period closes. A meter priced nowhere is not sold: it comes to
+  nothing and says nothing. Marking moves no amount, so no rating version.
 - Tests move the deployment's time with `levyantest.World.At`: every server
   `cmd.Build` makes reads `cmd.Server.Clock`, so a price can be effective in
   the past of the readings a test records.
@@ -431,6 +441,65 @@ the account's own); a `Link` says who pays for a workspace from when to when.
   be on every channel and currency the map bills in, or what is billed there
   comes to nothing.
 
+## Invoices
+
+What billing accounts are asked to pay, and the money it moves
+(`server/invoices`, docs/design.md §15, #9).
+
+- **One invoice of a billing account a period, in a product.** Every
+  statement with a billing account is a line (`InvoiceLine`, unique by its
+  statement) of exactly one invoice of that billing account -- the invariant
+  reconciliation (#13) relies on; a statement with none is on no invoice.
+  `Invoices.Account` gathers, holding the billing account's row: lines onto
+  the (product, billing account)'s one draft, in period order, and a draft
+  decided once its period is closed -- finalized, kept for the next period
+  when its due is more than nothing and less than its channel's `Minimum`
+  (the owner's #25), or written off when no link of its billing account goes
+  on past its end (Claude's proposal, unconfirmed: say so wherever it is
+  written). A later period's statement waits until its draft is decided.
+- **Finalized is final.** The layer (`invoices.Layer`, both stacks) refuses
+  any change to a finalized invoice's amounts, number, bill-to or due date;
+  what moves is its settlement (state along `next`, `paid`, `reduced`,
+  `date_settled`) and the channel's references. A correction is a credit
+  note, or a late row's correction line on a later statement -- never the row.
+- **Amounts.** `subtotal` is its lines' totals; `tax` only on a seller's
+  channel (`invoices.Seller`: every channel but the MoR), `invoices.tax` of
+  the subtotal toward nothing; `total`; `credited`, what the credit balance
+  paid, taken off the total before the channel sees it; `due`. Remaining is
+  `due - paid - reduced`. What is owed back is never paid out: it is a
+  `Credit` row (the balance is their sum, per product and billing account),
+  and money goes back only through a credit note against a paid invoice.
+- **A seller's number** is the deployment's one series (invoices', and credit
+  notes' apart), the greatest plus one, given in the finalizing transaction
+  under a PostgreSQL advisory lock; its legal document is asked for after the
+  commit, by that number, which keeps it once at the issuer.
+- **Attempts** (`PaymentAttempt`) are the payment ledger, charges and refunds
+  alike, each with its own key (`invoices.KeyOf`). **A send is written down
+  and committed before it is made** -- sends counted, stamped, state UNKNOWN
+  -- and what came of an UNKNOWN one is found out by `Collector.Ask`, never by
+  sending it blind; `NotFound` from an ask is REQUESTED again, a send of its
+  own (`SendKey`). SUCCEEDED and FAILED are final. The loop makes an
+  invoice's first attempt only: after a decline, the invoice stays open and
+  past due for dunning (#11).
+- **A channel is a `Collector`** in `cmd.Server.Invoices.Collectors`: its
+  minimum, whether it pushes, its due date, its seller's documents, a send and
+  an ask. A channel with none has its drafts gathered and never finalized --
+  so nothing is asked of a channel nothing can ask. Tests use
+  `invoicestest.Channel`. The adapters' errors are read as they are
+  (`invoices.KindOf` knows `pg.Error` and `mor.Error`).
+- **Credit notes and voids** are an operator's (`levyan-admin invoice
+  credit|void`), refused while a charge is out. A credit note takes back of
+  the subtotal with its tax, off what is due first, then gives back (a refund,
+  as far as money paid) or credits; a void takes back what is left as a
+  CANCELLATION credit note, and refuses an invoice paid in any part.
+- **Kept five years**: invoices, lines, credit notes, attempts and credit have
+  no Erase, and a finalized invoice keeps its bill-to as it was.
+- **A payer reads** its billing accounts' finalized invoices of the relaying
+  product (`PayerService` `ListInvoices`, `GetInvoice`, `ListCreditNotes`,
+  each declaring what it reads with `pd.AccountReads`).
+- A workspace's `label` is what the product calls it (`Arrive`'s `label`); a
+  line keeps the label it was written with.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -455,6 +524,10 @@ levyan's own:
 - `levyan.readings.gaps` (`ledger.LookForGaps`) warns of workspaces that have
   stopped sending a stock meter's readings, in the log and in the gauge
   `levyan.readings.gaps`.
+- `levyan.invoices.collect` (`invoices.Collects`, every `invoices.every`, ten
+  minutes, which is `mor.Settle`) invoices what the close wrote, decides
+  drafts, issues a seller's documents and sends and asks about attempts,
+  through `Ungated` as the deployment.
 
 A pass of any of them that fails is logged and the next tries again. And
 payday's `payday.outbox` always runs: it is what streams a grant's change.

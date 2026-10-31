@@ -160,3 +160,54 @@ func TestAnOperatorIsToldWhatIsPricedElsewhereAndNotHere(t *testing.T) {
 	x.Len(gs, 1)
 	x.Equal(admin.Unpriced{Meter: "loft.assets.active", Channel: "mor", Currency: "KRW", Priced: []string{"pg_kr KRW"}}, gs[0])
 }
+
+// An operator sees what the shadow billing gathered before collection on the
+// merchant's channel began, closed as a shadow -- by its state, and shown as
+// any invoice is -- which is never collected: no attempt of it, and nothing
+// left of it to collect.
+func TestAnOperatorSeesAShadow(t *testing.T) {
+	d := open(t, map[string]string{"alice": aliceKey})
+	x := d.w.X
+	jan := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+	d.w.At(jan.Add(-time.Hour))
+
+	loft := d.w.Terms(d.w.Product("loft"), "UTC", levyan.Channel_CHANNEL_MOR, "KRW")
+	assets := d.w.Meter(loft, "loft.assets.active", "{asset}", levyan.MeterKind_METER_KIND_STOCK, levyan.Aggregation_AGGREGATION_LAST)
+	d.w.Price(loft, assets, levyan.Channel_CHANNEL_MOR, "KRW", 100, 50, jan)
+	key, _ := d.w.Key(loft, "loft-prod", nil)
+	d.w.S.Invoices.Collectors[levyan.Channel_CHANNEL_MOR] = invoicestest.New()
+	d.w.S.Invoices.LiveFrom = map[levyan.Channel]time.Time{levyan.Channel_CHANNEL_MOR: jan.AddDate(0, 2, 0)}
+	conn := d.w.Serve()
+	product := levyantest.As(context.Background(), key)
+
+	d.w.At(jan)
+	a, ws := levyantest.Account(), levyantest.Tenant()
+	_, err := d.w.S.Payers.Create(context.Background(), a, levyan.BillingAccount_builder{Country: "KR", Recipient: "수민"}.Build())
+	x.NoError(err)
+	_, err = levyanv1.NewWorkspaceServiceClient(conn).Arrive(product, levyanv1.ArriveRequest_builder{Workspace: ws.String(), Creator: a.String()}.Build())
+	x.NoError(err)
+	d.w.At(jan.AddDate(0, 1, 0))
+	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+	}}.Build())
+	x.NoError(err)
+	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
+	x.NoError(d.w.S.Invoices.Run(context.Background()))
+
+	var vs []admin.Invoice
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices?state=shadow", nil, &vs)
+	x.Len(vs, 1)
+	x.Equal("shadow", vs[0].State)
+	x.Equal(int64(5000), vs[0].Subtotal, "what it would have come to")
+	x.Zero(vs[0].Remaining, "and nothing of it to collect")
+	x.Nil(vs[0].Finalized)
+	x.NotNil(vs[0].Settled)
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
+	x.Len(vs, 1, "among the rest")
+
+	var got admin.Invoice
+	d.as(aliceKey, http.MethodGet, "/admin/invoices/"+vs[0].Id, nil, &got)
+	x.Equal("shadow", got.State)
+	x.Len(got.Lines, 1)
+	x.Empty(got.Attempts, "never collected")
+}

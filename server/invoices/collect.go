@@ -310,7 +310,7 @@ func (v Invoices) settle(ctx context.Context, id, ba uuid.UUID, o Outcome, sent 
 		if err != nil {
 			return err
 		}
-		if a.State == int32(levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED) || a.State == int32(levyan.AttemptState_ATTEMPT_STATE_FAILED) {
+		if ended(a) {
 			return errSkip
 		}
 
@@ -334,49 +334,191 @@ func (v Invoices) settle(ctx context.Context, id, ba uuid.UUID, o Outcome, sent 
 			}
 		}
 
-		now := v.now()
-		req := levyan.PaymentAttemptPatchRequest_builder{
-			Ref:              levyan.PaymentAttemptRef_builder{Id: a.Id[:]}.Build(),
-			State:            o.State.Enum(),
-			DateUpdatedForce: proto.Bool(true),
-		}.Build()
-		if o.Ref != "" {
-			req.SetChannelRef(o.Ref)
-		}
-		if o.Number != "" {
-			req.SetChannelNumber(o.Number)
-		}
-		switch o.State {
-		case levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED:
-			req.SetDateResolved(timestamppb.New(now))
-			at := o.At
-			if at.IsZero() {
-				at = now
-			}
-			req.SetDatePaid(timestamppb.New(ledger.Moment(at)))
-		case levyan.AttemptState_ATTEMPT_STATE_FAILED:
-			req.SetDateResolved(timestamppb.New(now))
-			if o.Failure != nil {
-				req.SetFailure(o.Failure)
-			}
-		case levyan.AttemptState_ATTEMPT_STATE_PENDING, levyan.AttemptState_ATTEMPT_STATE_REQUESTED:
-		default:
-			return fmt.Errorf("invoices: %s is no outcome of an attempt", o.State)
-		}
-		if _, err := s.PaymentAttempt().Patch(ctx, req); err != nil {
-			return fmt.Errorf("attempt %s: %w", pdid.Id(a.Id), err)
-		}
-
-		if o.State == levyan.AttemptState_ATTEMPT_STATE_FAILED && a.Kind == int32(levyan.AttemptKind_ATTEMPT_KIND_REFUND) {
-			log.From(ctx).ErrorContext(ctx, "invoices: the channel would not make a refund a credit note gives back, and an operator has to see to it",
-				slog.String("attempt", pdid.Id(a.Id).String()), slog.String("credit_note", pdid.Id(a.CreditNoteId).String()))
-		}
-		if o.State != levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED || a.Kind != int32(levyan.AttemptKind_ATTEMPT_KIND_CHARGE) {
-			return nil
-		}
-
-		return v.paid(ctx, s, db, a.InvoiceId, a.Amount, o, now)
+		return v.apply(ctx, s, db, a, o)
 	})
+}
+
+// ended says whether attempt `a` has ended: succeeded or failed, which is
+// what it stays.
+func ended(a *ent.PaymentAttempt) bool {
+	return a.State == int32(levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED) || a.State == int32(levyan.AttemptState_ATTEMPT_STATE_FAILED)
+}
+
+// apply writes outcome `o` of attempt `a`, which has not ended, in the
+// transaction `s` and `db` are on -- and of a charge that succeeded, what its
+// invoice was paid.
+func (v Invoices) apply(ctx context.Context, s levyan.Server, db *ent.Client, a *ent.PaymentAttempt, o Outcome) error {
+	now := v.now()
+	req := levyan.PaymentAttemptPatchRequest_builder{
+		Ref:              levyan.PaymentAttemptRef_builder{Id: a.Id[:]}.Build(),
+		State:            o.State.Enum(),
+		DateUpdatedForce: proto.Bool(true),
+	}.Build()
+	if o.Ref != "" {
+		req.SetChannelRef(o.Ref)
+	}
+	if o.Number != "" {
+		req.SetChannelNumber(o.Number)
+	}
+	if o.Twice && a.DateTwice == nil {
+		req.SetDateTwice(timestamppb.New(now))
+	}
+	switch o.State {
+	case levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED:
+		req.SetDateResolved(timestamppb.New(now))
+		at := o.At
+		if at.IsZero() {
+			at = now
+		}
+		req.SetDatePaid(timestamppb.New(ledger.Moment(at)))
+	case levyan.AttemptState_ATTEMPT_STATE_FAILED:
+		req.SetDateResolved(timestamppb.New(now))
+		if o.Failure != nil {
+			req.SetFailure(o.Failure)
+		}
+	case levyan.AttemptState_ATTEMPT_STATE_PENDING, levyan.AttemptState_ATTEMPT_STATE_REQUESTED:
+	default:
+		return fmt.Errorf("invoices: %s is no outcome of an attempt", o.State)
+	}
+	if _, err := s.PaymentAttempt().Patch(ctx, req); err != nil {
+		return fmt.Errorf("attempt %s: %w", pdid.Id(a.Id), err)
+	}
+
+	if o.State == levyan.AttemptState_ATTEMPT_STATE_FAILED && a.Kind == int32(levyan.AttemptKind_ATTEMPT_KIND_REFUND) {
+		log.From(ctx).ErrorContext(ctx, "invoices: the channel would not make a refund a credit note gives back, and an operator has to see to it",
+			slog.String("attempt", pdid.Id(a.Id).String()), slog.String("credit_note", pdid.Id(a.CreditNoteId).String()))
+	}
+	if o.State != levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED || a.Kind != int32(levyan.AttemptKind_ATTEMPT_KIND_CHARGE) {
+		return nil
+	}
+
+	return v.paid(ctx, s, db, a.InvoiceId, a.Amount, o, now)
+}
+
+// Heard writes down what a channel said of the attempt keyed `key` -- of
+// `kind`, on `channel` -- outside the loop's sends and asks: what a notice of
+// a merchant of record's named, asked of it again by the inbox
+// (`subscriptions.Taker.Transaction`), so that a payment lands without
+// waiting for the loop's next pass. It is written as an ask's answer is, and
+// only when it is further along than the attempt -- pending, then succeeded
+// or failed -- so that the same answer twice is written once, and an older
+// one is nothing: an attempt that ended stays as it ended, and that the
+// channel has nothing of an attempt is an ask's to say, once it can, never a
+// notice's. A key of no attempt of the ledger's is nobody's here.
+//
+// An answer of another payment of the key than the one the attempt holds --
+// or one that moved money for an attempt that failed -- is the channel holding
+// more of the key than the ledger accounts for: said in the log, and the
+// attempt marked for reconciliation (#13), with nothing else written of it.
+// Of an attempt that succeeded, the channel's number of it is written once
+// the channel says one.
+func (v Invoices) Heard(ctx context.Context, channel levyan.Channel, kind levyan.AttemptKind, key string, o Outcome) error {
+	if key == "" {
+		return nil
+	}
+	a, err := v.db().PaymentAttempt.Query().Where(entattempt.AttemptKey(key)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if a.Channel != channel.String() || a.Kind != int32(kind) {
+		log.From(ctx).WarnContext(ctx, "invoices: a channel named an attempt by its key as another's, and nothing is written of it",
+			slog.String("attempt", pdid.Id(a.Id).String()), slog.String("channel", channel.String()), slog.String("kind", kind.String()))
+		return nil
+	}
+	inv, err := v.db().Invoice.Get(ctx, a.InvoiceId)
+	if err != nil {
+		return err
+	}
+
+	return v.held(ctx, inv.BillingAccountId, func(s levyan.Server, db *ent.Client, _ dialect.Driver) error {
+		a, err := db.PaymentAttempt.Get(ctx, a.Id)
+		if err != nil {
+			return err
+		}
+
+		moved := o.State == levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED || o.State == levyan.AttemptState_ATTEMPT_STATE_PENDING
+		another := o.Ref != "" && o.Ref != a.ChannelRef
+		switch {
+		case moved && another && (ended(a) || a.ChannelRef != ""):
+			log.From(ctx).ErrorContext(ctx, "invoices: the channel holds a payment of an attempt's key the ledger does not account for, which reconciliation gives back",
+				slog.String("attempt", pdid.Id(a.Id).String()), slog.String("state", levyan.AttemptState(a.State).String()),
+				slog.String("settled_by", a.ChannelRef), slog.String("payment", o.Ref))
+			return v.mark(ctx, s, a)
+		case ended(a):
+			return v.numbered(ctx, s, db, a, o)
+		case rank(o.State) <= rank(levyan.AttemptState(a.State)):
+			return errSkip
+		}
+
+		return v.apply(ctx, s, db, a, o)
+	})
+}
+
+// rank is how far along an attempt in state `s` is: nothing known of it, the
+// channel holding it, and its end.
+func rank(s levyan.AttemptState) int {
+	switch s {
+	case levyan.AttemptState_ATTEMPT_STATE_PENDING:
+		return 1
+	case levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED, levyan.AttemptState_ATTEMPT_STATE_FAILED:
+		return 2
+	default:
+		return 0
+	}
+}
+
+// mark writes down that the channel holds more payments of attempt `a`'s key
+// than the ledger accounts for, unless that is written already.
+func (v Invoices) mark(ctx context.Context, s levyan.Server, a *ent.PaymentAttempt) error {
+	if a.DateTwice != nil {
+		return errSkip
+	}
+	if _, err := s.PaymentAttempt().Patch(ctx, levyan.PaymentAttemptPatchRequest_builder{
+		Ref:              levyan.PaymentAttemptRef_builder{Id: a.Id[:]}.Build(),
+		DateTwice:        timestamppb.New(v.now()),
+		DateUpdatedForce: proto.Bool(true),
+	}.Build()); err != nil {
+		return fmt.Errorf("attempt %s: %w", pdid.Id(a.Id), err)
+	}
+
+	return nil
+}
+
+// numbered writes the channel's number of attempt `a`, which succeeded with
+// no number, when `o` of the same payment says one -- and its invoice's, a
+// charge's, when it has none: a merchant of record numbers what it sells once
+// it has collected it, which may be after it answered.
+func (v Invoices) numbered(ctx context.Context, s levyan.Server, db *ent.Client, a *ent.PaymentAttempt, o Outcome) error {
+	if a.State != int32(levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED) || o.State != levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED ||
+		o.Number == "" || a.ChannelNumber != "" || o.Ref != a.ChannelRef {
+		return errSkip
+	}
+	if _, err := s.PaymentAttempt().Patch(ctx, levyan.PaymentAttemptPatchRequest_builder{
+		Ref:              levyan.PaymentAttemptRef_builder{Id: a.Id[:]}.Build(),
+		ChannelNumber:    proto.String(o.Number),
+		DateUpdatedForce: proto.Bool(true),
+	}.Build()); err != nil {
+		return fmt.Errorf("attempt %s: %w", pdid.Id(a.Id), err)
+	}
+	if a.Kind != int32(levyan.AttemptKind_ATTEMPT_KIND_CHARGE) {
+		return nil
+	}
+	inv, err := db.Invoice.Get(ctx, a.InvoiceId)
+	if err != nil || inv.ChannelNumber != "" {
+		return err
+	}
+	if _, err := s.Invoice().Patch(ctx, levyan.InvoicePatchRequest_builder{
+		Ref:              levyan.InvoiceRef_builder{Id: inv.Id[:]}.Build(),
+		ChannelNumber:    proto.String(o.Number),
+		DateUpdatedForce: proto.Bool(true),
+	}.Build()); err != nil {
+		return fmt.Errorf("invoice %s: %w", pdid.Id(inv.Id), err)
+	}
+
+	return nil
 }
 
 // paid writes down that `amount` of invoice `id` was collected: settled once

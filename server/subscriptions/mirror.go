@@ -316,6 +316,10 @@ type Collection struct {
 	// Mirror is the subscription it is collected through: its live one, or
 	// the last it had; nil for none.
 	Mirror *ent.Subscription
+
+	// Mirrors is every subscription it has had, in the order levyan learned
+	// of them: where what was charged of it before may be.
+	Mirrors []*ent.Subscription
 }
 
 // CollectionOf is billing account `b`'s collection, as written beside its
@@ -332,7 +336,7 @@ func CollectionOf(ctx context.Context, db *ent.Client, b *ent.BillingAccount) (C
 	if err != nil {
 		return out, err
 	}
-	out.Mirror = current(ms)
+	out.Mirror, out.Mirrors = current(ms), ms
 	if out.State == levyan.CollectionState_COLLECTION_STATE_UNSPECIFIED {
 		// None mirrored yet, ever.
 		out.State, out.Since = levyan.CollectionState_COLLECTION_STATE_NO_SUBSCRIPTION, b.DateCreated

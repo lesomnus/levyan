@@ -199,9 +199,10 @@ type Taker struct {
 	Subs Subscriptions
 
 	// Transaction is what else is done with a transaction a notice names, as
-	// the MoR answers it now: what the collection of a period's amount will
-	// bring a payment's attempts and invoices to (#9), which is not built
-	// yet. Nil does nothing more; an error leaves the notice to be taken
+	// the MoR answers it now: what it brings the attempts whose keys it
+	// carries, and their invoices, to -- the MoR's collector's
+	// (`server/invoices/merchant`, `Collector.Heard`), which `cmd.Build`
+	// wires. Nil does nothing more; an error leaves the notice to be taken
 	// again.
 	Transaction func(ctx context.Context, n *ent.Notice, t mor.Transaction) error
 

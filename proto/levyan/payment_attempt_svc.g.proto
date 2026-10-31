@@ -43,6 +43,7 @@ message PaymentAttemptAddRequest {
   google.protobuf.Timestamp date_paid = 25;
   bool recorded = 26 [features.field_presence = IMPLICIT];
   string reference = 27 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_twice = 28;
   google.protobuf.Timestamp date_created = 15;
 }
 
@@ -82,6 +83,7 @@ message PaymentAttemptSelect {
   bool date_paid = 25;
   bool recorded = 26;
   bool reference = 27;
+  bool date_twice = 28;
   bool date_updated = 13;
   bool date_erased = 14;
   bool date_created = 15;
@@ -117,6 +119,12 @@ message PaymentAttemptPatchRequest {
   // "leave it alone", so no value could have meant NULL. It wins
   // outright: setting both this and date_paid clears.
   bool date_paid_null = 51;
+  google.protobuf.Timestamp date_twice = 56;
+  // Clear date_twice instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and date_twice clears.
+  bool date_twice_null = 57;
   // The version this update requires the stored date_updated to be.
   // It is a precondition, not a write: the update applies only if the row
   // still holds this value, and the server stamps the new version itself.

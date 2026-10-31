@@ -37,6 +37,7 @@ type Mutation struct {
 	date_paid          *time.Time
 	recorded           *bool
 	reference          *string
+	date_twice         *time.Time
 	date_updated       *time.Time
 	date_erased        *time.Time
 	date_created       *time.Time
@@ -506,6 +507,42 @@ func (m *Mutation) ResetReference() {
 	m.reference = nil
 }
 
+// SetDateTwice sets the "date_twice" field.
+func (m *Mutation) SetDateTwice(t time.Time) {
+	m.date_twice = &t
+	delete(m.clearedFields, FieldDateTwice)
+	delete(m.exprs, FieldDateTwice)
+}
+
+// DateTwice returns the value of the "date_twice" field in the mutation.
+func (m *Mutation) DateTwice() (r time.Time, exists bool) {
+	v := m.date_twice
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDateTwice clears the value of the "date_twice" field.
+func (m *Mutation) ClearDateTwice() {
+	m.date_twice = nil
+	delete(m.exprs, FieldDateTwice)
+	m.clearedFields[FieldDateTwice] = struct{}{}
+}
+
+// DateTwiceCleared returns if the "date_twice" field was cleared in this mutation.
+func (m *Mutation) DateTwiceCleared() bool {
+	_, ok := m.clearedFields[FieldDateTwice]
+	return ok
+}
+
+// ResetDateTwice resets all changes to the "date_twice" field.
+func (m *Mutation) ResetDateTwice() {
+	m.date_twice = nil
+	delete(m.clearedFields, FieldDateTwice)
+	delete(m.exprs, FieldDateTwice)
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (m *Mutation) SetDateUpdated(t time.Time) {
 	m.date_updated = &t
@@ -782,7 +819,7 @@ func (m *Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *Mutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 22)
 	if m.kind != nil {
 		fields = append(fields, FieldKind)
 	}
@@ -827,6 +864,9 @@ func (m *Mutation) Fields() []string {
 	}
 	if m.reference != nil {
 		fields = append(fields, FieldReference)
+	}
+	if m.date_twice != nil || m.exprs[FieldDateTwice] != nil {
+		fields = append(fields, FieldDateTwice)
 	}
 	if m.date_updated != nil || m.exprs[FieldDateUpdated] != nil {
 		fields = append(fields, FieldDateUpdated)
@@ -890,6 +930,8 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.Recorded()
 	case FieldReference:
 		return m.Reference()
+	case FieldDateTwice:
+		return m.DateTwice()
 	case FieldDateUpdated:
 		return m.DateUpdated()
 	case FieldDateErased:
@@ -1071,6 +1113,16 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetReference(v)
 		return nil
+	case FieldDateTwice:
+		v, ok := value.(time.Time)
+		if !ok {
+			if e, ok := value.(sql.Querier); ok {
+				return m.SetFieldExpr(name, e)
+			}
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDateTwice(v)
+		return nil
 	case FieldDateUpdated:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -1183,6 +1235,8 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldReference:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
+	case FieldDateTwice:
+		m.ResetDateTwice()
 	case FieldDateUpdated:
 		m.ResetDateUpdated()
 	case FieldDateErased:
@@ -1239,6 +1293,9 @@ func (m *Mutation) ExprFields() []string {
 	}
 	if _, ok := m.exprs[FieldDatePaid]; ok {
 		fields = append(fields, FieldDatePaid)
+	}
+	if _, ok := m.exprs[FieldDateTwice]; ok {
+		fields = append(fields, FieldDateTwice)
 	}
 	if _, ok := m.exprs[FieldDateUpdated]; ok {
 		fields = append(fields, FieldDateUpdated)
@@ -1338,6 +1395,9 @@ func (m *Mutation) ClearedFields() []string {
 	if m.FieldCleared(FieldDatePaid) {
 		fields = append(fields, FieldDatePaid)
 	}
+	if m.FieldCleared(FieldDateTwice) {
+		fields = append(fields, FieldDateTwice)
+	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
 	}
@@ -1372,6 +1432,9 @@ func (m *Mutation) ClearField(name string) error {
 		return nil
 	case FieldDatePaid:
 		m.ClearDatePaid()
+		return nil
+	case FieldDateTwice:
+		m.ClearDateTwice()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -1434,6 +1497,9 @@ func (m *Mutation) ResetField(name string) error {
 		return nil
 	case FieldReference:
 		m.ResetReference()
+		return nil
+	case FieldDateTwice:
+		m.ResetDateTwice()
 		return nil
 	case FieldDateUpdated:
 		m.ResetDateUpdated()

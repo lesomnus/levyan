@@ -45,6 +45,11 @@ const (
 	// billing account ended -- written off rather than collected. Claude's
 	// proposal, which the owner has not confirmed.
 	InvoiceState_INVOICE_STATE_WRITTEN_OFF InvoiceState = 6
+	// A draft of periods before collection on its channel began -- the shadow
+	// billing before it went live (`invoices.mor.live_from`) -- closed as it
+	// is and never collected: nothing is asked of the channel for it, and its
+	// payer is not shown it. Claude's decision (2026-10-31, open question 63).
+	InvoiceState_INVOICE_STATE_SHADOW InvoiceState = 7
 )
 
 // Enum value maps for InvoiceState.
@@ -57,6 +62,7 @@ var (
 		4: "INVOICE_STATE_UNCOLLECTIBLE",
 		5: "INVOICE_STATE_VOID",
 		6: "INVOICE_STATE_WRITTEN_OFF",
+		7: "INVOICE_STATE_SHADOW",
 	}
 	InvoiceState_value = map[string]int32{
 		"INVOICE_STATE_UNSPECIFIED":   0,
@@ -66,6 +72,7 @@ var (
 		"INVOICE_STATE_UNCOLLECTIBLE": 4,
 		"INVOICE_STATE_VOID":          5,
 		"INVOICE_STATE_WRITTEN_OFF":   6,
+		"INVOICE_STATE_SHADOW":        7,
 	}
 )
 
@@ -744,7 +751,8 @@ type Invoice_builder struct {
 	Document   string
 	// When it is due, where its channel says one: a transfer's.
 	DateDue *timestamppb.Timestamp
-	// When it was settled: paid, voided, given up or written off.
+	// When it was settled: paid, voided, given up or written off -- or closed
+	// as a shadow, never to be collected.
 	DateSettled *timestamppb.Timestamp
 	// Who it was billed to as it was finalized: kept as it was, whatever its
 	// billing account says later.
@@ -756,7 +764,8 @@ type Invoice_builder struct {
 	// How many times it was found to be less than its channel collects, and
 	// waited for the next period.
 	Carried uint32
-	// Why it was voided, given up or written off, in its writer's words.
+	// Why it was voided, given up, written off or closed as a shadow, in its
+	// writer's words.
 	Reason string
 	// The end of the period a draft last waited at, being less than its
 	// channel collects: it is looked at again once it covers a later one.
@@ -1023,7 +1032,7 @@ const file_levyan_invoice_proto_rawDesc = "" +
 	"\trecipient\x18\x03 \x01(\tR\trecipient\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12\x18\n" +
 	"\aaddress\x18\x05 \x01(\tR\aaddress\x123\n" +
-	"\bbusiness\x18\x06 \x01(\v2\x17.levyan.BillingBusinessR\bbusiness*\xce\x01\n" +
+	"\bbusiness\x18\x06 \x01(\v2\x17.levyan.BillingBusinessR\bbusiness*\xe8\x01\n" +
 	"\fInvoiceState\x12\x1d\n" +
 	"\x19INVOICE_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13INVOICE_STATE_DRAFT\x10\x01\x12\x16\n" +
@@ -1031,7 +1040,8 @@ const file_levyan_invoice_proto_rawDesc = "" +
 	"\x12INVOICE_STATE_PAID\x10\x03\x12\x1f\n" +
 	"\x1bINVOICE_STATE_UNCOLLECTIBLE\x10\x04\x12\x16\n" +
 	"\x12INVOICE_STATE_VOID\x10\x05\x12\x1d\n" +
-	"\x19INVOICE_STATE_WRITTEN_OFF\x10\x06B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
+	"\x19INVOICE_STATE_WRITTEN_OFF\x10\x06\x12\x18\n" +
+	"\x14INVOICE_STATE_SHADOW\x10\aB!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_invoice_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_levyan_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 2)

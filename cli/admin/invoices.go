@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/lesomnus/xli"
 	"github.com/lesomnus/xli/arg"
@@ -68,7 +69,7 @@ func newCmdInvoice() *xli.Command {
 				Name:  "ls",
 				Brief: "a product's invoices, the latest first",
 				Flags: flg.Flags{
-					&flg.String{Name: "state", Brief: "in one state: draft, open, paid, uncollectible, void or written_off"},
+					&flg.String{Name: "state", Brief: "in one state: draft, open, paid, uncollectible, void, written_off or shadow"},
 					&flg.String{Name: "billing-account", Brief: "of one billing account, by its identifier"},
 				},
 				Args: arg.Args{productArg},
@@ -253,6 +254,9 @@ func printShown(self *xli.Command, v admin.Invoice) {
 		}
 		if a.Recorded {
 			extra = append(extra, "recorded, "+a.Reference)
+		}
+		if a.Twice != nil {
+			extra = append(extra, "the channel holds more of its key than this, since "+a.Twice.UTC().Format(time.RFC3339)+": reconciliation's")
 		}
 		self.Printf("  attempt\t%s\t%s\t%s\t%s\t%d sent\t%s\n", a.Key, a.Kind, money.String(a.Amount, a.Currency), a.State, a.Sends, strings.Join(extra, "; "))
 	}

@@ -113,6 +113,7 @@ func (v Invoices) Account(ctx context.Context, product, ba uuid.UUID) error {
 		if err != nil {
 			return err
 		}
+		channel := levyan.Channel(levyan.Channel_value[acct.Channel])
 
 		for _, st := range sts {
 			if st.Channel != acct.Channel || st.Currency != acct.Currency {
@@ -131,6 +132,12 @@ func (v Invoices) Account(ctx context.Context, product, ba uuid.UUID) error {
 				if done {
 					draft = nil
 				}
+			}
+			if draft != nil && v.before(channel, draft.DateEnd) && !v.before(channel, st.DateEnd) {
+				// A draft of the shadow billing's periods alone gathers
+				// nothing that is collected: this statement, and every one
+				// after it, waits until the draft is closed as a shadow.
+				break
 			}
 			if draft == nil {
 				if draft, err = begin(ctx, s, db, st, acct); err != nil {
@@ -240,6 +247,9 @@ func add(ctx context.Context, s levyan.Server, inv *ent.Invoice, st *ent.Stateme
 // answers whether it is a draft no longer:
 //
 //   - on a channel nothing collects on, it is kept as it is, and said;
+//   - begun for a period that ended before collection on its channel began
+//     ([Invoices.LiveFrom]), it is closed as a shadow, and nothing else is
+//     written of it (Claude's, 2026-10-31, open question 63);
 //   - coming to nothing or less, it is finalized as settled, and what is
 //     less than nothing is the billing account's credit;
 //   - its credit balance taken off, what is left to ask for is more than
@@ -265,6 +275,13 @@ func (v Invoices) decide(ctx context.Context, s levyan.Server, db *ent.Client, d
 	}
 
 	now := v.now()
+	shadow, err := v.shadowed(ctx, db, inv)
+	if err != nil {
+		return false, err
+	}
+	if shadow {
+		return true, v.shade(ctx, s, db, inv, channel, now)
+	}
 	seller := Seller(channel)
 	rate := new(big.Rat)
 	if seller {
@@ -376,6 +393,69 @@ func more(ctx context.Context, db *ent.Client, inv *ent.Invoice) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// before says whether a period that ended at `end` ended before collection on
+// `channel` began: one billed in the shadow, never collected.
+func (v Invoices) before(channel levyan.Channel, end time.Time) bool {
+	from, ok := v.LiveFrom[channel]
+	return ok && end.Before(from)
+}
+
+// shadowed says whether draft `inv` is a shadow's: begun for a period that
+// ended before collection on its channel began. Its first period is the one
+// it was begun for, and a draft is begun for the first statement it gathers.
+func (v Invoices) shadowed(ctx context.Context, db *ent.Client, inv *ent.Invoice) (bool, error) {
+	channel := levyan.Channel(levyan.Channel_value[inv.Channel])
+	if _, ok := v.LiveFrom[channel]; !ok {
+		return false, nil
+	}
+	first, err := db.Period.Get(ctx, inv.PeriodId)
+	if err != nil {
+		return false, err
+	}
+
+	return v.before(channel, first.DateEnd), nil
+}
+
+// shade closes draft `inv` as a shadow: never finalized, nothing asked of
+// its channel, nothing taken of its billing account's credit, and its payer
+// shown nothing of it.
+//
+// A draft a build before this one gathered while nothing collected on the
+// channel holds every period since its first, and may hold periods that
+// ended after collection began: it is a shadow's all the same, since a line
+// is never moved to another invoice -- what it holds of those periods is not
+// collected, and said in the log (implementation decision: billed less,
+// rather than a shadow's period charged).
+func (v Invoices) shade(ctx context.Context, s levyan.Server, db *ent.Client, inv *ent.Invoice, channel levyan.Channel, now time.Time) error {
+	from := v.LiveFrom[channel]
+	if !inv.DateEnd.Before(from) {
+		ls, err := db.InvoiceLine.Query().Where(entinvoiceline.InvoiceId(inv.Id), entinvoiceline.DateEndGTE(from)).All(ctx)
+		if err != nil {
+			return err
+		}
+		after := int64(0)
+		for _, l := range ls {
+			after += l.Total
+		}
+		log.From(ctx).ErrorContext(ctx, "invoices: a draft of the shadow billing holds periods that ended after collection began, and is closed as a shadow with them: what it holds of them is not collected",
+			slog.String("invoice", pdid.Id(inv.Id).String()), slog.String("channel", inv.Channel),
+			slog.Time("live_from", from), slog.Time("end", inv.DateEnd), slog.Int64("not_collected", after), slog.String("currency", inv.Currency))
+	}
+
+	_, err := s.Invoice().Patch(ctx, levyan.InvoicePatchRequest_builder{
+		Ref:              levyan.InvoiceRef_builder{Id: inv.Id[:]}.Build(),
+		State:            levyan.InvoiceState_INVOICE_STATE_SHADOW.Enum(),
+		DateSettled:      timestamppb.New(now),
+		Reason:           proto.String("shadow billing: begun for a period that ended before collection on its channel began, " + from.UTC().Format(time.RFC3339)),
+		DateUpdatedForce: proto.Bool(true),
+	}.Build())
+	if err != nil {
+		return fmt.Errorf("invoice %s: %w", pdid.Id(inv.Id), err)
+	}
+
+	return nil
 }
 
 // BillToOf is who billing account `a` bills, as it says now.

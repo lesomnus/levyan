@@ -162,6 +162,17 @@ spin:
 #     USD: "pri_…"
 #   tolerance: 5s
 #   pull: 1m
+#
+# With a merchant named, its channel is collected -- each invoice charged to
+# its billing account's subscription -- from `invoices.mor.live_from` on,
+# which is then required: an instant with its offset. A draft of a period
+# that ended before it is the shadow billing's, closed as a shadow and never
+# charged; one that ends at or after it is invoiced and charged. Say now or
+# later: a draft gathered across an earlier time is a shadow whole.
+#
+# invoices:
+#   mor:
+#     live_from: "2026-12-01T00:00:00+09:00"
 
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an

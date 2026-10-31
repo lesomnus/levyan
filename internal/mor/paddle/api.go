@@ -291,6 +291,7 @@ type transaction struct {
 	CustomData     custom  `json:"custom_data"`
 	CreatedAt      string  `json:"created_at"`
 	BilledAt       *string `json:"billed_at"`
+	InvoiceNumber  *string `json:"invoice_number"`
 	Items          []struct {
 		Price struct {
 			ID         string `json:"id"`
@@ -408,6 +409,9 @@ func (t transaction) read(taxMode string) (mor.Transaction, error) {
 	if t.SubscriptionID != nil {
 		v.Subscription = *t.SubscriptionID
 	}
+	if t.InvoiceNumber != nil {
+		v.InvoiceNumber = *t.InvoiceNumber
+	}
 	if t.CustomerID != nil {
 		v.Customer = *t.CustomerID
 	}
@@ -444,10 +448,10 @@ func (t transaction) read(taxMode string) (mor.Transaction, error) {
 	case s == mor.Failed:
 		v.Failure = &mor.Failure{Kind: mor.Unknown, Code: "canceled", Message: "the transaction was canceled"}
 		if latest != nil {
-			v.Failure = &mor.Failure{Kind: paymentKind(*latest), Code: *latest}
+			v.Failure = paymentFailure(*latest)
 		}
 	case t.Status == "past_due" && latest != nil:
-		v.Failure = &mor.Failure{Kind: paymentKind(*latest), Code: *latest}
+		v.Failure = paymentFailure(*latest)
 	}
 	if p := t.latest(); p != nil {
 		v.Method = p.method()

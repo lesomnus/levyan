@@ -52,6 +52,8 @@ type PaymentAttempt struct {
 	Recorded bool `json:"recorded,omitempty"`
 	// Reference holds the value of the "reference" field.
 	Reference string `json:"reference,omitempty"`
+	// DateTwice holds the value of the "date_twice" field.
+	DateTwice *time.Time `json:"date_twice,omitempty"`
 	// DateUpdated holds the value of the "date_updated" field.
 	DateUpdated time.Time `json:"date_updated,omitempty"`
 	// DateErased holds the value of the "date_erased" field.
@@ -127,7 +129,7 @@ func (*PaymentAttempt) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case paymentattempt.FieldAttemptKey, paymentattempt.FieldChannel, paymentattempt.FieldCurrency, paymentattempt.FieldChannelRef, paymentattempt.FieldChannelNumber, paymentattempt.FieldReference:
 			values[i] = new(sql.NullString)
-		case paymentattempt.FieldDateSent, paymentattempt.FieldDateResolved, paymentattempt.FieldDatePaid, paymentattempt.FieldDateUpdated, paymentattempt.FieldDateErased, paymentattempt.FieldDateCreated:
+		case paymentattempt.FieldDateSent, paymentattempt.FieldDateResolved, paymentattempt.FieldDatePaid, paymentattempt.FieldDateTwice, paymentattempt.FieldDateUpdated, paymentattempt.FieldDateErased, paymentattempt.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case paymentattempt.FieldCreditNoteId:
 			values[i] = new(sql.Null[uuid.UUID])
@@ -248,6 +250,13 @@ func (_m *PaymentAttempt) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field reference", values[i])
 			} else if value.Valid {
 				_m.Reference = value.String
+			}
+		case paymentattempt.FieldDateTwice:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field date_twice", values[i])
+			} else if value.Valid {
+				_m.DateTwice = new(time.Time)
+				*_m.DateTwice = value.Time
 			}
 		case paymentattempt.FieldDateUpdated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -387,6 +396,11 @@ func (_m *PaymentAttempt) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("reference=")
 	builder.WriteString(_m.Reference)
+	builder.WriteString(", ")
+	if v := _m.DateTwice; v != nil {
+		builder.WriteString("date_twice=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("date_updated=")
 	builder.WriteString(_m.DateUpdated.Format(time.ANSIC))

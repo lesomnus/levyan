@@ -18199,6 +18199,7 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				{Number: 25, Name: entPaymentAttempt.FieldDatePaid, Type: 65, Nullable: true, Key: 0},
 				{Number: 26, Name: entPaymentAttempt.FieldRecorded, Type: 8, Nullable: false, Key: 0},
 				{Number: 27, Name: entPaymentAttempt.FieldReference, Type: 9, Nullable: false, Key: 0},
+				{Number: 28, Name: entPaymentAttempt.FieldDateTwice, Type: 65, Nullable: true, Key: 0},
 				{Number: 13, Name: entPaymentAttempt.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
 				{Number: 14, Name: entPaymentAttempt.FieldDateErased, Type: 65, Nullable: true, Key: 0},
 				{Number: 15, Name: entPaymentAttempt.FieldDateCreated, Type: 65, Nullable: false, Key: 0},

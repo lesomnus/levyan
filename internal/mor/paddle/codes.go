@@ -126,29 +126,69 @@ func kind(status int, code string) mor.Kind {
 	return mor.Unknown
 }
 
-// payments is what each of a payment attempt's error codes says of why it
-// failed (https://developer.paddle.com/api-reference/transactions/get-transaction,
-// payments[].error_code): the card's fault, or the MoR's own. A code that is
-// not here says nothing of the card.
-var payments = map[string]mor.Kind{
-	"authentication_failed":           mor.Declined,
-	"blocked_card":                    mor.Declined,
-	"canceled":                        mor.Declined, // the payer canceled the mandate
-	"declined":                        mor.Declined,
-	"declined_not_retryable":          mor.Declined,
-	"expired_card":                    mor.Declined,
-	"fraud":                           mor.Declined,
-	"invalid_amount":                  mor.Declined,
-	"invalid_payment_details":         mor.Declined,
-	"not_enough_balance":              mor.Declined,
-	"preferred_network_not_supported": mor.Declined,
-	"prepaid_card_not_supported":      mor.Declined,
-	"transaction_not_permitted":       mor.Declined,
+// payments is each of a payment attempt's error codes that is the payer's
+// method refusing it -- what is read as mor.Declined, and only these are --
+// and which kind of decline it is (mor.Decline). The codes, and the words
+// beside each, are Paddle's
+// (https://developer.paddle.com/api-reference/transactions/get-transaction,
+// payments[].error_code, 2026-10-31). The rest of its codes --
+// issuer_unavailable, psp_error, system_error, unknown, and those of a
+// cancellation or a refund -- say nothing of the method, and are read as an
+// unknown failure with the code kept.
+//
+// A code is the kind its words say, as package toss's are Toss's: that the
+// four kinds are these is Claude's, the lead's (levyan#10, 26), and which code
+// is which is the implementation's. One that says only that the method
+// refused is mor.DeclineOther. An authentication the payer did not pass is a
+// method to give again -- as Toss's wrong password and count of tries are --
+// and not fraud, which is what a check of risk refused: the issuer's, the
+// provider's, or one the seller set.
+var payments = map[string]mor.Decline{
+	// Later, on the same method, it may go through.
+	"not_enough_balance": mor.DeclineTemporary, // insufficient funds, or fund limits being reached
+
+	// The method will not be charged as it is: the payer gives another, or
+	// takes it up with its issuer.
+	"authentication_failed":           mor.DeclineReplace, // the authentication challenge … wasn't successful
+	"blocked_card":                    mor.DeclineReplace, // frozen, lost, damaged, or stolen
+	"canceled":                        mor.DeclineReplace, // the mandate for recurring payments canceled
+	"declined_not_retryable":          mor.DeclineReplace, // the issuer has indicated that it should not be retried
+	"expired_card":                    mor.DeclineReplace, // this card is expired
+	"invalid_payment_details":         mor.DeclineReplace, // the payment method isn't valid
+	"preferred_network_not_supported": mor.DeclineReplace, // the network scheme … isn't supported
+	"prepaid_card_not_supported":      mor.DeclineReplace, // prepaid cards are blocked on this Paddle account
+	"redacted_payment_method":         mor.DeclineReplace, // the payment method information … redacted
+	"transaction_not_permitted":       mor.DeclineReplace, // the issuer doesn't allow this kind of payment
+
+	// A check of risk refused it.
+	"fraud":             mor.DeclineFraud, // flagged … as potentially fraudulent
+	"blocked_by_policy": mor.DeclineFraud, // blocked by one of the seller's configured policy checks
+
+	// Refused, and no more said.
+	"declined":       mor.DeclineOther, // declined, with no other information returned
+	"invalid_amount": mor.DeclineOther, // cannot process a payment that is this high or low
 }
 
-func paymentKind(code string) mor.Kind {
-	if k, ok := payments[code]; ok {
-		return k
+// paymentFailure is why a payment attempt with error code failed: a decline
+// of its kind, for one of [payments], and an unknown failure, which says
+// nothing of the method, for any other.
+func paymentFailure(code string) *mor.Failure {
+	d, ok := payments[code]
+	if !ok {
+		return &mor.Failure{Kind: mor.Unknown, Code: code}
 	}
-	return mor.Unknown
+	return &mor.Failure{Kind: mor.Declined, Decline: d, Code: code}
 }
+
+// declines is which kind of decline each code a request is refused with as
+// mor.Declined is ([codes]): a charge made now that the method declined,
+// which prevent_change answers with subscription_payment_declined and no
+// payment to read why from -- refused, and no more said -- and a
+// subscription with no method to charge, which the payer gives anew.
+var declines = map[string]mor.Decline{
+	"subscription_payment_declined":                     mor.DeclineOther,
+	"subscription_missing_payment_method_cannot_update": mor.DeclineReplace,
+}
+
+// decline is which kind of decline a request refused with code is.
+func decline(code string) mor.Decline { return declines[code] }

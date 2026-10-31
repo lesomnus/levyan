@@ -39,6 +39,10 @@
 //     payment action_required, until [Server.Act].
 //   - A checkout's transaction is canceled only when a test says so
 //     ([Server.Abandon]).
+//   - A transaction has its invoice_number as it is completed, 325-10566
+//     and on, as Paddle's example of a completed transaction has one; the
+//     documentation says a number is generated as a transaction collected
+//     by invoice is billed, and nothing of one collected automatically.
 //
 // Time is the fake's own clock: now, moved by [Server.Advance]. A
 // subscription renews when [Server.Renew] says so, not when its time comes.
@@ -158,6 +162,7 @@ type Server struct {
 	awaits   int
 	requests map[Op]int
 	charged  int
+	invoices int
 	made     []string // what the request being handled made, by id
 	events   []*event
 	behind   time.Duration
@@ -244,6 +249,7 @@ type txn struct {
 	billed   time.Time
 	payments []payment
 	checkout string
+	invoice  string // its invoice_number, once it is completed
 	hidden   time.Time
 }
 
@@ -427,6 +433,7 @@ func (s *Server) PayWith(c mor.Checkout, m Method) error {
 		s.charged++
 	}
 	t.status, t.billed, t.updated = "completed", now, now
+	s.number(t)
 
 	su := &sub{
 		id:       s.id("sub"),
@@ -517,6 +524,7 @@ func (s *Server) Renew(id string) string {
 		t.status = "completed"
 		t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", method: su.method, created: now, captured: now}}
 		s.charged++
+		s.number(t)
 	}
 	s.txns[t.id] = t
 	if t.status == "completed" {
@@ -570,6 +578,7 @@ func (s *Server) Act(id string) {
 	p.status, p.captured = "captured", now
 	t.status, t.updated = "completed", now
 	s.charged++
+	s.number(t)
 	s.emit("transaction.completed", t.object(s, false))
 	if su, ok := s.subs[t.sub]; ok && su.status == "past_due" {
 		su.status, su.updated = "active", now
@@ -614,6 +623,8 @@ func (s *Server) Duplicate(id string) string {
 		t.items[i].line = s.id("txnitm")
 	}
 	t.created, t.updated = s.now(), s.now()
+	t.invoice = ""
+	s.number(&t)
 	s.txns[t.id] = &t
 	s.charged++
 	s.emit("transaction.completed", t.object(s, false))
@@ -974,6 +985,16 @@ func (s *Server) lineOf(it item) item {
 	return it
 }
 
+// number gives t, completed, the number of the invoice Paddle issues for it,
+// once: 325-10566 and on, as Paddle's example of a completed transaction
+// writes one.
+func (s *Server) number(t *txn) {
+	if t.invoice == "" {
+		t.invoice = fmt.Sprintf("325-%05d", 10566+s.invoices)
+		s.invoices++
+	}
+}
+
 func (s *Server) checkout(_ *http.Request, body []byte) (int, any) {
 	var in struct {
 		Items []struct {
@@ -1237,6 +1258,7 @@ func (s *Server) charge(r *http.Request, body []byte) (int, any) {
 		t.items[i].line = s.id("txnitm")
 	}
 	t.payments = []payment{{id: s.id("pay"), amount: total, status: "captured", method: su.method, created: now, captured: now}}
+	s.number(t)
 	s.txns[t.id] = t
 	s.made = append(s.made, t.id)
 	s.charged++
@@ -1466,7 +1488,7 @@ func (t *txn) object(s *Server, adjustments bool) map[string]any {
 		"origin":          t.origin,
 		"subscription_id": orNil(t.sub),
 		"invoice_id":      nil,
-		"invoice_number":  nil,
+		"invoice_number":  orNil(t.invoice),
 		"collection_mode": "automatic",
 		"discount_id":     nil,
 		"billing_details": nil,

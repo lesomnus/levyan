@@ -25,15 +25,25 @@ import (
 
 // What an account reads of what its billing accounts are asked to pay (#9):
 // of the product that relays the call, its billing accounts' invoices once
-// each is finalized -- a draft is levyan's still, and a draft written off was
-// never asked for -- their lines, and their credit notes.
+// each is finalized -- a draft is levyan's still, a draft written off was
+// never asked for, and a shadow is the shadow billing's, never collected --
+// their lines, and their credit notes.
+
+// finalized is the states of an invoice its payer reads: those of one
+// finalized. A state named nowhere here is shown to nobody.
+var finalized = []int32{
+	int32(levyan.InvoiceState_INVOICE_STATE_OPEN),
+	int32(levyan.InvoiceState_INVOICE_STATE_PAID),
+	int32(levyan.InvoiceState_INVOICE_STATE_UNCOLLECTIBLE),
+	int32(levyan.InvoiceState_INVOICE_STATE_VOID),
+}
 
 func theirInvoices(product pdid.Id) func(context.Context, pdid.Id) (predicate.Invoice, error) {
 	return func(_ context.Context, account pdid.Id) (predicate.Invoice, error) {
 		return entinvoice.And(
 			entinvoice.TenantId(product.Uuid()),
 			entinvoice.HasBillingAccountWith(entbillingaccount.Owner(account.Uuid())),
-			entinvoice.StateNotIn(int32(levyan.InvoiceState_INVOICE_STATE_DRAFT), int32(levyan.InvoiceState_INVOICE_STATE_WRITTEN_OFF)),
+			entinvoice.StateIn(finalized...),
 		), nil
 	}
 }

@@ -202,7 +202,16 @@ func TestATransactionIsReadAsLevyanHasOne(t *testing.T) {
 	v, err = due.read("external")
 	require.NoError(t, err)
 	require.Equal(t, mor.Pending, v.Status, "Paddle is still collecting it")
-	require.Equal(t, &mor.Failure{Kind: mor.Declined, Code: "not_enough_balance"}, v.Failure)
+	require.Equal(t, &mor.Failure{Kind: mor.Declined, Decline: mor.DeclineTemporary, Code: "not_enough_balance"}, v.Failure)
+
+	number := "325-10566"
+	numbered := transaction{Status: "completed", CurrencyCode: "KRW", InvoiceNumber: &number}
+	v, err = numbered.read("external")
+	require.NoError(t, err)
+	require.Equal(t, "325-10566", v.InvoiceNumber, "the number of the invoice Paddle issued for it")
+	v, err = transaction{Status: "completed", CurrencyCode: "KRW"}.read("external")
+	require.NoError(t, err)
+	require.Empty(t, v.InvoiceNumber, "none issued yet")
 
 	gone, err := transaction{Status: "canceled", CurrencyCode: "USD"}.read("external")
 	require.NoError(t, err)
@@ -242,6 +251,69 @@ func TestASubscriptionIsReadAsLevyanMirrorsOne(t *testing.T) {
 
 	_, err = subscription{ID: "sub_00000000000000000000000001", Status: "a_status_paddle_adds_tomorrow"}.read()
 	require.Error(t, err)
+}
+
+// A decline is told apart by its kind (the owner's, 2026-10-31), as Paddle's
+// words for each code say it: every code read as the method's refusal has a
+// kind, and only those are read as one.
+func TestADeclineIsOfTheKindItsCodeSays(t *testing.T) {
+	for code, want := range map[string]mor.Decline{
+		"not_enough_balance":      mor.DeclineTemporary,
+		"expired_card":            mor.DeclineReplace,
+		"blocked_card":            mor.DeclineReplace,
+		"canceled":                mor.DeclineReplace,
+		"declined_not_retryable":  mor.DeclineReplace,
+		"authentication_failed":   mor.DeclineReplace,
+		"redacted_payment_method": mor.DeclineReplace,
+		"fraud":                   mor.DeclineFraud,
+		"blocked_by_policy":       mor.DeclineFraud,
+		"declined":                mor.DeclineOther,
+	} {
+		require.Equal(t, &mor.Failure{Kind: mor.Declined, Decline: want, Code: code}, paymentFailure(code), code)
+	}
+	for _, code := range []string{"issuer_unavailable", "psp_error", "system_error", "unknown", "already_refunded", "a_code_paddle_adds_tomorrow"} {
+		require.Equal(t, &mor.Failure{Kind: mor.Unknown, Code: code}, paymentFailure(code), "%s says nothing of the method", code)
+	}
+
+	// A request refused as the method's refusal says which kind; and every
+	// code read so is in the table of its kinds, and only those.
+	require.Equal(t, mor.DeclineOther, decline("subscription_payment_declined"), "prevent_change says no more")
+	require.Equal(t, mor.DeclineReplace, decline("subscription_missing_payment_method_cannot_update"))
+	for code, k := range codes {
+		_, ok := declines[code]
+		require.Equal(t, k == mor.Declined, ok, code)
+	}
+	for code := range declines {
+		require.Equal(t, mor.Declined, codes[code], code)
+	}
+}
+
+// A key charged twice is answered with the first of its transactions that
+// moved money, whatever became of the others, and with the first of them when
+// none did.
+func TestAKeyChargedTwiceIsAnsweredWithItsFirstPaid(t *testing.T) {
+	pending := mor.Transaction{ID: "txn_00000000000000000000000001", Status: mor.Pending}
+	failed := mor.Transaction{ID: "txn_00000000000000000000000002", Status: mor.Failed}
+	paid := mor.Transaction{ID: "txn_00000000000000000000000003", Status: mor.Paid}
+	later := mor.Transaction{ID: "txn_00000000000000000000000004", Status: mor.Paid}
+	require.Equal(t, paid, first([]mor.Transaction{pending, failed, paid, later}))
+	require.Equal(t, pending, first([]mor.Transaction{pending, failed}))
+}
+
+// The least Paddle charges is said of every currency levyan prices in, as
+// Paddle's documentation says it; a currency levyan gains is refused here
+// until its least is written down.
+func TestTheLeastPaddleChargesIsSaidOfEveryCurrency(t *testing.T) {
+	c := &Channel{}
+	for _, cur := range money.Currencies() {
+		least := c.Minimum(cur)
+		require.Equal(t, cur, least.Currency)
+		require.Positive(t, least.Minor, cur)
+	}
+	require.Equal(t, money.Amount{Minor: 980, Currency: "KRW"}, c.Minimum("KRW"))
+	require.Equal(t, money.Amount{Minor: 70, Currency: "USD"}, c.Minimum("USD"))
+	require.Equal(t, money.Amount{Minor: 65, Currency: "EUR"}, c.Minimum("EUR"))
+	require.Equal(t, money.Amount{Minor: 100, Currency: "JPY"}, c.Minimum("JPY"))
 }
 
 func TestAnAdjustmentLevyanCannotPlaceIsNoAdjustmentToActOn(t *testing.T) {

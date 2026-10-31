@@ -120,7 +120,8 @@ message Invoice {
   // When it is due, where its channel says one: a transfer's.
   google.protobuf.Timestamp date_due = 30 [(orm.field) = {nullable: true}];
 
-  // When it was settled: paid, voided, given up or written off.
+  // When it was settled: paid, voided, given up or written off -- or closed
+  // as a shadow, never to be collected.
   google.protobuf.Timestamp date_settled = 31 [(orm.field) = {nullable: true}];
 
   // Who it was billed to as it was finalized: kept as it was, whatever its
@@ -139,7 +140,8 @@ message Invoice {
   // waited for the next period.
   uint32 carried = 35;
 
-  // Why it was voided, given up or written off, in its writer's words.
+  // Why it was voided, given up, written off or closed as a shadow, in its
+  // writer's words.
   string reason = 36 [(payday.field) = {personal: true}];
 
   // The end of the period a draft last waited at, being less than its
@@ -271,6 +273,12 @@ enum InvoiceState {
   // billing account ended -- written off rather than collected. Claude's
   // proposal, which the owner has not confirmed.
   INVOICE_STATE_WRITTEN_OFF = 6;
+
+  // A draft of periods before collection on its channel began -- the shadow
+  // billing before it went live (`invoices.mor.live_from`) -- closed as it
+  // is and never collected: nothing is asked of the channel for it, and its
+  // payer is not shown it. Claude's decision (2026-10-31, open question 63).
+  INVOICE_STATE_SHADOW = 7;
 }
 
 // BillTo is who an invoice was billed to as it was finalized: its billing

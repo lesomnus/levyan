@@ -290,6 +290,7 @@ type PaymentAttempt struct {
 	xxx_hidden_DatePaid      *timestamppb.Timestamp `protobuf:"bytes,25,opt,name=date_paid,json=datePaid"`
 	xxx_hidden_Recorded      bool                   `protobuf:"varint,26,opt,name=recorded"`
 	xxx_hidden_Reference     string                 `protobuf:"bytes,27,opt,name=reference"`
+	xxx_hidden_DateTwice     *timestamppb.Timestamp `protobuf:"bytes,28,opt,name=date_twice,json=dateTwice"`
 	xxx_hidden_DateUpdated   *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateErased    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
@@ -455,6 +456,13 @@ func (x *PaymentAttempt) GetReference() string {
 	return ""
 }
 
+func (x *PaymentAttempt) GetDateTwice() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateTwice
+	}
+	return nil
+}
+
 func (x *PaymentAttempt) GetDateUpdated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -555,6 +563,10 @@ func (x *PaymentAttempt) SetReference(v string) {
 	x.xxx_hidden_Reference = v
 }
 
+func (x *PaymentAttempt) SetDateTwice(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateTwice = v
+}
+
 func (x *PaymentAttempt) SetDateUpdated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateUpdated = v
 }
@@ -616,6 +628,13 @@ func (x *PaymentAttempt) HasDatePaid() bool {
 	return x.xxx_hidden_DatePaid != nil
 }
 
+func (x *PaymentAttempt) HasDateTwice() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateTwice != nil
+}
+
 func (x *PaymentAttempt) HasDateUpdated() bool {
 	if x == nil {
 		return false
@@ -663,6 +682,10 @@ func (x *PaymentAttempt) ClearDateResolved() {
 
 func (x *PaymentAttempt) ClearDatePaid() {
 	x.xxx_hidden_DatePaid = nil
+}
+
+func (x *PaymentAttempt) ClearDateTwice() {
+	x.xxx_hidden_DateTwice = nil
 }
 
 func (x *PaymentAttempt) ClearDateUpdated() {
@@ -717,7 +740,14 @@ type PaymentAttempt_builder struct {
 	Recorded bool
 	// What the operator who recorded it says identifies the transfer: the
 	// bank's reference, which may be a person's name.
-	Reference   string
+	Reference string
+	// When the channel was found to hold more payments of its key than the
+	// ledger accounts for -- a key charged, or refunded, twice; a key charged
+	// after its attempt failed -- by this deployment's clock: the mark
+	// reconciliation (#13) reads, to give back what the attempt did not settle
+	// by. Unset while the channel holds it as the ledger does. The one thing
+	// that may still be written of an attempt once it has ended.
+	DateTwice   *timestamppb.Timestamp
 	DateUpdated *timestamppb.Timestamp
 	// Never stamped: there is no Erase.
 	DateErased  *timestamppb.Timestamp
@@ -747,6 +777,7 @@ func (b0 PaymentAttempt_builder) Build() *PaymentAttempt {
 	x.xxx_hidden_DatePaid = b.DatePaid
 	x.xxx_hidden_Recorded = b.Recorded
 	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_DateTwice = b.DateTwice
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -860,8 +891,7 @@ var File_levyan_payment_attempt_proto protoreflect.FileDescriptor
 
 const file_levyan_payment_attempt_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/payment_attempt.proto\x12\x06levyan\x1a\x18levyan/credit_note.proto\x1a\x14levyan/invoice.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xeb\n" +
-	"\n" +
+	"\x1clevyan/payment_attempt.proto\x12\x06levyan\x1a\x18levyan/credit_note.proto\x1a\x14levyan/invoice.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xae\v\n" +
 	"\x0ePaymentAttempt\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x121\n" +
@@ -885,7 +915,9 @@ const file_levyan_payment_attempt_proto_rawDesc = "" +
 	"\rdate_resolved\x18\x18 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\fdateResolved\x12?\n" +
 	"\tdate_paid\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\bdatePaid\x12\"\n" +
 	"\brecorded\x18\x1a \x01(\bB\x06\xea\x82\x16\x02@\x01R\brecorded\x12*\n" +
-	"\treference\x18\x1b \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x01R\treference\x12F\n" +
+	"\treference\x18\x1b \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x01R\treference\x12A\n" +
+	"\n" +
+	"date_twice\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\tdateTwice\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
@@ -961,16 +993,17 @@ var file_levyan_payment_attempt_proto_depIdxs = []int32{
 	5,  // 6: levyan.PaymentAttempt.failure:type_name -> levyan.AttemptFailure
 	9,  // 7: levyan.PaymentAttempt.date_resolved:type_name -> google.protobuf.Timestamp
 	9,  // 8: levyan.PaymentAttempt.date_paid:type_name -> google.protobuf.Timestamp
-	9,  // 9: levyan.PaymentAttempt.date_updated:type_name -> google.protobuf.Timestamp
-	9,  // 10: levyan.PaymentAttempt.date_erased:type_name -> google.protobuf.Timestamp
-	9,  // 11: levyan.PaymentAttempt.date_created:type_name -> google.protobuf.Timestamp
-	2,  // 12: levyan.AttemptFailure.kind:type_name -> levyan.FailureKind
-	3,  // 13: levyan.AttemptFailure.decline:type_name -> levyan.DeclineKind
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	9,  // 9: levyan.PaymentAttempt.date_twice:type_name -> google.protobuf.Timestamp
+	9,  // 10: levyan.PaymentAttempt.date_updated:type_name -> google.protobuf.Timestamp
+	9,  // 11: levyan.PaymentAttempt.date_erased:type_name -> google.protobuf.Timestamp
+	9,  // 12: levyan.PaymentAttempt.date_created:type_name -> google.protobuf.Timestamp
+	2,  // 13: levyan.AttemptFailure.kind:type_name -> levyan.FailureKind
+	3,  // 14: levyan.AttemptFailure.decline:type_name -> levyan.DeclineKind
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_levyan_payment_attempt_proto_init() }

@@ -7244,6 +7244,23 @@ func (m *PaymentAttemptMutation) OldReference(ctx context.Context) (v string, er
 	return oldValue.Reference, nil
 }
 
+// OldDateTwice returns the old "date_twice" field's value of the PaymentAttempt entity.
+// If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PaymentAttemptMutation) OldDateTwice(ctx context.Context) (v *time.Time, err error) {
+	if !m.Op().Is(OpUpdateOne) {
+		return v, errors.New("OldDateTwice is only allowed on UpdateOne operations")
+	}
+	if _, exists := m.Id(); !exists || m.oldValue == nil {
+		return v, errors.New("OldDateTwice requires an Id field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDateTwice: %w", err)
+	}
+	return oldValue.DateTwice, nil
+}
+
 // OldDateUpdated returns the old "date_updated" field's value of the PaymentAttempt entity.
 // If the PaymentAttempt object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
@@ -7381,6 +7398,8 @@ func (m *PaymentAttemptMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldRecorded(ctx)
 	case paymentattempt.FieldReference:
 		return m.OldReference(ctx)
+	case paymentattempt.FieldDateTwice:
+		return m.OldDateTwice(ctx)
 	case paymentattempt.FieldDateUpdated:
 		return m.OldDateUpdated(ctx)
 	case paymentattempt.FieldDateErased:

@@ -43,6 +43,7 @@ type PaymentAttemptAddRequest struct {
 	xxx_hidden_DatePaid      *timestamppb.Timestamp `protobuf:"bytes,25,opt,name=date_paid,json=datePaid"`
 	xxx_hidden_Recorded      bool                   `protobuf:"varint,26,opt,name=recorded"`
 	xxx_hidden_Reference     string                 `protobuf:"bytes,27,opt,name=reference"`
+	xxx_hidden_DateTwice     *timestamppb.Timestamp `protobuf:"bytes,28,opt,name=date_twice,json=dateTwice"`
 	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
@@ -208,6 +209,13 @@ func (x *PaymentAttemptAddRequest) GetReference() string {
 	return ""
 }
 
+func (x *PaymentAttemptAddRequest) GetDateTwice() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateTwice
+	}
+	return nil
+}
+
 func (x *PaymentAttemptAddRequest) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateCreated
@@ -220,7 +228,7 @@ func (x *PaymentAttemptAddRequest) SetId(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 20)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 21)
 }
 
 func (x *PaymentAttemptAddRequest) SetTenant(v *TenantRef) {
@@ -295,6 +303,10 @@ func (x *PaymentAttemptAddRequest) SetReference(v string) {
 	x.xxx_hidden_Reference = v
 }
 
+func (x *PaymentAttemptAddRequest) SetDateTwice(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateTwice = v
+}
+
 func (x *PaymentAttemptAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
 }
@@ -355,6 +367,13 @@ func (x *PaymentAttemptAddRequest) HasDatePaid() bool {
 	return x.xxx_hidden_DatePaid != nil
 }
 
+func (x *PaymentAttemptAddRequest) HasDateTwice() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateTwice != nil
+}
+
 func (x *PaymentAttemptAddRequest) HasDateCreated() bool {
 	if x == nil {
 		return false
@@ -395,6 +414,10 @@ func (x *PaymentAttemptAddRequest) ClearDatePaid() {
 	x.xxx_hidden_DatePaid = nil
 }
 
+func (x *PaymentAttemptAddRequest) ClearDateTwice() {
+	x.xxx_hidden_DateTwice = nil
+}
+
 func (x *PaymentAttemptAddRequest) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
@@ -421,6 +444,7 @@ type PaymentAttemptAddRequest_builder struct {
 	DatePaid      *timestamppb.Timestamp
 	Recorded      bool
 	Reference     string
+	DateTwice     *timestamppb.Timestamp
 	DateCreated   *timestamppb.Timestamp
 }
 
@@ -429,7 +453,7 @@ func (b0 PaymentAttemptAddRequest_builder) Build() *PaymentAttemptAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 20)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 21)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Tenant = b.Tenant
@@ -450,6 +474,7 @@ func (b0 PaymentAttemptAddRequest_builder) Build() *PaymentAttemptAddRequest {
 	x.xxx_hidden_DatePaid = b.DatePaid
 	x.xxx_hidden_Recorded = b.Recorded
 	x.xxx_hidden_Reference = b.Reference
+	x.xxx_hidden_DateTwice = b.DateTwice
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
@@ -816,6 +841,7 @@ type PaymentAttemptSelect struct {
 	xxx_hidden_DatePaid      bool                   `protobuf:"varint,25,opt,name=date_paid,json=datePaid"`
 	xxx_hidden_Recorded      bool                   `protobuf:"varint,26,opt,name=recorded"`
 	xxx_hidden_Reference     bool                   `protobuf:"varint,27,opt,name=reference"`
+	xxx_hidden_DateTwice     bool                   `protobuf:"varint,28,opt,name=date_twice,json=dateTwice"`
 	xxx_hidden_DateUpdated   bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateErased    bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated   bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
@@ -983,6 +1009,13 @@ func (x *PaymentAttemptSelect) GetReference() bool {
 	return false
 }
 
+func (x *PaymentAttemptSelect) GetDateTwice() bool {
+	if x != nil {
+		return x.xxx_hidden_DateTwice
+	}
+	return false
+}
+
 func (x *PaymentAttemptSelect) GetDateUpdated() bool {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -1006,7 +1039,7 @@ func (x *PaymentAttemptSelect) GetDateCreated() bool {
 
 func (x *PaymentAttemptSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 23)
 }
 
 func (x *PaymentAttemptSelect) SetTenant(v *TenantSelect) {
@@ -1023,92 +1056,97 @@ func (x *PaymentAttemptSelect) SetCreditNote(v *CreditNoteSelect) {
 
 func (x *PaymentAttemptSelect) SetKind(v bool) {
 	x.xxx_hidden_Kind = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 23)
 }
 
 func (x *PaymentAttemptSelect) SetAttemptKey(v bool) {
 	x.xxx_hidden_AttemptKey = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 23)
 }
 
 func (x *PaymentAttemptSelect) SetChannel(v bool) {
 	x.xxx_hidden_Channel = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 23)
 }
 
 func (x *PaymentAttemptSelect) SetCurrency(v bool) {
 	x.xxx_hidden_Currency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 23)
 }
 
 func (x *PaymentAttemptSelect) SetAmount(v bool) {
 	x.xxx_hidden_Amount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 23)
 }
 
 func (x *PaymentAttemptSelect) SetState(v bool) {
 	x.xxx_hidden_State = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 23)
 }
 
 func (x *PaymentAttemptSelect) SetSends(v bool) {
 	x.xxx_hidden_Sends = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 23)
 }
 
 func (x *PaymentAttemptSelect) SetDateSent(v bool) {
 	x.xxx_hidden_DateSent = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 23)
 }
 
 func (x *PaymentAttemptSelect) SetFailure(v bool) {
 	x.xxx_hidden_Failure = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 23)
 }
 
 func (x *PaymentAttemptSelect) SetChannelRef(v bool) {
 	x.xxx_hidden_ChannelRef = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 23)
 }
 
 func (x *PaymentAttemptSelect) SetChannelNumber(v bool) {
 	x.xxx_hidden_ChannelNumber = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 23)
 }
 
 func (x *PaymentAttemptSelect) SetDateResolved(v bool) {
 	x.xxx_hidden_DateResolved = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 23)
 }
 
 func (x *PaymentAttemptSelect) SetDatePaid(v bool) {
 	x.xxx_hidden_DatePaid = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 23)
 }
 
 func (x *PaymentAttemptSelect) SetRecorded(v bool) {
 	x.xxx_hidden_Recorded = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 23)
 }
 
 func (x *PaymentAttemptSelect) SetReference(v bool) {
 	x.xxx_hidden_Reference = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 23)
+}
+
+func (x *PaymentAttemptSelect) SetDateTwice(v bool) {
+	x.xxx_hidden_DateTwice = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 23)
 }
 
 func (x *PaymentAttemptSelect) SetDateUpdated(v bool) {
 	x.xxx_hidden_DateUpdated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 23)
 }
 
 func (x *PaymentAttemptSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 23)
 }
 
 func (x *PaymentAttemptSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 22)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 23)
 }
 
 func (x *PaymentAttemptSelect) HasAll() bool {
@@ -1244,25 +1282,32 @@ func (x *PaymentAttemptSelect) HasReference() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 18)
 }
 
-func (x *PaymentAttemptSelect) HasDateUpdated() bool {
+func (x *PaymentAttemptSelect) HasDateTwice() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 19)
 }
 
-func (x *PaymentAttemptSelect) HasDateErased() bool {
+func (x *PaymentAttemptSelect) HasDateUpdated() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 20)
 }
 
-func (x *PaymentAttemptSelect) HasDateCreated() bool {
+func (x *PaymentAttemptSelect) HasDateErased() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 21)
+}
+
+func (x *PaymentAttemptSelect) HasDateCreated() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 22)
 }
 
 func (x *PaymentAttemptSelect) ClearAll() {
@@ -1357,18 +1402,23 @@ func (x *PaymentAttemptSelect) ClearReference() {
 	x.xxx_hidden_Reference = false
 }
 
-func (x *PaymentAttemptSelect) ClearDateUpdated() {
+func (x *PaymentAttemptSelect) ClearDateTwice() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 19)
+	x.xxx_hidden_DateTwice = false
+}
+
+func (x *PaymentAttemptSelect) ClearDateUpdated() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 20)
 	x.xxx_hidden_DateUpdated = false
 }
 
 func (x *PaymentAttemptSelect) ClearDateErased() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 20)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
 	x.xxx_hidden_DateErased = false
 }
 
 func (x *PaymentAttemptSelect) ClearDateCreated() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 22)
 	x.xxx_hidden_DateCreated = false
 }
 
@@ -1394,6 +1444,7 @@ type PaymentAttemptSelect_builder struct {
 	DatePaid      *bool
 	Recorded      *bool
 	Reference     *bool
+	DateTwice     *bool
 	DateUpdated   *bool
 	DateErased    *bool
 	DateCreated   *bool
@@ -1404,82 +1455,86 @@ func (b0 PaymentAttemptSelect_builder) Build() *PaymentAttemptSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 23)
 		x.xxx_hidden_All = *b.All
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_CreditNote = b.CreditNote
 	if b.Kind != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 23)
 		x.xxx_hidden_Kind = *b.Kind
 	}
 	if b.AttemptKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 23)
 		x.xxx_hidden_AttemptKey = *b.AttemptKey
 	}
 	if b.Channel != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 23)
 		x.xxx_hidden_Channel = *b.Channel
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 23)
 		x.xxx_hidden_Currency = *b.Currency
 	}
 	if b.Amount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 23)
 		x.xxx_hidden_Amount = *b.Amount
 	}
 	if b.State != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 23)
 		x.xxx_hidden_State = *b.State
 	}
 	if b.Sends != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 23)
 		x.xxx_hidden_Sends = *b.Sends
 	}
 	if b.DateSent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 23)
 		x.xxx_hidden_DateSent = *b.DateSent
 	}
 	if b.Failure != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 23)
 		x.xxx_hidden_Failure = *b.Failure
 	}
 	if b.ChannelRef != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 23)
 		x.xxx_hidden_ChannelRef = *b.ChannelRef
 	}
 	if b.ChannelNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 23)
 		x.xxx_hidden_ChannelNumber = *b.ChannelNumber
 	}
 	if b.DateResolved != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 23)
 		x.xxx_hidden_DateResolved = *b.DateResolved
 	}
 	if b.DatePaid != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 23)
 		x.xxx_hidden_DatePaid = *b.DatePaid
 	}
 	if b.Recorded != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 23)
 		x.xxx_hidden_Recorded = *b.Recorded
 	}
 	if b.Reference != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 23)
 		x.xxx_hidden_Reference = *b.Reference
 	}
+	if b.DateTwice != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 23)
+		x.xxx_hidden_DateTwice = *b.DateTwice
+	}
 	if b.DateUpdated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 23)
 		x.xxx_hidden_DateUpdated = *b.DateUpdated
 	}
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 23)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 22)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 23)
 		x.xxx_hidden_DateCreated = *b.DateCreated
 	}
 	return m0
@@ -1500,6 +1555,8 @@ type PaymentAttemptPatchRequest struct {
 	xxx_hidden_DateResolvedNull bool                   `protobuf:"varint,49,opt,name=date_resolved_null,json=dateResolvedNull"`
 	xxx_hidden_DatePaid         *timestamppb.Timestamp `protobuf:"bytes,50,opt,name=date_paid,json=datePaid"`
 	xxx_hidden_DatePaidNull     bool                   `protobuf:"varint,51,opt,name=date_paid_null,json=datePaidNull"`
+	xxx_hidden_DateTwice        *timestamppb.Timestamp `protobuf:"bytes,56,opt,name=date_twice,json=dateTwice"`
+	xxx_hidden_DateTwiceNull    bool                   `protobuf:"varint,57,opt,name=date_twice_null,json=dateTwiceNull"`
 	xxx_hidden_DateUpdated      *timestamppb.Timestamp `protobuf:"bytes,26,opt,name=date_updated,json=dateUpdated"`
 	xxx_hidden_DateUpdatedForce bool                   `protobuf:"varint,27,opt,name=date_updated_force,json=dateUpdatedForce"`
 	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
@@ -1632,6 +1689,20 @@ func (x *PaymentAttemptPatchRequest) GetDatePaidNull() bool {
 	return false
 }
 
+func (x *PaymentAttemptPatchRequest) GetDateTwice() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateTwice
+	}
+	return nil
+}
+
+func (x *PaymentAttemptPatchRequest) GetDateTwiceNull() bool {
+	if x != nil {
+		return x.xxx_hidden_DateTwiceNull
+	}
+	return false
+}
+
 func (x *PaymentAttemptPatchRequest) GetDateUpdated() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_DateUpdated
@@ -1652,12 +1723,12 @@ func (x *PaymentAttemptPatchRequest) SetRef(v *PaymentAttemptRef) {
 
 func (x *PaymentAttemptPatchRequest) SetState(v AttemptState) {
 	x.xxx_hidden_State = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetSends(v uint32) {
 	x.xxx_hidden_Sends = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetDateSent(v *timestamppb.Timestamp) {
@@ -1666,7 +1737,7 @@ func (x *PaymentAttemptPatchRequest) SetDateSent(v *timestamppb.Timestamp) {
 
 func (x *PaymentAttemptPatchRequest) SetDateSentNull(v bool) {
 	x.xxx_hidden_DateSentNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetFailure(v *AttemptFailure) {
@@ -1675,17 +1746,17 @@ func (x *PaymentAttemptPatchRequest) SetFailure(v *AttemptFailure) {
 
 func (x *PaymentAttemptPatchRequest) SetFailureNull(v bool) {
 	x.xxx_hidden_FailureNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetChannelRef(v string) {
 	x.xxx_hidden_ChannelRef = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetChannelNumber(v string) {
 	x.xxx_hidden_ChannelNumber = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetDateResolved(v *timestamppb.Timestamp) {
@@ -1694,7 +1765,7 @@ func (x *PaymentAttemptPatchRequest) SetDateResolved(v *timestamppb.Timestamp) {
 
 func (x *PaymentAttemptPatchRequest) SetDateResolvedNull(v bool) {
 	x.xxx_hidden_DateResolvedNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetDatePaid(v *timestamppb.Timestamp) {
@@ -1703,7 +1774,16 @@ func (x *PaymentAttemptPatchRequest) SetDatePaid(v *timestamppb.Timestamp) {
 
 func (x *PaymentAttemptPatchRequest) SetDatePaidNull(v bool) {
 	x.xxx_hidden_DatePaidNull = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 17)
+}
+
+func (x *PaymentAttemptPatchRequest) SetDateTwice(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateTwice = v
+}
+
+func (x *PaymentAttemptPatchRequest) SetDateTwiceNull(v bool) {
+	x.xxx_hidden_DateTwiceNull = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) SetDateUpdated(v *timestamppb.Timestamp) {
@@ -1712,7 +1792,7 @@ func (x *PaymentAttemptPatchRequest) SetDateUpdated(v *timestamppb.Timestamp) {
 
 func (x *PaymentAttemptPatchRequest) SetDateUpdatedForce(v bool) {
 	x.xxx_hidden_DateUpdatedForce = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 17)
 }
 
 func (x *PaymentAttemptPatchRequest) HasRef() bool {
@@ -1806,6 +1886,20 @@ func (x *PaymentAttemptPatchRequest) HasDatePaidNull() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
 }
 
+func (x *PaymentAttemptPatchRequest) HasDateTwice() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateTwice != nil
+}
+
+func (x *PaymentAttemptPatchRequest) HasDateTwiceNull() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
 func (x *PaymentAttemptPatchRequest) HasDateUpdated() bool {
 	if x == nil {
 		return false
@@ -1817,7 +1911,7 @@ func (x *PaymentAttemptPatchRequest) HasDateUpdatedForce() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
 }
 
 func (x *PaymentAttemptPatchRequest) ClearRef() {
@@ -1880,12 +1974,21 @@ func (x *PaymentAttemptPatchRequest) ClearDatePaidNull() {
 	x.xxx_hidden_DatePaidNull = false
 }
 
+func (x *PaymentAttemptPatchRequest) ClearDateTwice() {
+	x.xxx_hidden_DateTwice = nil
+}
+
+func (x *PaymentAttemptPatchRequest) ClearDateTwiceNull() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	x.xxx_hidden_DateTwiceNull = false
+}
+
 func (x *PaymentAttemptPatchRequest) ClearDateUpdated() {
 	x.xxx_hidden_DateUpdated = nil
 }
 
 func (x *PaymentAttemptPatchRequest) ClearDateUpdatedForce() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
 	x.xxx_hidden_DateUpdatedForce = false
 }
 
@@ -1921,6 +2024,12 @@ type PaymentAttemptPatchRequest_builder struct {
 	// "leave it alone", so no value could have meant NULL. It wins
 	// outright: setting both this and date_paid clears.
 	DatePaidNull *bool
+	DateTwice    *timestamppb.Timestamp
+	// Clear date_twice instead of writing it.
+	// It takes a field of its own because an unset value already means
+	// "leave it alone", so no value could have meant NULL. It wins
+	// outright: setting both this and date_twice clears.
+	DateTwiceNull *bool
 	// The version this update requires the stored date_updated to be.
 	// It is a precondition, not a write: the update applies only if the row
 	// still holds this value, and the server stamps the new version itself.
@@ -1943,44 +2052,49 @@ func (b0 PaymentAttemptPatchRequest_builder) Build() *PaymentAttemptPatchRequest
 	_, _ = b, x
 	x.xxx_hidden_Ref = b.Ref
 	if b.State != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 17)
 		x.xxx_hidden_State = *b.State
 	}
 	if b.Sends != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 17)
 		x.xxx_hidden_Sends = *b.Sends
 	}
 	x.xxx_hidden_DateSent = b.DateSent
 	if b.DateSentNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 17)
 		x.xxx_hidden_DateSentNull = *b.DateSentNull
 	}
 	x.xxx_hidden_Failure = b.Failure
 	if b.FailureNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 17)
 		x.xxx_hidden_FailureNull = *b.FailureNull
 	}
 	if b.ChannelRef != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 17)
 		x.xxx_hidden_ChannelRef = b.ChannelRef
 	}
 	if b.ChannelNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 17)
 		x.xxx_hidden_ChannelNumber = b.ChannelNumber
 	}
 	x.xxx_hidden_DateResolved = b.DateResolved
 	if b.DateResolvedNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 17)
 		x.xxx_hidden_DateResolvedNull = *b.DateResolvedNull
 	}
 	x.xxx_hidden_DatePaid = b.DatePaid
 	if b.DatePaidNull != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 17)
 		x.xxx_hidden_DatePaidNull = *b.DatePaidNull
+	}
+	x.xxx_hidden_DateTwice = b.DateTwice
+	if b.DateTwiceNull != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 17)
+		x.xxx_hidden_DateTwiceNull = *b.DateTwiceNull
 	}
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	if b.DateUpdatedForce != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 17)
 		x.xxx_hidden_DateUpdatedForce = *b.DateUpdatedForce
 	}
 	return m0
@@ -2370,7 +2484,7 @@ var File_levyan_payment_attempt_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\"levyan/payment_attempt_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1elevyan/credit_note_svc.g.proto\x1a\x1alevyan/invoice_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x1clevyan/payment_attempt.proto\x1a\x11patch/patch.proto\"\x88\a\n" +
+	"\"levyan/payment_attempt_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1elevyan/credit_note_svc.g.proto\x1a\x1alevyan/invoice_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x1clevyan/payment_attempt.proto\x1a\x11patch/patch.proto\"\xc3\a\n" +
 	"\x18PaymentAttemptAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x12,\n" +
@@ -2394,7 +2508,9 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\rdate_resolved\x18\x18 \x01(\v2\x1a.google.protobuf.TimestampR\fdateResolved\x127\n" +
 	"\tdate_paid\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampR\bdatePaid\x12!\n" +
 	"\brecorded\x18\x1a \x01(\bB\x05\xaa\x01\x02\b\x02R\brecorded\x12#\n" +
-	"\treference\x18\x1b \x01(\tB\x05\xaa\x01\x02\b\x02R\treference\x12=\n" +
+	"\treference\x18\x1b \x01(\tB\x05\xaa\x01\x02\b\x02R\treference\x129\n" +
+	"\n" +
+	"date_twice\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampR\tdateTwice\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"}\n" +
 	"\x18PaymentAttemptGetRequest\x12+\n" +
 	"\x03ref\x18\x01 \x01(\v2\x19.levyan.PaymentAttemptRefR\x03ref\x124\n" +
@@ -2405,7 +2521,7 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\x03key\":\n" +
 	"\x17PaymentAttemptRefByOnce\x12\x1f\n" +
 	"\vattempt_key\x18\v \x01(\tR\n" +
-	"attemptKey\"\xd3\x05\n" +
+	"attemptKey\"\xf2\x05\n" +
 	"\x14PaymentAttemptSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x12/\n" +
@@ -2429,11 +2545,13 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\rdate_resolved\x18\x18 \x01(\bR\fdateResolved\x12\x1b\n" +
 	"\tdate_paid\x18\x19 \x01(\bR\bdatePaid\x12\x1a\n" +
 	"\brecorded\x18\x1a \x01(\bR\brecorded\x12\x1c\n" +
-	"\treference\x18\x1b \x01(\bR\treference\x12!\n" +
+	"\treference\x18\x1b \x01(\bR\treference\x12\x1d\n" +
+	"\n" +
+	"date_twice\x18\x1c \x01(\bR\tdateTwice\x12!\n" +
 	"\fdate_updated\x18\r \x01(\bR\vdateUpdated\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
 	"dateErased\x12!\n" +
-	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\xc2\x05\n" +
+	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\xa5\x06\n" +
 	"\x1aPaymentAttemptPatchRequest\x12+\n" +
 	"\x03ref\x18\x01 \x01(\v2\x19.levyan.PaymentAttemptRefR\x03ref\x12*\n" +
 	"\x05state\x18$ \x01(\x0e2\x14.levyan.AttemptStateR\x05state\x12\x14\n" +
@@ -2448,7 +2566,10 @@ const file_levyan_payment_attempt_svc_g_proto_rawDesc = "" +
 	"\rdate_resolved\x180 \x01(\v2\x1a.google.protobuf.TimestampR\fdateResolved\x12,\n" +
 	"\x12date_resolved_null\x181 \x01(\bR\x10dateResolvedNull\x127\n" +
 	"\tdate_paid\x182 \x01(\v2\x1a.google.protobuf.TimestampR\bdatePaid\x12$\n" +
-	"\x0edate_paid_null\x183 \x01(\bR\fdatePaidNull\x12=\n" +
+	"\x0edate_paid_null\x183 \x01(\bR\fdatePaidNull\x129\n" +
+	"\n" +
+	"date_twice\x188 \x01(\v2\x1a.google.protobuf.TimestampR\tdateTwice\x12&\n" +
+	"\x0fdate_twice_null\x189 \x01(\bR\rdateTwiceNull\x12=\n" +
 	"\fdate_updated\x18\x1a \x01(\v2\x1a.google.protobuf.TimestampR\vdateUpdated\x12,\n" +
 	"\x12date_updated_force\x18\x1b \x01(\bR\x10dateUpdatedForce\"m\n" +
 	"\x1aPaymentAttemptApplyRequest\x12+\n" +
@@ -2507,41 +2628,43 @@ var file_levyan_payment_attempt_svc_g_proto_depIdxs = []int32{
 	16, // 6: levyan.PaymentAttemptAddRequest.failure:type_name -> levyan.AttemptFailure
 	15, // 7: levyan.PaymentAttemptAddRequest.date_resolved:type_name -> google.protobuf.Timestamp
 	15, // 8: levyan.PaymentAttemptAddRequest.date_paid:type_name -> google.protobuf.Timestamp
-	15, // 9: levyan.PaymentAttemptAddRequest.date_created:type_name -> google.protobuf.Timestamp
-	2,  // 10: levyan.PaymentAttemptGetRequest.ref:type_name -> levyan.PaymentAttemptRef
-	4,  // 11: levyan.PaymentAttemptGetRequest.select:type_name -> levyan.PaymentAttemptSelect
-	3,  // 12: levyan.PaymentAttemptRef.once:type_name -> levyan.PaymentAttemptRefByOnce
-	17, // 13: levyan.PaymentAttemptSelect.tenant:type_name -> levyan.TenantSelect
-	18, // 14: levyan.PaymentAttemptSelect.invoice:type_name -> levyan.InvoiceSelect
-	19, // 15: levyan.PaymentAttemptSelect.credit_note:type_name -> levyan.CreditNoteSelect
-	2,  // 16: levyan.PaymentAttemptPatchRequest.ref:type_name -> levyan.PaymentAttemptRef
-	14, // 17: levyan.PaymentAttemptPatchRequest.state:type_name -> levyan.AttemptState
-	15, // 18: levyan.PaymentAttemptPatchRequest.date_sent:type_name -> google.protobuf.Timestamp
-	16, // 19: levyan.PaymentAttemptPatchRequest.failure:type_name -> levyan.AttemptFailure
-	15, // 20: levyan.PaymentAttemptPatchRequest.date_resolved:type_name -> google.protobuf.Timestamp
-	15, // 21: levyan.PaymentAttemptPatchRequest.date_paid:type_name -> google.protobuf.Timestamp
-	15, // 22: levyan.PaymentAttemptPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
-	2,  // 23: levyan.PaymentAttemptApplyRequest.ref:type_name -> levyan.PaymentAttemptRef
-	20, // 24: levyan.PaymentAttemptApplyRequest.patch:type_name -> patch.Patch
-	9,  // 25: levyan.PaymentAttemptListRequest.filters:type_name -> levyan.PaymentAttemptFilter
-	21, // 26: levyan.PaymentAttemptListResponse.items:type_name -> levyan.PaymentAttempt
-	2,  // 27: levyan.PaymentAttemptFilter.ref:type_name -> levyan.PaymentAttemptRef
-	11, // 28: levyan.PaymentAttemptFilter.invoice:type_name -> levyan.InvoiceRef
-	0,  // 29: levyan.PaymentAttemptService.Add:input_type -> levyan.PaymentAttemptAddRequest
-	1,  // 30: levyan.PaymentAttemptService.Get:input_type -> levyan.PaymentAttemptGetRequest
-	5,  // 31: levyan.PaymentAttemptService.Patch:input_type -> levyan.PaymentAttemptPatchRequest
-	6,  // 32: levyan.PaymentAttemptService.Apply:input_type -> levyan.PaymentAttemptApplyRequest
-	7,  // 33: levyan.PaymentAttemptService.List:input_type -> levyan.PaymentAttemptListRequest
-	21, // 34: levyan.PaymentAttemptService.Add:output_type -> levyan.PaymentAttempt
-	21, // 35: levyan.PaymentAttemptService.Get:output_type -> levyan.PaymentAttempt
-	21, // 36: levyan.PaymentAttemptService.Patch:output_type -> levyan.PaymentAttempt
-	21, // 37: levyan.PaymentAttemptService.Apply:output_type -> levyan.PaymentAttempt
-	8,  // 38: levyan.PaymentAttemptService.List:output_type -> levyan.PaymentAttemptListResponse
-	34, // [34:39] is the sub-list for method output_type
-	29, // [29:34] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	15, // 9: levyan.PaymentAttemptAddRequest.date_twice:type_name -> google.protobuf.Timestamp
+	15, // 10: levyan.PaymentAttemptAddRequest.date_created:type_name -> google.protobuf.Timestamp
+	2,  // 11: levyan.PaymentAttemptGetRequest.ref:type_name -> levyan.PaymentAttemptRef
+	4,  // 12: levyan.PaymentAttemptGetRequest.select:type_name -> levyan.PaymentAttemptSelect
+	3,  // 13: levyan.PaymentAttemptRef.once:type_name -> levyan.PaymentAttemptRefByOnce
+	17, // 14: levyan.PaymentAttemptSelect.tenant:type_name -> levyan.TenantSelect
+	18, // 15: levyan.PaymentAttemptSelect.invoice:type_name -> levyan.InvoiceSelect
+	19, // 16: levyan.PaymentAttemptSelect.credit_note:type_name -> levyan.CreditNoteSelect
+	2,  // 17: levyan.PaymentAttemptPatchRequest.ref:type_name -> levyan.PaymentAttemptRef
+	14, // 18: levyan.PaymentAttemptPatchRequest.state:type_name -> levyan.AttemptState
+	15, // 19: levyan.PaymentAttemptPatchRequest.date_sent:type_name -> google.protobuf.Timestamp
+	16, // 20: levyan.PaymentAttemptPatchRequest.failure:type_name -> levyan.AttemptFailure
+	15, // 21: levyan.PaymentAttemptPatchRequest.date_resolved:type_name -> google.protobuf.Timestamp
+	15, // 22: levyan.PaymentAttemptPatchRequest.date_paid:type_name -> google.protobuf.Timestamp
+	15, // 23: levyan.PaymentAttemptPatchRequest.date_twice:type_name -> google.protobuf.Timestamp
+	15, // 24: levyan.PaymentAttemptPatchRequest.date_updated:type_name -> google.protobuf.Timestamp
+	2,  // 25: levyan.PaymentAttemptApplyRequest.ref:type_name -> levyan.PaymentAttemptRef
+	20, // 26: levyan.PaymentAttemptApplyRequest.patch:type_name -> patch.Patch
+	9,  // 27: levyan.PaymentAttemptListRequest.filters:type_name -> levyan.PaymentAttemptFilter
+	21, // 28: levyan.PaymentAttemptListResponse.items:type_name -> levyan.PaymentAttempt
+	2,  // 29: levyan.PaymentAttemptFilter.ref:type_name -> levyan.PaymentAttemptRef
+	11, // 30: levyan.PaymentAttemptFilter.invoice:type_name -> levyan.InvoiceRef
+	0,  // 31: levyan.PaymentAttemptService.Add:input_type -> levyan.PaymentAttemptAddRequest
+	1,  // 32: levyan.PaymentAttemptService.Get:input_type -> levyan.PaymentAttemptGetRequest
+	5,  // 33: levyan.PaymentAttemptService.Patch:input_type -> levyan.PaymentAttemptPatchRequest
+	6,  // 34: levyan.PaymentAttemptService.Apply:input_type -> levyan.PaymentAttemptApplyRequest
+	7,  // 35: levyan.PaymentAttemptService.List:input_type -> levyan.PaymentAttemptListRequest
+	21, // 36: levyan.PaymentAttemptService.Add:output_type -> levyan.PaymentAttempt
+	21, // 37: levyan.PaymentAttemptService.Get:output_type -> levyan.PaymentAttempt
+	21, // 38: levyan.PaymentAttemptService.Patch:output_type -> levyan.PaymentAttempt
+	21, // 39: levyan.PaymentAttemptService.Apply:output_type -> levyan.PaymentAttempt
+	8,  // 40: levyan.PaymentAttemptService.List:output_type -> levyan.PaymentAttemptListResponse
+	36, // [36:41] is the sub-list for method output_type
+	31, // [31:36] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_levyan_payment_attempt_svc_g_proto_init() }

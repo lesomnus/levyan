@@ -126,6 +126,11 @@ func Reference(v string) predicate.PaymentAttempt {
 	return predicate.PaymentAttempt(sql.FieldEQ(FieldReference, v))
 }
 
+// DateTwice applies equality check predicate on the "date_twice" field. It's identical to DateTwiceEQ.
+func DateTwice(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEQ(FieldDateTwice, v))
+}
+
 // DateUpdated applies equality check predicate on the "date_updated" field. It's identical to DateUpdatedEQ.
 func DateUpdated(v time.Time) predicate.PaymentAttempt {
 	return predicate.PaymentAttempt(sql.FieldEQ(FieldDateUpdated, v))
@@ -874,6 +879,56 @@ func ReferenceEqualFold(v string) predicate.PaymentAttempt {
 // ReferenceContainsFold applies the ContainsFold predicate on the "reference" field.
 func ReferenceContainsFold(v string) predicate.PaymentAttempt {
 	return predicate.PaymentAttempt(sql.FieldContainsFold(FieldReference, v))
+}
+
+// DateTwiceEQ applies the EQ predicate on the "date_twice" field.
+func DateTwiceEQ(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldEQ(FieldDateTwice, v))
+}
+
+// DateTwiceNEQ applies the NEQ predicate on the "date_twice" field.
+func DateTwiceNEQ(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNEQ(FieldDateTwice, v))
+}
+
+// DateTwiceIn applies the In predicate on the "date_twice" field.
+func DateTwiceIn(vs ...time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldIn(FieldDateTwice, vs...))
+}
+
+// DateTwiceNotIn applies the NotIn predicate on the "date_twice" field.
+func DateTwiceNotIn(vs ...time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNotIn(FieldDateTwice, vs...))
+}
+
+// DateTwiceGT applies the GT predicate on the "date_twice" field.
+func DateTwiceGT(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldGT(FieldDateTwice, v))
+}
+
+// DateTwiceGTE applies the GTE predicate on the "date_twice" field.
+func DateTwiceGTE(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldGTE(FieldDateTwice, v))
+}
+
+// DateTwiceLT applies the LT predicate on the "date_twice" field.
+func DateTwiceLT(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldLT(FieldDateTwice, v))
+}
+
+// DateTwiceLTE applies the LTE predicate on the "date_twice" field.
+func DateTwiceLTE(v time.Time) predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldLTE(FieldDateTwice, v))
+}
+
+// DateTwiceIsNil applies the IsNil predicate on the "date_twice" field.
+func DateTwiceIsNil() predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldIsNull(FieldDateTwice))
+}
+
+// DateTwiceNotNil applies the NotNil predicate on the "date_twice" field.
+func DateTwiceNotNil() predicate.PaymentAttempt {
+	return predicate.PaymentAttempt(sql.FieldNotNull(FieldDateTwice))
 }
 
 // DateUpdatedEQ applies the EQ predicate on the "date_updated" field.

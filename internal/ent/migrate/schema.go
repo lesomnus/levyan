@@ -988,6 +988,7 @@ var (
 		{Name: "date_paid", Type: field.TypeTime, Nullable: true},
 		{Name: "recorded", Type: field.TypeBool},
 		{Name: "reference", Type: field.TypeString},
+		{Name: "date_twice", Type: field.TypeTime, Nullable: true},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
@@ -1003,19 +1004,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "paymentattempt_tenant_tenant",
-				Columns:    []*schema.Column{PaymentattemptColumns[19]},
+				Columns:    []*schema.Column{PaymentattemptColumns[20]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "paymentattempt_invoice_invoice",
-				Columns:    []*schema.Column{PaymentattemptColumns[20]},
+				Columns:    []*schema.Column{PaymentattemptColumns[21]},
 				RefColumns: []*schema.Column{InvoiceColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "paymentattempt_creditnote_credit_note",
-				Columns:    []*schema.Column{PaymentattemptColumns[21]},
+				Columns:    []*schema.Column{PaymentattemptColumns[22]},
 				RefColumns: []*schema.Column{CreditnoteColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1024,17 +1025,17 @@ var (
 			{
 				Name:    "paymentattempt_page",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentattemptColumns[19], PaymentattemptColumns[18], PaymentattemptColumns[0]},
+				Columns: []*schema.Column{PaymentattemptColumns[20], PaymentattemptColumns[19], PaymentattemptColumns[0]},
 			},
 			{
 				Name:    "paymentattempt_invoice",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentattemptColumns[20], PaymentattemptColumns[18]},
+				Columns: []*schema.Column{PaymentattemptColumns[21], PaymentattemptColumns[19]},
 			},
 			{
 				Name:    "paymentattempt_state",
 				Unique:  false,
-				Columns: []*schema.Column{PaymentattemptColumns[6], PaymentattemptColumns[18]},
+				Columns: []*schema.Column{PaymentattemptColumns[6], PaymentattemptColumns[19]},
 			},
 			{
 				Name:    "paymentattempt_once",

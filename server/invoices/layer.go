@@ -29,7 +29,9 @@ import (
 //   - A credit note is of a finalized invoice, for more than nothing, and
 //     what it does adds up to what it takes back.
 //   - An attempt is written to be sent -- or as one an operator saw succeed
-//     -- and its state goes on from there and never back from an end.
+//     -- and its state goes on from there and never back from an end. Of
+//     one that ended, only a mark for reconciliation and the channel's
+//     number of it, where it had none, are written after.
 //   - A movement of credit moves it one way, as its kind says.
 //
 // Apply is refused for all of them: a document is held to none of this.
@@ -71,6 +73,7 @@ var next = map[levyan.InvoiceState][]levyan.InvoiceState{
 		levyan.InvoiceState_INVOICE_STATE_OPEN,
 		levyan.InvoiceState_INVOICE_STATE_PAID,
 		levyan.InvoiceState_INVOICE_STATE_WRITTEN_OFF,
+		levyan.InvoiceState_INVOICE_STATE_SHADOW,
 	},
 	levyan.InvoiceState_INVOICE_STATE_OPEN: {
 		levyan.InvoiceState_INVOICE_STATE_OPEN,
@@ -86,6 +89,7 @@ var next = map[levyan.InvoiceState][]levyan.InvoiceState{
 	levyan.InvoiceState_INVOICE_STATE_PAID:        {levyan.InvoiceState_INVOICE_STATE_PAID},
 	levyan.InvoiceState_INVOICE_STATE_VOID:        {levyan.InvoiceState_INVOICE_STATE_VOID},
 	levyan.InvoiceState_INVOICE_STATE_WRITTEN_OFF: {levyan.InvoiceState_INVOICE_STATE_WRITTEN_OFF},
+	levyan.InvoiceState_INVOICE_STATE_SHADOW:      {levyan.InvoiceState_INVOICE_STATE_SHADOW},
 }
 
 type layerInvoice struct {
@@ -284,18 +288,22 @@ func admitAttempt(ctx context.Context, req *levyan.PaymentAttemptAddRequest) (*l
 }
 
 // Patch is an attempt taken on: never back from where it ended, and its sends
-// never fewer.
+// never fewer. Of one that ended, what may still be written is that its
+// channel holds more of its key than the ledger accounts for, and the
+// channel's number of it where it had none.
 func (s layerAttempt) Patch(ctx context.Context, req *levyan.PaymentAttemptPatchRequest) (*levyan.PaymentAttempt, error) {
 	was, err := s.Next().PaymentAttempt().Get(ctx, levyan.PaymentAttemptGetRequest_builder{
 		Ref:    req.GetRef(),
-		Select: levyan.PaymentAttemptSelect_builder{State: proto.Bool(true), Sends: proto.Bool(true)}.Build(),
+		Select: levyan.PaymentAttemptSelect_builder{State: proto.Bool(true), Sends: proto.Bool(true), ChannelNumber: proto.Bool(true)}.Build(),
 	}.Build())
 	if err != nil {
 		return nil, err
 	}
 	switch was.GetState() {
 	case levyan.AttemptState_ATTEMPT_STATE_SUCCEEDED, levyan.AttemptState_ATTEMPT_STATE_FAILED:
-		return nil, status.Errorf(codes.FailedPrecondition, "an attempt that %s is what it is", attemptState(was.GetState()))
+		if !marks(req, was) {
+			return nil, status.Errorf(codes.FailedPrecondition, "an attempt that %s is what it is", attemptState(was.GetState()))
+		}
 	}
 	if req.HasSends() && req.GetSends() < was.GetSends() {
 		return nil, pderr.Invalidf("sends", "an attempt's sends only grow")
@@ -309,6 +317,26 @@ func (s layerAttempt) Patch(ctx context.Context, req *levyan.PaymentAttemptPatch
 
 func (s layerAttempt) Apply(ctx context.Context, req *levyan.PaymentAttemptApplyRequest) (*levyan.PaymentAttempt, error) {
 	return nil, refuseApply
+}
+
+// marks says whether `req` writes of attempt `was`, which ended, only what may
+// still be written of it: when its channel was found to hold more of its key
+// than the ledger accounts for, and the channel's number of it where it had
+// none -- and one of the two.
+func marks(req *levyan.PaymentAttemptPatchRequest, was *levyan.PaymentAttempt) bool {
+	fills := was.GetChannelNumber() == "" && req.GetChannelNumber() != ""
+	if !req.HasDateTwice() && !fills {
+		return false
+	}
+	rest := proto.CloneOf(req)
+	rest.ClearRef()
+	rest.ClearDateUpdatedForce()
+	rest.ClearDateTwice()
+	if fills {
+		rest.ClearChannelNumber()
+	}
+
+	return proto.Size(rest) == 0
 }
 
 func (s Layer) Credit() levyan.CreditServiceServer {

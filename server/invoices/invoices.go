@@ -43,6 +43,17 @@
 // it never had it. A decline ends the attempt and leaves the invoice open:
 // trying again is dunning's (#11).
 //
+// # Before collection began
+//
+// A channel that was billed in the shadow before levyan collected on it --
+// the merchant of record's, through shadow billing (#8) -- says when
+// collection on it begins ([Invoices.LiveFrom]). A draft whose first period
+// ended before then is closed as it is, a shadow: never finalized, nothing
+// asked of the channel, nothing taken of the credit balance, and never shown
+// to its payer, while an operator sees it as any other. A shadow's draft
+// gathers no statement of a period that ends from then on, so that nothing
+// collected is ever on one (Claude's, 2026-10-31, open question 63).
+//
 // # Written through the servers
 //
 // Every write goes through the stack it is handed -- the deployment's own
@@ -96,6 +107,14 @@ type Invoices struct {
 	// Collectors is how each channel's invoices are collected. A channel
 	// with none has its drafts kept and never finalized.
 	Collectors map[levyan.Channel]Collector
+
+	// LiveFrom is when collection on a channel begins, for a channel that
+	// was billed in the shadow before (`invoices.mor.live_from`): a draft of
+	// it whose first period ended before then is closed as a shadow, never
+	// collected, and only a period ending at or after it is finalized and
+	// collected (Claude's, 2026-10-31, open question 63). A channel with none
+	// collects from its first period.
+	LiveFrom map[levyan.Channel]time.Time
 
 	// Tax is what of an invoice's subtotal a seller's tax is, on a channel
 	// levyan sells on itself ([Seller]): [DefaultTax] when nil.

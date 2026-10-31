@@ -101,6 +101,10 @@ type Attempt struct {
 	Recorded   bool       `json:"recorded,omitempty"`
 	Reference  string     `json:"reference,omitempty"`
 	Created    time.Time  `json:"created"`
+
+	// Twice is when the channel was found to hold more payments of its key
+	// than the ledger accounts for: what reconciliation (#13) gives back.
+	Twice *time.Time `json:"twice,omitempty"`
 }
 
 func invoiceOf(v *ent.Invoice, product string) Invoice {
@@ -144,7 +148,7 @@ func attemptOf(v *ent.PaymentAttempt) Attempt {
 		Id: pdid.Id(v.Id).String(), Kind: named(levyan.AttemptKind(v.Kind).String(), "ATTEMPT_KIND_"), Key: v.AttemptKey,
 		Amount: v.Amount, Currency: v.Currency, State: named(levyan.AttemptState(v.State).String(), "ATTEMPT_STATE_"),
 		Sends: v.Sends, Sent: v.DateSent, ChannelRef: v.ChannelRef, Paid: v.DatePaid,
-		Recorded: v.Recorded, Reference: v.Reference, Created: v.DateCreated,
+		Recorded: v.Recorded, Reference: v.Reference, Created: v.DateCreated, Twice: v.DateTwice,
 	}
 	if f := v.Failure; f != nil {
 		out.Failure = named(f.GetKind().String(), "FAILURE_KIND_")
@@ -181,7 +185,7 @@ func (a *Routes) invoices(w http.ResponseWriter, r *http.Request) {
 	if v := strings.TrimSpace(r.URL.Query().Get("state")); v != "" {
 		s, ok := invoiceState(v)
 		if !ok {
-			http.Error(w, "state: draft, open, paid, uncollectible, void or written_off", http.StatusBadRequest)
+			http.Error(w, "state: draft, open, paid, uncollectible, void, written_off or shadow", http.StatusBadRequest)
 			return
 		}
 		q = q.Where(entinvoice.State(s))

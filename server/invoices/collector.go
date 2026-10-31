@@ -158,6 +158,12 @@ type Outcome struct {
 
 	// Failure is why, for FAILED.
 	Failure *levyan.AttemptFailure
+
+	// Twice is the channel holding the attempt's key in more than one
+	// payment -- a merchant of record's key charged twice (`mor.ErrTwice`) --
+	// of which the outcome is of the one the attempt settles by: the attempt
+	// is marked for reconciliation (#13), which gives the rest back.
+	Twice bool
 }
 
 // Document is what a seller's legal document is made of: an invoice's tax

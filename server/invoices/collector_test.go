@@ -41,13 +41,19 @@ func TestTheChannelsKindsAreTheLedgers(t *testing.T) {
 	}
 	x.Equal(invoices.Unknown, invoices.KindOf(errors.New("nobody knows")), "an error that is no channel's may have done anything")
 
-	for d, want := range map[pg.Decline]levyan.DeclineKind{
-		pg.DeclineOther:     levyan.DeclineKind_DECLINE_KIND_UNSPECIFIED,
-		pg.DeclineTemporary: levyan.DeclineKind_DECLINE_KIND_TEMPORARY,
-		pg.DeclineReplace:   levyan.DeclineKind_DECLINE_KIND_REPLACE,
-		pg.DeclineFraud:     levyan.DeclineKind_DECLINE_KIND_FRAUD,
+	for _, d := range []struct {
+		pg     pg.Decline
+		mor    morpkg.Decline
+		schema levyan.DeclineKind
+	}{
+		{pg.DeclineOther, morpkg.DeclineOther, levyan.DeclineKind_DECLINE_KIND_UNSPECIFIED},
+		{pg.DeclineTemporary, morpkg.DeclineTemporary, levyan.DeclineKind_DECLINE_KIND_TEMPORARY},
+		{pg.DeclineReplace, morpkg.DeclineReplace, levyan.DeclineKind_DECLINE_KIND_REPLACE},
+		{pg.DeclineFraud, morpkg.DeclineFraud, levyan.DeclineKind_DECLINE_KIND_FRAUD},
 	} {
-		x.Equal(want, invoices.FailureOf(invoices.Declined, d, "", "").GetDecline())
+		x.Equal(d.schema, invoices.FailureOf(invoices.Declined, d.pg, "", "").GetDecline())
+		x.Equal(d.pg, pg.Decline(d.mor), "a merchant of record's kind of decline is a gateway's, value for value: %s", d.mor)
+		x.Equal(d.pg.String(), d.mor.String())
 	}
 }
 

@@ -16,6 +16,7 @@ payday 앱의 tenant가 쓴 만큼 요금을 매겨 청구하는 서비스다. �
 - **연체, 유예, 제한.** 청구가 실패하면 거절의 종류마다 정책 표의 행을 따른다. 일정대로 새 시도로 다시 청구하고, 결제 계정이 다시 수금할 수 있게 되면 바로 청구한다. 유예가 끝나면 그 청구서의 워크스페이스를 제한하고(`<제품>.restricted`), 더 시도할 것이 없으면 회수 불가로 둔다. 결제되면 제한이 풀린다. 지불자 없는 워크스페이스도 같은 표의 행을 따른다.
 - **결제 계정과 지불자.** 지불자는 roster 계정이고 결제 계정으로 낸다. 워크스페이스는 만든 사람이 내고, 다른 계정이 받아들이면 다음 기간부터 그 계정이 낸다. 내역은 지불자의 결제 계정의 채널과 통화로 매기고(국내 결제 계정은 기본이 MoR과 원이다), 지불자마다 먼저 연결된 3개의 워크스페이스만 무료량을 받는다. 지불자 없이 30일이 지난 워크스페이스는 제한된다. 지불자의 호출은 앱이 사용자를 대신해서 보내고, levyan은 roster에 그 계정의 상태를 묻는다.
 - **워크스페이스의 생애 사건.** 제품이 워크스페이스를 닫고, 되돌리고, 파기한 것을 알린다. 닫힌 동안은 청구하지 않고(값은 받아 둔다), 되돌리면 그때부터 다시 청구한다. 파기하면 그 시각에 끝난다. 마지막 값은 그때까지만 말하고, 그 뒤의 값은 거부하며, 지불자의 연결은 끝난다. 늦게 온 사건은 다음 내역에서 정정된다.
+- **대조와 경보.** 하루에 한 번 levyan이 가진 것을 채널이 답하는 것과, 그리고 levyan 자신과 맞춰 본다. 결제 원장과 Paddle의 거래, 청구서와 결제 시도, 크레딧과 그 행, 내역과 청구서, Grant와 규칙, 그리고 오래 머문 상태(닫히지 않은 기간, 정하지 않은 초안, 알 수 없는 시도, 처리하지 않은 notice, 확인하지 않은 구독 사본, 빠진 계량)다. 어긋난 것은 하나씩 찾은 것(finding)으로 남기고, 로그와 게이지로 알린다. 돈은 움직이지 않는다. 바로잡는 것은 운영자의 명령이다.
 - **MoR(Paddle)의 구독.** MoR 채널의 결제 계정은 지불자가 Paddle의 결제창에서 시작한 구독으로 수금한다. levyan은 결제창을 열고 끝내며, 구독의 사본을 Paddle API의 답으로만 만들고, 결제 계정이 지금 수금할 수 있는지(그리고 왜 아닌지)를 둔다. Paddle의 웹훅은 inbox에 담고, Paddle의 이벤트 목록도 같은 inbox로 끌어온다. 닫은 기간의 금액을 청구하는 것은 아직 없다(#9 다음).
 
 앱이 할 일은 [docs/apps.md](docs/apps.md)에 있다.
@@ -253,7 +254,7 @@ admin price check loft                   # 내역의 채널과 통화에 가격�
 
 가격이 없어서 0원이 된 내역 줄은 그 구간을 말하고(`unpriced`), 기간을 닫을 때 로그에 남는다. 어디에도 가격이 없는 미터는 팔지 않는 것이라 말하지 않는다.
 
-MoR 채널의 수금이 시작하기 전(`invoices.mor.live_from`)에 끝난 기간의 초안은 그림자(`shadow`)로 닫히고 청구되지 않는다. 운영자는 `admin invoice ls --state shadow loft`로 보고, 지불자에게는 보이지 않는다. `invoice show`의 결제 시도에 "the channel holds more of its key"가 보이면, 채널이 그 키로 원장이 아는 것보다 많이 받은 것이다(두 번 받았거나, 실패한 시도의 키로 받았다). 그 나머지는 대조(#13)가 돌려줄 것이다.
+MoR 채널의 수금이 시작하기 전(`invoices.mor.live_from`)에 끝난 기간의 초안은 그림자(`shadow`)로 닫히고 청구되지 않는다. 운영자는 `admin invoice ls --state shadow loft`로 보고, 지불자에게는 보이지 않는다. `invoice show`의 결제 시도에 "the channel holds more of its key"가 보이면, 채널이 그 키로 원장이 아는 것보다 많이 받은 것이다(두 번 받았거나, 실패한 시도의 키로 받았다). 대조가 그것을 찾고(`twice`), 운영자가 `admin reconcile refund`로 그 나머지를 돌려준다(아래 "대조와 경보").
 
 **계좌이체.** 기관은 세금계산서를 받고 이체로 낸다(`bank_kr`). 결제 계정은 계약을 맺은 뒤 운영자가 연다. 청구서는 확정할 때 번호, 세금(10%), 기한(30일)을 받고, 세금계산서는 발행 대행으로 나간다. 어느 대행을 쓸지는 아직 정하지 않았고, 그래서 아직 이 채널을 설정할 수 없다(`invoices.bank_kr`, `docs/design.md` 15장).
 
@@ -317,6 +318,63 @@ dunning:
 - **회복.** 결제되면(정정 청구나 무효로 받을 것이 없어져도) 연체 루프가 다음 번에(1분 안) 제한을 끝낸다.
 - 표를 잘못 적으면(때가 앞뒤로 뒤섞인 재시도, 0이나 음수, 모르는 종류, `payerless`의 재시도) 뜨지 않고, 파일의 위치와 함께 말한다.
 - 운영자는 `admin invoice show`의 `dunning` 줄에서 종류, 첫 실패, 다음 재시도, 유예의 끝, 제한되는 때를 본다. 지불자와 제품이 보는 것은 [docs/apps.md](docs/apps.md) 6장이다.
+
+### 대조와 경보
+
+`levyan serve`의 루프(`levyan.reconcile`, 기본 하루마다, `reconcile.every`)가 levyan이 가진 것을 채널이 답하는 것과, 그리고 levyan 자신과 맞춰 본다. 이벤트는 빠지고, 겹치고, 순서가 바뀐다고 전제하고(levyan#1의 정합성 원칙) 만든 길들이 대부분을 스스로 바로잡는다. 대조는 그 길들이 놓친 것을 찾는 뒷받침이다. 찾은 것은 종류와 대상마다 하나(finding)로 남고, 그대로이면 다시 쓰지 않고, 바뀌면 고치고, 더 찾지 못하면 해결된 것으로 둔다.
+
+```yaml
+reconcile:
+  every: 24h          # 한 번 도는 주기
+  window: 168h        # Paddle의 거래를 이만큼 거슬러 읽는다(마지막으로 바뀐 때로)
+  stale:
+    unknown: 1h       # 요청됨·알 수 없음으로 머문 시도(마지막으로 보낸 때부터)
+    pending: 72h      # 채널이 갖고 있는 시도(승인을 기다리는 환불 등)
+    period: 24h       # 끝나고 유예(periods.grace)가 지났는데 닫히지 않은 기간
+    draft: 24h        # 마지막 기간이 닫혔는데 정하지 않은 초안
+    statement: 24h    # 어느 청구서에도 없는 내역(결제 계정이 있는 것)
+    notice: 1h        # 처리하지 못한 Paddle의 notice
+    mirror: 168h      # Paddle에 확인하지 않은 살아 있는 구독 사본(이 뒤로는 다시 묻는다)
+```
+
+```sh
+admin reconcile run                      # 지금 한 번: 무엇을 찾았고, 무엇이 새로 생기고 바뀌고 해결되었는지
+admin reconcile ls                       # 지금 그런 것(열림, 받아들임). --state resolved|all, --kind twice, --product loft
+admin reconcile show <finding id>        # 무엇에 관한 것인지(행들), 그리고 바로잡는 명령
+admin reconcile accept --reason '지불자와 합의함' --yes <finding id>   # 그대로 받아들인다. 말하는 것이 바뀌면 다시 열린다
+admin reconcile refund --yes <attempt>   # 두 번 청구된 키의 나머지를 돌려준다(REFUND 시도, 원장을 거쳐)
+admin reconcile settle --yes [--transaction txn_…] <attempt>   # 시도를 채널의 답으로 정산한다
+admin reconcile rule --yes [--rule payers.grace] loft          # 제품의 규칙을 지금 다시 따른다
+```
+
+| 종류 | 심각도 | 바로잡는 것 |
+| --- | --- | --- |
+| `charge_unmatched` 원장은 성공이라는데 Paddle에 그 키·금액의 결제된 거래가 없다 | error | 살펴보고 받아들인다 |
+| `key_unknown` levyan의 키를 가진 결제된 거래인데 그 키의 시도가 없다 | critical | 살펴보고(다른 배포?) Paddle에서 돌려주거나 받아들인다 |
+| `twice` 키가 원장이 아는 것보다 많이 청구되었다 | critical | `reconcile refund`, 또는 받아들인다 |
+| `attempt_stale` 요청됨·알 수 없음·진행 중으로 오래 머문 시도 | warning | `reconcile settle`. 루프가 다시 묻는다 |
+| `refund_unmatched` 원장은 환불 성공이라는데 Paddle에 그 키·금액의 승인된 환불이 없다 | error | 살펴보고 받아들인다 |
+| `adjustment_unknown` Paddle이 levyan의 청구에서 돌려주거나 되가져간 것(대시보드 환불, 차지백)인데 원장에 그 환불이 없다 | error | 살펴보고 받아들인다 |
+| `invoice_paid_differs` 청구서의 받은 금액·크레딧이 시도·크레딧 행과 다르다 | error | 살펴보고 받아들인다 |
+| `invoice_state_differs` 남은 것이 없는 미결·회수 불가, 남은 것이 있는 결제됨 | error | 살펴보고 받아들인다 |
+| `credit_differs` 크레딧 잔액이 음수이거나 다른 통화, 또는 행이 그 출처와 다르다 | error | 살펴보고 받아들인다 |
+| `refund_not_made` 정정 청구가 돌려준다는 것을 환불이 돌려주지 못했다 | error | 살펴보고(17장 70번) 받아들인다 |
+| `statement_uninvoiced` 결제 계정이 있는 내역이 어느 청구서에도 없다(또는 둘 이상) | error | 살펴보고 받아들인다 |
+| `lines_differ` 청구서의 줄이 그 내역과, 소계가 그 줄과 다르다 | error | 살펴보고 받아들인다 |
+| `overcollected` 청구서가 청구 둘 이상으로, 또는 더 받을 것이 없는데 받았다(그 돈은 크레딧이 되어 있다) | error | 살펴보고 받아들인다 |
+| `grant_missing` 규칙(`payers.grace`, `dunning`)이 원하는데 없는 Grant | error | `reconcile rule` |
+| `grant_left` 아무것도 원하지 않는데 살아 있는 Grant(규칙이 원하지 않거나, 없어진 규칙이거나, 파기된 워크스페이스) | error | `reconcile rule` |
+| `period_unclosed` 끝나고 유예가 지났는데 닫히지 않은 기간 | warning | `period close` |
+| `draft_stale` 정해야 하는데 정하지 않은 초안(수금기가 없는 채널 등) | warning | 살펴보고 받아들인다 |
+| `notice_stuck` 처리하지 못한 notice | warning | 없다. inbox가 다시 묻는다 |
+| `mirror_stale` 오래 확인하지 않은 구독 사본, Paddle보다 뒤처진 사본 | warning | 없다. 루프가 다시 묻고 바로잡는다 |
+| `readings_missing` 보유 시간(36시간)보다 오래 값을 보내지 않은 워크스페이스(제품·미터마다 하나) | warning | 살펴보고(제품의 리더) 받아들인다 |
+| `check_failed` 검사를 하지 못했다(Paddle에 물을 수 없다 등) | error | 살펴본다. 다음 번에 다시 한다 |
+
+- **돈은 움직이지 않는다.** 루프는 채널에 다시 묻는 것만 한다. 나가 있는 시도는 수금 루프가 묻는 그 길로(`Ask`), 오래 확인하지 않은 구독 사본은 inbox가 묻는 그 길로 다시 묻는다. 둘 다 몇 번을 해도 같다. 돈을 움직이거나 기록을 바꾸는 것은 운영자의 명령이고, trail에 그 운영자가 남는다.
+- **경보.** 게이지 `levyan.reconcile.findings`(열린 것의 수, `levyan.finding.kind`와 `levyan.finding.severity`로, 모든 종류를 0까지 기록한다)와 `levyan.reconcile.ran`(마지막으로 끝난 때, 초)을 낸다. 열린 것마다 그 심각도의 로그 한 줄(warning은 WARN, error와 critical은 ERROR)도 남긴다. 받아들인 것은 열린 것으로 세지 않는다.
+- **찾은 것은 운영자의 것이다.** 제품도 지불자도 볼 수 없다(global, policy 표에 없다, API에 없다). 지우지 않는다.
+- MoR을 설정하지 않은 배포에서는 Paddle의 검사(거래, 구독 사본, notice)를 건너뛴다.
 
 ## 배포
 

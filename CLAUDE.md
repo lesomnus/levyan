@@ -692,6 +692,54 @@ them down as decided.
   `GetBillingAccount`, `GetInvoice`, `Payer`), and the product tells people
   (docs/apps.md §6). `server/api` is handed the table, never `Ungated`.
 
+## Reconciliation
+
+What levyan keeps, held to what its channels answer and to itself
+(`server/reconcile`, docs/design.md §15, "대조와 경보", #13). Events are
+assumed to go missing, to come twice and out of order; the paths that move
+money hold all the same, and reconciliation is the **backstop** that finds
+what they did not -- never the main path.
+
+- **A check** is a function of what is stored and of what the merchant of
+  record answers, and gives `Found`s of a kind (`FindingKind`), each kind
+  of one severity and one correction (`reconcile.kinds`). A new check is a
+  `check` in `checks`, with the kinds it owns: what it does not find again
+  of those kinds is resolved, so a check that only looks at some rows (the
+  merchant's window, `reconcile.window`) looks at the subjects of the
+  findings open of its kinds too. A check that errors resolves nothing, and
+  is a `check_failed` finding itself; the merchant answering "no such
+  thing" or "not as asked" is a fact of a row, and anything else of its is
+  the check failing.
+- **A finding is kept once**, by its kind and subject (`Finding`, unique):
+  written new, changed when what it says changes, resolved when not found,
+  opened again when found again; an accepted one stays accepted while its
+  `facts` are the same. **Never put in `facts` or `summary` what moves by
+  itself** -- "for 3h", a count of tries -- or it is written every pass. Its
+  kind is the enum's **name**: protobuf-orm's lookup by a unique index takes
+  no enum.
+- **A pass changes no money.** It may ask a channel again only through the
+  paths that ask anyway: `invoices.Invoices.Ask` for an attempt that is out,
+  `Channel.Subscription` and `Subscriptions.Observe` for a mirror. What
+  moves money or a record of it is an **operator's correction**
+  (`Reconciler.Accept`, `Refund`, `Settle`, `Rule`), each refused for a
+  frame that is no operator's, through `Ungated` as them. A pass never
+  writes `PaymentAttempt.date_twice`; the finding is the record.
+- **What a key was charged twice is given back by a refund of its own**
+  (`invoices.RefundExtra`: `extra_of`, `refunds`, no credit note), of the
+  extra payment, sent as any refund is; nothing of the invoice moves. A
+  refund gives back what a credit note says or this, and the layer refuses
+  anything else.
+- **Findings are operator data**: global, no product's and no payer's, in
+  no policy's table and no API. What they say holds ids, amounts and times,
+  never a person; an operator's `reason` is `personal`.
+- **Said** in the log -- every open finding each pass at its severity, new
+  and resolved ones at INFO -- and in the gauges `levyan.reconcile.findings`
+  (open, by `levyan.finding.kind` and `levyan.finding.severity`, every kind
+  recorded) and `levyan.reconcile.ran`.
+- A pass asks the merchant no faster than `reconcile.DefaultPace`; tests set
+  `Reconciler.Pace` to nothing. Tests break the ledger past the servers
+  (ent, SQL) where no correction of levyan's would write what they test.
+
 ## Background work
 
 What `cmd.Build` appends to `s.Spin` runs under `spin.lease` in `levyan serve`:
@@ -725,6 +773,11 @@ levyan's own:
   what is spent `UNCOLLECTIBLE`, and follows the rule `dunning`, so that a
   payment lets a workspace go within a minute rather than the grants'
   hour; through `Ungated` as the deployment.
+- `levyan.reconcile` (`reconcile.Reconciles`, every `reconcile.every`, a
+  day) makes every check, writes what it finds, and says it; it asks a
+  channel again where the paths that ask anyway would, and moves no money.
+  An operator's `levyan-admin reconcile run` is the same through their
+  frame.
 - `levyan.mor.inbox` (`subscriptions.Takes`, `cmd.Server.Taker`) takes the
   MoR's notices -- the mirror, and what each transaction says of the
   attempts whose keys it carries -- every five seconds, and at once when

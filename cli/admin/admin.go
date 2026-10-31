@@ -911,7 +911,6 @@ func newCmdGrant() *xli.Command {
 				Brief: "give a workspace a feature on, a limit or no bound of a key, renewed while it lasts unless --until says when it ends",
 				Flags: flg.Flags{
 					&flg.String{Name: "workspace", Brief: "the workspace, by the identifier of its payday tenant"},
-					&flg.String{Name: "key", Brief: "what it gives: loft.export"},
 					&flg.Switch{Name: "on", Brief: "a feature, on"},
 					&flg.Int64{Name: "limit", Brief: "how much may be held: the whole of it, never an amount to add"},
 					&flg.Switch{Name: "unlimited", Brief: "no bound at all"},
@@ -922,7 +921,7 @@ func newCmdGrant() *xli.Command {
 					&flg.Switch{Name: "replace", Brief: "end what was given of the key by hand, where this begins"},
 					&flg.Switch{Name: "yes", Brief: "do it"},
 				},
-				Args: arg.Args{productArg},
+				Args: arg.Args{productArg, &arg.String{Name: "KEY", Brief: "what it gives: loft.export"}},
 				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
 					if err := yes(self, "grant add"); err != nil {
 						return err
@@ -936,7 +935,7 @@ func newCmdGrant() *xli.Command {
 					unlimited, _ := flg.Find[bool](self, "unlimited")
 					limit, limited := flg.Find[int64](self, "limit")
 					body := map[string]any{
-						"workspace": str(self, "workspace"), "key": str(self, "key"),
+						"workspace": str(self, "workspace"), "key": argOf(self, "KEY"),
 						"source": str(self, "source"), "desc": str(self, "desc"),
 					}
 					n := 0

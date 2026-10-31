@@ -176,9 +176,9 @@ curl -sX POST http://localhost:8080/levyan.v1.BillingService/GetUsage \
 운영자는 워크스페이스에 손으로 Grant를 준다. 파일럿 고객과 계약 고객에게 쓴다. 워크스페이스는 제품 쪽 payday tenant id다. `--until`이 없으면 7일(`grants.horizon`) 앞까지 유효하고, `levyan serve`의 루프(`levyan.grants.renew`)가 반이 남을 때마다 갱신한다. trail에는 그 운영자가 남는다.
 
 ```sh
-admin grant add --workspace <id> --key loft.export --on --source trial --desc '파일럿' --yes loft
-admin grant add --workspace <id> --key loft.seats --limit 20 --until 2027-06-30 --source contract --yes loft
-admin grant add --workspace <id> --key loft.seats --limit 30 --replace --source contract --yes loft  # 앞의 것을 이것의 시작에서 끝낸다
+admin grant add --workspace <id> --on --source trial --desc '파일럿' --yes loft loft.export
+admin grant add --workspace <id> --limit 20 --until 2027-06-30 --source contract --yes loft loft.seats
+admin grant add --workspace <id> --limit 30 --replace --source contract --yes loft loft.seats  # 앞의 것을 이것의 시작에서 끝낸다
 admin grant ls --workspace <id> loft
 admin grant end --yes <grant id>
 ```

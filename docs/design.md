@@ -400,7 +400,7 @@ levyan이 판매자인 채널(국내 PG, 나중에는 지역 PG)에게 levyan이
   - broker가 그 구독자를 위해 쌓아 두는 것(`watch.Backlog`, 64)보다 뒤처지면 구독이 닫히고 스트림은 ResourceExhausted로 끝난다. 그 소비자를 위해 더 쌓아 두지 않고, 어떤 쓰기도 기다리지 않는다.
   - `List`는 wall이 있는 스택의 페이지 목록이다(최대 500, 기본 100). `tenant_id`가 있으면 그 워크스페이스의 것만 준다. 끝나지 않은 Grant와, 끝난 지 48시간이 안 된 Grant가 들어간다.
   - `watch.broker: none`이면 levyan은 시작하지 않는다. 스트림을 줄 수 없기 때문이다.
-- **운영자**: `levyan-admin grant add --workspace W --key K (--on | --limit N | --unlimited) [--from] [--until] [--source operator|contract|trial] [--desc] [--replace] --yes PRODUCT`, `grant end --yes ID`, `grant ls [--workspace] [--all] PRODUCT`.
+- **운영자**: `levyan-admin grant add --workspace W (--on | --limit N | --unlimited) [--from] [--until] [--source operator|contract|trial] [--desc] [--replace] --yes PRODUCT KEY`, `grant end --yes ID`, `grant ls [--workspace] [--all] PRODUCT`.
 
 ### 구현에서 정한 것
 

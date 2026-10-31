@@ -35,6 +35,9 @@ const (
 	InvoiceState_INVOICE_STATE_UNCOLLECTIBLE InvoiceState = 4
 	InvoiceState_INVOICE_STATE_VOID          InvoiceState = 5
 	InvoiceState_INVOICE_STATE_WRITTEN_OFF   InvoiceState = 6
+	// Shadow billing's, before collection on its channel began: never
+	// collected, and never shown to a payer.
+	InvoiceState_INVOICE_STATE_SHADOW InvoiceState = 7
 )
 
 // Enum value maps for InvoiceState.
@@ -47,6 +50,7 @@ var (
 		4: "INVOICE_STATE_UNCOLLECTIBLE",
 		5: "INVOICE_STATE_VOID",
 		6: "INVOICE_STATE_WRITTEN_OFF",
+		7: "INVOICE_STATE_SHADOW",
 	}
 	InvoiceState_value = map[string]int32{
 		"INVOICE_STATE_UNSPECIFIED":   0,
@@ -56,6 +60,7 @@ var (
 		"INVOICE_STATE_UNCOLLECTIBLE": 4,
 		"INVOICE_STATE_VOID":          5,
 		"INVOICE_STATE_WRITTEN_OFF":   6,
+		"INVOICE_STATE_SHADOW":        7,
 	}
 )
 
@@ -1396,7 +1401,7 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\bcredited\x18\t \x01(\x03R\bcredited\x12\x16\n" +
 	"\x06number\x18\n" +
 	" \x01(\x03R\x06number\x124\n" +
-	"\acreated\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\acreated*\xce\x01\n" +
+	"\acreated\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\acreated*\xe8\x01\n" +
 	"\fInvoiceState\x12\x1d\n" +
 	"\x19INVOICE_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13INVOICE_STATE_DRAFT\x10\x01\x12\x16\n" +
@@ -1404,7 +1409,8 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x12INVOICE_STATE_PAID\x10\x03\x12\x1f\n" +
 	"\x1bINVOICE_STATE_UNCOLLECTIBLE\x10\x04\x12\x16\n" +
 	"\x12INVOICE_STATE_VOID\x10\x05\x12\x1d\n" +
-	"\x19INVOICE_STATE_WRITTEN_OFF\x10\x06*\x9d\x01\n" +
+	"\x19INVOICE_STATE_WRITTEN_OFF\x10\x06\x12\x18\n" +
+	"\x14INVOICE_STATE_SHADOW\x10\a*\x9d\x01\n" +
 	"\x10CreditNoteReason\x12\"\n" +
 	"\x1eCREDIT_NOTE_REASON_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dCREDIT_NOTE_REASON_CORRECTION\x10\x01\x12\x1d\n" +

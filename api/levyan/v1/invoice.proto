@@ -122,6 +122,10 @@ enum InvoiceState {
   INVOICE_STATE_UNCOLLECTIBLE = 4;
   INVOICE_STATE_VOID = 5;
   INVOICE_STATE_WRITTEN_OFF = 6;
+
+  // Shadow billing's, before collection on its channel began: never
+  // collected, and never shown to a payer.
+  INVOICE_STATE_SHADOW = 7;
 }
 
 // InvoiceLine is one statement on an invoice: what one workspace came to over

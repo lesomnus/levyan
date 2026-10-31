@@ -106,6 +106,14 @@ message PaymentAttempt {
     (payday.field) = {personal: true}
   ];
 
+  // When the channel was found to hold more payments of its key than the
+  // ledger accounts for -- a key charged, or refunded, twice; a key charged
+  // after its attempt failed -- by this deployment's clock: the mark
+  // reconciliation (#13) reads, to give back what the attempt did not settle
+  // by. Unset while the channel holds it as the ledger does. The one thing
+  // that may still be written of an attempt once it has ended.
+  google.protobuf.Timestamp date_twice = 28 [(orm.field) = {nullable: true}];
+
   google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
 
   // Never stamped: there is no Erase.

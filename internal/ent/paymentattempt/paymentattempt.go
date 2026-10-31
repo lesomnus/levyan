@@ -44,6 +44,8 @@ const (
 	FieldRecorded = "recorded"
 	// FieldReference holds the string denoting the reference field in the database.
 	FieldReference = "reference"
+	// FieldDateTwice holds the string denoting the date_twice field in the database.
+	FieldDateTwice = "date_twice"
 	// FieldDateUpdated holds the string denoting the date_updated field in the database.
 	FieldDateUpdated = "date_updated"
 	// FieldDateErased holds the string denoting the date_erased field in the database.
@@ -105,6 +107,7 @@ var Columns = []string{
 	FieldDatePaid,
 	FieldRecorded,
 	FieldReference,
+	FieldDateTwice,
 	FieldDateUpdated,
 	FieldDateErased,
 	FieldDateCreated,
@@ -206,6 +209,11 @@ func ByRecorded(opts ...sql.OrderTermOption) OrderOption {
 // ByReference orders the results by the reference field.
 func ByReference(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReference, opts...).ToFunc()
+}
+
+// ByDateTwice orders the results by the date_twice field.
+func ByDateTwice(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateTwice, opts...).ToFunc()
 }
 
 // ByDateUpdated orders the results by the date_updated field.

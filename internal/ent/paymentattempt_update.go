@@ -172,6 +172,26 @@ func (_u *PaymentAttemptUpdate) ClearDatePaid() *PaymentAttemptUpdate {
 	return _u
 }
 
+// SetDateTwice sets the "date_twice" field.
+func (_u *PaymentAttemptUpdate) SetDateTwice(v time.Time) *PaymentAttemptUpdate {
+	_u.mutation.SetDateTwice(v)
+	return _u
+}
+
+// SetNillableDateTwice sets the "date_twice" field if the given value is not nil.
+func (_u *PaymentAttemptUpdate) SetNillableDateTwice(v *time.Time) *PaymentAttemptUpdate {
+	if v != nil {
+		_u.SetDateTwice(*v)
+	}
+	return _u
+}
+
+// ClearDateTwice clears the value of the "date_twice" field.
+func (_u *PaymentAttemptUpdate) ClearDateTwice() *PaymentAttemptUpdate {
+	_u.mutation.ClearDateTwice()
+	return _u
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (_u *PaymentAttemptUpdate) SetDateUpdated(v time.Time) *PaymentAttemptUpdate {
 	_u.mutation.SetDateUpdated(v)
@@ -339,6 +359,15 @@ func (_u *PaymentAttemptUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.DatePaidCleared() {
 		_spec.ClearField(paymentattempt.FieldDatePaid, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DateTwice(); ok {
+		_spec.SetField(paymentattempt.FieldDateTwice, field.TypeTime, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(paymentattempt.FieldDateTwice); ok {
+		_spec.SetField(paymentattempt.FieldDateTwice, field.TypeTime, e)
+	}
+	if _u.mutation.DateTwiceCleared() {
+		_spec.ClearField(paymentattempt.FieldDateTwice, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(paymentattempt.FieldDateUpdated, field.TypeTime, value)
@@ -519,6 +548,26 @@ func (_u *PaymentAttemptUpdateOne) SetNillableDatePaid(v *time.Time) *PaymentAtt
 // ClearDatePaid clears the value of the "date_paid" field.
 func (_u *PaymentAttemptUpdateOne) ClearDatePaid() *PaymentAttemptUpdateOne {
 	_u.mutation.ClearDatePaid()
+	return _u
+}
+
+// SetDateTwice sets the "date_twice" field.
+func (_u *PaymentAttemptUpdateOne) SetDateTwice(v time.Time) *PaymentAttemptUpdateOne {
+	_u.mutation.SetDateTwice(v)
+	return _u
+}
+
+// SetNillableDateTwice sets the "date_twice" field if the given value is not nil.
+func (_u *PaymentAttemptUpdateOne) SetNillableDateTwice(v *time.Time) *PaymentAttemptUpdateOne {
+	if v != nil {
+		_u.SetDateTwice(*v)
+	}
+	return _u
+}
+
+// ClearDateTwice clears the value of the "date_twice" field.
+func (_u *PaymentAttemptUpdateOne) ClearDateTwice() *PaymentAttemptUpdateOne {
+	_u.mutation.ClearDateTwice()
 	return _u
 }
 
@@ -719,6 +768,15 @@ func (_u *PaymentAttemptUpdateOne) sqlSave(ctx context.Context) (_node *PaymentA
 	}
 	if _u.mutation.DatePaidCleared() {
 		_spec.ClearField(paymentattempt.FieldDatePaid, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DateTwice(); ok {
+		_spec.SetField(paymentattempt.FieldDateTwice, field.TypeTime, value)
+	}
+	if e, ok := _u.mutation.FieldExpr(paymentattempt.FieldDateTwice); ok {
+		_spec.SetField(paymentattempt.FieldDateTwice, field.TypeTime, e)
+	}
+	if _u.mutation.DateTwiceCleared() {
+		_spec.ClearField(paymentattempt.FieldDateTwice, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(paymentattempt.FieldDateUpdated, field.TypeTime, value)

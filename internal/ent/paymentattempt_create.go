@@ -141,6 +141,20 @@ func (_c *PaymentAttemptCreate) SetReference(v string) *PaymentAttemptCreate {
 	return _c
 }
 
+// SetDateTwice sets the "date_twice" field.
+func (_c *PaymentAttemptCreate) SetDateTwice(v time.Time) *PaymentAttemptCreate {
+	_c.mutation.SetDateTwice(v)
+	return _c
+}
+
+// SetNillableDateTwice sets the "date_twice" field if the given value is not nil.
+func (_c *PaymentAttemptCreate) SetNillableDateTwice(v *time.Time) *PaymentAttemptCreate {
+	if v != nil {
+		_c.SetDateTwice(*v)
+	}
+	return _c
+}
+
 // SetDateUpdated sets the "date_updated" field.
 func (_c *PaymentAttemptCreate) SetDateUpdated(v time.Time) *PaymentAttemptCreate {
 	_c.mutation.SetDateUpdated(v)
@@ -427,6 +441,10 @@ func (_c *PaymentAttemptCreate) createSpec() (*PaymentAttempt, *sqlgraph.CreateS
 	if value, ok := _c.mutation.Reference(); ok {
 		_spec.SetField(paymentattempt.FieldReference, field.TypeString, value)
 		_node.Reference = value
+	}
+	if value, ok := _c.mutation.DateTwice(); ok {
+		_spec.SetField(paymentattempt.FieldDateTwice, field.TypeTime, value)
+		_node.DateTwice = &value
 	}
 	if value, ok := _c.mutation.DateUpdated(); ok {
 		_spec.SetField(paymentattempt.FieldDateUpdated, field.TypeTime, value)

@@ -52,6 +52,9 @@ func (PaymentAttempt) Fields() []ent.Field {
 			Immutable(),
 		field.String("reference").
 			Immutable(),
+		field.Time("date_twice").
+			Nillable().
+			Optional(),
 		field.Time("date_updated"),
 		field.Time("date_erased").
 			Nillable().

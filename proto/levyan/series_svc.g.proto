@@ -1,0 +1,111 @@
+edition = "2023";
+package levyan;
+
+import "google/protobuf/timestamp.proto";
+import "levyan/meter_svc.g.proto";
+import "levyan/payday/tenant_svc.g.proto";
+import "levyan/series.proto";
+import "levyan/workspace_svc.g.proto";
+import "patch/patch.proto";
+
+option go_package = "github.com/lesomnus/levyan";
+
+service SeriesService {
+  // Add creates a new Series
+  rpc Add(SeriesAddRequest) returns (Series);
+  // Get retrieves a Series
+  rpc Get(SeriesGetRequest) returns (Series);
+  // Patch updates an existing Series
+  rpc Patch(SeriesPatchRequest) returns (Series);
+  // Apply applies a patch document to an existing Series
+  rpc Apply(SeriesApplyRequest) returns (Series);
+  // List reads Seriess a page at a time.
+  rpc List(SeriesListRequest) returns (SeriesListResponse);
+}
+
+message SeriesAddRequest {
+  bytes id = 1;
+  TenantRef tenant = 2;
+  WorkspaceRef workspace = 3;
+  MeterRef meter = 8;
+  bytes digest = 9 [features.field_presence = IMPLICIT];
+  string source = 10 [features.field_presence = IMPLICIT];
+  google.protobuf.Timestamp date_created = 15;
+}
+
+message SeriesGetRequest {
+  SeriesRef ref = 1;
+  SeriesSelect select = 2;
+}
+
+message SeriesRef {
+  oneof key {
+    bytes id = 1;
+    SeriesRefByStream stream = 2;
+  }
+}
+
+message SeriesRefByStream {
+  TenantRef tenant = 2;
+  bytes digest = 9;
+}
+
+message SeriesSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  WorkspaceSelect workspace = 3;
+  MeterSelect meter = 8;
+  bool digest = 9;
+  bool source = 10;
+  bool date_erased = 14;
+  bool date_created = 15;
+}
+
+message SeriesPatchRequest {
+  SeriesRef ref = 1;
+}
+
+message SeriesApplyRequest {
+  SeriesRef ref = 1;
+  patch.Patch patch = 2;
+}
+
+message SeriesListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated SeriesFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message SeriesListResponse {
+  repeated Series items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message SeriesFilter {
+  SeriesRef ref = 1;
+}

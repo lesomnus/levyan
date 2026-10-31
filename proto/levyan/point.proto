@@ -1,0 +1,175 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "levyan/series.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Point is one point of a flow's series: how much it had counted from its
+// start to a moment. A row of the ledger, as a reading is.
+//
+// The series, the start and the moment are what a point is: one exported
+// again is the one already kept, and the same three with another count is
+// refused. A start that moves is the series counting again from nothing -- the
+// process restarted -- so the increase it shows from then on is its own
+// (`internal/rating`).
+//
+// Kept only when it says something: a point that counts no more than one
+// before it under the same start adds nothing to any period, whenever it came,
+// and is not written (`server/ledger`). So a series that counts nothing for a
+// day is one row, not one a minute.
+//
+// Immutable, and no Patch and no Erase, for the reason a reading is.
+message Point {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product that exported it.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace its series counts for: the set the ledger is divided by.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The series it is a point of.
+  Series series = 8 [(orm.edge) = {immutable: true}];
+
+  // When the count it is part of began: OpenTelemetry's start time, to the
+  // microsecond.
+  google.protobuf.Timestamp started_at = 9 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // When it was counted to: OpenTelemetry's time, to the microsecond.
+  google.protobuf.Timestamp counted_at = 10 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // How much its series had counted from `started_at` to `counted_at`, in
+  // the meter's unit.
+  int64 value = 11 [(orm.field) = {immutable: true}];
+
+  // Counted to a moment of a period of the product's that was closed by the
+  // time it came, or moving the increase of the point after it into one; as a
+  // reading's `late`.
+  bool late = 12 [(orm.field) = {immutable: true}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was kept, which is when it came.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+      add: {
+        many: {}
+      }
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // What a point is, and the order a series is read in.
+        name: "counted"
+        refs: [
+          {
+            name: "series"
+            number: 8
+          },
+          {
+            name: "started_at"
+            number: 9
+          },
+          {
+            name: "counted_at"
+            number: 10
+          }
+        ]
+        unique: true
+      },
+      {
+        // A workspace's points of a period.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "counted_at"
+            number: 10
+          }
+        ]
+      },
+      {
+        name: "late"
+        refs: [
+          {
+            name: "late"
+            number: 12
+          },
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "counted_at"
+            number: 10
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 15
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "workspace.tenant",
+        "series.tenant"
+      ]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [{name: "ref"}]
+      size: 100
+      max: 1000
+    }
+  };
+}

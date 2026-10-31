@@ -36,7 +36,12 @@ type Server interface {
 	Outbox() OutboxServiceServer
 	Owed() OwedServiceServer
 	RowSeal() RowSealServiceServer
+	Period() PeriodServiceServer
+	Workspace() WorkspaceServiceServer
+	Series() SeriesServiceServer
+	Point() PointServiceServer
 	Price() PriceServiceServer
+	Reading() ReadingServiceServer
 	ServiceKey() ServiceKeyServiceServer
 }
 
@@ -55,7 +60,12 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterOutboxServiceServer(g, s.Outbox())
 	RegisterOwedServiceServer(g, s.Owed())
 	RegisterRowSealServiceServer(g, s.RowSeal())
+	RegisterPeriodServiceServer(g, s.Period())
+	RegisterWorkspaceServiceServer(g, s.Workspace())
+	RegisterSeriesServiceServer(g, s.Series())
+	RegisterPointServiceServer(g, s.Point())
 	RegisterPriceServiceServer(g, s.Price())
+	RegisterReadingServiceServer(g, s.Reading())
 	RegisterServiceKeyServiceServer(g, s.ServiceKey())
 }
 
@@ -70,7 +80,12 @@ type UnimplementedServer struct {
 	OutboxServer     OutboxServiceServer
 	OwedServer       OwedServiceServer
 	RowSealServer    RowSealServiceServer
+	PeriodServer     PeriodServiceServer
+	WorkspaceServer  WorkspaceServiceServer
+	SeriesServer     SeriesServiceServer
+	PointServer      PointServiceServer
 	PriceServer      PriceServiceServer
+	ReadingServer    ReadingServiceServer
 	ServiceKeyServer ServiceKeyServiceServer
 }
 
@@ -88,7 +103,14 @@ func (UnimplementedServer) Holder() HolderServiceServer   { return Unimplemented
 func (UnimplementedServer) Outbox() OutboxServiceServer   { return UnimplementedOutboxServiceServer{} }
 func (UnimplementedServer) Owed() OwedServiceServer       { return UnimplementedOwedServiceServer{} }
 func (UnimplementedServer) RowSeal() RowSealServiceServer { return UnimplementedRowSealServiceServer{} }
+func (UnimplementedServer) Period() PeriodServiceServer   { return UnimplementedPeriodServiceServer{} }
+func (UnimplementedServer) Workspace() WorkspaceServiceServer {
+	return UnimplementedWorkspaceServiceServer{}
+}
+func (UnimplementedServer) Series() SeriesServiceServer   { return UnimplementedSeriesServiceServer{} }
+func (UnimplementedServer) Point() PointServiceServer     { return UnimplementedPointServiceServer{} }
 func (UnimplementedServer) Price() PriceServiceServer     { return UnimplementedPriceServiceServer{} }
+func (UnimplementedServer) Reading() ReadingServiceServer { return UnimplementedReadingServiceServer{} }
 func (UnimplementedServer) ServiceKey() ServiceKeyServiceServer {
 	return UnimplementedServiceKeyServiceServer{}
 }
@@ -104,7 +126,12 @@ type StaticServer struct {
 	OutboxServer     OutboxServiceServer
 	OwedServer       OwedServiceServer
 	RowSealServer    RowSealServiceServer
+	PeriodServer     PeriodServiceServer
+	WorkspaceServer  WorkspaceServiceServer
+	SeriesServer     SeriesServiceServer
+	PointServer      PointServiceServer
 	PriceServer      PriceServiceServer
+	ReadingServer    ReadingServiceServer
 	ServiceKeyServer ServiceKeyServiceServer
 }
 
@@ -118,7 +145,12 @@ func (s StaticServer) Holder() HolderServiceServer         { return s.HolderServ
 func (s StaticServer) Outbox() OutboxServiceServer         { return s.OutboxServer }
 func (s StaticServer) Owed() OwedServiceServer             { return s.OwedServer }
 func (s StaticServer) RowSeal() RowSealServiceServer       { return s.RowSealServer }
+func (s StaticServer) Period() PeriodServiceServer         { return s.PeriodServer }
+func (s StaticServer) Workspace() WorkspaceServiceServer   { return s.WorkspaceServer }
+func (s StaticServer) Series() SeriesServiceServer         { return s.SeriesServer }
+func (s StaticServer) Point() PointServiceServer           { return s.PointServer }
 func (s StaticServer) Price() PriceServiceServer           { return s.PriceServer }
+func (s StaticServer) Reading() ReadingServiceServer       { return s.ReadingServer }
 func (s StaticServer) ServiceKey() ServiceKeyServiceServer { return s.ServiceKeyServer }
 
 type Client interface {
@@ -132,7 +164,12 @@ type Client interface {
 	Outbox() OutboxServiceClient
 	Owed() OwedServiceClient
 	RowSeal() RowSealServiceClient
+	Period() PeriodServiceClient
+	Workspace() WorkspaceServiceClient
+	Series() SeriesServiceClient
+	Point() PointServiceClient
 	Price() PriceServiceClient
+	Reading() ReadingServiceClient
 	ServiceKey() ServiceKeyServiceClient
 }
 
@@ -148,7 +185,12 @@ func NewClient(c *grpc.ClientConn) Client {
 		_Outbox:     NewOutboxServiceClient(c),
 		_Owed:       NewOwedServiceClient(c),
 		_RowSeal:    NewRowSealServiceClient(c),
+		_Period:     NewPeriodServiceClient(c),
+		_Workspace:  NewWorkspaceServiceClient(c),
+		_Series:     NewSeriesServiceClient(c),
+		_Point:      NewPointServiceClient(c),
 		_Price:      NewPriceServiceClient(c),
+		_Reading:    NewReadingServiceClient(c),
 		_ServiceKey: NewServiceKeyServiceClient(c),
 	}
 }
@@ -164,7 +206,12 @@ type client struct {
 	_Outbox     OutboxServiceClient
 	_Owed       OwedServiceClient
 	_RowSeal    RowSealServiceClient
+	_Period     PeriodServiceClient
+	_Workspace  WorkspaceServiceClient
+	_Series     SeriesServiceClient
+	_Point      PointServiceClient
 	_Price      PriceServiceClient
+	_Reading    ReadingServiceClient
 	_ServiceKey ServiceKeyServiceClient
 }
 
@@ -178,7 +225,12 @@ func (c *client) Holder() HolderServiceClient         { return c._Holder }
 func (c *client) Outbox() OutboxServiceClient         { return c._Outbox }
 func (c *client) Owed() OwedServiceClient             { return c._Owed }
 func (c *client) RowSeal() RowSealServiceClient       { return c._RowSeal }
+func (c *client) Period() PeriodServiceClient         { return c._Period }
+func (c *client) Workspace() WorkspaceServiceClient   { return c._Workspace }
+func (c *client) Series() SeriesServiceClient         { return c._Series }
+func (c *client) Point() PointServiceClient           { return c._Point }
 func (c *client) Price() PriceServiceClient           { return c._Price }
+func (c *client) Reading() ReadingServiceClient       { return c._Reading }
 func (c *client) ServiceKey() ServiceKeyServiceClient { return c._ServiceKey }
 
 // Middleware is a server that delegates to another server.

@@ -16,11 +16,16 @@ import (
 	operator "github.com/lesomnus/levyan/internal/ent/operator"
 	outbox "github.com/lesomnus/levyan/internal/ent/outbox"
 	owed "github.com/lesomnus/levyan/internal/ent/owed"
+	period "github.com/lesomnus/levyan/internal/ent/period"
+	point "github.com/lesomnus/levyan/internal/ent/point"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
 	price "github.com/lesomnus/levyan/internal/ent/price"
+	reading "github.com/lesomnus/levyan/internal/ent/reading"
 	rowseal "github.com/lesomnus/levyan/internal/ent/rowseal"
+	series "github.com/lesomnus/levyan/internal/ent/series"
 	servicekey "github.com/lesomnus/levyan/internal/ent/servicekey"
 	tenant "github.com/lesomnus/levyan/internal/ent/tenant"
+	workspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	dialect "github.com/protobuf-orm/ent/dialect"
 	entpatch "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/entpatch"
@@ -381,7 +386,12 @@ type Scope interface {
 	OutboxScope(ctx context.Context) (predicate.Outbox, error)
 	OwedScope(ctx context.Context) (predicate.Owed, error)
 	RowSealScope(ctx context.Context) (predicate.RowSeal, error)
+	PeriodScope(ctx context.Context) (predicate.Period, error)
+	WorkspaceScope(ctx context.Context) (predicate.Workspace, error)
+	SeriesScope(ctx context.Context) (predicate.Series, error)
+	PointScope(ctx context.Context) (predicate.Point, error)
 	PriceScope(ctx context.Context) (predicate.Price, error)
+	ReadingScope(ctx context.Context) (predicate.Reading, error)
 	ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error)
 }
 
@@ -427,7 +437,22 @@ func (Unscoped) OwedScope(_ context.Context) (predicate.Owed, error) {
 func (Unscoped) RowSealScope(_ context.Context) (predicate.RowSeal, error) {
 	return nil, nil
 }
+func (Unscoped) PeriodScope(_ context.Context) (predicate.Period, error) {
+	return nil, nil
+}
+func (Unscoped) WorkspaceScope(_ context.Context) (predicate.Workspace, error) {
+	return nil, nil
+}
+func (Unscoped) SeriesScope(_ context.Context) (predicate.Series, error) {
+	return nil, nil
+}
+func (Unscoped) PointScope(_ context.Context) (predicate.Point, error) {
+	return nil, nil
+}
 func (Unscoped) PriceScope(_ context.Context) (predicate.Price, error) {
+	return nil, nil
+}
+func (Unscoped) ReadingScope(_ context.Context) (predicate.Reading, error) {
 	return nil, nil
 }
 func (Unscoped) ServiceKeyScope(_ context.Context) (predicate.ServiceKey, error) {
@@ -653,6 +678,86 @@ func (ss Scopes) RowSealScope(ctx context.Context) (predicate.RowSeal, error) {
 	return rowseal.And(ps...), nil
 }
 
+func (ss Scopes) PeriodScope(ctx context.Context) (predicate.Period, error) {
+	ps := make([]predicate.Period, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.PeriodScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return period.And(ps...), nil
+}
+
+func (ss Scopes) WorkspaceScope(ctx context.Context) (predicate.Workspace, error) {
+	ps := make([]predicate.Workspace, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.WorkspaceScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return workspace.And(ps...), nil
+}
+
+func (ss Scopes) SeriesScope(ctx context.Context) (predicate.Series, error) {
+	ps := make([]predicate.Series, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.SeriesScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return series.And(ps...), nil
+}
+
+func (ss Scopes) PointScope(ctx context.Context) (predicate.Point, error) {
+	ps := make([]predicate.Point, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.PointScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return point.And(ps...), nil
+}
+
 func (ss Scopes) PriceScope(ctx context.Context) (predicate.Price, error) {
 	ps := make([]predicate.Price, 0, len(ss))
 	for _, s := range ss {
@@ -671,6 +776,26 @@ func (ss Scopes) PriceScope(ctx context.Context) (predicate.Price, error) {
 	}
 
 	return price.And(ps...), nil
+}
+
+func (ss Scopes) ReadingScope(ctx context.Context) (predicate.Reading, error) {
+	ps := make([]predicate.Reading, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.ReadingScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return reading.And(ps...), nil
 }
 
 func (ss Scopes) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error) {
@@ -828,7 +953,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. Holder, Meter, Operator, Price and ServiceKey free the names they held when a row
+// check. Holder, Meter, Operator, Period, Point, Price, Reading, Series, ServiceKey and Workspace free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -876,7 +1001,14 @@ func (s Server) Holder() levyan.HolderServiceServer     { return HolderServiceSe
 func (s Server) Outbox() levyan.OutboxServiceServer     { return OutboxServiceServer{Store: s.Store} }
 func (s Server) Owed() levyan.OwedServiceServer         { return OwedServiceServer{Store: s.Store} }
 func (s Server) RowSeal() levyan.RowSealServiceServer   { return RowSealServiceServer{Store: s.Store} }
-func (s Server) Price() levyan.PriceServiceServer       { return PriceServiceServer{Store: s.Store} }
+func (s Server) Period() levyan.PeriodServiceServer     { return PeriodServiceServer{Store: s.Store} }
+func (s Server) Workspace() levyan.WorkspaceServiceServer {
+	return WorkspaceServiceServer{Store: s.Store}
+}
+func (s Server) Series() levyan.SeriesServiceServer   { return SeriesServiceServer{Store: s.Store} }
+func (s Server) Point() levyan.PointServiceServer     { return PointServiceServer{Store: s.Store} }
+func (s Server) Price() levyan.PriceServiceServer     { return PriceServiceServer{Store: s.Store} }
+func (s Server) Reading() levyan.ReadingServiceServer { return ReadingServiceServer{Store: s.Store} }
 func (s Server) ServiceKey() levyan.ServiceKeyServiceServer {
 	return ServiceKeyServiceServer{Store: s.Store}
 }

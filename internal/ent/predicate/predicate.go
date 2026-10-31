@@ -30,6 +30,12 @@ type Outbox func(*sql.Selector)
 // Owed is the predicate function for owed builders.
 type Owed func(*sql.Selector)
 
+// Period is the predicate function for period builders.
+type Period func(*sql.Selector)
+
+// Point is the predicate function for point builders.
+type Point func(*sql.Selector)
+
 // Price is the predicate function for price builders.
 type Price func(*sql.Selector)
 
@@ -44,11 +50,20 @@ func PriceOrErr(p Price, err error) Price {
 	}
 }
 
+// Reading is the predicate function for reading builders.
+type Reading func(*sql.Selector)
+
 // RowSeal is the predicate function for rowseal builders.
 type RowSeal func(*sql.Selector)
+
+// Series is the predicate function for series builders.
+type Series func(*sql.Selector)
 
 // ServiceKey is the predicate function for servicekey builders.
 type ServiceKey func(*sql.Selector)
 
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)
+
+// Workspace is the predicate function for workspace builders.
+type Workspace func(*sql.Selector)

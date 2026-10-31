@@ -305,6 +305,111 @@ var (
 			},
 		},
 	}
+	// PeriodColumns holds the columns for the "period" table.
+	PeriodColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "date_start", Type: field.TypeTime, Nullable: true},
+		{Name: "date_end", Type: field.TypeTime, Nullable: true},
+		{Name: "zone", Type: field.TypeString},
+		{Name: "date_closed", Type: field.TypeTime, Nullable: true},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+	}
+	// PeriodTable holds the schema information for the "period" table.
+	PeriodTable = &schema.Table{
+		Name:       "period",
+		Columns:    PeriodColumns,
+		PrimaryKey: []*schema.Column{PeriodColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "period_tenant_tenant",
+				Columns:    []*schema.Column{PeriodColumns[8]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "period_page",
+				Unique:  false,
+				Columns: []*schema.Column{PeriodColumns[8], PeriodColumns[1], PeriodColumns[0]},
+			},
+			{
+				Name:    "period_begins",
+				Unique:  true,
+				Columns: []*schema.Column{PeriodColumns[8], PeriodColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
+	// PointColumns holds the columns for the "point" table.
+	PointColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "counted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "value", Type: field.TypeInt64},
+		{Name: "late", Type: field.TypeBool},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "series_id", Type: field.TypeUuid},
+	}
+	// PointTable holds the schema information for the "point" table.
+	PointTable = &schema.Table{
+		Name:       "point",
+		Columns:    PointColumns,
+		PrimaryKey: []*schema.Column{PointColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "point_tenant_tenant",
+				Columns:    []*schema.Column{PointColumns[7]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "point_workspace_workspace",
+				Columns:    []*schema.Column{PointColumns[8]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "point_series_series",
+				Columns:    []*schema.Column{PointColumns[9]},
+				RefColumns: []*schema.Column{SeriesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "point_page",
+				Unique:  false,
+				Columns: []*schema.Column{PointColumns[7], PointColumns[6], PointColumns[0]},
+			},
+			{
+				Name:    "point_counted",
+				Unique:  true,
+				Columns: []*schema.Column{PointColumns[9], PointColumns[1], PointColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "point_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{PointColumns[8], PointColumns[2]},
+			},
+			{
+				Name:    "point_late",
+				Unique:  false,
+				Columns: []*schema.Column{PointColumns[4], PointColumns[8], PointColumns[2]},
+			},
+		},
+	}
 	// PriceColumns holds the columns for the "price" table.
 	PriceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -354,6 +459,69 @@ var (
 			},
 		},
 	}
+	// ReadingColumns holds the columns for the "reading" table.
+	ReadingColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "measured_at", Type: field.TypeTime, Nullable: true},
+		{Name: "value", Type: field.TypeInt64},
+		{Name: "late", Type: field.TypeBool},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "meter_id", Type: field.TypeUuid},
+	}
+	// ReadingTable holds the schema information for the "reading" table.
+	ReadingTable = &schema.Table{
+		Name:       "reading",
+		Columns:    ReadingColumns,
+		PrimaryKey: []*schema.Column{ReadingColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "reading_tenant_tenant",
+				Columns:    []*schema.Column{ReadingColumns[6]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "reading_workspace_workspace",
+				Columns:    []*schema.Column{ReadingColumns[7]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "reading_meter_meter",
+				Columns:    []*schema.Column{ReadingColumns[8]},
+				RefColumns: []*schema.Column{MeterColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "reading_page",
+				Unique:  false,
+				Columns: []*schema.Column{ReadingColumns[6], ReadingColumns[5], ReadingColumns[0]},
+			},
+			{
+				Name:    "reading_measured",
+				Unique:  true,
+				Columns: []*schema.Column{ReadingColumns[6], ReadingColumns[7], ReadingColumns[8], ReadingColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "reading_recent",
+				Unique:  false,
+				Columns: []*schema.Column{ReadingColumns[6], ReadingColumns[8], ReadingColumns[1]},
+			},
+			{
+				Name:    "reading_late",
+				Unique:  false,
+				Columns: []*schema.Column{ReadingColumns[3], ReadingColumns[7], ReadingColumns[1]},
+			},
+		},
+	}
 	// RowsealColumns holds the columns for the "rowseal" table.
 	RowsealColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -366,6 +534,63 @@ var (
 		Name:       "rowseal",
 		Columns:    RowsealColumns,
 		PrimaryKey: []*schema.Column{RowsealColumns[0]},
+	}
+	// SeriesColumns holds the columns for the "series" table.
+	SeriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "digest", Type: field.TypeBytes},
+		{Name: "source", Type: field.TypeString},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "meter_id", Type: field.TypeUuid},
+	}
+	// SeriesTable holds the schema information for the "series" table.
+	SeriesTable = &schema.Table{
+		Name:       "series",
+		Columns:    SeriesColumns,
+		PrimaryKey: []*schema.Column{SeriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "series_tenant_tenant",
+				Columns:    []*schema.Column{SeriesColumns[5]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "series_workspace_workspace",
+				Columns:    []*schema.Column{SeriesColumns[6]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "series_meter_meter",
+				Columns:    []*schema.Column{SeriesColumns[7]},
+				RefColumns: []*schema.Column{MeterColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "series_page",
+				Unique:  false,
+				Columns: []*schema.Column{SeriesColumns[5], SeriesColumns[4], SeriesColumns[0]},
+			},
+			{
+				Name:    "series_stream",
+				Unique:  true,
+				Columns: []*schema.Column{SeriesColumns[5], SeriesColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+			{
+				Name:    "series_counted",
+				Unique:  false,
+				Columns: []*schema.Column{SeriesColumns[6], SeriesColumns[7]},
+			},
+		},
 	}
 	// ServicekeyColumns holds the columns for the "servicekey" table.
 	ServicekeyColumns = []*schema.Column{
@@ -438,6 +663,43 @@ var (
 			},
 		},
 	}
+	// WorkspaceColumns holds the columns for the "workspace" table.
+	WorkspaceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "key", Type: field.TypeBytes},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "tenant_id", Type: field.TypeUuid},
+	}
+	// WorkspaceTable holds the schema information for the "workspace" table.
+	WorkspaceTable = &schema.Table{
+		Name:       "workspace",
+		Columns:    WorkspaceColumns,
+		PrimaryKey: []*schema.Column{WorkspaceColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "workspace_tenant_tenant",
+				Columns:    []*schema.Column{WorkspaceColumns[4]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workspace_page",
+				Unique:  false,
+				Columns: []*schema.Column{WorkspaceColumns[4], WorkspaceColumns[3], WorkspaceColumns[0]},
+			},
+			{
+				Name:    "workspace_keyed",
+				Unique:  true,
+				Columns: []*schema.Column{WorkspaceColumns[1], WorkspaceColumns[4]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "date_erased IS NULL",
+				},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AccessTable,
@@ -448,10 +710,15 @@ var (
 		OperatorTable,
 		OutboxTable,
 		OwedTable,
+		PeriodTable,
+		PointTable,
 		PriceTable,
+		ReadingTable,
 		RowsealTable,
+		SeriesTable,
 		ServicekeyTable,
 		TenantTable,
+		WorkspaceTable,
 	}
 )
 
@@ -482,13 +749,35 @@ func init() {
 	OwedTable.Annotation = &entsql.Annotation{
 		Table: "owed",
 	}
+	PeriodTable.ForeignKeys[0].RefTable = TenantTable
+	PeriodTable.Annotation = &entsql.Annotation{
+		Table: "period",
+	}
+	PointTable.ForeignKeys[0].RefTable = TenantTable
+	PointTable.ForeignKeys[1].RefTable = WorkspaceTable
+	PointTable.ForeignKeys[2].RefTable = SeriesTable
+	PointTable.Annotation = &entsql.Annotation{
+		Table: "point",
+	}
 	PriceTable.ForeignKeys[0].RefTable = TenantTable
 	PriceTable.ForeignKeys[1].RefTable = MeterTable
 	PriceTable.Annotation = &entsql.Annotation{
 		Table: "price",
 	}
+	ReadingTable.ForeignKeys[0].RefTable = TenantTable
+	ReadingTable.ForeignKeys[1].RefTable = WorkspaceTable
+	ReadingTable.ForeignKeys[2].RefTable = MeterTable
+	ReadingTable.Annotation = &entsql.Annotation{
+		Table: "reading",
+	}
 	RowsealTable.Annotation = &entsql.Annotation{
 		Table: "rowseal",
+	}
+	SeriesTable.ForeignKeys[0].RefTable = TenantTable
+	SeriesTable.ForeignKeys[1].RefTable = WorkspaceTable
+	SeriesTable.ForeignKeys[2].RefTable = MeterTable
+	SeriesTable.Annotation = &entsql.Annotation{
+		Table: "series",
 	}
 	ServicekeyTable.ForeignKeys[0].RefTable = TenantTable
 	ServicekeyTable.Annotation = &entsql.Annotation{
@@ -496,5 +785,9 @@ func init() {
 	}
 	TenantTable.Annotation = &entsql.Annotation{
 		Table: "tenant",
+	}
+	WorkspaceTable.ForeignKeys[0].RefTable = TenantTable
+	WorkspaceTable.Annotation = &entsql.Annotation{
+		Table: "workspace",
 	}
 }

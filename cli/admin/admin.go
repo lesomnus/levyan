@@ -41,13 +41,14 @@ import (
 	entmigrate "github.com/lesomnus/levyan/internal/ent/migrate"
 	"github.com/lesomnus/levyan/internal/money"
 	"github.com/lesomnus/levyan/server/admin"
+	"github.com/lesomnus/levyan/server/ledger"
 )
 
 // Cmd is the root of `levyan-admin`.
 func Cmd(c *cmd.Config) *xli.Command {
 	l := cfg.New(cmd.Name, c)
 	version := pdcmd.NewCmdVersion()
-	product, key, meter, price := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice()
+	product, key, meter, price, gap := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice(), newCmdGap()
 
 	return &xli.Command{
 		Name:  "levyan-admin",
@@ -67,11 +68,12 @@ func Cmd(c *cmd.Config) *xli.Command {
 			key,
 			meter,
 			price,
+			gap,
 		},
 
 		// What asks the entry point reads none of a deployment's
 		// configuration: an operator runs it from their own machine.
-		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price), xli.RequireSubcommand()),
+		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap), xli.RequireSubcommand()),
 	}
 }
 
@@ -109,7 +111,10 @@ func newCmdServe(c *cmd.Config) *xli.Command {
 				return err
 			}
 
-			routes := &admin.Routes{S: s, Operators: ops}
+			routes := &admin.Routes{S: s, Operators: ops, Expect: ledger.Expect{
+				Gap:    c.Readings.GapAfter(),
+				Recent: c.Readings.RecentWithin(),
+			}}
 			if err := routes.Sync(ctx); err != nil {
 				return err
 			}
@@ -649,6 +654,40 @@ func newCmdPrice() *xli.Command {
 						}
 						self.Printf("%s\t%s\t", when(v.From), when(v.To))
 						printPrice(self, *v.Price)
+					}
+					return next(ctx)
+				}),
+			},
+		},
+		Handler: xli.RequireSubcommand(),
+	}
+}
+
+func newCmdGap() *xli.Command {
+	return &xli.Command{
+		Name:  "gap",
+		Brief: "workspaces that have stopped sending readings",
+		Commands: xli.Commands{
+			{
+				Name:  "ls",
+				Brief: "every workspace without a reading of a stock meter for longer than it should have gone, oldest first",
+				Flags: flg.Flags{&flg.String{Name: "product", Brief: "of one product, by its alias"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					q := url.Values{}
+					if v := str(self, "product"); v != "" {
+						q.Set("product", v)
+					}
+					var vs []admin.Gap
+					if err := c.do(ctx, http.MethodGet, "/admin/gaps?"+q.Encode(), nil, &vs); err != nil {
+						return err
+					}
+					now := time.Now()
+					for _, v := range vs {
+						self.Printf("%s\t%s\t%s\tlast %s\t%s ago\n", v.Product, v.Meter, v.Workspace, when(v.Last), now.Sub(v.Last).Truncate(time.Minute))
 					}
 					return next(ctx)
 				}),

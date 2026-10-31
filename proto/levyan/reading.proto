@@ -1,0 +1,179 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/meter.proto";
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Reading is what one workspace held of one stock meter at one moment, as the
+// product measured it and sent it (payday's `meter.Reading`): a row of the
+// ledger a period is billed from.
+//
+// The workspace, the meter and the moment are what a reading is, and a
+// product's ledger keeps one of each: a reading sent again -- a retry of a
+// call that did arrive, two processes around a failover -- is the one already
+// kept, and the same three with another value is refused rather than either
+// value chosen (`server/ledger`). Every field is immutable and there is no
+// Patch and no Erase: a period billed from these rows is billed from them
+// again, the same, when it is asked why.
+//
+// Written through the servers, as the product that sent it, so the trail says
+// which key sent what.
+message Reading {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it was sent by.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it is of: the set the ledger is divided by.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // What it is a reading of: a stock meter of the product.
+  Meter meter = 8 [(orm.edge) = {immutable: true}];
+
+  // When it was measured, in UTC, to the microsecond: what PostgreSQL keeps of
+  // a time, so that a reading sent again is the same reading to the ledger.
+  google.protobuf.Timestamp measured_at = 9 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // How much the workspace held, in the meter's unit.
+  int64 value = 10 [(orm.field) = {immutable: true}];
+
+  // Measured in a period of the product's that was closed by the time it came
+  // -- or close enough before one's end that it speaks for some of it -- so
+  // that what that period was billed is corrected on a later statement (#6).
+  // Said as it is written, under the workspace's lock, so that a close and a
+  // reading never both take the other to have come first.
+  bool late = 11 [(orm.field) = {immutable: true}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was kept, which is when it came.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+      add: {
+        many: {}
+      }
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // What a reading is, and the order a period reads them in.
+        name: "measured"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "meter"
+            number: 8
+          },
+          {
+            name: "measured_at"
+            number: 9
+          }
+        ]
+        unique: true
+      },
+      {
+        // A product's readings of a meter lately, which the loop that looks
+        // for missing ones reads (`levyan.readings.gaps`).
+        name: "recent"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "meter"
+            number: 8
+          },
+          {
+            name: "measured_at"
+            number: 9
+          }
+        ]
+      },
+      {
+        // The late ones, which are few, without reading the rest.
+        name: "late"
+        refs: [
+          {
+            name: "late"
+            number: 11
+          },
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "measured_at"
+            number: 9
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 13
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "workspace.tenant",
+        "meter.tenant"
+      ]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [{name: "ref"}]
+      size: 100
+      max: 1000
+    }
+  };
+}

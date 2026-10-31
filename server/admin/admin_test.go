@@ -20,6 +20,7 @@ import (
 	"github.com/lesomnus/levyan/internal/levyantest"
 	"github.com/lesomnus/levyan/server/admin"
 	"github.com/lesomnus/levyan/server/keys"
+	"github.com/lesomnus/levyan/server/ledger"
 )
 
 const (
@@ -51,7 +52,7 @@ func open(t *testing.T, operators map[string]string) *door {
 	ops, err := admin.Operators(ks)
 	w.X.NoError(err)
 
-	r := &admin.Routes{S: w.S, Operators: ops}
+	r := &admin.Routes{S: w.S, Operators: ops, Expect: ledger.Expect{Gap: 36 * time.Hour, Recent: 7 * 24 * time.Hour}}
 	w.X.NoError(r.Sync(t.Context()))
 	srv := httptest.NewServer(r.Handler())
 	t.Cleanup(srv.Close)

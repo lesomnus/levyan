@@ -6,9 +6,10 @@
 // Three kinds of caller are meant to reach levyan, and the table is by kind:
 //
 //   - A **product** calls with a service key (`server/keys`), framed in its
-//     own tenant. It sends what its tenants hold and do, and reads its own
-//     price book and what it grants its tenants -- of itself and of no other
-//     product, which the wall keeps whatever a call names ([Policy.Where]).
+//     own tenant. It sends what its tenants hold and do -- readings, and its
+//     flows through OpenTelemetry's receiver -- and reads its own price book
+//     and what it grants its tenants: of itself and of no other product,
+//     which the wall keeps whatever a call names ([Policy.Where]).
 //   - An **operator** does not call here at all. Products, keys, meters and
 //     price versions are written through `levyan-admin serve`, a binary of
 //     its own on an address of its own, which this one does not link.
@@ -61,6 +62,13 @@ func init() {
 	// A product's own price book: who it is, its meters, and every version of
 	// what each costs.
 	allow(Product, "levyan.v1.PriceBookService", "GetProduct", "ListMeters", "ListPrices")
+
+	// What its workspaces hold, as readings, into its own ledger.
+	allow(Product, "levyan.v1.MeteringService", "Record")
+
+	// And what they do, as OpenTelemetry Sums, into the same ledger
+	// (`server/otlp`).
+	allow(Product, "opentelemetry.proto.collector.metrics.v1.MetricsService", "Export")
 }
 
 // Policy is the table, asked.

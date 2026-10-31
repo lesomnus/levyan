@@ -23,7 +23,7 @@ func deps(t *testing.T, dir string) []string {
 // reach, and the operator's entry point is a binary of its own
 // (`levyan-admin`), so that no path in this one writes as the deployment --
 // and the operator's has none of this one's door: no service key is read
-// there, and no `levyan.v1` is served. Each holds only as long as nothing
+// there, and neither `levyan.v1` nor the receiver of flows is served. Each holds only as long as nothing
 // imports what the other is made of, which a single import anywhere would
 // undo without a word; so it is asked of the toolchain (`go list -deps`),
 // every run.
@@ -38,7 +38,7 @@ func TestTheTwoBinariesLinkNeitherDoorOfTheOther(t *testing.T) {
 	for _, pkg := range []string{m + "server/admin", m + "cli/admin"} {
 		x.NotContains(public, pkg, "levyan links %s", pkg)
 	}
-	for _, pkg := range []string{m + "cli", m + "server/api", m + "server/policy", m + "api/levyan/v1"} {
+	for _, pkg := range []string{m + "cli", m + "server/api", m + "server/otlp", m + "server/policy", m + "api/levyan/v1"} {
 		x.NotContains(operator, pkg, "levyan-admin links %s", pkg)
 	}
 

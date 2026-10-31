@@ -35,6 +35,19 @@ spin:
   # processes on the app's own database; `none` runs none of them here.
   lease: local
 
+# What is expected of the readings products send. A workspace that has been
+# sending readings of a stock meter within `recent` and has sent none for
+# longer than `gap` is warned of, in the log and in the gauge
+# `levyan.readings.gaps`, by a loop that looks `every` so often
+# (`levyan.readings.gaps`; `levyan-admin gap ls` asks the same now). It is the
+# warning and nothing else: how long a reading speaks for when no later one
+# comes is the rating's, and not a number here.
+#
+# readings:
+#   gap: 36h
+#   recent: 168h
+#   every: 1h
+
 # The operator's entry point, which `levyan-admin serve` serves and `levyan
 # serve` does not: on the loopback unless said otherwise, and never on an
 # address the public reaches.

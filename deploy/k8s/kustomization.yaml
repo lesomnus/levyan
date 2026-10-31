@@ -1,0 +1,21 @@
+# The reference deployment on Kubernetes. `README.md` says what a deployment
+# brings to it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# No namespace: an overlay chooses one.
+resources:
+  - ./levyan.yaml
+
+configMapGenerator:
+  # levyan's own file format, as `--config` reads it. An overlay replaces it
+  # with its own (`behavior: replace`), and the hash in the name is what makes
+  # a changed file a new pod.
+  - name: levyan
+    files:
+      - levyan.yaml=config.yaml
+
+images:
+  # An overlay pins a digest.
+  - name: ghcr.io/lesomnus/levyan
+    newTag: edge

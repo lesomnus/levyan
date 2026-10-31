@@ -178,6 +178,21 @@ jobs:
         run: |
           docker run --rm levyan:ci version
           docker run --rm --entrypoint /usr/local/bin/levyan-admin levyan:ci version
+      # The reference deployment builds, and the file it hands every process is
+      # one this build reads: a manifest or a setting that broke would
+      # otherwise be found by the first deployment to apply it.
+      - name: the reference deployment builds and its configuration is read
+        run: |
+          kubectl kustomize deploy/k8s > /dev/null
+          d="$(mktemp -d)"
+          mkdir -p "$d/levyan" "$d/levyan-admin"
+          openssl rand -base64 32 > "$d/levyan/digest.key"
+          openssl rand -hex 32 > "$d/levyan-admin/operator"
+          chmod -R a+rX "$d"
+          docker run --rm -e LEVYAN_DB_DSN=postgres://ci@127.0.0.1:1/ci -e HOST_IP=127.0.0.1 \
+            -v "$PWD/deploy/k8s/config.yaml:/etc/levyan/levyan.yaml:ro" \
+            -v "$d/levyan:/run/secrets/levyan:ro" -v "$d/levyan-admin:/run/secrets/levyan-admin:ro" \
+            levyan:ci --config /etc/levyan/levyan.yaml config > /dev/null
 
   # The image, last, and only once everything above is green: what is in the
   # registry is what a deployment may run. Pushed from `main` alone, since a

@@ -309,6 +309,7 @@ const (
 	LinkEnded_LINK_ENDED_LEFT        LinkEnded = 3
 	LinkEnded_LINK_ENDED_SUSPENDED   LinkEnded = 4
 	LinkEnded_LINK_ENDED_ERASED      LinkEnded = 5
+	LinkEnded_LINK_ENDED_DESTROYED   LinkEnded = 6
 )
 
 // Enum value maps for LinkEnded.
@@ -320,6 +321,7 @@ var (
 		3: "LINK_ENDED_LEFT",
 		4: "LINK_ENDED_SUSPENDED",
 		5: "LINK_ENDED_ERASED",
+		6: "LINK_ENDED_DESTROYED",
 	}
 	LinkEnded_value = map[string]int32{
 		"LINK_ENDED_UNSPECIFIED": 0,
@@ -328,6 +330,7 @@ var (
 		"LINK_ENDED_LEFT":        3,
 		"LINK_ENDED_SUSPENDED":   4,
 		"LINK_ENDED_ERASED":      5,
+		"LINK_ENDED_DESTROYED":   6,
 	}
 )
 
@@ -3842,14 +3845,15 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\x12LINK_BEGAN_ARRIVED\x10\x01\x12\x17\n" +
 	"\x13LINK_BEGAN_ACCEPTED\x10\x02\x12\x13\n" +
 	"\x0fLINK_BEGAN_USED\x10\x03\x12\x16\n" +
-	"\x12LINK_BEGAN_RESUMED\x10\x04*\x9e\x01\n" +
+	"\x12LINK_BEGAN_RESUMED\x10\x04*\xb8\x01\n" +
 	"\tLinkEnded\x12\x1a\n" +
 	"\x16LINK_ENDED_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13LINK_ENDED_REPLACED\x10\x01\x12\x16\n" +
 	"\x12LINK_ENDED_STOPPED\x10\x02\x12\x13\n" +
 	"\x0fLINK_ENDED_LEFT\x10\x03\x12\x18\n" +
 	"\x14LINK_ENDED_SUSPENDED\x10\x04\x12\x15\n" +
-	"\x11LINK_ENDED_ERASED\x10\x052\xd0\t\n" +
+	"\x11LINK_ENDED_ERASED\x10\x05\x12\x18\n" +
+	"\x14LINK_ENDED_DESTROYED\x10\x062\xd0\t\n" +
 	"\fPayerService\x12d\n" +
 	"\x13ListBillingAccounts\x12%.levyan.v1.ListBillingAccountsRequest\x1a&.levyan.v1.ListBillingAccountsResponse\x12g\n" +
 	"\x14CreateBillingAccount\x12&.levyan.v1.CreateBillingAccountRequest\x1a'.levyan.v1.CreateBillingAccountResponse\x12g\n" +

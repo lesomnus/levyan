@@ -23,7 +23,8 @@
 # with the key, two workspaces arrived, readings and a flow's points in the two
 # months before this one and in this one, and an offer; the two months closed
 # (`period close`) into statements, and those of the billing account gathered
-# into its invoice. What a build does not have yet -- a command, a method, a
+# into its invoice; and the second workspace closed in the month before this
+# one, said after that month was closed, so that it is late (#14). What a build does not have yet -- a command, a method, a
 # setting -- it is not asked, and that is said. Nothing here reaches a roster
 # or a merchant of record, so what only they make happen is not made: an
 # account's own billing accounts and what it answers, a departure, a
@@ -34,7 +35,8 @@
 # BEFORE wrote reads as BEFORE read it -- the product, its key, meters and
 # prices, its periods, statements and invoices, the grants (as an operator
 # lists them and as payday's `GrantService` answers the product), each
-# workspace's payer, and what this month's readings come to so far. And if it
+# workspace's payer and what became of it, and what this month's readings come
+# to so far -- nothing, of the workspace closed. And if it
 # has `levyan trail rows`, every row is what the trail says of it.
 #
 # Every server this starts is stopped by its PID before this exits. What it
@@ -145,6 +147,9 @@ month() {
 	done
 	printf '%04d-%02d-01T00:00:00Z' "${y}" "${m}"
 }
+
+# after AT SECONDS: SECONDS after AT, as RFC 3339 says a moment.
+after() { jq -rn --arg at "$1" --argjson s "$2" '($at | fromdateiso8601) + $s | todateiso8601'; }
 
 # nanos AT [SECONDS]: AT, and SECONDS after it, in nanoseconds since the epoch,
 # as OpenTelemetry says a moment.
@@ -323,6 +328,22 @@ seed() {
 	while read -r id; do
 		expect "${id}" period ls loft
 	done < <(cut -f1 <<<"${out}")
+	# What became of the second workspace: closed ten days into the month
+	# before this one, and said after that month was closed, as an event
+	# that comes late is. Read back as it is, and in what this month comes
+	# to so far, which its close takes it out of.
+	local rc=0
+	call levyan.v1.WorkspaceService/Close "{\"workspace\":\"${ws2}\",\"at\":\"$(after "$(month 1)" 864000)\"}" >/dev/null || rc=$?
+	case "${rc}" in
+	0)
+		for ws in "${ws1}" "${ws2}"; do
+			ask "life-${ws}" levyan.v1.WorkspaceService/GetLifecycle "{\"workspace\":\"${ws}\"}" '.lifecycle'
+		done
+		;;
+	3) say "the build before has no \`WorkspaceService/Close\`: no workspace closed" ;;
+	*) exit 1 ;;
+	esac
+
 	out="$(admin "${b}" statement ls loft)"
 	[ -n "${out}" ] || fail "${log}" "the close wrote no statement"
 	while read -r id; do

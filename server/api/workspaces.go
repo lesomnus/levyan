@@ -14,6 +14,7 @@ import (
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
 	"github.com/lesomnus/levyan/internal/ent"
+	"github.com/lesomnus/levyan/internal/rating"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/payers"
 )
@@ -159,6 +160,86 @@ func (h Workspaces) GetPayer(ctx context.Context, req *levyanv1.GetPayerRequest)
 	}
 
 	return levyanv1.GetPayerResponse_builder{Payer: p}.Build(), nil
+}
+
+// Close, Restore and Destroy are what became of a workspace at `at`, as the
+// product says (#14): kept once of a moment, read in the order of their
+// moments, and written through the walled stack as the product.
+func (h Workspaces) Close(ctx context.Context, req *levyanv1.CloseRequest) (*levyanv1.CloseResponse, error) {
+	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasAt(), req.GetAt().AsTime(), payers.Payers.Close)
+	if err != nil {
+		return nil, err
+	}
+
+	return levyanv1.CloseResponse_builder{Lifecycle: lifecycleOf(ws, said.Life), Late: said.Late}.Build(), nil
+}
+
+func (h Workspaces) Restore(ctx context.Context, req *levyanv1.RestoreRequest) (*levyanv1.RestoreResponse, error) {
+	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasAt(), req.GetAt().AsTime(), payers.Payers.Restore)
+	if err != nil {
+		return nil, err
+	}
+
+	return levyanv1.RestoreResponse_builder{Lifecycle: lifecycleOf(ws, said.Life), Late: said.Late}.Build(), nil
+}
+
+func (h Workspaces) Destroy(ctx context.Context, req *levyanv1.DestroyRequest) (*levyanv1.DestroyResponse, error) {
+	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasAt(), req.GetAt().AsTime(), payers.Payers.Destroy)
+	if err != nil {
+		return nil, err
+	}
+
+	return levyanv1.DestroyResponse_builder{Lifecycle: lifecycleOf(ws, said.Life), Late: said.Late}.Build(), nil
+}
+
+func (h Workspaces) GetLifecycle(ctx context.Context, req *levyanv1.GetLifecycleRequest) (*levyanv1.GetLifecycleResponse, error) {
+	product, err := h.product(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ws, err := ledger.Workspace(req.GetWorkspace())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	l, err := h.P.Life(ctx, product, ws)
+	if err != nil {
+		return nil, err
+	}
+
+	return levyanv1.GetLifecycleResponse_builder{Lifecycle: lifecycleOf(ws, l)}.Build(), nil
+}
+
+func (h Workspaces) say(ctx context.Context, workspace string, has bool, at time.Time, f func(payers.Payers, context.Context, pdid.Id, pdid.Id, time.Time) (payers.Said, error)) (pdid.Id, payers.Said, error) {
+	product, err := h.product(ctx)
+	if err != nil {
+		return pdid.Nil, payers.Said{}, err
+	}
+	ws, err := ledger.Workspace(workspace)
+	if err != nil {
+		return pdid.Nil, payers.Said{}, status.Error(codes.InvalidArgument, err.Error())
+	}
+	if !has {
+		// No moment is none, and never now: what is said late is said of
+		// when it happened, and a retry said of now would be another event.
+		return pdid.Nil, payers.Said{}, status.Error(codes.InvalidArgument, "at: when it happened, which the product's own record of it says")
+	}
+
+	said, err := f(h.P.On(h.S), ctx, product, ws, at)
+	return ws, said, err
+}
+
+// lifecycleOf is what became of a workspace, as the API says it.
+func lifecycleOf(ws pdid.Id, l rating.Life) *levyanv1.Lifecycle {
+	out := levyanv1.Lifecycle_builder{Workspace: ws.String()}.Build()
+	if !l.Closed.IsZero() {
+		out.SetClosedSince(timestamppb.New(l.Closed))
+	}
+	if !l.Destroyed.IsZero() {
+		out.SetDestroyed(timestamppb.New(l.Destroyed))
+	}
+
+	return out
 }
 
 // payer is who pays for a workspace, as the API says it, with the collection

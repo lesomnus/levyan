@@ -4,8 +4,9 @@
 // 	protoc        (unknown)
 // source: levyan/v1/workspace.proto
 
-// What a product says of its workspaces' payers: a workspace made, an
-// account gone from one, and an account asked to pay for one.
+// What a product says of its workspaces: a workspace made, an account gone
+// from one, an account asked to pay for one -- and a workspace closed,
+// restored and destroyed, which is when it is billed and when not.
 
 package levyanv1
 
@@ -612,6 +613,744 @@ func (b0 GetPayerResponse_builder) Build() *GetPayerResponse {
 	return m0
 }
 
+type CloseRequest struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_At        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=at"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CloseRequest) Reset() {
+	*x = CloseRequest{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseRequest) ProtoMessage() {}
+
+func (x *CloseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CloseRequest) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *CloseRequest) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_At
+	}
+	return nil
+}
+
+func (x *CloseRequest) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *CloseRequest) SetAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_At = v
+}
+
+func (x *CloseRequest) HasAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_At != nil
+}
+
+func (x *CloseRequest) ClearAt() {
+	x.xxx_hidden_At = nil
+}
+
+type CloseRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Workspace string
+	// When it was closed, as the product's own record of it says: required.
+	At *timestamppb.Timestamp
+}
+
+func (b0 CloseRequest_builder) Build() *CloseRequest {
+	m0 := &CloseRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_At = b.At
+	return m0
+}
+
+type CloseResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Lifecycle *Lifecycle             `protobuf:"bytes,1,opt,name=lifecycle"`
+	xxx_hidden_Late      bool                   `protobuf:"varint,2,opt,name=late"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CloseResponse) Reset() {
+	*x = CloseResponse{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseResponse) ProtoMessage() {}
+
+func (x *CloseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CloseResponse) GetLifecycle() *Lifecycle {
+	if x != nil {
+		return x.xxx_hidden_Lifecycle
+	}
+	return nil
+}
+
+func (x *CloseResponse) GetLate() bool {
+	if x != nil {
+		return x.xxx_hidden_Late
+	}
+	return false
+}
+
+func (x *CloseResponse) SetLifecycle(v *Lifecycle) {
+	x.xxx_hidden_Lifecycle = v
+}
+
+func (x *CloseResponse) SetLate(v bool) {
+	x.xxx_hidden_Late = v
+}
+
+func (x *CloseResponse) HasLifecycle() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Lifecycle != nil
+}
+
+func (x *CloseResponse) ClearLifecycle() {
+	x.xxx_hidden_Lifecycle = nil
+}
+
+type CloseResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Lifecycle *Lifecycle
+	// Whether what was said came late: it reaches into a period whose close
+	// had begun, so that what the period was billed is corrected on a later
+	// statement. False for what was said before, and changed nothing.
+	Late bool
+}
+
+func (b0 CloseResponse_builder) Build() *CloseResponse {
+	m0 := &CloseResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Lifecycle = b.Lifecycle
+	x.xxx_hidden_Late = b.Late
+	return m0
+}
+
+type RestoreRequest struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_At        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=at"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *RestoreRequest) Reset() {
+	*x = RestoreRequest{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreRequest) ProtoMessage() {}
+
+func (x *RestoreRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RestoreRequest) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *RestoreRequest) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_At
+	}
+	return nil
+}
+
+func (x *RestoreRequest) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *RestoreRequest) SetAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_At = v
+}
+
+func (x *RestoreRequest) HasAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_At != nil
+}
+
+func (x *RestoreRequest) ClearAt() {
+	x.xxx_hidden_At = nil
+}
+
+type RestoreRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Workspace string
+	// When it was opened again: required.
+	At *timestamppb.Timestamp
+}
+
+func (b0 RestoreRequest_builder) Build() *RestoreRequest {
+	m0 := &RestoreRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_At = b.At
+	return m0
+}
+
+type RestoreResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Lifecycle *Lifecycle             `protobuf:"bytes,1,opt,name=lifecycle"`
+	xxx_hidden_Late      bool                   `protobuf:"varint,2,opt,name=late"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *RestoreResponse) Reset() {
+	*x = RestoreResponse{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreResponse) ProtoMessage() {}
+
+func (x *RestoreResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RestoreResponse) GetLifecycle() *Lifecycle {
+	if x != nil {
+		return x.xxx_hidden_Lifecycle
+	}
+	return nil
+}
+
+func (x *RestoreResponse) GetLate() bool {
+	if x != nil {
+		return x.xxx_hidden_Late
+	}
+	return false
+}
+
+func (x *RestoreResponse) SetLifecycle(v *Lifecycle) {
+	x.xxx_hidden_Lifecycle = v
+}
+
+func (x *RestoreResponse) SetLate(v bool) {
+	x.xxx_hidden_Late = v
+}
+
+func (x *RestoreResponse) HasLifecycle() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Lifecycle != nil
+}
+
+func (x *RestoreResponse) ClearLifecycle() {
+	x.xxx_hidden_Lifecycle = nil
+}
+
+type RestoreResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Lifecycle *Lifecycle
+	// As `CloseResponse.late`.
+	Late bool
+}
+
+func (b0 RestoreResponse_builder) Build() *RestoreResponse {
+	m0 := &RestoreResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Lifecycle = b.Lifecycle
+	x.xxx_hidden_Late = b.Late
+	return m0
+}
+
+type DestroyRequest struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_At        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=at"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *DestroyRequest) Reset() {
+	*x = DestroyRequest{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DestroyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DestroyRequest) ProtoMessage() {}
+
+func (x *DestroyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DestroyRequest) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *DestroyRequest) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_At
+	}
+	return nil
+}
+
+func (x *DestroyRequest) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *DestroyRequest) SetAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_At = v
+}
+
+func (x *DestroyRequest) HasAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_At != nil
+}
+
+func (x *DestroyRequest) ClearAt() {
+	x.xxx_hidden_At = nil
+}
+
+type DestroyRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Workspace string
+	// When it was destroyed -- after its final reading was measured: required.
+	At *timestamppb.Timestamp
+}
+
+func (b0 DestroyRequest_builder) Build() *DestroyRequest {
+	m0 := &DestroyRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_At = b.At
+	return m0
+}
+
+type DestroyResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Lifecycle *Lifecycle             `protobuf:"bytes,1,opt,name=lifecycle"`
+	xxx_hidden_Late      bool                   `protobuf:"varint,2,opt,name=late"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *DestroyResponse) Reset() {
+	*x = DestroyResponse{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DestroyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DestroyResponse) ProtoMessage() {}
+
+func (x *DestroyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DestroyResponse) GetLifecycle() *Lifecycle {
+	if x != nil {
+		return x.xxx_hidden_Lifecycle
+	}
+	return nil
+}
+
+func (x *DestroyResponse) GetLate() bool {
+	if x != nil {
+		return x.xxx_hidden_Late
+	}
+	return false
+}
+
+func (x *DestroyResponse) SetLifecycle(v *Lifecycle) {
+	x.xxx_hidden_Lifecycle = v
+}
+
+func (x *DestroyResponse) SetLate(v bool) {
+	x.xxx_hidden_Late = v
+}
+
+func (x *DestroyResponse) HasLifecycle() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Lifecycle != nil
+}
+
+func (x *DestroyResponse) ClearLifecycle() {
+	x.xxx_hidden_Lifecycle = nil
+}
+
+type DestroyResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Lifecycle *Lifecycle
+	// As `CloseResponse.late`.
+	Late bool
+}
+
+func (b0 DestroyResponse_builder) Build() *DestroyResponse {
+	m0 := &DestroyResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Lifecycle = b.Lifecycle
+	x.xxx_hidden_Late = b.Late
+	return m0
+}
+
+type GetLifecycleRequest struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *GetLifecycleRequest) Reset() {
+	*x = GetLifecycleRequest{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLifecycleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLifecycleRequest) ProtoMessage() {}
+
+func (x *GetLifecycleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetLifecycleRequest) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *GetLifecycleRequest) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+type GetLifecycleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Workspace string
+}
+
+func (b0 GetLifecycleRequest_builder) Build() *GetLifecycleRequest {
+	m0 := &GetLifecycleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Workspace = b.Workspace
+	return m0
+}
+
+type GetLifecycleResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Lifecycle *Lifecycle             `protobuf:"bytes,1,opt,name=lifecycle"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *GetLifecycleResponse) Reset() {
+	*x = GetLifecycleResponse{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLifecycleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLifecycleResponse) ProtoMessage() {}
+
+func (x *GetLifecycleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetLifecycleResponse) GetLifecycle() *Lifecycle {
+	if x != nil {
+		return x.xxx_hidden_Lifecycle
+	}
+	return nil
+}
+
+func (x *GetLifecycleResponse) SetLifecycle(v *Lifecycle) {
+	x.xxx_hidden_Lifecycle = v
+}
+
+func (x *GetLifecycleResponse) HasLifecycle() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Lifecycle != nil
+}
+
+func (x *GetLifecycleResponse) ClearLifecycle() {
+	x.xxx_hidden_Lifecycle = nil
+}
+
+type GetLifecycleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Lifecycle *Lifecycle
+}
+
+func (b0 GetLifecycleResponse_builder) Build() *GetLifecycleResponse {
+	m0 := &GetLifecycleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Lifecycle = b.Lifecycle
+	return m0
+}
+
+// Lifecycle is what levyan has been told became of a workspace, all of it
+// read in the order of its moments. A workspace nothing was said of is open.
+type Lifecycle struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace   string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_ClosedSince *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=closed_since,json=closedSince"`
+	xxx_hidden_Destroyed   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=destroyed"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *Lifecycle) Reset() {
+	*x = Lifecycle{}
+	mi := &file_levyan_v1_workspace_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Lifecycle) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Lifecycle) ProtoMessage() {}
+
+func (x *Lifecycle) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_workspace_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Lifecycle) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *Lifecycle) GetClosedSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_ClosedSince
+	}
+	return nil
+}
+
+func (x *Lifecycle) GetDestroyed() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Destroyed
+	}
+	return nil
+}
+
+func (x *Lifecycle) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *Lifecycle) SetClosedSince(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ClosedSince = v
+}
+
+func (x *Lifecycle) SetDestroyed(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Destroyed = v
+}
+
+func (x *Lifecycle) HasClosedSince() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ClosedSince != nil
+}
+
+func (x *Lifecycle) HasDestroyed() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Destroyed != nil
+}
+
+func (x *Lifecycle) ClearClosedSince() {
+	x.xxx_hidden_ClosedSince = nil
+}
+
+func (x *Lifecycle) ClearDestroyed() {
+	x.xxx_hidden_Destroyed = nil
+}
+
+type Lifecycle_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Workspace string
+	// Since when it has been closed, and is billed for nothing; unset while it
+	// is open. A workspace destroyed while closed says the closure it was
+	// destroyed in.
+	ClosedSince *timestamppb.Timestamp
+	// When it was destroyed, for good; unset for one that was not.
+	Destroyed *timestamppb.Timestamp
+}
+
+func (b0 Lifecycle_builder) Build() *Lifecycle {
+	m0 := &Lifecycle{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_ClosedSince = b.ClosedSince
+	x.xxx_hidden_Destroyed = b.Destroyed
+	return m0
+}
+
 // Payer is who pays for a workspace.
 type Payer struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
@@ -628,7 +1367,7 @@ type Payer struct {
 
 func (x *Payer) Reset() {
 	*x = Payer{}
-	mi := &file_levyan_v1_workspace_proto_msgTypes[8]
+	mi := &file_levyan_v1_workspace_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -640,7 +1379,7 @@ func (x *Payer) String() string {
 func (*Payer) ProtoMessage() {}
 
 func (x *Payer) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_workspace_proto_msgTypes[8]
+	mi := &file_levyan_v1_workspace_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -806,7 +1545,8 @@ type Payer_builder struct {
 	Offer *Offer
 	// Since when it has had nobody paying for it, and from when it is
 	// restricted for that: `payers.grace` after. Unset while it has a payer,
-	// and for a workspace that never had one.
+	// for a workspace that never had one, and for one destroyed, which nobody
+	// pays for and nothing restricts.
 	PayerlessSince *timestamppb.Timestamp
 	RestrictedFrom *timestamppb.Timestamp
 	// Whether what the billing account it is paid for with now is billed can
@@ -856,7 +1596,33 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\x0fGetPayerRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\":\n" +
 	"\x10GetPayerResponse\x12&\n" +
-	"\x05payer\x18\x01 \x01(\v2\x10.levyan.v1.PayerR\x05payer\"\xde\x02\n" +
+	"\x05payer\x18\x01 \x01(\v2\x10.levyan.v1.PayerR\x05payer\"X\n" +
+	"\fCloseRequest\x12\x1c\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12*\n" +
+	"\x02at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"W\n" +
+	"\rCloseResponse\x122\n" +
+	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\x12\x12\n" +
+	"\x04late\x18\x02 \x01(\bR\x04late\"Z\n" +
+	"\x0eRestoreRequest\x12\x1c\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12*\n" +
+	"\x02at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"Y\n" +
+	"\x0fRestoreResponse\x122\n" +
+	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\x12\x12\n" +
+	"\x04late\x18\x02 \x01(\bR\x04late\"Z\n" +
+	"\x0eDestroyRequest\x12\x1c\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12*\n" +
+	"\x02at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"Y\n" +
+	"\x0fDestroyResponse\x122\n" +
+	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\x12\x12\n" +
+	"\x04late\x18\x02 \x01(\bR\x04late\"3\n" +
+	"\x13GetLifecycleRequest\x12\x1c\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\"J\n" +
+	"\x14GetLifecycleResponse\x122\n" +
+	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\"\xa2\x01\n" +
+	"\tLifecycle\x12\x1c\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12=\n" +
+	"\fclosed_since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vclosedSince\x128\n" +
+	"\tdestroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tdestroyed\"\xde\x02\n" +
 	"\x05Payer\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12)\n" +
 	"\acurrent\x18\x02 \x01(\v2\x0f.levyan.v1.LinkR\acurrent\x12#\n" +
@@ -866,14 +1632,18 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\x0frestricted_from\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\x125\n" +
 	"\n" +
 	"collection\x18\a \x01(\v2\x15.levyan.v1.CollectionR\n" +
-	"collection2\x8e\x02\n" +
+	"collection2\x9f\x04\n" +
 	"\x10WorkspaceService\x12=\n" +
 	"\x06Arrive\x12\x18.levyan.v1.ArriveRequest\x1a\x19.levyan.v1.ArriveResponse\x12:\n" +
 	"\x05Leave\x12\x17.levyan.v1.LeaveRequest\x1a\x18.levyan.v1.LeaveResponse\x12:\n" +
 	"\x05Offer\x12\x17.levyan.v1.OfferRequest\x1a\x18.levyan.v1.OfferResponse\x12C\n" +
-	"\bGetPayer\x12\x1a.levyan.v1.GetPayerRequest\x1a\x1b.levyan.v1.GetPayerResponseB8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
+	"\bGetPayer\x12\x1a.levyan.v1.GetPayerRequest\x1a\x1b.levyan.v1.GetPayerResponse\x12:\n" +
+	"\x05Close\x12\x17.levyan.v1.CloseRequest\x1a\x18.levyan.v1.CloseResponse\x12@\n" +
+	"\aRestore\x12\x19.levyan.v1.RestoreRequest\x1a\x1a.levyan.v1.RestoreResponse\x12@\n" +
+	"\aDestroy\x12\x19.levyan.v1.DestroyRequest\x1a\x1a.levyan.v1.DestroyResponse\x12O\n" +
+	"\fGetLifecycle\x12\x1e.levyan.v1.GetLifecycleRequest\x1a\x1f.levyan.v1.GetLifecycleResponseB8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
-var file_levyan_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_levyan_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_levyan_v1_workspace_proto_goTypes = []any{
 	(*ArriveRequest)(nil),         // 0: levyan.v1.ArriveRequest
 	(*ArriveResponse)(nil),        // 1: levyan.v1.ArriveResponse
@@ -883,37 +1653,63 @@ var file_levyan_v1_workspace_proto_goTypes = []any{
 	(*OfferResponse)(nil),         // 5: levyan.v1.OfferResponse
 	(*GetPayerRequest)(nil),       // 6: levyan.v1.GetPayerRequest
 	(*GetPayerResponse)(nil),      // 7: levyan.v1.GetPayerResponse
-	(*Payer)(nil),                 // 8: levyan.v1.Payer
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
-	(*Offer)(nil),                 // 10: levyan.v1.Offer
-	(*Link)(nil),                  // 11: levyan.v1.Link
-	(*Collection)(nil),            // 12: levyan.v1.Collection
+	(*CloseRequest)(nil),          // 8: levyan.v1.CloseRequest
+	(*CloseResponse)(nil),         // 9: levyan.v1.CloseResponse
+	(*RestoreRequest)(nil),        // 10: levyan.v1.RestoreRequest
+	(*RestoreResponse)(nil),       // 11: levyan.v1.RestoreResponse
+	(*DestroyRequest)(nil),        // 12: levyan.v1.DestroyRequest
+	(*DestroyResponse)(nil),       // 13: levyan.v1.DestroyResponse
+	(*GetLifecycleRequest)(nil),   // 14: levyan.v1.GetLifecycleRequest
+	(*GetLifecycleResponse)(nil),  // 15: levyan.v1.GetLifecycleResponse
+	(*Lifecycle)(nil),             // 16: levyan.v1.Lifecycle
+	(*Payer)(nil),                 // 17: levyan.v1.Payer
+	(*timestamppb.Timestamp)(nil), // 18: google.protobuf.Timestamp
+	(*Offer)(nil),                 // 19: levyan.v1.Offer
+	(*Link)(nil),                  // 20: levyan.v1.Link
+	(*Collection)(nil),            // 21: levyan.v1.Collection
 }
 var file_levyan_v1_workspace_proto_depIdxs = []int32{
-	9,  // 0: levyan.v1.ArriveRequest.created:type_name -> google.protobuf.Timestamp
-	8,  // 1: levyan.v1.ArriveResponse.payer:type_name -> levyan.v1.Payer
-	8,  // 2: levyan.v1.LeaveResponse.payer:type_name -> levyan.v1.Payer
-	10, // 3: levyan.v1.OfferResponse.offer:type_name -> levyan.v1.Offer
-	8,  // 4: levyan.v1.GetPayerResponse.payer:type_name -> levyan.v1.Payer
-	11, // 5: levyan.v1.Payer.current:type_name -> levyan.v1.Link
-	11, // 6: levyan.v1.Payer.next:type_name -> levyan.v1.Link
-	10, // 7: levyan.v1.Payer.offer:type_name -> levyan.v1.Offer
-	9,  // 8: levyan.v1.Payer.payerless_since:type_name -> google.protobuf.Timestamp
-	9,  // 9: levyan.v1.Payer.restricted_from:type_name -> google.protobuf.Timestamp
-	12, // 10: levyan.v1.Payer.collection:type_name -> levyan.v1.Collection
-	0,  // 11: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
-	2,  // 12: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest
-	4,  // 13: levyan.v1.WorkspaceService.Offer:input_type -> levyan.v1.OfferRequest
-	6,  // 14: levyan.v1.WorkspaceService.GetPayer:input_type -> levyan.v1.GetPayerRequest
-	1,  // 15: levyan.v1.WorkspaceService.Arrive:output_type -> levyan.v1.ArriveResponse
-	3,  // 16: levyan.v1.WorkspaceService.Leave:output_type -> levyan.v1.LeaveResponse
-	5,  // 17: levyan.v1.WorkspaceService.Offer:output_type -> levyan.v1.OfferResponse
-	7,  // 18: levyan.v1.WorkspaceService.GetPayer:output_type -> levyan.v1.GetPayerResponse
-	15, // [15:19] is the sub-list for method output_type
-	11, // [11:15] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	18, // 0: levyan.v1.ArriveRequest.created:type_name -> google.protobuf.Timestamp
+	17, // 1: levyan.v1.ArriveResponse.payer:type_name -> levyan.v1.Payer
+	17, // 2: levyan.v1.LeaveResponse.payer:type_name -> levyan.v1.Payer
+	19, // 3: levyan.v1.OfferResponse.offer:type_name -> levyan.v1.Offer
+	17, // 4: levyan.v1.GetPayerResponse.payer:type_name -> levyan.v1.Payer
+	18, // 5: levyan.v1.CloseRequest.at:type_name -> google.protobuf.Timestamp
+	16, // 6: levyan.v1.CloseResponse.lifecycle:type_name -> levyan.v1.Lifecycle
+	18, // 7: levyan.v1.RestoreRequest.at:type_name -> google.protobuf.Timestamp
+	16, // 8: levyan.v1.RestoreResponse.lifecycle:type_name -> levyan.v1.Lifecycle
+	18, // 9: levyan.v1.DestroyRequest.at:type_name -> google.protobuf.Timestamp
+	16, // 10: levyan.v1.DestroyResponse.lifecycle:type_name -> levyan.v1.Lifecycle
+	16, // 11: levyan.v1.GetLifecycleResponse.lifecycle:type_name -> levyan.v1.Lifecycle
+	18, // 12: levyan.v1.Lifecycle.closed_since:type_name -> google.protobuf.Timestamp
+	18, // 13: levyan.v1.Lifecycle.destroyed:type_name -> google.protobuf.Timestamp
+	20, // 14: levyan.v1.Payer.current:type_name -> levyan.v1.Link
+	20, // 15: levyan.v1.Payer.next:type_name -> levyan.v1.Link
+	19, // 16: levyan.v1.Payer.offer:type_name -> levyan.v1.Offer
+	18, // 17: levyan.v1.Payer.payerless_since:type_name -> google.protobuf.Timestamp
+	18, // 18: levyan.v1.Payer.restricted_from:type_name -> google.protobuf.Timestamp
+	21, // 19: levyan.v1.Payer.collection:type_name -> levyan.v1.Collection
+	0,  // 20: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
+	2,  // 21: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest
+	4,  // 22: levyan.v1.WorkspaceService.Offer:input_type -> levyan.v1.OfferRequest
+	6,  // 23: levyan.v1.WorkspaceService.GetPayer:input_type -> levyan.v1.GetPayerRequest
+	8,  // 24: levyan.v1.WorkspaceService.Close:input_type -> levyan.v1.CloseRequest
+	10, // 25: levyan.v1.WorkspaceService.Restore:input_type -> levyan.v1.RestoreRequest
+	12, // 26: levyan.v1.WorkspaceService.Destroy:input_type -> levyan.v1.DestroyRequest
+	14, // 27: levyan.v1.WorkspaceService.GetLifecycle:input_type -> levyan.v1.GetLifecycleRequest
+	1,  // 28: levyan.v1.WorkspaceService.Arrive:output_type -> levyan.v1.ArriveResponse
+	3,  // 29: levyan.v1.WorkspaceService.Leave:output_type -> levyan.v1.LeaveResponse
+	5,  // 30: levyan.v1.WorkspaceService.Offer:output_type -> levyan.v1.OfferResponse
+	7,  // 31: levyan.v1.WorkspaceService.GetPayer:output_type -> levyan.v1.GetPayerResponse
+	9,  // 32: levyan.v1.WorkspaceService.Close:output_type -> levyan.v1.CloseResponse
+	11, // 33: levyan.v1.WorkspaceService.Restore:output_type -> levyan.v1.RestoreResponse
+	13, // 34: levyan.v1.WorkspaceService.Destroy:output_type -> levyan.v1.DestroyResponse
+	15, // 35: levyan.v1.WorkspaceService.GetLifecycle:output_type -> levyan.v1.GetLifecycleResponse
+	28, // [28:36] is the sub-list for method output_type
+	20, // [20:28] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_workspace_proto_init() }
@@ -928,7 +1724,7 @@ func file_levyan_v1_workspace_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_v1_workspace_proto_rawDesc), len(file_levyan_v1_workspace_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

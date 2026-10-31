@@ -1,0 +1,145 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// WorkspaceEvent is what a product said became of one of its workspaces at a
+// moment -- closed, restored, destroyed (`levyan.v1.WorkspaceService`, #14)
+// -- which is when the workspace is billed and when it is not: from a close
+// until the restore after it, and from its destruction on, for good, it is no
+// customer, and what it holds then is billed to nobody.
+//
+// A product's word on a workspace is kept once of each moment, and never
+// changed: every field is immutable and there is no Patch and no Erase. The
+// same said again is the one kept, and another kind said of a moment kept is
+// refused rather than either chosen, as a reading of another value is. What
+// the workspace was at any moment is read off all of them in the order of
+// their moments (`rating.Lived`), never in the order they came: one that
+// comes late takes its place among the others, so an older one never undoes
+// what a newer one says.
+//
+// Written through the servers, as the product that said it, so the trail says
+// which key said what; and under the workspace's lock, as the ledger is
+// (`ledger.Lock`), so that whether it came after a period's close began is a
+// question with one answer.
+message WorkspaceEvent {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product whose workspace it is.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it befell: the set the ledger is divided by.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // What became of it.
+  WorkspaceEventKind kind = 8 [(orm.field) = {immutable: true}];
+
+  // When, in UTC, to the microsecond, as the product says it happened: never
+  // ahead of when it came, nor before the workspace arrived.
+  google.protobuf.Timestamp happened_at = 9 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // The end of the last of the product's periods whose close had begun when
+  // it came, for one that happened before that end: what was billed for the
+  // periods from its moment through there is corrected on a later statement
+  // (#6), as a late reading's is. Unset for one that came before any close
+  // it reaches. Said as it is written, under the workspace's lock, so that a
+  // close and an event never both take the other to have come first.
+  google.protobuf.Timestamp late_through = 10 [(orm.field) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was kept, which is when it came.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  option (orm.message) = {
+    rpc: {
+      crud: true
+      patch: {disabled: true}
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // What an event is -- a workspace and a moment -- and every event of
+        // a workspace, which is read whole whenever what it was is asked.
+        name: "happened"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "happened_at"
+            number: 9
+          }
+        ]
+        unique: true
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 44
+    tenanted: {
+      via: "tenant"
+      agrees: ["workspace.tenant"]
+    }
+  };
+}
+
+// WorkspaceEventKind is what became of a workspace.
+enum WorkspaceEventKind {
+  WORKSPACE_EVENT_KIND_UNSPECIFIED = 0;
+
+  // Closed: no customer from then until it is restored. What it holds is
+  // still measured, and kept, and billed for none of that stretch.
+  WORKSPACE_EVENT_KIND_CLOSED = 1;
+
+  // Opened again: billed from then as it was before it was closed.
+  WORKSPACE_EVENT_KIND_RESTORED = 2;
+
+  // Destroyed, for good: billed for nothing from then on, nothing measured
+  // of it from then is kept, and nothing said of it after changes anything.
+  WORKSPACE_EVENT_KIND_DESTROYED = 3;
+}

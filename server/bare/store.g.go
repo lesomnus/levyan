@@ -41,6 +41,7 @@ import (
 	subscription "github.com/lesomnus/levyan/internal/ent/subscription"
 	tenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	workspace "github.com/lesomnus/levyan/internal/ent/workspace"
+	workspaceevent "github.com/lesomnus/levyan/internal/ent/workspaceevent"
 	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	dialect "github.com/protobuf-orm/ent/dialect"
 	entpatch "github.com/protobuf-orm/protoc-gen-orm-ent/runtime/entpatch"
@@ -423,6 +424,7 @@ type Scope interface {
 	PriceScope(ctx context.Context) (predicate.Price, error)
 	ReadingScope(ctx context.Context) (predicate.Reading, error)
 	ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error)
+	WorkspaceEventScope(ctx context.Context) (predicate.WorkspaceEvent, error)
 }
 
 // Unscoped is a [Scope] that narrows nothing. Embed it and write out the
@@ -531,6 +533,9 @@ func (Unscoped) ReadingScope(_ context.Context) (predicate.Reading, error) {
 	return nil, nil
 }
 func (Unscoped) ServiceKeyScope(_ context.Context) (predicate.ServiceKey, error) {
+	return nil, nil
+}
+func (Unscoped) WorkspaceEventScope(_ context.Context) (predicate.WorkspaceEvent, error) {
 	return nil, nil
 }
 
@@ -1193,6 +1198,26 @@ func (ss Scopes) ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, err
 	return servicekey.And(ps...), nil
 }
 
+func (ss Scopes) WorkspaceEventScope(ctx context.Context) (predicate.WorkspaceEvent, error) {
+	ps := make([]predicate.WorkspaceEvent, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.WorkspaceEventScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return workspaceevent.And(ps...), nil
+}
+
 // Minter decides the key a row is stored under. It is asked once per Add,
 // for an entity whose key is a uuid, and only for those.
 //
@@ -1328,7 +1353,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. BillingAccount, Checkout, Credit, CreditNote, Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement, Subscription and Workspace free the names they held when a row
+// check. BillingAccount, Checkout, Credit, CreditNote, Departure, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement, Subscription, Workspace and WorkspaceEvent free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -1417,4 +1442,7 @@ func (s Server) Price() levyan.PriceServiceServer     { return PriceServiceServe
 func (s Server) Reading() levyan.ReadingServiceServer { return ReadingServiceServer{Store: s.Store} }
 func (s Server) ServiceKey() levyan.ServiceKeyServiceServer {
 	return ServiceKeyServiceServer{Store: s.Store}
+}
+func (s Server) WorkspaceEvent() levyan.WorkspaceEventServiceServer {
+	return WorkspaceEventServiceServer{Store: s.Store}
 }

@@ -140,12 +140,14 @@ func (r Rater) Since(ctx context.Context, product, ws uuid.UUID) (time.Time, boo
 	return at, ok, nil
 }
 
-// Usage is what workspace `ws` held or did of meter `m` over `p`. `until`,
-// when it is set, carries a stock's latest reading to it -- what an estimate
-// of a period not yet over takes the rest of it to hold.
-func (r Rater) Usage(ctx context.Context, product, ws uuid.UUID, m *ent.Meter, p rating.Period, until time.Time) (rating.Usage, error) {
+// Usage is what workspace `ws` held or did of meter `m` over `p` while it was
+// a customer: the stretches `away` -- closed, and from its destruction on --
+// taken out (#14). `until`, when it is set, carries a stock's latest reading
+// to it -- what an estimate of a period not yet over takes the rest of it to
+// hold -- which a stretch away is taken out of as well.
+func (r Rater) Usage(ctx context.Context, product, ws uuid.UUID, m *ent.Meter, p rating.Period, until time.Time, away []rating.Stretch) (rating.Usage, error) {
 	if m.Kind == int32(levyan.MeterKind_METER_KIND_FLOW) {
-		n, err := r.counted(ctx, ws, m, p)
+		n, err := r.counted(ctx, ws, m, p, away)
 		if err != nil {
 			return rating.Usage{}, err
 		}
@@ -173,18 +175,20 @@ func (r Rater) Usage(ctx context.Context, product, ws uuid.UUID, m *ent.Meter, p
 	for _, v := range vs {
 		u := usage.Reading{At: ledger.Moment(v.MeasuredAt), Value: v.Value}
 		all = append(all, u)
-		if !u.At.Before(p.Start) {
+		if !u.At.Before(p.Start) && !usage.In(u.At, away) {
 			in = append(in, u)
 		}
 	}
 
-	return rating.Usage{Held: usage.Profile(all, p.Start, p.End, until), Readings: in}, nil
+	return rating.Usage{Held: usage.Cut(usage.Profile(all, p.Start, p.End, until), away), Readings: in}, nil
 }
 
-// counted is what workspace `ws`'s series of flow `m` counted over `p`: the
-// points counted in it, and of each start among them the most it had counted
-// before it, which is what its first point in the period counts from.
-func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating.Period) (int64, error) {
+// counted is what workspace `ws`'s series of flow `m` counted over `p`, but
+// for the stretches `away`: the points counted in it, and of each start among
+// them the most it had counted before it, which is what its first point in
+// the period counts from -- each increase counted where its point is, and
+// nothing of one in a stretch away.
+func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating.Period, away []rating.Stretch) (int64, error) {
 	ss, err := r.Db.Series.Query().Where(entseries.WorkspaceId(ws), entseries.MeterId(m.Id)).Ids(ctx)
 	if err != nil || len(ss) == 0 {
 		return 0, err
@@ -232,14 +236,16 @@ func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating
 
 	var total int64
 	for _, ps := range by {
-		n, err := usage.Increase(ps, p.Start, p.End)
-		if err != nil {
-			return 0, err
+		for _, s := range usage.Open(p.Start, p.End, away) {
+			n, err := usage.Increase(ps, s.From, s.To)
+			if err != nil {
+				return 0, err
+			}
+			if total > total+n {
+				return 0, usage.ErrTooMuch
+			}
+			total += n
 		}
-		if total > total+n {
-			return 0, usage.ErrTooMuch
-		}
-		total += n
 	}
 
 	return total, nil
@@ -254,10 +260,14 @@ func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p ratin
 	if err != nil || !ok {
 		return nil, err
 	}
+	life, err := Life(ctx, r.Db, product, ws)
+	if err != nil {
+		return nil, err
+	}
 
 	out := []rating.Line{}
 	for _, m := range b.Meters {
-		u, err := r.Usage(ctx, product, ws, m, p, until)
+		u, err := r.Usage(ctx, product, ws, m, p, until, life.Away)
 		if err != nil {
 			return nil, err
 		}
@@ -272,7 +282,7 @@ func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p ratin
 		case t.FirstUnit:
 			book = fromFirst(book)
 		}
-		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, since)
+		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, rating.Customer{Since: since, Away: life.Away})
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", m.Key, err)
 		}
@@ -427,7 +437,9 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 
 // marked is which of `periods` a late row of workspace `ws` speaks for: a
 // reading measured in one or within a reading's hold before it, a point
-// counted in one or whose next point is.
+// counted in one or whose next point is, and an event of it -- closed,
+// restored, destroyed -- that came after the periods from its moment had
+// begun to close (#14).
 func (r Rater) marked(ctx context.Context, product, ws uuid.UUID, periods []*ent.Period) (map[uuid.UUID]bool, error) {
 	out := map[uuid.UUID]bool{}
 	reach := func(from, to time.Time) {
@@ -466,6 +478,10 @@ func (r Rater) marked(ctx context.Context, product, ws uuid.UUID, periods []*ent
 		case !ent.IsNotFound(err):
 			return nil, err
 		}
+	}
+
+	if err := r.lateFor(ctx, product, ws, periods, out); err != nil {
+		return nil, err
 	}
 
 	return out, nil

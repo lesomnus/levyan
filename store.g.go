@@ -58,6 +58,7 @@ type Server interface {
 	Price() PriceServiceServer
 	Reading() ReadingServiceServer
 	ServiceKey() ServiceKeyServiceServer
+	WorkspaceEvent() WorkspaceEventServiceServer
 }
 
 // RegisterServer registers every service of `s` with `g`.
@@ -97,6 +98,7 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterPriceServiceServer(g, s.Price())
 	RegisterReadingServiceServer(g, s.Reading())
 	RegisterServiceKeyServiceServer(g, s.ServiceKey())
+	RegisterWorkspaceEventServiceServer(g, s.WorkspaceEvent())
 }
 
 type UnimplementedServer struct {
@@ -132,6 +134,7 @@ type UnimplementedServer struct {
 	PriceServer          PriceServiceServer
 	ReadingServer        ReadingServiceServer
 	ServiceKeyServer     ServiceKeyServiceServer
+	WorkspaceEventServer WorkspaceEventServiceServer
 }
 
 func (UnimplementedServer) BillingAccount() BillingAccountServiceServer {
@@ -192,6 +195,9 @@ func (UnimplementedServer) Reading() ReadingServiceServer { return Unimplemented
 func (UnimplementedServer) ServiceKey() ServiceKeyServiceServer {
 	return UnimplementedServiceKeyServiceServer{}
 }
+func (UnimplementedServer) WorkspaceEvent() WorkspaceEventServiceServer {
+	return UnimplementedWorkspaceEventServiceServer{}
+}
 
 type StaticServer struct {
 	BillingAccountServer BillingAccountServiceServer
@@ -226,6 +232,7 @@ type StaticServer struct {
 	PriceServer          PriceServiceServer
 	ReadingServer        ReadingServiceServer
 	ServiceKeyServer     ServiceKeyServiceServer
+	WorkspaceEventServer WorkspaceEventServiceServer
 }
 
 func (s StaticServer) BillingAccount() BillingAccountServiceServer { return s.BillingAccountServer }
@@ -260,6 +267,7 @@ func (s StaticServer) Point() PointServiceServer                   { return s.Po
 func (s StaticServer) Price() PriceServiceServer                   { return s.PriceServer }
 func (s StaticServer) Reading() ReadingServiceServer               { return s.ReadingServer }
 func (s StaticServer) ServiceKey() ServiceKeyServiceServer         { return s.ServiceKeyServer }
+func (s StaticServer) WorkspaceEvent() WorkspaceEventServiceServer { return s.WorkspaceEventServer }
 
 type Client interface {
 	BillingAccount() BillingAccountServiceClient
@@ -294,6 +302,7 @@ type Client interface {
 	Price() PriceServiceClient
 	Reading() ReadingServiceClient
 	ServiceKey() ServiceKeyServiceClient
+	WorkspaceEvent() WorkspaceEventServiceClient
 }
 
 func NewClient(c *grpc.ClientConn) Client {
@@ -330,6 +339,7 @@ func NewClient(c *grpc.ClientConn) Client {
 		_Price:          NewPriceServiceClient(c),
 		_Reading:        NewReadingServiceClient(c),
 		_ServiceKey:     NewServiceKeyServiceClient(c),
+		_WorkspaceEvent: NewWorkspaceEventServiceClient(c),
 	}
 }
 
@@ -366,6 +376,7 @@ type client struct {
 	_Price          PriceServiceClient
 	_Reading        ReadingServiceClient
 	_ServiceKey     ServiceKeyServiceClient
+	_WorkspaceEvent WorkspaceEventServiceClient
 }
 
 func (c *client) BillingAccount() BillingAccountServiceClient { return c._BillingAccount }
@@ -400,6 +411,7 @@ func (c *client) Point() PointServiceClient                   { return c._Point 
 func (c *client) Price() PriceServiceClient                   { return c._Price }
 func (c *client) Reading() ReadingServiceClient               { return c._Reading }
 func (c *client) ServiceKey() ServiceKeyServiceClient         { return c._ServiceKey }
+func (c *client) WorkspaceEvent() WorkspaceEventServiceClient { return c._WorkspaceEvent }
 
 // Middleware is a server that delegates to another server.
 type Middleware interface {

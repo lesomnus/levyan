@@ -540,3 +540,38 @@ func TestARenewalAndAnEndAtOnceAreTwoVersions(t *testing.T) {
 		x.False(r.Renews, "and it is ended")
 	}
 }
+
+// What was given to a workspace that is destroyed goes with it (#14): a grant
+// that renews is ended rather than renewed when it comes due, one with an end
+// of its own ends then, and nothing more is given.
+func TestAGrantOfADestroyedWorkspaceIsNotRenewed(t *testing.T) {
+	w, p, ws := world(t)
+	x := pdtest.NewX(t)
+	ctx := context.Background()
+
+	renews, err := give(w, p, ws, "loft.export", entitle.On)
+	x.NoError(err)
+	fixed, err := give(w, p, ws, "loft.seats", entitle.Limited(3), func(g *grants.Give) { g.Until = t0.Add(30 * day) })
+	x.NoError(err)
+
+	product := pdid.Id(p.GetId())
+	_, err = w.S.Payers.Arrive(ctx, product, ws, levyantest.Account(), t0)
+	x.NoError(err)
+	w.At(t0.Add(day))
+	_, err = w.S.Payers.Destroy(ctx, product, ws, t0.Add(day))
+	x.NoError(err)
+
+	_, err = give(w, p, ws, "loft.robots", entitle.Unlimited)
+	x.Equal(codes.FailedPrecondition, status.Code(err), "nothing is given to it")
+
+	due := t0.Add(week/2 + time.Hour)
+	w.At(due)
+	n, err := w.S.Grants.Renew(ctx)
+	x.NoError(err)
+	x.Zero(n, "nothing renewed")
+	r := row(t, w, renews.GetId())
+	x.False(r.Renews)
+	x.Equal(due, r.ValidUntil.UTC(), "ended when it came due")
+	x.Equal(uint64(2), r.Version)
+	x.Equal(uint64(1), row(t, w, fixed.GetId()).Version, "an end of its own, which it keeps")
+}

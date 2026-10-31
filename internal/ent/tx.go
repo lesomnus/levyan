@@ -76,6 +76,8 @@ type Tx struct {
 	Tenant *TenantClient
 	// Workspace is the client for interacting with the Workspace builders.
 	Workspace *WorkspaceClient
+	// WorkspaceEvent is the client for interacting with the WorkspaceEvent builders.
+	WorkspaceEvent *WorkspaceEventClient
 
 	// lazily loaded.
 	client     *Client
@@ -239,6 +241,7 @@ func (tx *Tx) init() {
 	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.Workspace = NewWorkspaceClient(tx.config)
+	tx.WorkspaceEvent = NewWorkspaceEventClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

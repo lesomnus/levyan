@@ -175,6 +175,10 @@ func (l Ledger) Count(ctx context.Context, product pdid.Id, ps []Point) ([]Resul
 		if err != nil {
 			return err
 		}
+		destroyed, err := Destroyed(ctx, db, product.Uuid(), ids...)
+		if err != nil {
+			return err
+		}
 
 		type moment struct {
 			run run
@@ -220,6 +224,14 @@ func (l Ledger) Count(ctx context.Context, product pdid.Id, ps []Point) ([]Resul
 					continue
 				}
 				late = res.Late
+			}
+
+			// One that would be kept, of a moment its workspace had been
+			// destroyed by, is not: what was kept of it before is answered
+			// as it was, above.
+			if d, ok := destroyed[wss[v.ws]]; ok && !v.at.Before(d) {
+				out[v.i] = gone(v.meter.Key, v.ws, d)
+				continue
 			}
 
 			sent[m] = v.p.Value

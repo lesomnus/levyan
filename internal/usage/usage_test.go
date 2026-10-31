@@ -118,3 +118,40 @@ func TestWhatAStretchHeld(t *testing.T) {
 
 	require.Equal(t, big.NewRat(1, 4), usage.Share(at(0), at(6), at(0), at(24)))
 }
+
+func stretch(from, to int) usage.Stretch { return usage.Stretch{From: at(from), To: at(to)} }
+
+// What of a stretch a workspace was a customer is what is in none of the
+// stretches it was away, which may come in any order and overlap; and what
+// it held is cut to that, the time it was away taken out (#14).
+func TestTheTimeAwayIsTakenOut(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		from, to int
+		away     []usage.Stretch
+		want     []usage.Stretch
+	}{
+		{"never away is all of it", 0, 24, nil, []usage.Stretch{stretch(0, 24)}},
+		{"away within it", 0, 24, []usage.Stretch{stretch(6, 12)}, []usage.Stretch{stretch(0, 6), stretch(12, 24)}},
+		{"away from before it", 0, 24, []usage.Stretch{stretch(-6, 12)}, []usage.Stretch{stretch(12, 24)}},
+		{"away past it", 0, 24, []usage.Stretch{stretch(12, 48)}, []usage.Stretch{stretch(0, 12)}},
+		{"away all of it", 0, 24, []usage.Stretch{stretch(-1, 25)}, []usage.Stretch{}},
+		{"in any order, overlapping", 0, 24, []usage.Stretch{stretch(18, 20), stretch(4, 8), stretch(6, 10)}, []usage.Stretch{stretch(0, 4), stretch(10, 18), stretch(20, 24)}},
+		{"away outside it is nothing", 0, 24, []usage.Stretch{stretch(-10, -5), stretch(30, 40)}, []usage.Stretch{stretch(0, 24)}},
+		{"away for no time is nothing", 0, 24, []usage.Stretch{stretch(6, 6)}, []usage.Stretch{stretch(0, 24)}},
+		{"no stretch is nothing", 24, 24, nil, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, usage.Open(at(tc.from), at(tc.to), tc.away))
+		})
+	}
+
+	away := []usage.Stretch{stretch(6, 12)}
+	require.Equal(t, []usage.Held{held(0, 6, 10), held(12, 18, 10), held(20, 24, 7)},
+		usage.Cut([]usage.Held{held(0, 18, 10), held(20, 24, 7)}, away))
+	require.Equal(t, []usage.Held{held(0, 24, 3)}, usage.Cut([]usage.Held{held(0, 24, 3)}, nil))
+
+	require.True(t, usage.In(at(6), away), "its first moment is in it")
+	require.False(t, usage.In(at(12), away), "its end is not")
+	require.Equal(t, big.NewRat(int64(18*time.Hour/time.Microsecond), 1), usage.Length(usage.Open(at(0), at(24), away)))
+}

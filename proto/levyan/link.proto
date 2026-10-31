@@ -22,9 +22,10 @@ option go_package = "github.com/lesomnus/levyan";
 // payer accepting, the payer using another billing account, the payer
 // stopping -- takes effect at the end of the period it is made in, so that a
 // period has one payer and is billed on one channel; only an account leaving
-// the workspace, or roster saying it is gone, ends a link before then. A
-// workspace whose links have all ended has no payer, and is restricted once
-// that has lasted `payers.grace` (`server/payers`).
+// the workspace, roster saying it is gone, or the workspace destroyed ends a
+// link before then. A workspace whose links have all ended has no payer, and
+// is restricted once that has lasted `payers.grace` (`server/payers`) -- but
+// for one destroyed, which is nobody's to pay for and nothing to restrict.
 //
 // A link is never changed but for its end, which is said once.
 message Link {
@@ -189,4 +190,8 @@ enum LinkEnded {
   // period, unless roster takes it back before then.
   LINK_ENDED_SUSPENDED = 4;
   LINK_ENDED_ERASED = 5;
+
+  // The workspace was destroyed, as the product says: when it was, and for
+  // good (#14).
+  LINK_ENDED_DESTROYED = 6;
 }

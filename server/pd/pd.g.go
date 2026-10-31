@@ -50,6 +50,7 @@ import (
 	entSubscription "github.com/lesomnus/levyan/internal/ent/subscription"
 	entTenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	entWorkspace "github.com/lesomnus/levyan/internal/ent/workspace"
+	entWorkspaceEvent "github.com/lesomnus/levyan/internal/ent/workspaceevent"
 	bare "github.com/lesomnus/levyan/server/bare"
 	log "github.com/lesomnus/otx/log"
 	access "github.com/lesomnus/payday/access"
@@ -152,6 +153,7 @@ const (
 	SubscriptionDomain   pdid.Domain = 41  // "subscription"
 	TenantDomain         pdid.Domain = 1   // "tenant"
 	WorkspaceDomain      pdid.Domain = 12  // "workspace"
+	WorkspaceEventDomain pdid.Domain = 44  // "workspace-event"
 )
 
 func init() {
@@ -187,6 +189,7 @@ func init() {
 	pdid.Register("levyan.Subscription", SubscriptionDomain, "subscription")
 	pdid.Register("levyan.Tenant", TenantDomain, "tenant")
 	pdid.Register("levyan.Workspace", WorkspaceDomain, "workspace")
+	pdid.Register("levyan.WorkspaceEvent", WorkspaceEventDomain, "workspace-event")
 
 	pdid.RegisterTenant(TenantDomain)
 }
@@ -226,6 +229,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.Subscription":   SubscriptionDomain,
 	"levyan.Tenant":         TenantDomain,
 	"levyan.Workspace":      WorkspaceDomain,
+	"levyan.WorkspaceEvent": WorkspaceEventDomain,
 }
 
 // IndexRenames are the indexes this schema names, by what an earlier build
@@ -312,6 +316,8 @@ var IndexRenames = []rename.Index{
 	{Table: "tenant", From: "tenant_date_created_id", To: "tenant_page"},
 	{Table: "workspace", From: "workspace_tenant_id_date_created_id", To: "workspace_page"},
 	{Table: "workspace", From: "workspace_key_tenant_id", To: "workspace_keyed"},
+	{Table: "workspaceevent", From: "workspaceevent_tenant_id_date_created_id", To: "workspaceevent_page"},
+	{Table: "workspaceevent", From: "workspaceevent_tenant_id_workspace_id_happened_at", To: "workspaceevent_happened"},
 }
 
 // Minter answers with the [bare.Minter] that gives every new row an
@@ -893,6 +899,24 @@ func (wall) WorkspaceScope(ctx context.Context) (predicate.Workspace, error) {
 	return entWorkspace.TenantIdIn(vs...), nil
 }
 
+// WorkspaceEventScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) WorkspaceEventScope(ctx context.Context) (predicate.WorkspaceEvent, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.WorkspaceEvent == nil {
+			return nothing[predicate.WorkspaceEvent](), nil
+		}
+
+		return r.WorkspaceEvent(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entWorkspaceEvent.TenantIdIn(vs...), nil
+}
+
 // Sets is which Workspaces a caller may see.
 //
 // `all` is how "every one of them" is said, and it is a second return
@@ -1204,6 +1228,24 @@ func (x grouped) WorkspaceScope(ctx context.Context) (predicate.Workspace, error
 	}
 
 	return entWorkspace.IdIn(vs...), nil
+}
+
+// WorkspaceEventScope: in the Workspace its "workspace" names.
+func (x grouped) WorkspaceEventScope(ctx context.Context) (predicate.WorkspaceEvent, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.WorkspaceEvent == nil {
+			return nothing[predicate.WorkspaceEvent](), nil
+		}
+
+		return r.WorkspaceEvent(ctx, a)
+	}
+
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entWorkspaceEvent.WorkspaceIdIn(vs...), nil
 }
 
 // Sink is the server the stack is built on: the generated CRUD servers,
@@ -7775,6 +7817,121 @@ func filterWorkspace(f *levyan.WorkspaceFilter) (predicate.Workspace, error) {
 	return entWorkspace.And(ps...), nil
 }
 
+type sinkWorkspaceEvent struct {
+	levyan.WorkspaceEventServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) WorkspaceEvent() levyan.WorkspaceEventServiceServer {
+	v := sinkWorkspaceEvent{s.Server.WorkspaceEvent(), s.Server.Store, s.w, s.namer, s.joined}
+	v.WorkspaceEventServiceServer = bare.WorkspaceEventWithAddRule(v.WorkspaceEventServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of WorkspaceEvent
+// writes: it refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.WorkspaceEvent].
+func (s sinkWorkspaceEvent) admit(ctx context.Context, req *levyan.WorkspaceEventAddRequest) (*levyan.WorkspaceEventAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkWorkspaceEvent) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkWorkspaceEvent) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkWorkspaceEvent) tenancy(ctx context.Context, req *levyan.WorkspaceEventAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
 // pdAfter reads a cursor into the values it carries, refusing one of another
 // order, or of this one read the other way.
 func pdAfter(v string, tag string, into ...any) error {
@@ -9078,6 +9235,65 @@ func (s gateWorkspace) admit(ctx context.Context, req *levyan.WorkspaceAddReques
 	return req, nil
 }
 
+type gateWorkspaceEvent struct {
+	Gate
+	levyan.WorkspaceEventServiceServer
+}
+
+func (s Gate) WorkspaceEvent() levyan.WorkspaceEventServiceServer {
+	v := gateWorkspaceEvent{s, s.Next().WorkspaceEvent()}
+	v.WorkspaceEventServiceServer = bare.WorkspaceEventWithAddRule(v.WorkspaceEventServiceServer, v.admit)
+	return accountsWorkspaceEvent{v}
+}
+
+// admit refuses a WorkspaceEvent put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.WorkspaceEvent].
+func (s gateWorkspaceEvent) admit(ctx context.Context, req *levyan.WorkspaceEventAddRequest) (*levyan.WorkspaceEventAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 func (s Gate) BillingAccount() levyan.BillingAccountServiceServer {
 	return accountsBillingAccount{s.Next().BillingAccount()}
 }
@@ -10212,6 +10428,29 @@ func (s accountsServiceKey) List(ctx context.Context, req *levyan.ServiceKeyList
 	return s.ServiceKeyServiceServer.List(ctx, req)
 }
 
+// accountsWorkspaceEvent is WorkspaceEventService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsWorkspaceEvent struct {
+	levyan.WorkspaceEventServiceServer
+}
+
+func (s accountsWorkspaceEvent) Add(ctx context.Context, req *levyan.WorkspaceEventAddRequest) (*levyan.WorkspaceEvent, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceEventService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceEventServiceServer.Add(ctx, req)
+}
+
+func (s accountsWorkspaceEvent) Get(ctx context.Context, req *levyan.WorkspaceEventGetRequest) (*levyan.WorkspaceEvent, error) {
+	if err := gate.AsAccount(ctx, levyan.WorkspaceEventService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.WorkspaceEventServiceServer.Get(ctx, req)
+}
+
 // Audit is the layer that refuses a trail row written by hand.
 //
 // The Rpcs exist because the trail is an entity like any other and a test is
@@ -10538,6 +10777,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedTenant.md, describedTenant.secret, describedTenant.personal
 	case WorkspaceDomain:
 		return describedWorkspace.md, describedWorkspace.secret, describedWorkspace.personal
+	case WorkspaceEventDomain:
+		return describedWorkspaceEvent.md, describedWorkspaceEvent.secret, describedWorkspaceEvent.personal
 	}
 
 	return nil, nil, nil
@@ -10659,6 +10900,9 @@ var (
 	describedWorkspace = describe((*levyan.Workspace)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedWorkspaceEvent = describe((*levyan.WorkspaceEvent)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{})
 )
 
 // hidden is `p` without the entries the schema said are never answered with,
@@ -10705,7 +10949,8 @@ func added(by string) bool {
 		levyan.StatementService_Add_FullMethodName,
 		levyan.SubscriptionService_Add_FullMethodName,
 		levyan.TenantService_Add_FullMethodName,
-		levyan.WorkspaceService_Add_FullMethodName:
+		levyan.WorkspaceService_Add_FullMethodName,
+		levyan.WorkspaceEventService_Add_FullMethodName:
 		return true
 	}
 
@@ -11304,6 +11549,33 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 
 		return k, b, nil
 
+	case WorkspaceEventDomain:
+		row, ok := image.(*levyan.WorkspaceEvent)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
 	}
 
 	// An entity with no tenant to file under: one declared `global: {}`,
@@ -11376,6 +11648,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsTenant(ctx, s.Db, entTenant.IdEQ(uuid.UUID(key)))
 	case WorkspaceDomain:
 		vs, err = rowsWorkspace(ctx, s.Db, entWorkspace.IdEQ(uuid.UUID(key)))
+	case WorkspaceEventDomain:
+		vs, err = rowsWorkspaceEvent(ctx, s.Db, entWorkspaceEvent.IdEQ(uuid.UUID(key)))
 	default:
 		return nil, nil
 	}
@@ -11812,6 +12086,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 	if err := audit.CheckKind(ctx, d, checkedWorkspace(db), archived, &out); err != nil {
 		return out, fmt.Errorf("workspace: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedWorkspaceEvent(db), archived, &out); err != nil {
+		return out, fmt.Errorf("workspace-event: %w", err)
 	}
 
 	return out, nil
@@ -12963,6 +13240,52 @@ func checkedWorkspace(db *ent.Client) audit.Kind {
 	}
 }
 
+// checkedWorkspaceEvent is what a check of the rows reads of the workspace-event kind.
+func checkedWorkspaceEvent(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.WorkspaceEvent) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsWorkspaceEvent(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: WorkspaceEventDomain,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entWorkspaceEvent.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entWorkspaceEvent.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, WorkspaceEventDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsWorkspaceEvent(ctx, db, entWorkspaceEvent.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
 // rowsBillingAccount is the rows `ps` says of the billing-account kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -13481,6 +13804,26 @@ func rowsWorkspace(ctx context.Context, db *ent.Client, ps ...predicate.Workspac
 	return out, nil
 }
 
+// rowsWorkspaceEvent is the rows `ps` says of the workspace-event kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsWorkspaceEvent(ctx context.Context, db *ent.Client, ps ...predicate.WorkspaceEvent) ([]audit.Live, error) {
+	q := db.WorkspaceEvent.Query().Where(ps...)
+	bare.WorkspaceEventSelectInit(q, nil)
+
+	vs, err := q.Order(entWorkspaceEvent.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // snapshot runs `fn` on one read-only transaction, so that a page of rows and
 // the trail about them are read at one moment of the database: REPEATABLE
 // READ on PostgreSQL, and what every SQLite transaction already is.
@@ -13752,6 +14095,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 				rows, err = rowsTenant(ctx, db, entTenant.IdIn(uuids(page)...))
 			case WorkspaceDomain:
 				rows, err = rowsWorkspace(ctx, db, entWorkspace.IdIn(uuids(page)...))
+			case WorkspaceEventDomain:
+				rows, err = rowsWorkspaceEvent(ctx, db, entWorkspaceEvent.IdIn(uuids(page)...))
 			default:
 				// Kept off the trail, so no act on it is recorded.
 				continue
@@ -13914,6 +14259,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 			rows, err = rowsTenant(ctx, s.db, entTenant.IdIn(uuids(ids)...))
 		case WorkspaceDomain:
 			rows, err = rowsWorkspace(ctx, s.db, entWorkspace.IdIn(uuids(ids)...))
+		case WorkspaceEventDomain:
+			rows, err = rowsWorkspaceEvent(ctx, s.db, entWorkspaceEvent.IdIn(uuids(ids)...))
 		default:
 			// A kind no check reads, so there is nothing to carry forward to.
 			return n, nil
@@ -15028,6 +15375,25 @@ func (s interceptServiceKey) Erase(ctx context.Context, req *levyan.ServiceKeyRe
 func (s interceptServiceKey) List(ctx context.Context, req *levyan.ServiceKeyListRequest) (*levyan.ServiceKeyListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.ServiceKeyServiceServer,
 		levyan.ServiceKeyService_List_FullMethodName, req, s.ServiceKeyServiceServer.List)
+}
+
+func (s Intercept) WorkspaceEvent() levyan.WorkspaceEventServiceServer {
+	return interceptWorkspaceEvent{s, s.Next().WorkspaceEvent()}
+}
+
+type interceptWorkspaceEvent struct {
+	Intercept
+	levyan.WorkspaceEventServiceServer
+}
+
+func (s interceptWorkspaceEvent) Add(ctx context.Context, req *levyan.WorkspaceEventAddRequest) (*levyan.WorkspaceEvent, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceEventServiceServer,
+		levyan.WorkspaceEventService_Add_FullMethodName, req, s.WorkspaceEventServiceServer.Add)
+}
+
+func (s interceptWorkspaceEvent) Get(ctx context.Context, req *levyan.WorkspaceEventGetRequest) (*levyan.WorkspaceEvent, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.WorkspaceEventServiceServer,
+		levyan.WorkspaceEventService_Get_FullMethodName, req, s.WorkspaceEventServiceServer.Get)
 }
 
 // WatchRecorder answers with the recorder that remembers a write for `w`.
@@ -16284,6 +16650,7 @@ type Reads struct {
 	Subscription   func(ctx context.Context, account pdid.Id) (predicate.Subscription, error)
 	Tenant         func(ctx context.Context, account pdid.Id) (predicate.Tenant, error)
 	Workspace      func(ctx context.Context, account pdid.Id) (predicate.Workspace, error)
+	WorkspaceEvent func(ctx context.Context, account pdid.Id) (predicate.WorkspaceEvent, error)
 }
 
 // readsKey is where [AccountReads] keeps what it was told.
@@ -17240,6 +17607,10 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.ServiceKeyRef{}
 	case levyan.ServiceKeyService_List_FullMethodName:
 		v = &levyan.ServiceKeyListRequest{}
+	case levyan.WorkspaceEventService_Add_FullMethodName:
+		v = &levyan.WorkspaceEventAddRequest{}
+	case levyan.WorkspaceEventService_Get_FullMethodName:
+		v = &levyan.WorkspaceEventGetRequest{}
 	default:
 		// Including every Rpc written by hand: those live on a service of
 		// their own, which `Server` has no accessor for.
@@ -17492,6 +17863,10 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.ServiceKey().Erase(ctx, v.(*levyan.ServiceKeyRef))
 	case levyan.ServiceKeyService_List_FullMethodName:
 		res, err = s.ServiceKey().List(ctx, v.(*levyan.ServiceKeyListRequest))
+	case levyan.WorkspaceEventService_Add_FullMethodName:
+		res, err = s.WorkspaceEvent().Add(ctx, v.(*levyan.WorkspaceEventAddRequest))
+	case levyan.WorkspaceEventService_Get_FullMethodName:
+		res, err = s.WorkspaceEvent().Get(ctx, v.(*levyan.WorkspaceEventGetRequest))
 	default:
 		return nil, batch.ErrNoMethod(m)
 	}
@@ -17547,6 +17922,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.Subscription{},
 		&levyan.Tenant{},
 		&levyan.Workspace{},
+		&levyan.WorkspaceEvent{},
 	)
 }
 
@@ -18596,6 +18972,41 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.WorkspaceEvent:
+			ctx, err := read.Allow(ctx, levyan.WorkspaceEventService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.WorkspaceEventNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entWorkspaceEvent.Table, []resourcesql.Column{
+				{Number: 1, Name: entWorkspaceEvent.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entWorkspaceEvent.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entWorkspaceEvent.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entWorkspaceEvent.FieldKind, Type: 14, Nullable: false, Key: 0},
+				{Number: 9, Name: entWorkspaceEvent.FieldHappenedAt, Type: 65, Nullable: false, Key: 0},
+				{Number: 10, Name: entWorkspaceEvent.FieldLateThrough, Type: 65, Nullable: true, Key: 0},
+				{Number: 14, Name: entWorkspaceEvent.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entWorkspaceEvent.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.WorkspaceEvent.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		default:
 			return nil, nil
 		}
@@ -18777,6 +19188,8 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.WorkspaceService_Apply_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.WorkspaceEventService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	default:
 		return pdpb.ChangeKind_CHANGE_KIND_UNSPECIFIED
 	}
@@ -18795,7 +19208,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace":
+	case "levyan.Access", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace", "levyan.WorkspaceEvent":
 	default:
 		return nil
 	}

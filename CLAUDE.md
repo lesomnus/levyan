@@ -519,6 +519,39 @@ the account's own); a `Link` says who pays for a workspace from when to when.
   be on every channel and currency the map bills in, or what is billed there
   comes to nothing.
 
+## A workspace's life
+
+What a product says became of a workspace -- `WorkspaceService.Close`,
+`Restore`, `Destroy`, each at a moment the product says (#14, docs/design.md
+§14 "생애 사건", docs/apps.md §5) -- is a `WorkspaceEvent` row: one of a
+workspace's moment, never changed, written through the walled stack as the
+product in a transaction holding the workspace's row (`payers.Payers.Close`,
+`Restore`, `Destroy`).
+
+- **Read in the order of their moments** (`rating.Lived`), never of their
+  coming: the same said again changes nothing, one said late takes its place,
+  an older one never undoes a newer one. A destruction is for good: nothing
+  said after it changes anything, and a close or a restore of a moment after
+  it is refused.
+- **Away is no customer.** From a close to the restore after it, and from a
+  destruction on, a workspace is billed for nothing: `Rater.Usage` cuts those
+  stretches out of what the ledger says (`usage.Cut`, `usage.Open`), and
+  `rating.Rate` weighs the versions in force by the time it was a customer
+  (`rating.Customer`). What it holds while closed is still sent and kept.
+  This is rating version 2; with no events a workspace comes to what it did
+  by 1.
+- **Destroyed**: the ledger refuses a reading or point of a moment at or
+  after it (`ledger.Destroyed`, `REFUSAL_DESTROYED`), its links end there
+  (`LINK_ENDED_DESTROYED`) and its offers are withdrawn, and nothing is
+  linked, offered, resumed or granted of it after; the payerless rule passes
+  it over, and its renewing grants end when they come due.
+- **Free places**: a workspace away for the whole of a period is none of its
+  payer's `payers.free` for it (`Rater.PayerOf`).
+- **Late**: an event written after a period it reaches into began to close
+  says through which period's end it is late (`late_through`), and
+  `Rater.marked` rates again the periods from its moment through there; a
+  correction made already comes to nothing.
+
 ## Invoices
 
 What billing accounts are asked to pay, and the money it moves

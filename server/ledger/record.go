@@ -120,6 +120,10 @@ func (l Ledger) Record(ctx context.Context, product pdid.Id, rs []Reading) ([]Re
 		if err != nil {
 			return err
 		}
+		destroyed, err := Destroyed(ctx, db, product.Uuid(), ids...)
+		if err != nil {
+			return err
+		}
 
 		type at struct {
 			ws    uuid.UUID
@@ -161,6 +165,10 @@ func (l Ledger) Record(ctx context.Context, product pdid.Id, rs []Reading) ([]Re
 				continue
 			case !ent.IsNotFound(err):
 				return err
+			}
+			if d, ok := destroyed[w]; ok && !v.at.Before(d) {
+				out[v.i] = gone(v.meter.Key, v.ws, d)
+				continue
 			}
 
 			late := reaches(ps, v.at, v.at.Add(usage.Hold))

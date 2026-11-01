@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	levyan "github.com/lesomnus/levyan"
+	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
 	"github.com/lesomnus/levyan/cmd"
 	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
@@ -297,6 +298,83 @@ func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
 	x.NoError(err)
 	x.Equal("loft.restricted", key)
 	_, err = grants.Restricted("9lives")
+	x.Error(err)
+}
+
+// A workspace nobody pays for is read-only sixty days after it last had a
+// payer -- from `payerless_since`, as its grace is -- the second stage of
+// its restriction, by a rule of its own (`payers.readonly`), beside the
+// restriction thirty days after; and both end once somebody accepts to pay.
+// What the product is told says when each comes.
+func TestAWorkspaceWithNoPayerIsReadonlySixtyDaysAfterItsLastPayer(t *testing.T) {
+	w := setup(t)
+	x := pdtest.NewX(t)
+	key, _ := w.Key(w.loft, "loft-prod", nil)
+	conn := w.Serve()
+
+	a, b := levyantest.Account(), levyantest.Account()
+	ws := levyantest.Tenant()
+	_, err := w.payers().Arrive(w.ctx, w.p, ws, a, on(1, 3))
+	x.NoError(err)
+	w.At(on(1, 20))
+	_, err = w.payers().Leave(w.ctx, w.p, ws, a)
+	x.NoError(err)
+
+	st := w.state(ws)
+	x.Equal(on(1, 20), st.Since, "nobody has paid for it since it was left")
+	x.Equal(on(1, 20).Add(30*24*time.Hour), st.Restricted)
+	x.Equal(on(1, 20).Add(60*24*time.Hour), st.Readonly, "from when it last had a payer, not from its restriction")
+	got, err := levyanv1.NewWorkspaceServiceClient(conn).GetPayer(levyantest.As(w.ctx, key), levyanv1.GetPayerRequest_builder{Workspace: ws.String()}.Build())
+	x.NoError(err)
+	x.True(on(1, 20).Equal(got.GetPayer().GetPayerlessSince().AsTime()))
+	x.True(st.Restricted.Equal(got.GetPayer().GetRestrictedFrom().AsTime()))
+	x.True(st.Readonly.Equal(got.GetPayer().GetReadonlyFrom().AsTime()))
+
+	of := func(key string) []*ent.Grant {
+		vs, err := w.S.Ent.Grant.Query().Where(entgrant.Key(key)).All(w.ctx)
+		x.NoError(err)
+		return vs
+	}
+
+	w.At(st.Restricted.Add(time.Hour))
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	x.Len(of("loft.restricted"), 1, "restricted")
+	x.Empty(of("loft.readonly"), "and not read-only yet")
+
+	w.At(st.Readonly.Add(-time.Hour))
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	x.Empty(of("loft.readonly"), "an hour before")
+
+	w.At(st.Readonly.Add(time.Hour))
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	vs := of("loft.readonly")
+	x.Len(vs, 1)
+	x.Equal(payers.ReadonlyRule, vs[0].Rule)
+	x.Equal(int32(levyan.GrantValue_GRANT_VALUE_ON), vs[0].Value)
+	x.True(vs[0].Renews)
+	x.Contains(vs[0].Desc, "60일이 지났다")
+	rs := of("loft.restricted")
+	x.Len(rs, 1)
+	x.Equal(payers.RuleName, rs[0].Rule, "each stage a rule's own")
+
+	o, err := w.payers().Offer(w.ctx, w.p, ws, b)
+	x.NoError(err)
+	oId, _ := pdid.From(o.GetId())
+	_, err = w.payers().Accept(w.ctx, w.p, b, oId, pdid.Nil)
+	x.NoError(err)
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	for _, k := range []string{"loft.restricted", "loft.readonly"} {
+		vs := of(k)
+		x.Len(vs, 1, k)
+		x.False(vs[0].Renews, "%s ended: somebody will pay", k)
+		x.False(vs[0].ValidUntil.After(w.S.Clock()), k)
+	}
+	x.False(w.state(ws).Payerless())
+
+	readonly, err := grants.Readonly("loft")
+	x.NoError(err)
+	x.Equal("loft.readonly", readonly)
+	_, err = grants.Readonly("9lives")
 	x.Error(err)
 }
 

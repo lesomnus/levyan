@@ -459,7 +459,8 @@ decides (payday#185). levyan is the source; the contract is payday's
   given with `--until` ends then.
 - **Positive grants only.** The copy reads a missing grant as not entitled, so
   a restriction is a grant that restricts when present (`loft.restricted`
-  ON), and an app's core writes are never held to a grant's presence.
+  ON, and its second stage `loft.readonly` ON), and an app's core writes are
+  never held to a grant's presence.
 - **Its changes are always in the outbox**, whatever `watch.outbox` says of
   the rest (`cmd.Build`'s second resource recorder), and the drain
   (`payday.outbox`) publishes them; `Watch` subscribes before `ready`, reads
@@ -512,7 +513,9 @@ the account's own); a `Link` says who pays for a workspace from when to when.
 - **A workspace with no payer** is restricted as the dunning table's row
   of it says (`dunning.kinds.payerless`: thirty days, by default, as
   `payers.grace` was) by the grants' rule `payers.grace`
-  (`payers.Payerless`): `<product>.restricted` ON.
+  (`payers.Payerless`): `<product>.restricted` ON; and read-only sixty days
+  after it last had a payer by `payers.readonly` (`payers.Readonly`):
+  `<product>.readonly` ON.
 - **What a billing account is billed through** -- channel and currency -- is
   the deployment's map from its country (`payers.channels`, `payers.Channels`,
   each key over the defaults: the merchant of record, KRW in KR and USD
@@ -536,24 +539,36 @@ product in a transaction holding the workspace's row (`payers.Payers.Close`,
   an older one never undoes a newer one. A destruction is for good: nothing
   said after it changes anything, and a close or a restore of a moment after
   it is refused.
-- **Away is no customer.** From a close to the restore after it, and from a
-  destruction on, a workspace is billed for nothing: `Rater.Usage` cuts those
-  stretches out of what the ledger says (`usage.Cut`, `usage.Open`), and
-  `rating.Rate` weighs the versions in force by the time it was a customer
-  (`rating.Customer`). What it holds while closed is still sent and kept.
-  This is rating version 2; with no events a workspace comes to what it did
-  by 1.
+- **Away is no customer, and a stretch closed and restored is no stretch
+  away** (the owner's, 2026-11-01): it is billed as any open time. A
+  workspace is billed for nothing from a close nothing has restored -- still
+  closed when the period is rated, or destroyed closed -- and from a
+  destruction on: one stretch at most, to Forever (`rating.Lived`).
+  `Rater.Usage` cuts it out of what the ledger says (`usage.Cut`,
+  `usage.Open`), and `rating.Rate` weighs the versions in force by the time
+  it was a customer (`rating.Customer`). What it holds while closed is
+  still sent and kept, and billed once it is restored. This is rating
+  version 3; a workspace never restored comes to what it did by 2, and one
+  with no events to what it did by 1.
 - **Destroyed**: the ledger refuses a reading or point of a moment at or
   after it (`ledger.Destroyed`, `REFUSAL_DESTROYED`), its links end there
   (`LINK_ENDED_DESTROYED`) and its offers are withdrawn, and nothing is
   linked, offered, resumed or granted of it after; the payerless rule passes
   it over, and its renewing grants end when they come due.
 - **Free places**: a workspace away for the whole of a period is none of its
-  payer's `payers.free` for it (`Rater.PayerOf`).
+  payer's `payers.free` for it (`Rater.PayerOf`), read off the same
+  `rating.Lived` the amounts are: one closed through a period and restored
+  since counts in it.
 - **Late**: an event written after a period it reaches into began to close
   says through which period's end it is late (`late_through`), and
-  `Rater.marked` rates again the periods from its moment through there; a
-  correction made already comes to nothing.
+  `Rater.marked` rates again the periods from its reach through there; a
+  correction made already comes to nothing. Its reach (`rating.Reach`) is
+  its moment, but for a restore -- and a destruction that ends a stretch a
+  restore after it would have ended -- of a workspace closed, whose reach is
+  the close that began the stretch: whether that stretch is billed is its
+  end's to say. So a restore said on time of a stretch begun in a period
+  closed since is late. The reach is worked out again from every event as
+  the periods are rated.
 
 ## Invoices
 
@@ -657,9 +672,12 @@ What billing accounts are asked to pay, and the money it moves
 
 What follows a failed charge (`server/invoices/dunning.go`,
 `internal/dunning`, docs/design.md §15, "연체", #11). That a decline's kind
-says what follows is the owner's (#26); the table is Claude's design and its
-**values are provisional -- the owner's open question 3** -- so never write
-them down as decided.
+says what follows is the owner's (#26); the table is Claude's design; its
+**default values and the two stages of a restriction are the owner's**
+(2026-11-01, open question 3) -- retried 1, 3 and 7 days after the first
+failure with 14 days of grace, a method to replace never retried with 14,
+fraud restricted at once, 30 days for a workspace with no payer, read-only
+60 days after -- and a deployment says its own.
 
 - **One table** (`dunning.kinds`): a row for each kind of decline
   (`pg.Decline`: temporary, replace, fraud, other) and one for a workspace
@@ -667,8 +685,12 @@ them down as decided.
   retries, each a span from the invoice's **first** failure, its grace from
   the same, and whether it restricts after the grace or at once. The row is
   the one of the **latest** failure's kind; a failure that is no decline is
-  `other`. A row of the configuration is a type with leaves that validate
-  themselves, so a wrong table is refused where it is written.
+  `other`. A row is also when it is read-only, `readonly_after` from the same
+  first failure (of a workspace with no payer, from when it last had one),
+  never sooner than it restricts. A row of the configuration is a type with
+  leaves that validate themselves, so a wrong table is refused where it is
+  written; what a row's leaves say of one another, with its defaults, the
+  block `dunning.kinds` says.
 - **Worked out, never stored.** What the table says of an invoice
   (`invoices.Dunning`, `dunning.Policy.Dun`) comes of its charge attempts,
   its billing account's collection and now, every time it is asked -- by the
@@ -685,7 +707,15 @@ them down as decided.
   every workspace of the invoice's lines, `<product>.restricted` ON -- the
   key `payers.grace` restricts by (`grants.Restricted`), each rule with a
   grant of its own, so a workspace is restricted until both let it go. A
-  destroyed workspace is skipped.
+  destroyed workspace is skipped. The app stops what would grow what it is
+  billed for, and everyday work goes on.
+- **Read-only** is the second stage, a rule of its own (Claude's):
+  `dunning.readonly` (`invoices.Readonly`), the same workspaces from
+  `State.Readonly`, `<product>.readonly` ON (`grants.Readonly`); and
+  `payers.readonly` (`payers.Readonly`) of a workspace with no payer. The app
+  refuses every write but reading, exporting and downloading, paying, and
+  closing or leaving the workspace (docs/apps.md §3). Paid, both stages end
+  in the same pass of dunning.
 - **Spent** -- no retry left, nothing out or due, the grace over -- is
   `UNCOLLECTIBLE`, still owed and still restricted; a charge that succeeds
   later pays it (`paid` treats it as open).
@@ -771,9 +801,9 @@ levyan's own:
   through `Ungated` as the deployment.
 - `levyan.invoices.dunning` (`invoices.Duns`, every `dunning.every`, a
   minute) makes and sends the charges the dunning table says are due, marks
-  what is spent `UNCOLLECTIBLE`, and follows the rule `dunning`, so that a
-  payment lets a workspace go within a minute rather than the grants'
-  hour; through `Ungated` as the deployment.
+  what is spent `UNCOLLECTIBLE`, and follows the rules `dunning` and
+  `dunning.readonly`, so that a payment lets a workspace go within a minute
+  rather than the grants' hour; through `Ungated` as the deployment.
 - `levyan.reconcile` (`reconcile.Reconciles`, every `reconcile.every`, a
   day) makes every check, writes what it finds, and says it; it asks a
   channel again where the paths that ask anyway would, and moves no money.

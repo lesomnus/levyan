@@ -134,13 +134,13 @@ enum InvoiceState {
 
 // Dunning is what is done of an invoice its channel failed to collect
 // (#11), by the deployment's policy table: a row for each kind of decline --
-// its retries, its grace, and when what the invoice bills is restricted. Each
-// retry is a charge of its own through the same channel, and a charge is made
-// as soon as the billing account is collectable again -- a payer who began a
-// subscription anew, a payment that waited for them made -- whatever the row
-// schedules. Once no retry is left and the grace is over the invoice is
-// `INVOICE_STATE_UNCOLLECTIBLE`, still owed, and paid by the first charge of
-// it that succeeds.
+// its retries, its grace, when what the invoice bills is restricted, and when
+// it is read-only. Each retry is a charge of its own through the same
+// channel, and a charge is made as soon as the billing account is collectable
+// again -- a payer who began a subscription anew, a payment that waited for
+// them made -- whatever the row schedules. Once no retry is left and the
+// grace is over the invoice is `INVOICE_STATE_UNCOLLECTIBLE`, still owed, and
+// paid by the first charge of it that succeeds.
 //
 // Every time here is worked out from the invoice's charges as it is asked,
 // and moves only as they do. It is what a product shows: the payer, what to
@@ -173,6 +173,12 @@ message Dunning {
   // is paid.
   google.protobuf.Timestamp grace_ends = 6;
   google.protobuf.Timestamp restricted_from = 7;
+
+  // From when what it bills is read-only (`<product>.readonly`), the second
+  // stage of its restriction: sixty days after its first failure, by
+  // default, and never sooner than `restricted_from`. It is read-only from
+  // then until it is paid, when both stages end at once.
+  google.protobuf.Timestamp readonly_from = 8;
 }
 
 // DeclineKind is which kind of decline a payer's method refused a charge as,

@@ -141,8 +141,8 @@ func (r Rater) Since(ctx context.Context, product, ws uuid.UUID) (time.Time, boo
 }
 
 // Usage is what workspace `ws` held or did of meter `m` over `p` while it was
-// a customer: the stretches `away` -- closed, and from its destruction on --
-// taken out (#14). `until`, when it is set, carries a stock's latest reading
+// a customer: the stretches `away` -- closed and not restored, and from its
+// destruction on -- taken out (#14). `until`, when it is set, carries a stock's latest reading
 // to it -- what an estimate of a period not yet over takes the rest of it to
 // hold -- which a stretch away is taken out of as well.
 func (r Rater) Usage(ctx context.Context, product, ws uuid.UUID, m *ent.Meter, p rating.Period, until time.Time, away []rating.Stretch) (rating.Usage, error) {
@@ -438,8 +438,8 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 // marked is which of `periods` a late row of workspace `ws` speaks for: a
 // reading measured in one or within a reading's hold before it, a point
 // counted in one or whose next point is, and an event of it -- closed,
-// restored, destroyed -- that came after the periods from its moment had
-// begun to close (#14).
+// restored, destroyed -- that came after the periods from its reach had
+// begun to close (#14, [rating.Reach]).
 func (r Rater) marked(ctx context.Context, product, ws uuid.UUID, periods []*ent.Period) (map[uuid.UUID]bool, error) {
 	out := map[uuid.UUID]bool{}
 	reach := func(from, to time.Time) {

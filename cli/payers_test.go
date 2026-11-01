@@ -136,6 +136,9 @@ func TestAProductsUserAnswersAsItself(t *testing.T) {
 	x.NoError(err)
 	x.NotNil(left.GetPayer().GetPayerlessSince(), "nobody pays for it, now or next")
 	x.NotNil(left.GetPayer().GetRestrictedFrom())
+	since := left.GetPayer().GetPayerlessSince().AsTime()
+	x.True(since.Add(30*24*time.Hour).Equal(left.GetPayer().GetRestrictedFrom().AsTime()), "thirty days after")
+	x.True(since.Add(60*24*time.Hour).Equal(left.GetPayer().GetReadonlyFrom().AsTime()), "and read-only sixty days after")
 }
 
 // An account is served only as roster says it may be now: refused when

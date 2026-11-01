@@ -1,15 +1,29 @@
 // Package dunning is what is done of an invoice whose charge failed (#11),
 // by the policy table: a row for each kind of decline (`pg.Decline`) -- when
-// the invoice is charged again, how long its grace is, and whether what it
-// bills is restricted once the grace is over or at once -- and a row for a
-// workspace nobody pays for, which is restricted as an unpaid invoice is
-// (`payers.grace`, #4), so that there is one table.
+// the invoice is charged again, how long its grace is, whether what it bills
+// is restricted once the grace is over or at once, and when it is read-only
+// -- and a row for a workspace nobody pays for, which is restricted as an
+// unpaid invoice is (`payers.grace`, #4), so that there is one table.
 //
 // That a decline's kind says what follows it is the owner's (2026-10-31,
-// #26). The table is Claude's design, and so are its values ([Defaults]),
-// provisionally: how many retries, how long a grace and how far a
-// restriction goes are the owner's open question 3 (levyan#1), and not
-// decided. A deployment says its own (`dunning.kinds`).
+// #26). The table is Claude's design. Its values ([Defaults]) and the two
+// stages of a restriction are the owner's (2026-11-01, levyan#1, open
+// question 3): retried a day, three days and a week after the first failure,
+// a fortnight's grace, and a workspace with no payer thirty days; restricted
+// first -- nothing that would grow what it is billed for, everyday work going
+// on -- and read-only sixty days after the first failure. A deployment says
+// its own (`dunning.kinds`).
+//
+// # Two stages
+//
+// Restricted is the first stage: from the end of the grace, or at once.
+// Read-only is the second, a span of its own from the first failure
+// (`readonly_after`; of a workspace nobody pays for, from when it last had a
+// payer), never sooner than the first: an app given it refuses every write
+// but reading, exporting and downloading, paying, and closing or leaving the
+// workspace (docs/apps.md). That each row has a span of its own for it, and
+// that a workspace nobody pays for has one from when it last had a payer, is
+// Claude's.
 //
 // # Measured from the first failure
 //
@@ -66,6 +80,11 @@ type Row struct {
 	// AtOnce restricts what an invoice bills from its first failure on,
 	// rather than once its grace is over.
 	AtOnce bool
+
+	// ReadonlyAfter is how long after its first failure an invoice may go
+	// unpaid before what it bills is read-only, the second stage of its
+	// restriction: never sooner than the first ([Row.Restricts]).
+	ReadonlyAfter time.Duration
 }
 
 // Restricts is from when the row restricts what an invoice whose first
@@ -79,14 +98,35 @@ func (r Row) Restricts(failed time.Time) time.Time {
 	return failed.Add(r.Grace)
 }
 
+// Readonly is from when the row makes what an invoice whose first charge
+// failed at `failed` bills read-only: its ReadonlyAfter after it. Of a
+// workspace nobody pays for, `failed` is when it last had a payer.
+func (r Row) Readonly(failed time.Time) time.Time { return failed.Add(r.ReadonlyAfter) }
+
 // Check refuses a row that says no schedule: a retry not after the failure,
-// or not after the one before it, or a grace less than nothing.
+// or not after the one before it, a grace less than nothing, or a read-only
+// stage less than nothing after the failure or sooner than the restriction.
 func (r Row) Check() error {
 	if err := Retries(r.Retries); err != nil {
 		return fmt.Errorf("retries: %w", err)
 	}
 	if r.Grace < 0 {
 		return errors.New("grace: less than nothing")
+	}
+	if r.ReadonlyAfter < 0 {
+		return errors.New("readonly_after: less than nothing")
+	}
+
+	return r.Stages()
+}
+
+// Stages refuses a row whose second stage, read-only, comes sooner than its
+// first, the restriction: a ReadonlyAfter shorter than the grace a row that
+// restricts after it has. A row that restricts at once restricts before any
+// span after the failure.
+func (r Row) Stages() error {
+	if !r.AtOnce && r.ReadonlyAfter >= 0 && r.ReadonlyAfter < r.Grace {
+		return fmt.Errorf("readonly_after: %s is sooner than the restriction, %s after the failure, as the grace ends: read-only is the stage after it", r.ReadonlyAfter, r.Grace)
 	}
 
 	return nil
@@ -136,32 +176,39 @@ type Policy struct {
 
 const day = 24 * time.Hour
 
-// Defaults is the table as Claude proposed it (#11's comment, 2026-10-31),
-// provisionally, the values being the owner's open question 3:
+// Defaults is the table as the owner decided it (2026-11-01, levyan#1, open
+// question 3), taking Claude's proposal:
 //
-//	kind       retries          grace    restricted
-//	temporary  1, 3 and 5 days  7 days   after the grace
-//	replace    none             7 days   after the grace
-//	fraud      none             none     at once
+//	kind       retries          grace    restricted       read-only
+//	temporary  1, 3 and 7 days  14 days  after the grace  60 days after
+//	replace    none             14 days  after the grace  60 days after
+//	fraud      none             none     at once          60 days after
 //	other      as temporary
-//	payerless  none             30 days  after the grace
+//	payerless  none             30 days  after the grace  60 days after
 //
 // A method to replace is retried never, its payer being told at once -- by
 // the product, which shows what the table says (docs/apps.md) -- and a
 // workspace nobody pays for keeps the grace `payers.grace` gave it (#4).
+// Read-only is sixty days after the first failure for every kind, as the
+// owner said, and for a workspace nobody pays for sixty days after it last
+// had a payer, which is Claude's.
 func Defaults() Policy {
-	temporary := Row{Retries: []time.Duration{1 * day, 3 * day, 5 * day}, Grace: 7 * day}
+	temporary := Row{Retries: []time.Duration{1 * day, 3 * day, 7 * day}, Grace: 14 * day, ReadonlyAfter: DefaultReadonlyAfter}
 	other := temporary
 	other.Retries = slices.Clone(temporary.Retries)
 
 	return Policy{
 		Temporary: temporary,
-		Replace:   Row{Grace: 7 * day},
-		Fraud:     Row{AtOnce: true},
+		Replace:   Row{Grace: 14 * day, ReadonlyAfter: DefaultReadonlyAfter},
+		Fraud:     Row{AtOnce: true, ReadonlyAfter: DefaultReadonlyAfter},
 		Other:     other,
-		Payerless: Row{Grace: 30 * day},
+		Payerless: Row{Grace: 30 * day, ReadonlyAfter: DefaultReadonlyAfter},
 	}
 }
+
+// DefaultReadonlyAfter is when every row's second stage comes by default:
+// sixty days after the first failure, the owner's (2026-11-01).
+const DefaultReadonlyAfter = 60 * day
 
 // Of is the row of a decline of kind `d`; one of no kind the table has is
 // the other kind's.
@@ -178,21 +225,30 @@ func (p Policy) Of(d pg.Decline) Row {
 	}
 }
 
-// Check refuses a table a row of which says no schedule, and a row of a
-// workspace nobody pays for that retries: nothing is charged of one.
-func (p Policy) Check() error {
-	for _, r := range []struct {
-		name string
-		row  Row
-	}{
+// Named is a row of the table, by the name the configuration says it under.
+type Named struct {
+	Name string
+	Row  Row
+}
+
+// Rows are the table's rows, by name, in the order the configuration says
+// them.
+func (p Policy) Rows() []Named {
+	return []Named{
 		{"temporary", p.Temporary},
 		{"replace", p.Replace},
 		{"fraud", p.Fraud},
 		{"other", p.Other},
 		{"payerless", p.Payerless},
-	} {
-		if err := r.row.Check(); err != nil {
-			return fmt.Errorf("%s: %w", r.name, err)
+	}
+}
+
+// Check refuses a table a row of which says no schedule, and a row of a
+// workspace nobody pays for that retries: nothing is charged of one.
+func (p Policy) Check() error {
+	for _, r := range p.Rows() {
+		if err := r.Row.Check(); err != nil {
+			return fmt.Errorf("%s: %w", r.Name, err)
 		}
 	}
 	if len(p.Payerless.Retries) > 0 {
@@ -237,9 +293,11 @@ type State struct {
 	Retry time.Time
 
 	// GraceEnds is when its grace is over, and Restricted from when what it
-	// bills is restricted: at once, or as its grace ends.
+	// bills is restricted: at once, or as its grace ends. Readonly is from
+	// when it is read-only, the second stage: never sooner.
 	GraceEnds  time.Time
 	Restricted time.Time
+	Readonly   time.Time
 
 	// Due says a charge of it is to be made now.
 	Due bool
@@ -286,6 +344,7 @@ func (p Policy) Dun(cs []Charge, collectable, now time.Time) (State, bool) {
 		Failed:     first,
 		GraceEnds:  first.Add(row.Grace),
 		Restricted: row.Restricts(first),
+		Readonly:   row.Readonly(first),
 	}
 
 	// The latest retry whose time has come, unless a charge was made at or

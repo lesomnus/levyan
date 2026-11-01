@@ -69,12 +69,26 @@ func (w world) charges(inv *ent.Invoice) []*ent.PaymentAttempt {
 // rules' grants are in force.
 func (w world) restricted(ws pdid.Id) (bool, []string) {
 	w.t.Helper()
+	return w.granted(ws, "loft.restricted")
+}
+
+// readonly is [world.restricted] of the second stage, `loft.readonly`.
+func (w world) readonly(ws pdid.Id) (bool, []string) {
+	w.t.Helper()
+	return w.granted(ws, "loft.readonly")
+}
+
+// granted says whether workspace `ws` of the product has `key` at the
+// deployment's now, as the product's copy decides it, and which rules'
+// grants of it are in force.
+func (w world) granted(ws pdid.Id, key string) (bool, []string) {
+	w.t.Helper()
 	row, ok, err := payers.Workspace(w.ctx, w.S.Ent, w.product.Uuid(), ws)
 	w.X.NoError(err)
 	if !ok {
 		return false, nil
 	}
-	vs, err := w.S.Ent.Grant.Query().Where(entgrant.WorkspaceId(row), entgrant.Key("loft.restricted"), entgrant.DateErasedIsNil()).All(w.ctx)
+	vs, err := w.S.Ent.Grant.Query().Where(entgrant.WorkspaceId(row), entgrant.Key(key), entgrant.DateErasedIsNil()).All(w.ctx)
 	w.X.NoError(err)
 	now := w.S.Clock()
 	var rows []entitle.Row
@@ -87,15 +101,17 @@ func (w world) restricted(ws pdid.Id) (bool, []string) {
 		}
 	}
 
-	return entitle.Decide("loft.restricted", rows, now).Value.Has(), by
+	return entitle.Decide(key, rows, now).Value.Has(), by
 }
 
 // Each kind of decline is dunned as its row of the table says, by default
-// (Claude's, provisional): a temporary one, and one that says no more, tried
-// again a day, three days and five days after it failed -- each once,
-// however often the loop runs -- restricted and given up on after a week; a
-// method to replace never tried again, restricted and given up on after a
-// week; suspected fraud restricted, and given up on, at once.
+// (the owner's, 2026-11-01): a temporary one, and one that says no more,
+// tried again a day, three days and a week after it failed -- each once,
+// however often the loop runs -- restricted and given up on after a
+// fortnight; a method to replace never tried again, restricted and given up
+// on after a fortnight; suspected fraud restricted, and given up on, at
+// once. Every one is read-only sixty days after it first failed, while it is
+// owed still.
 func TestEachKindIsDunnedAsItsRowSays(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -104,9 +120,9 @@ func TestEachKindIsDunnedAsItsRowSays(t *testing.T) {
 		retries []time.Duration
 		grace   time.Duration
 	}{
-		{"temporary", invoicestest.Decline, levyan.DeclineKind_DECLINE_KIND_TEMPORARY, []time.Duration{day, 3 * day, 5 * day}, 7 * day},
-		{"other", invoicestest.DeclineOther, levyan.DeclineKind_DECLINE_KIND_UNSPECIFIED, []time.Duration{day, 3 * day, 5 * day}, 7 * day},
-		{"replace", invoicestest.DeclineReplace, levyan.DeclineKind_DECLINE_KIND_REPLACE, nil, 7 * day},
+		{"temporary", invoicestest.Decline, levyan.DeclineKind_DECLINE_KIND_TEMPORARY, []time.Duration{day, 3 * day, 7 * day}, 14 * day},
+		{"other", invoicestest.DeclineOther, levyan.DeclineKind_DECLINE_KIND_UNSPECIFIED, []time.Duration{day, 3 * day, 7 * day}, 14 * day},
+		{"replace", invoicestest.DeclineReplace, levyan.DeclineKind_DECLINE_KIND_REPLACE, nil, 14 * day},
 		{"fraud", invoicestest.DeclineFraud, levyan.DeclineKind_DECLINE_KIND_FRAUD, nil, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -128,12 +144,14 @@ func TestEachKindIsDunnedAsItsRowSays(t *testing.T) {
 			x.Equal(tc.kind, cs[0].Failure.GetDecline())
 
 			// Through every moment the row names, the loop running twice at
-			// each: a retry is made once its time has come, and once.
+			// each -- and the grants' loop, which renews what is given: a
+			// retry is made once its time has come, and once.
 			n := 1
-			for _, at := range []time.Duration{0, day - time.Minute, day, 2 * day, 3 * day, 4 * day, 5 * day, 6 * day} {
+			for _, at := range []time.Duration{0, day - time.Minute, day, 2 * day, 3 * day, 4 * day, 7 * day, 8 * day, 13 * day} {
 				w.At(t0.Add(at))
 				w.dun()
 				w.dun()
+				x.NoError(w.S.Grants.Pass(w.ctx))
 				for _, r := range tc.retries {
 					if r == at {
 						n++
@@ -152,6 +170,8 @@ func TestEachKindIsDunnedAsItsRowSays(t *testing.T) {
 					x.Equal(uncollectible, w.again(inv).State, "%s after: no grace, and no retry", at)
 					x.True(restricted, "%s after: at once", at)
 				}
+				readonly, _ := w.readonly(ws)
+				x.False(readonly, "%s after: not yet", at)
 			}
 			x.Len(w.ch.Sends(), n, "each retry a charge of its own, sent once")
 			keys := map[string]bool{}
@@ -160,7 +180,7 @@ func TestEachKindIsDunnedAsItsRowSays(t *testing.T) {
 			}
 			x.Len(keys, n, "each with a key of its own")
 
-			w.At(t0.Add(max(tc.grace, 6*day+time.Hour)))
+			w.At(t0.Add(max(tc.grace, 13*day+time.Hour)))
 			w.dun()
 			inv = w.again(inv)
 			x.Equal(uncollectible, inv.State, "no retry left, and the grace over")
@@ -169,6 +189,23 @@ func TestEachKindIsDunnedAsItsRowSays(t *testing.T) {
 			x.True(restricted)
 			x.Equal([]string{invoices.RestrictionRule}, by)
 			x.Len(w.charges(inv), n, "nothing more is tried")
+
+			// Sixty days after it first failed, owed still: read-only too, by
+			// a rule of its own, and restricted as it was.
+			w.At(t0.Add(60*day - time.Minute))
+			w.dun()
+			x.NoError(w.S.Grants.Pass(w.ctx))
+			readonly, _ := w.readonly(ws)
+			x.False(readonly, "a minute before")
+			w.At(t0.Add(60 * day))
+			w.dun()
+			readonly, by = w.readonly(ws)
+			x.True(readonly)
+			x.Equal([]string{invoices.ReadonlyRule}, by)
+			restricted, by = w.restricted(ws)
+			x.True(restricted)
+			x.Equal([]string{invoices.RestrictionRule}, by)
+			x.Len(w.charges(inv), n, "and nothing more is tried")
 		})
 	}
 }
@@ -208,8 +245,11 @@ func TestARetryIsMadeOnceHoweverManyPassesRunAtOnce(t *testing.T) {
 // Here the invoice is paid by a retry first, and then somebody pays for the
 // workspace. And a row of the table is what the deployment says.
 func TestAWorkspaceTwoRulesRestrictIsRestrictedUntilBothLetItGo(t *testing.T) {
-	retries := cmd.Retries{cmd.Span(day), cmd.Span(12 * day)}
-	w := setup(t, mor, func(c *cmd.Config) { c.Dunning.Kinds.Temporary.Retries = &retries })
+	retries, week := cmd.Retries{cmd.Span(day), cmd.Span(12 * day)}, cmd.Span(7*day)
+	w := setup(t, mor, func(c *cmd.Config) {
+		c.Dunning.Kinds.Temporary.Retries = &retries
+		c.Dunning.Kinds.Temporary.Grace = &week
+	})
 	x := w.X
 
 	ws := levyantest.Tenant()
@@ -361,5 +401,104 @@ func TestDunningIsALoopOfItsOwnName(t *testing.T) {
 	for _, r := range w.S.Grants.Rules {
 		rules = append(rules, r.Name())
 	}
-	x.Equal([]string{payers.RuleName, invoices.RestrictionRule}, rules, "the grants' loop follows both rules too")
+	x.Equal([]string{payers.RuleName, payers.ReadonlyRule, invoices.RestrictionRule, invoices.ReadonlyRule}, rules, "the grants' loop follows every rule too, each stage of each")
+}
+
+// What an invoice still owed bills is read-only sixty days after its first
+// charge failed (the owner's, 2026-11-01): the second stage, by a rule of its
+// own (`dunning.readonly`, Claude's), beside the restriction that came as its
+// grace ended -- every workspace of its lines, a grant of `loft.readonly`
+// each. Paid -- here by a retry the deployment's row schedules after it --
+// both stages end within the pass. What the payer and the product are told
+// says when it is read-only from, beside when it is restricted from.
+func TestWhatAnInvoiceStillOwedBillsIsReadonlySixtyDaysOn(t *testing.T) {
+	retries := cmd.Retries{cmd.Span(day), cmd.Span(62 * day)}
+	w := setup(t, mor, func(c *cmd.Config) { c.Dunning.Kinds.Temporary.Retries = &retries })
+	x := w.X
+
+	one, two := levyantest.Tenant(), levyantest.Tenant()
+	account, ba := w.payer(one, two)
+	w.ch.Then(invoicestest.Decline, invoicestest.Decline)
+	t0 := w.january(one, two)
+	inv := w.only(ba)
+	x.Len(w.lines(inv), 2)
+
+	// What each is told, from the first failure on.
+	told := func() []*levyanv1.Dunning {
+		as := levyantest.AsAccount(w.ctx, w.key, account)
+		payer := levyanv1.NewPayerServiceClient(w.conn)
+		b, err := payer.GetBillingAccount(as, levyanv1.GetBillingAccountRequest_builder{Id: ba.String()}.Build())
+		x.NoError(err)
+		i, err := payer.GetInvoice(as, levyanv1.GetInvoiceRequest_builder{Id: pdid.Id(inv.Id).String()}.Build())
+		x.NoError(err)
+		out := append([]*levyanv1.Dunning{}, b.GetDunning()...)
+		if i.HasDunning() {
+			out = append(out, i.GetDunning())
+		}
+		for _, ws := range []pdid.Id{one, two} {
+			p, err := levyanv1.NewWorkspaceServiceClient(w.conn).GetPayer(w.as, levyanv1.GetPayerRequest_builder{Workspace: ws.String()}.Build())
+			x.NoError(err)
+			out = append(out, p.GetPayer().GetDunning()...)
+		}
+		return out
+	}
+	ds := told()
+	x.Len(ds, 4, "the billing account, the invoice, and each workspace")
+	for _, d := range ds {
+		x.True(t0.Add(14*day).Equal(d.GetRestrictedFrom().AsTime()), "as its fortnight's grace ends")
+		x.True(t0.Add(60*day).Equal(d.GetReadonlyFrom().AsTime()), "sixty days after it first failed")
+	}
+
+	// Restricted as its grace ends, and not read-only yet.
+	w.At(t0.Add(14 * day))
+	w.dun()
+	for _, ws := range []pdid.Id{one, two} {
+		restricted, by := w.restricted(ws)
+		x.True(restricted)
+		x.Equal([]string{invoices.RestrictionRule}, by)
+		readonly, _ := w.readonly(ws)
+		x.False(readonly)
+	}
+	w.At(t0.Add(60*day - time.Minute))
+	w.dun()
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	for _, ws := range []pdid.Id{one, two} {
+		readonly, _ := w.readonly(ws)
+		x.False(readonly, "a minute before")
+	}
+
+	// Read-only, each workspace of its lines, by the second stage's rule.
+	w.At(t0.Add(60 * day))
+	w.dun()
+	for _, ws := range []pdid.Id{one, two} {
+		readonly, by := w.readonly(ws)
+		x.True(readonly)
+		x.Equal([]string{invoices.ReadonlyRule}, by)
+		restricted, _ := w.restricted(ws)
+		x.True(restricted, "and restricted still")
+	}
+	gs, err := w.S.Ent.Grant.Query().Where(entgrant.Rule(invoices.ReadonlyRule)).All(w.ctx)
+	x.NoError(err)
+	x.Len(gs, 2)
+	for _, g := range gs {
+		x.Equal("loft.readonly", g.Key)
+		x.Equal(int32(levyan.GrantValue_GRANT_VALUE_ON), g.Value)
+		x.True(g.Renews)
+		x.Contains(g.Desc, "60일이 지났다")
+	}
+	x.Equal(open, w.again(inv).State, "a retry is left, on the 62nd day")
+
+	// Paid: both stages let go in the pass that charged it.
+	w.At(t0.Add(62 * day))
+	w.dun()
+	x.Equal(paid, w.again(inv).State)
+	for _, ws := range []pdid.Id{one, two} {
+		restricted, by := w.restricted(ws)
+		x.False(restricted, "let go")
+		x.Empty(by)
+		readonly, by := w.readonly(ws)
+		x.False(readonly, "let go")
+		x.Empty(by)
+	}
+	x.Empty(told(), "nothing owed, nothing told")
 }

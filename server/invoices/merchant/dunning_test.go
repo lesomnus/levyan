@@ -64,8 +64,9 @@ func (w *world) told(account, ba, ws pdid.Id, inv pdid.Id) (*levyanv1.GetBilling
 }
 
 // Scenario 4 (levyan#1), end to end on the merchant of record: an invoice's
-// charge declined, tried again a day, three and five days after, its grace
-// over and the workspace it bills restricted, the invoice given up on; then
+// charge declined, tried again a day, three and seven days after, its
+// fortnight's grace over and the workspace it bills restricted, the invoice
+// given up on; then
 // its payer begins a subscription anew, the billing account is collectable
 // again, the invoice is charged at once and paid, and the workspace is let
 // go -- and what the payer and loft are told at each step is what the table
@@ -98,14 +99,15 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 	x.Equal(levyanv1.DeclineKind_DECLINE_KIND_UNSPECIFIED, d.GetKind(), "a charge made now that is declined says no more of why")
 	x.True(t0.Equal(d.GetFailed().AsTime()))
 	x.True(t0.Add(day).Equal(d.GetNextRetry().AsTime()))
-	x.True(t0.Add(7 * day).Equal(d.GetGraceEnds().AsTime()))
-	x.True(t0.Add(7 * day).Equal(d.GetRestrictedFrom().AsTime()))
+	x.True(t0.Add(14 * day).Equal(d.GetGraceEnds().AsTime()))
+	x.True(t0.Add(14 * day).Equal(d.GetRestrictedFrom().AsTime()))
+	x.True(t0.Add(60*day).Equal(d.GetReadonlyFrom().AsTime()), "read-only sixty days after it first failed")
 	x.Equal(d.String(), i.GetDunning().String(), "the payer's invoice says the same")
 	x.Len(p.GetDunning(), 1)
 	x.Equal(d.String(), p.GetDunning()[0].String(), "and loft's workspace")
 
 	// The retries.
-	for n, at := range []time.Duration{day, 3 * day, 5 * day} {
+	for n, at := range []time.Duration{day, 3 * day, 7 * day} {
 		w.to(t0.Add(at))
 		w.dun()
 		w.dun()
@@ -115,7 +117,7 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 		x.NotEqual(cs[n].AttemptKey, cs[n+1].AttemptKey, "a key of its own")
 		_, i, _ := w.told(account, ba, ws, id)
 		if n < 2 {
-			x.True(t0.Add([]time.Duration{3 * day, 5 * day}[n]).Equal(i.GetDunning().GetNextRetry().AsTime()), "%s after", at)
+			x.True(t0.Add([]time.Duration{3 * day, 7 * day}[n]).Equal(i.GetDunning().GetNextRetry().AsTime()), "%s after", at)
 		} else {
 			x.False(i.GetDunning().HasNextRetry(), "no retry left")
 		}
@@ -123,13 +125,13 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 	x.Equal(4, w.srv.Requests(paddletest.Charge))
 
 	// The grace.
-	w.to(t0.Add(6 * day))
+	w.to(t0.Add(13 * day))
 	w.dun()
 	x.Equal(open, w.again(inv).State)
 	x.False(w.restricted(ws), "within its grace")
 
 	// The restriction, and the invoice given up on.
-	w.to(t0.Add(7 * day))
+	w.to(t0.Add(14 * day))
 	w.dun()
 	inv = w.again(inv)
 	x.Equal(uncollectible, inv.State)
@@ -144,7 +146,7 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 	// The payment: the payer cancels the subscription that would not pay
 	// and begins another, and the invoice is charged as the billing account
 	// is collectable again.
-	w.to(t0.Add(9 * day))
+	w.to(t0.Add(16 * day))
 	w.srv.CancelNow(sub.MorSubscription)
 	w.heard("subscription.canceled", sub.MorSubscription)
 	w.take()

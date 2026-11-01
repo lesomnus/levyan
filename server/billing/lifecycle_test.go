@@ -22,12 +22,16 @@ import (
 	"github.com/lesomnus/levyan/server/grants"
 )
 
-// What became of a workspace (#14), as what its periods come to: closed, it
-// is billed for none of the time it was, and restored, it is billed again;
-// closed through a whole period, it is billed nothing, and its place among
-// its payer's free workspaces passes on; destroyed, its last reading holds
-// no further and nothing measured after is kept. Each is said once of a
-// moment and read in the order of the moments, and one said late is a
+// What became of a workspace (#14), as what its periods come to: closed and
+// then restored, it is billed for the stretch it was closed for as for any
+// open time; closed still when a period is rated, or closed and then
+// destroyed, it is billed for none of the time it was, and closed through a
+// whole period it is billed nothing for it and its place among its payer's
+// free workspaces passes on; destroyed, its last reading holds no further
+// and nothing measured after is kept. What is billed of a closed stretch is
+// the owner's (2026-11-01). Each is said once of a moment and read in the
+// order of the moments, and one said late -- a restore of a stretch that
+// began in a period closed since, however soon it is said -- is a
 // correction on a later statement, as a late reading is.
 //
 // Every amount is worked out by hand: setup's active assets at 50 won each
@@ -73,19 +77,21 @@ func (w world) record(ws pdid.Id, at time.Time, v int64) *levyanv1.Recorded {
 	return res.GetResults()[0]
 }
 
-// A workspace closed on the 11th and restored on the 21st is billed for the
-// twenty-one days it was open: what it held while closed is kept, and is
-// held by no customer. While it is closed, what the month would come to
-// stops at its close.
-func TestAClosedWorkspaceIsBilledForWhenItWasOpen(t *testing.T) {
-	w := setup(t)
+// A workspace closed on the 11th and restored on the 21st is billed for all
+// of the month, as if it had been open: what it held while closed is kept,
+// and billed once it is restored. While it is closed, what the month would
+// come to stops at its close. Closed for some of the month, it is one of its
+// payer's free workspaces as any open one is.
+func TestAWorkspaceClosedAndRestoredInAPeriodIsBilledAsIfOpen(t *testing.T) {
+	one := 1
+	w := setup(t, func(c *cmd.Config) { c.Payers.Free = &one })
 	x := w.X
 
 	owner := levyantest.Account()
 	ws, open := levyantest.Tenant(), levyantest.Tenant()
-	w.At(on(1, 1))
+	w.At(on(1, 1).Add(time.Hour))
 	w.arrive(ws, owner, on(1, 1))
-	w.arrive(open, owner, on(1, 1))
+	w.arrive(open, owner, on(1, 1).Add(time.Hour))
 
 	w.At(on(1, 11))
 	l := w.say("close", ws, on(1, 11))
@@ -98,11 +104,14 @@ func TestAClosedWorkspaceIsBilledForWhenItWasOpen(t *testing.T) {
 	w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(1, 16), 1000)
 	u, err := levyanv1.NewBillingServiceClient(w.conn).GetUsage(w.ctx, levyanv1.GetUsageRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
-	x.Equal(int64(11129), u.GetUsage().GetTotal())
+	x.Equal(int64(11129), u.GetUsage().GetTotal(), "closed still: what it would come to stops at the close")
 
 	w.At(on(1, 21))
 	l = w.say("restore", ws, on(1, 21))
 	x.Nil(l.GetClosedSince(), "open again")
+	u, err = levyanv1.NewBillingServiceClient(w.conn).GetUsage(w.ctx, levyanv1.GetUsageRequest_builder{Workspace: ws.String()}.Build())
+	x.NoError(err)
+	x.Equal(int64(45000), u.GetUsage().GetTotal(), "restored: its latest reading carried through the month, the closed stretch billed")
 
 	// And what it sent: 1000 bytes by the 5th, 5000 more while it was
 	// closed, and 3000 after.
@@ -112,12 +121,15 @@ func TestAClosedWorkspaceIsBilledForWhenItWasOpen(t *testing.T) {
 	w.daily(open, "loft.assets.active", "{asset}", on(1, 1), on(2, 1), 1000)
 	w.close(on(2, 10))
 
-	// 21 days of 1000 over 31, (21000/31 - 100) * 50; and 4000 bytes sent
-	// while it was open, 3000 past what is included at 2 won a hundred.
+	// All 31 days of 1000, 900 past what is included at 50; and all 9000
+	// bytes sent, 8000 past what is included at 2 won a hundred.
 	s := w.statement(ws, on(1, 1))
-	x.Equal(map[string]string{"loft.assets.active": "28870.967741", "loft.transfer.bytes": "60"}, amounts(s))
-	x.Equal(int64(28930), s.GetTotal())
-	x.Equal(int64(45000), w.statement(open, on(1, 1)).GetTotal(), "open all month: 900 past what is included")
+	x.Equal(map[string]string{"loft.assets.active": "45000", "loft.transfer.bytes": "160"}, amounts(s))
+	x.Equal(int64(45160), s.GetTotal())
+	x.False(w.row(ws, on(1, 1)).FirstUnit, "the payer's one free workspace, made first")
+	x.Equal(uint32(3), w.row(ws, on(1, 1)).Rating, "rated by the rules that bill a stretch closed and restored")
+	x.Equal(int64(50000), w.statement(open, on(1, 1)).GetTotal(), "the other, from the first unit: 1000 at 50")
+	x.True(w.row(open, on(1, 1)).FirstUnit)
 
 	got, err := levyanv1.NewWorkspaceServiceClient(w.conn).GetLifecycle(w.ctx, levyanv1.GetLifecycleRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
@@ -125,46 +137,205 @@ func TestAClosedWorkspaceIsBilledForWhenItWasOpen(t *testing.T) {
 	x.Nil(got.GetLifecycle().GetClosedSince())
 }
 
-// A workspace closed through a whole period is billed nothing for it, and is
-// none of its payer's free workspaces for it: the next one has them. Closed
-// for some of a period, it counts.
-func TestAWorkspaceClosedThroughAPeriodIsBilledNothing(t *testing.T) {
-	one := 1
-	w := setup(t, func(c *cmd.Config) { c.Payers.Free = &one })
+// A workspace closed still when a period is rated is billed for none of the
+// time it was closed, and closed through a whole period it is billed nothing
+// for it -- it has no statement -- and is none of its payer's free
+// workspaces for it: the next one has them. Closed for some of a period, it
+// counts. What it would come to now stops at its close.
+func TestAWorkspaceClosedStillIsBilledNothingOfItsClose(t *testing.T) {
+	w, a, b := pair(t)
 	x := w.X
 
-	owner := levyantest.Account()
-	a, b := levyantest.Tenant(), levyantest.Tenant()
-	w.At(on(1, 2))
-	w.arrive(a, owner, on(1, 1).Add(time.Hour))
-	w.arrive(b, owner, on(1, 1).Add(2*time.Hour))
+	w.At(on(1, 20))
+	w.say("close", a, on(1, 20))
+	w.At(on(2, 10))
+	w.close(on(2, 10))
+	w.At(on(3, 10))
+	w.close(on(3, 10))
+
+	// January: 19 days of 200 over 31, (3800/31 - 100) * 50 = 35000/31;
+	// the first is open for some of it, and the payer's one free workspace,
+	// so the second is rated from the first unit, 200 at 50.
+	x.Equal(int64(1129), w.statement(a, on(1, 1)).GetTotal())
+	x.False(w.row(a, on(1, 1)).FirstUnit)
+	x.Equal(int64(10000), w.statement(b, on(1, 1)).GetTotal())
+	x.True(w.row(b, on(1, 1)).FirstUnit)
+
+	// February: the first was closed through it, and is billed nothing --
+	// no statement -- and the second is the payer's free one.
+	x.Nil(w.statement(a, on(2, 1)))
+	x.Equal(int64(5000), w.statement(b, on(2, 1)).GetTotal())
+	x.False(w.row(b, on(2, 1)).FirstUnit)
+
+	u, err := levyanv1.NewBillingServiceClient(w.conn).GetUsage(w.ctx, levyanv1.GetUsageRequest_builder{Workspace: a.String()}.Build())
+	x.NoError(err)
+	x.Zero(u.GetUsage().GetTotal(), "closed through March so far")
+}
+
+// A workspace closed in one period, and restored in the next after the
+// first was closed, is billed for the stretch it was closed for: the
+// restore reaches back to the close, so it is late however soon it is said,
+// and the first period is corrected on the next statement by what the
+// stretch comes to. Nothing written is changed. Open for some of each
+// period, it counts among its payer's free workspaces in both.
+func TestAWorkspaceRestoredAfterAPeriodClosedIsCorrected(t *testing.T) {
+	w, a, b := pair(t)
+	x := w.X
+
+	w.At(on(1, 20))
+	w.say("close", a, on(1, 20))
+	w.At(on(2, 10))
+	w.close(on(2, 10))
+	x.Equal(int64(1129), w.statement(a, on(1, 1)).GetTotal(), "19 days of 200, as far as anybody knew")
+
+	w.At(on(2, 15))
+	_, late, err := w.said("restore", a, on(2, 15))
+	x.NoError(err)
+	x.True(late, "said at once, and late: the stretch began in January, closed since")
+	_, late, err = w.said("restore", a, on(2, 15))
+	x.NoError(err)
+	x.False(late, "said again, it changes nothing")
+
+	w.At(on(3, 10))
+	w.close(on(3, 10))
+
+	// January is as it was billed; February's statement has all of
+	// February, 200 at 50 past 100, and corrects January by what it comes to
+	// now -- all of it, (200 - 100) * 50 -- less what it was billed:
+	// 5000 - 35000/31 = 120000/31.
+	x.Equal(int64(1129), w.statement(a, on(1, 1)).GetTotal())
+	feb := w.statement(a, on(2, 1))
+	x.Equal(map[string]string{
+		"loft.assets.active":                  "5000",
+		"loft.assets.active corrects 2027-01": "3870.967741",
+	}, amounts(feb))
+	x.Equal(int64(8870), feb.GetTotal())
+	x.False(w.row(a, on(2, 1)).FirstUnit)
+	x.Equal(int64(10000), w.statement(b, on(2, 1)).GetTotal())
+	x.True(w.row(b, on(2, 1)).FirstUnit)
+}
+
+// A workspace closed through a whole period and restored after it was
+// closed is billed for that period too, on a later statement, and counts in
+// it as an open workspace does: rated again, its free place is its own, by
+// its payer's first link to it. The workspace that had the place while it
+// was closed keeps what it was billed -- a correction rates again only the
+// workspace a late row is of -- so for that period its payer had one free
+// workspace more than it would have had, had the restore been known: less
+// is billed (docs/design.md §17, 103).
+func TestAWorkspaceRestoredAfterAPeriodItWasClosedThroughCountsInIt(t *testing.T) {
+	w, a, b := pair(t)
+	x := w.X
+
+	w.At(on(1, 20))
+	w.say("close", a, on(1, 20))
+	w.At(on(2, 10))
+	w.close(on(2, 10))
+	w.At(on(3, 10))
+	w.close(on(3, 10))
+	x.Nil(w.statement(a, on(2, 1)), "closed through February, as far as anybody knew")
+	x.False(w.row(b, on(2, 1)).FirstUnit, "and the second had its place")
+
+	w.At(on(3, 15))
+	_, late, err := w.said("restore", a, on(3, 15))
+	x.NoError(err)
+	x.True(late, "reaching back to January 20th")
+
+	w.At(on(4, 10))
+	w.close(on(4, 10))
+
+	// March: all of it, and the payer's free one again -- (200 - 100) * 50
+	// -- and the corrections of January, 120000/31 as above, and of
+	// February, rated now as an open workspace that has its place: 5000,
+	// less nothing billed.
+	mar := w.statement(a, on(3, 1))
+	x.Equal(map[string]string{
+		"loft.assets.active":                  "5000",
+		"loft.assets.active corrects 2027-01": "3870.967741",
+		"loft.assets.active corrects 2027-02": "5000",
+	}, amounts(mar))
+	x.Equal(int64(13870), mar.GetTotal())
+	x.False(w.row(a, on(3, 1)).FirstUnit)
+	x.Equal(int64(10000), w.statement(b, on(3, 1)).GetTotal())
+	x.True(w.row(b, on(3, 1)).FirstUnit)
+
+	// February's statement of the second is as it was written.
+	x.Equal(int64(5000), w.statement(b, on(2, 1)).GetTotal())
+	x.False(w.row(b, on(2, 1)).FirstUnit)
+}
+
+// A workspace closed through a whole period and restored before that period
+// is rated is billed for it as any open workspace is, and counts in it among
+// its payer's free workspaces: here it has the one place, by its payer's
+// first link to it, and the other is rated from the first unit.
+func TestAWorkspaceRestoredBeforeAPeriodItWasClosedThroughIsRatedCountsInIt(t *testing.T) {
+	w, a, b := pair(t)
+	x := w.X
 
 	w.At(on(1, 20))
 	w.say("close", a, on(1, 20))
 	w.At(on(3, 5))
 	w.say("restore", a, on(3, 5))
-
 	w.At(on(4, 10))
-	for _, ws := range []pdid.Id{a, b} {
-		w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(4, 1), 50)
-	}
 	w.close(on(4, 10))
 
-	// January: the first is open for some of it, and the payer's one free
-	// workspace; the second is rated from the first unit, 50 at 50.
-	x.False(w.row(a, on(1, 1)).FirstUnit)
-	x.Equal(int64(2500), w.statement(b, on(1, 1)).GetTotal())
-	x.True(w.row(b, on(1, 1)).FirstUnit)
+	for _, m := range []int{1, 2, 3} {
+		x.Equal(int64(5000), w.statement(a, on(m, 1)).GetTotal(), "all of the month, (200 - 100) * 50")
+		x.False(w.row(a, on(m, 1)).FirstUnit, "the payer's free one")
+		x.Len(w.statement(a, on(m, 1)).GetLines(), 1, "and nothing to correct")
+		x.Equal(int64(10000), w.statement(b, on(m, 1)).GetTotal(), "200 at 50")
+		x.True(w.row(b, on(m, 1)).FirstUnit)
+	}
+}
 
-	// February: the first was closed through it, and is billed nothing --
-	// it has no statement -- and the second is the payer's free one.
-	x.Nil(w.statement(a, on(2, 1)))
-	x.Equal(int64(0), w.statement(b, on(2, 1)).GetTotal())
-	x.False(w.row(b, on(2, 1)).FirstUnit)
+// A workspace closed and then destroyed is billed for none of the time it
+// was closed, as one closed still is: the destruction is no restore. Said in
+// order, it moves nothing before its own moment, so it is no later than
+// that is; and through the period it was away in, its place among its
+// payer's free workspaces passes on.
+func TestAWorkspaceClosedAndDestroyedIsBilledNothingOfItsClose(t *testing.T) {
+	w, a, b := pair(t)
+	x := w.X
 
-	// March: the first is restored on the 5th, and is the free one again.
-	x.Equal(int64(0), w.statement(a, on(3, 1)).GetTotal())
-	x.Equal(int64(2500), w.statement(b, on(3, 1)).GetTotal())
+	w.At(on(1, 20))
+	w.say("close", a, on(1, 20))
+	w.At(on(2, 10))
+	w.close(on(2, 10))
+	w.At(on(3, 5))
+	l := w.say("destroy", a, on(3, 5))
+	x.True(l.GetClosedSince().AsTime().Equal(on(1, 20)), "the closure it was destroyed in")
+	w.At(on(3, 10))
+	w.close(on(3, 10))
+	w.At(on(4, 10))
+	w.close(on(4, 10))
+
+	x.Equal(int64(1129), w.statement(a, on(1, 1)).GetTotal())
+	x.Nil(w.statement(a, on(2, 1)), "nothing of February, nor any correction of January")
+	x.Nil(w.statement(a, on(3, 1)))
+	for _, m := range []int{2, 3} {
+		x.Equal(int64(5000), w.statement(b, on(m, 1)).GetTotal(), "the second has the free place")
+		x.False(w.row(b, on(m, 1)).FirstUnit)
+	}
+}
+
+// pair is two workspaces of one payer's, made on New Year's day -- the first
+// an hour before the second -- of a deployment where a payer has one free
+// workspace, each holding 200 active assets every day through April.
+func pair(t *testing.T) (world, pdid.Id, pdid.Id) {
+	t.Helper()
+	one := 1
+	w := setup(t, func(c *cmd.Config) { c.Payers.Free = &one })
+	owner := levyantest.Account()
+	a, b := levyantest.Tenant(), levyantest.Tenant()
+	w.At(on(1, 1).Add(3 * time.Hour))
+	w.arrive(a, owner, on(1, 1).Add(time.Hour))
+	w.arrive(b, owner, on(1, 1).Add(2*time.Hour))
+	w.At(on(4, 9))
+	for _, ws := range []pdid.Id{a, b} {
+		w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(4, 9), 200)
+	}
+
+	return w, a, b
 }
 
 // A workspace destroyed is billed for nothing after, for good: its last
@@ -252,9 +423,11 @@ func TestADestroyedWorkspaceIsBilledForNothingAfter(t *testing.T) {
 // What is said of a workspace is put in the order of its moments, never of
 // its coming: the same said again changes nothing, a restore said before the
 // close it follows is the same as one said after it, and a close older than
-// a restore takes its place without undoing it. What is not a moment, a
-// moment ahead of now or before the workspace arrived, a workspace levyan has
-// heard nothing of, and another thing said of a moment kept, are refused.
+// a restore takes its place without undoing it -- so both are restored, and
+// billed as if open all month, where read in the order they came each would
+// be closed still. What is not a moment, a moment ahead of now or before the
+// workspace arrived, a workspace levyan has heard nothing of, and another
+// thing said of a moment kept, are refused.
 func TestWhatIsSaidIsReadInTheOrderOfItsMoments(t *testing.T) {
 	w := setup(t)
 	x := w.X
@@ -298,10 +471,12 @@ func TestWhatIsSaidIsReadInTheOrderOfItsMoments(t *testing.T) {
 	}
 	w.close(on(2, 10))
 
-	// The first as if said in order: (21000/31 - 100) * 50. The second open
-	// for four days and eleven: (15000/31 - 100) * 50.
-	x.Equal(int64(28870), w.statement(early, on(1, 1)).GetTotal())
-	x.Equal(int64(19193), w.statement(older, on(1, 1)).GetTotal())
+	// Each as if said in order: closed and restored, so all the month's
+	// 1000, (1000 - 100) * 50. Read as they came, the first would be closed
+	// from the 11th and the second from the 5th, and billed for ten days and
+	// four.
+	x.Equal(int64(45000), w.statement(early, on(1, 1)).GetTotal())
+	x.Equal(int64(45000), w.statement(older, on(1, 1)).GetTotal())
 }
 
 // What a product says of its workspaces is of its own: another product's
@@ -352,7 +527,9 @@ func TestAnEventOfAnotherProductsWorkspaceIsRefused(t *testing.T) {
 // What is said after the periods it reaches into began to close is late:
 // what they were billed is not changed, and each is corrected on the next
 // statement -- a close said late comes back as less, and a restore said late
-// as more.
+// as more: all of the stretch it ends, which reaches back to the close. A
+// destruction said late of a moment before that restore takes the stretch
+// back again: it ended in the destruction, which is never billed.
 func TestAnEventSaidLateIsACorrection(t *testing.T) {
 	w := setup(t)
 	x := w.X
@@ -401,14 +578,88 @@ func TestAnEventSaidLateIsACorrection(t *testing.T) {
 	w.daily(ws, "loft.assets.active", "{asset}", on(3, 1), on(4, 1), 1000)
 	w.close(on(4, 10))
 
-	// March is open all month, 45000, and February is corrected by its
-	// fourteen days of 1000 out of twenty-eight: (500 - 100) * 50. January
-	// was corrected already, and is not again.
+	// March is open all month, 45000; and the stretch closed from January
+	// 21st, restored, is billed: January corrected back to all of it,
+	// 45000 less the 45000 - 550000/31 it was billed, and February by all
+	// of it, (1000 - 100) * 50, less nothing.
 	mar := w.statement(ws, on(3, 1))
 	x.Equal(map[string]string{
 		"loft.assets.active":                  "45000",
-		"loft.assets.active corrects 2027-02": "20000",
+		"loft.assets.active corrects 2027-01": "17741.935483",
+		"loft.assets.active corrects 2027-02": "45000",
 	}, amounts(mar))
-	x.Equal(int64(65000), mar.GetTotal())
+	x.Equal(int64(107741), mar.GetTotal())
 	x.Equal(int64(-17742), w.statement(ws, on(2, 1)).GetTotal(), "and February's statement is as it was")
+
+	// Destroyed on February 10th, said on April 12th: before the restore,
+	// so the stretch closed from January 21st ended in the destruction, and
+	// is billed for nothing -- January and February taken back again, and
+	// March has nothing of it.
+	w.At(on(4, 12))
+	_, late, err = w.said("destroy", ws, on(2, 10))
+	x.NoError(err)
+	x.True(late, "reaching back to the close it takes back")
+
+	w.At(on(5, 10))
+	w.close(on(5, 10))
+	apr := w.statement(ws, on(4, 1))
+	x.Equal(map[string]string{
+		"loft.assets.active corrects 2027-01": "-17741.935483",
+		"loft.assets.active corrects 2027-02": "-45000",
+		"loft.assets.active corrects 2027-03": "-45000",
+	}, amounts(apr))
+	x.Equal(int64(-107742), apr.GetTotal())
+}
+
+// A destruction said late, of a moment before a restore said already, ends
+// the stretch the restore had ended: what it was closed for is billed for
+// nothing again. It reaches back to the close of that stretch, though the
+// close itself came on time, so each period from there that was billed with
+// the restore is corrected back on the next statement.
+func TestADestructionSaidBeforeARestoreTakesItsStretchBack(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	owner := levyantest.Account()
+	ws := levyantest.Tenant()
+	w.At(on(1, 1))
+	w.arrive(ws, owner, on(1, 1))
+	w.At(on(1, 21))
+	w.say("close", ws, on(1, 21))
+
+	// January: 20 days of 1000, (20000/31 - 100) * 50 = 845000/31.
+	w.At(on(2, 10))
+	w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(2, 1), 1000)
+	w.close(on(2, 10))
+	x.Equal(int64(27258), w.statement(ws, on(1, 1)).GetTotal())
+
+	// Restored on the 15th, said at once: January corrected to all of it.
+	w.At(on(2, 15))
+	_, late, err := w.said("restore", ws, on(2, 15))
+	x.NoError(err)
+	x.True(late)
+	w.At(on(3, 10))
+	w.daily(ws, "loft.assets.active", "{asset}", on(2, 1), on(3, 1), 1000)
+	w.close(on(3, 10))
+	x.Equal(map[string]string{
+		"loft.assets.active":                  "45000",
+		"loft.assets.active corrects 2027-01": "17741.935483",
+	}, amounts(w.statement(ws, on(2, 1))))
+
+	// Destroyed on February 12th, said on March 12th: closed from January
+	// 21st to its destruction, and so billed for none of it -- January back
+	// to its 20 days, and February to nothing.
+	w.At(on(3, 12))
+	_, late, err = w.said("destroy", ws, on(2, 12))
+	x.NoError(err)
+	x.True(late, "reaching back to the close of the stretch the restore had ended")
+	w.At(on(4, 10))
+	w.close(on(4, 10))
+	mar := w.statement(ws, on(3, 1))
+	x.Equal(map[string]string{
+		"loft.assets.active corrects 2027-01": "-17741.935483",
+		"loft.assets.active corrects 2027-02": "-45000",
+	}, amounts(mar))
+	x.Equal(int64(-62742), mar.GetTotal())
+	x.Equal(int64(27258), w.statement(ws, on(1, 1)).GetTotal(), "and what was written is as it was")
 }

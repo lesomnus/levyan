@@ -46,11 +46,54 @@ const RuleName = "payers.grace"
 func (Payerless) Name() string { return RuleName }
 
 func (r Payerless) Want(ctx context.Context, db *ent.Client, product uuid.UUID, now time.Time) ([]grants.Want, error) {
+	return payerless(ctx, db, product, now, grants.Restricted, r.Row.Restricts, func(at time.Time) string {
+		if r.Row.AtOnce {
+			return fmt.Sprintf("%s부터 지불자가 없다", at.UTC().Format(time.RFC3339))
+		}
+		return fmt.Sprintf("%s부터 지불자가 없고, %s이 지났다", at.UTC().Format(time.RFC3339), dunning.Korean(r.Row.Grace))
+	})
+}
+
+// Readonly is the rule that makes a workspace nobody has paid for long
+// enough read-only, the second stage of [Payerless]'s restriction (#11, the
+// owner's, 2026-11-01): as the policy table's row of a workspace with no
+// payer says, sixty days after it last had a payer by default -- from then,
+// as its grace is, which is Claude's -- and never sooner than it is
+// restricted. It wants `<product>.readonly` ON of it ([grants.Readonly])
+// until somebody pays for it again or will from the end of the period, and
+// passes over what [Payerless] does: a workspace that never had a payer, and
+// one destroyed. A rule of its own, by its own name, as an unpaid invoice's
+// second stage is (`dunning.readonly`).
+type Readonly struct {
+	// Row is the table's row of a workspace nobody pays for: when it is
+	// read-only, from when it last had a payer.
+	Row dunning.Row
+}
+
+var _ grants.Rule = Readonly{}
+
+// ReadonlyRule is what its grants say they come from.
+const ReadonlyRule = "payers.readonly"
+
+func (Readonly) Name() string { return ReadonlyRule }
+
+func (r Readonly) Want(ctx context.Context, db *ent.Client, product uuid.UUID, now time.Time) ([]grants.Want, error) {
+	return payerless(ctx, db, product, now, grants.Readonly, r.Row.Readonly, func(at time.Time) string {
+		return fmt.Sprintf("%s부터 지불자가 없고, %s이 지났다", at.UTC().Format(time.RFC3339), dunning.Korean(r.Row.ReadonlyAfter))
+	})
+}
+
+// payerless is the grant of `product`'s key `keyOf` that each of its
+// workspaces nobody has paid for since it last had a payer is wanted to have
+// at `now`, from `from` of when it last had one on, `desc` saying why: of
+// none paid for now or from the end of the period, none that never had a
+// payer, and none destroyed.
+func payerless(ctx context.Context, db *ent.Client, product uuid.UUID, now time.Time, keyOf func(string) (string, error), from func(time.Time) time.Time, desc func(time.Time) string) ([]grants.Want, error) {
 	t, err := db.Tenant.Get(ctx, product)
 	if err != nil {
 		return nil, err
 	}
-	key, err := grants.Restricted(t.Alias)
+	key, err := keyOf(t.Alias)
 	if err != nil {
 		return nil, err
 	}
@@ -84,18 +127,14 @@ func (r Payerless) Want(ctx context.Context, db *ent.Client, product uuid.UUID, 
 
 	var out []grants.Want
 	for ws, at := range since {
-		if paid[ws] || destroyed[ws] || now.Before(r.Row.Restricts(at)) {
+		if paid[ws] || destroyed[ws] || now.Before(from(at)) {
 			continue
-		}
-		desc := fmt.Sprintf("%s부터 지불자가 없다", at.UTC().Format(time.RFC3339))
-		if !r.Row.AtOnce {
-			desc = fmt.Sprintf("%s부터 지불자가 없고, %s이 지났다", at.UTC().Format(time.RFC3339), dunning.Korean(r.Row.Grace))
 		}
 		out = append(out, grants.Want{
 			Workspace: ws,
 			Key:       key,
 			Value:     entitle.On,
-			Desc:      desc,
+			Desc:      desc(at),
 		})
 	}
 

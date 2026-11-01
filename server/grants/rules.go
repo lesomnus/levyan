@@ -64,10 +64,31 @@ type Want struct {
 // flag: its alias, as a key's first word is written, and `.restricted`,
 // `loft.restricted`. Each rule's grant of it is its own, and the workspace is
 // restricted while any is in force.
+//
+// It is the first of a restriction's two stages (#11, the owner's,
+// 2026-11-01): the product stops what would grow what the workspace is billed
+// for, and its everyday work goes on. The second is [Readonly].
 func Restricted(alias string) (string, error) {
-	key := strings.ReplaceAll(alias, "-", "_") + ".restricted"
+	return keyOf(alias, "restricted", "restrict its workspaces by")
+}
+
+// Readonly is the key a product's workspace is made read-only by, the second
+// stage of a restriction, whichever rule makes it so -- a workspace nobody
+// has paid for long enough (`payers.readonly`), an invoice unpaid long
+// enough (`dunning.readonly`): its alias and `.readonly`, `loft.readonly`.
+// The product refuses every write of a workspace given it but reading,
+// exporting and downloading, paying, and closing or leaving it
+// (docs/apps.md). Each rule's grant of it is its own, as of [Restricted],
+// and a rule gives it no sooner than the workspace is restricted.
+func Readonly(alias string) (string, error) {
+	return keyOf(alias, "readonly", "make its workspaces read-only by")
+}
+
+// keyOf is `alias`'s key `word`, as a key's first word is written.
+func keyOf(alias, word, what string) (string, error) {
+	key := strings.ReplaceAll(alias, "-", "_") + "." + word
 	if err := entitle.CheckKey(key); err != nil {
-		return "", fmt.Errorf("grants: a product called %q has no key to restrict its workspaces by: %w", alias, err)
+		return "", fmt.Errorf("grants: a product called %q has no key to %s: %w", alias, what, err)
 	}
 
 	return key, nil

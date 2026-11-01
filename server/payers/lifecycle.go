@@ -21,20 +21,23 @@ import (
 	"github.com/lesomnus/levyan/server/ledger"
 )
 
-// A workspace's life (#14, Claude's): what its product says became of it --
-// closed, restored, destroyed -- each at a moment, kept as a
-// [levyan.WorkspaceEvent] through the stack it is said through, as the
-// product, in a transaction that holds the workspace's row, as the ledger
-// does. What it was at any moment is all of them read in the order of their
-// moments ([rating.Lived]), so each is said once of a moment -- said again it
-// changes nothing -- and one said late takes its place: an older one never
-// undoes what a newer one says.
+// A workspace's life (#14, Claude's; what is billed of it, the owner's,
+// 2026-11-01): what its product says became of it -- closed, restored,
+// destroyed -- each at a moment, kept as a [levyan.WorkspaceEvent] through
+// the stack it is said through, as the product, in a transaction that holds
+// the workspace's row, as the ledger does. What it was at any moment is all
+// of them read in the order of their moments ([rating.Lived]), so each is
+// said once of a moment -- said again it changes nothing -- and one said
+// late takes its place: an older one never undoes what a newer one says.
 //
-//   - **Closed**, a workspace is no customer until it is restored: what it
-//     holds is still sent and kept, and billed for none of that stretch
-//     (`server/billing`). Its payer stays its payer.
-//   - **Restored**, it is billed again from then.
-//   - **Destroyed**, it is no customer from then on, for good: its last
+//   - **Closed**, a workspace is no customer while nothing has restored it:
+//     what it holds is still sent and kept, and billed for none of that
+//     stretch while it is closed still (`server/billing`). Its payer stays
+//     its payer.
+//   - **Restored**, it is billed for the stretch it was closed for, as for
+//     any open time, and from then on.
+//   - **Destroyed**, it is no customer from then on, for good -- nor for the
+//     stretch it was closed for, when it was destroyed closed: its last
 //     reading holds no further, a reading measured from then is refused
 //     (`server/ledger`), each link that would pay for it past then ends
 //     there ([levyan.LinkEnded_LINK_ENDED_DESTROYED]), and what was offered
@@ -43,7 +46,11 @@ import (
 //
 // An event that reaches into a period whose close had begun when it came is
 // late, as a reading can be: what the period was billed is corrected on a
-// later statement, and nothing written is changed.
+// later statement, and nothing written is changed. A restore, or a
+// destruction, reaches back to the close of the stretch it ends
+// ([rating.Reach]): a workspace closed in a period closed since, and restored
+// today, is late, and that period is billed for the stretch on a later
+// statement.
 
 // Said is what came of an event a product said of a workspace.
 type Said struct {
@@ -156,7 +163,14 @@ func (p Payers) say(ctx context.Context, product, key pdid.Id, kind levyan.Works
 			Kind:       kind,
 			HappenedAt: tsOf(at),
 		}.Build()
-		through, late, err := billing.LateThrough(ctx, db, product.Uuid(), at)
+		// Late from what it moves on: of a restore, or a destruction, of a
+		// workspace closed just before it, from that close -- whether what
+		// it was closed for is billed is its end's to say.
+		es, err := billing.Events(ctx, db, product.Uuid(), ws)
+		if err != nil {
+			return err
+		}
+		through, late, err := billing.LateThrough(ctx, db, product.Uuid(), rating.Reach(es, rating.Event{Kind: kind, At: at}))
 		if err != nil {
 			return err
 		}

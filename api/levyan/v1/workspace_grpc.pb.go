@@ -56,8 +56,8 @@ type WorkspaceServiceClient interface {
 	// GetPayer is who pays for a workspace now and next, what is offered, and
 	// since when it has had no payer.
 	GetPayer(ctx context.Context, in *GetPayerRequest, opts ...grpc.CallOption) (*GetPayerResponse, error)
-	// Close says a workspace was closed at `at`: from then until it is
-	// restored it is no customer, and what it holds is billed for none of
+	// Close says a workspace was closed at `at`: from then, while nothing
+	// restores it, it is no customer, and what it holds is billed for none of
 	// that stretch. Its readings are still sent, and kept. Its payer stays its
 	// payer.
 	//
@@ -72,14 +72,18 @@ type WorkspaceServiceClient interface {
 	// a moment one was said of already is refused (FailedPrecondition).
 	Close(ctx context.Context, in *CloseRequest, opts ...grpc.CallOption) (*CloseResponse, error)
 	// Restore says a closed workspace was opened again at `at`: it is billed
-	// again from then, as it was before it was closed.
+	// for the stretch it was closed for, as for any open time, and from then
+	// on as it was before it was closed. What a period closed since its close
+	// was billed without that stretch is corrected on a later statement: a
+	// restore reaches back to the close it ends.
 	Restore(ctx context.Context, in *RestoreRequest, opts ...grpc.CallOption) (*RestoreResponse, error)
 	// Destroy says a workspace was destroyed at `at`, for good: it is billed
-	// for nothing after it, its last reading holds to that moment and no
-	// further, its payer pays for it no longer (`LINK_ENDED_DESTROYED`), and
-	// what was offered of it is withdrawn. A reading measured at `at` or after
-	// is refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of
-	// its moment or after it (FailedPrecondition). Its final reading, measured
+	// for nothing after it -- nor for the stretch it was closed for, if it was
+	// closed -- its last reading holds to that moment and no further, its
+	// payer pays for it no longer (`LINK_ENDED_DESTROYED`), and what was
+	// offered of it is withdrawn. A reading measured at `at` or after is
+	// refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of its
+	// moment or after it (FailedPrecondition). Its final reading, measured
 	// before it went, is sent first.
 	Destroy(ctx context.Context, in *DestroyRequest, opts ...grpc.CallOption) (*DestroyResponse, error)
 	// GetLifecycle is what levyan has been told became of a workspace: what a
@@ -198,8 +202,8 @@ type WorkspaceServiceServer interface {
 	// GetPayer is who pays for a workspace now and next, what is offered, and
 	// since when it has had no payer.
 	GetPayer(context.Context, *GetPayerRequest) (*GetPayerResponse, error)
-	// Close says a workspace was closed at `at`: from then until it is
-	// restored it is no customer, and what it holds is billed for none of
+	// Close says a workspace was closed at `at`: from then, while nothing
+	// restores it, it is no customer, and what it holds is billed for none of
 	// that stretch. Its readings are still sent, and kept. Its payer stays its
 	// payer.
 	//
@@ -214,14 +218,18 @@ type WorkspaceServiceServer interface {
 	// a moment one was said of already is refused (FailedPrecondition).
 	Close(context.Context, *CloseRequest) (*CloseResponse, error)
 	// Restore says a closed workspace was opened again at `at`: it is billed
-	// again from then, as it was before it was closed.
+	// for the stretch it was closed for, as for any open time, and from then
+	// on as it was before it was closed. What a period closed since its close
+	// was billed without that stretch is corrected on a later statement: a
+	// restore reaches back to the close it ends.
 	Restore(context.Context, *RestoreRequest) (*RestoreResponse, error)
 	// Destroy says a workspace was destroyed at `at`, for good: it is billed
-	// for nothing after it, its last reading holds to that moment and no
-	// further, its payer pays for it no longer (`LINK_ENDED_DESTROYED`), and
-	// what was offered of it is withdrawn. A reading measured at `at` or after
-	// is refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of
-	// its moment or after it (FailedPrecondition). Its final reading, measured
+	// for nothing after it -- nor for the stretch it was closed for, if it was
+	// closed -- its last reading holds to that moment and no further, its
+	// payer pays for it no longer (`LINK_ENDED_DESTROYED`), and what was
+	// offered of it is withdrawn. A reading measured at `at` or after is
+	// refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of its
+	// moment or after it (FailedPrecondition). Its final reading, measured
 	// before it went, is sent first.
 	Destroy(context.Context, *DestroyRequest) (*DestroyResponse, error)
 	// GetLifecycle is what levyan has been told became of a workspace: what a

@@ -268,7 +268,7 @@ func printShown(self *xli.Command, v admin.Invoice) {
 		if d.NextRetry != nil {
 			next = d.NextRetry.UTC().Format(time.RFC3339)
 		}
-		self.Printf("  dunning\t%s since %s\tnext retry %s\tgrace ends %s\trestricted from %s\n",
-			d.Kind, d.Failed.UTC().Format(time.RFC3339), next, d.GraceEnds.UTC().Format(time.RFC3339), d.RestrictedFrom.UTC().Format(time.RFC3339))
+		self.Printf("  dunning\t%s since %s\tnext retry %s\tgrace ends %s\trestricted from %s\tread-only from %s\n",
+			d.Kind, d.Failed.UTC().Format(time.RFC3339), next, d.GraceEnds.UTC().Format(time.RFC3339), d.RestrictedFrom.UTC().Format(time.RFC3339), d.ReadonlyFrom.UTC().Format(time.RFC3339))
 	}
 }

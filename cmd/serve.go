@@ -416,20 +416,21 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	s.Spin = append(s.Spin, grants.Renewals(&s.Grants, c.Grants.RenewEvery()))
 
 	// Who pays (#4): through the server with no wall for the deployment's
-	// own work, and a rule of the grants' -- a workspace nobody has paid for
-	// is restricted as the policy table's row of it says.
+	// own work, and two rules of the grants' -- a workspace nobody has paid
+	// for is restricted, and then read-only, as the policy table's row of it
+	// says.
 	s.Payers = payers.Payers{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Payerless: policy.Payerless}
-	s.Grants.Rules = append(s.Grants.Rules, payers.Payerless{Row: policy.Payerless})
+	s.Grants.Rules = append(s.Grants.Rules, payers.Payerless{Row: policy.Payerless}, payers.Readonly{Row: policy.Payerless})
 
 	// What follows a failed charge (#11): the loop that makes the retries the
 	// policy table schedules -- and a charge as soon as a billing account is
 	// collectable again -- and gives up on an invoice that spent its retries
 	// and its grace (`levyan.invoices.dunning`), through the server with no
-	// wall, as the deployment; and a rule of the grants' -- what an invoice
-	// still owed bills is restricted from when the table says -- which that
-	// loop follows each pass too, so that a payment lets a workspace go
-	// within one.
-	s.Grants.Rules = append(s.Grants.Rules, invoices.Restriction{Policy: policy})
+	// wall, as the deployment; and two rules of the grants' -- what an
+	// invoice still owed bills is restricted, and then read-only, from when
+	// the table says -- which that loop follows each pass too, so that a
+	// payment lets a workspace go within one.
+	s.Grants.Rules = append(s.Grants.Rules, invoices.Restriction{Policy: policy}, invoices.Readonly{Policy: policy})
 	s.Spin = append(s.Spin, invoices.Duns(&s.Invoices, &s.Grants, c.Dunning.DunEvery()))
 
 	// The merchant of record (#12): a billing account on its channel

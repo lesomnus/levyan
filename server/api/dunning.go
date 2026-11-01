@@ -28,6 +28,7 @@ func dunningOf(d invoices.Dunned) *levyanv1.Dunning {
 		Failed:         timestamppb.New(d.Failed),
 		GraceEnds:      timestamppb.New(d.GraceEnds),
 		RestrictedFrom: timestamppb.New(d.Restricted),
+		ReadonlyFrom:   timestamppb.New(d.Readonly),
 	}.Build()
 	if !d.Retry.IsZero() {
 		out.SetNextRetry(timestamppb.New(d.Retry))

@@ -35,8 +35,8 @@ service WorkspaceService {
   // since when it has had no payer.
   rpc GetPayer(GetPayerRequest) returns (GetPayerResponse);
 
-  // Close says a workspace was closed at `at`: from then until it is
-  // restored it is no customer, and what it holds is billed for none of
+  // Close says a workspace was closed at `at`: from then, while nothing
+  // restores it, it is no customer, and what it holds is billed for none of
   // that stretch. Its readings are still sent, and kept. Its payer stays its
   // payer.
   //
@@ -52,15 +52,19 @@ service WorkspaceService {
   rpc Close(CloseRequest) returns (CloseResponse);
 
   // Restore says a closed workspace was opened again at `at`: it is billed
-  // again from then, as it was before it was closed.
+  // for the stretch it was closed for, as for any open time, and from then
+  // on as it was before it was closed. What a period closed since its close
+  // was billed without that stretch is corrected on a later statement: a
+  // restore reaches back to the close it ends.
   rpc Restore(RestoreRequest) returns (RestoreResponse);
 
   // Destroy says a workspace was destroyed at `at`, for good: it is billed
-  // for nothing after it, its last reading holds to that moment and no
-  // further, its payer pays for it no longer (`LINK_ENDED_DESTROYED`), and
-  // what was offered of it is withdrawn. A reading measured at `at` or after
-  // is refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of
-  // its moment or after it (FailedPrecondition). Its final reading, measured
+  // for nothing after it -- nor for the stretch it was closed for, if it was
+  // closed -- its last reading holds to that moment and no further, its
+  // payer pays for it no longer (`LINK_ENDED_DESTROYED`), and what was
+  // offered of it is withdrawn. A reading measured at `at` or after is
+  // refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of its
+  // moment or after it (FailedPrecondition). Its final reading, measured
   // before it went, is sent first.
   rpc Destroy(DestroyRequest) returns (DestroyResponse);
 
@@ -128,7 +132,10 @@ message CloseResponse {
 
   // Whether what was said came late: it reaches into a period whose close
   // had begun, so that what the period was billed is corrected on a later
-  // statement. False for what was said before, and changed nothing.
+  // statement. A restore, or a destruction, of a workspace closed reaches
+  // back to the close of the stretch it ends, and is late, however soon it
+  // is said, when that close is in a period whose close had begun. False
+  // for what was said before, and changed nothing.
   bool late = 2;
 }
 
@@ -173,9 +180,9 @@ message GetLifecycleResponse {
 message Lifecycle {
   string workspace = 1;
 
-  // Since when it has been closed, and is billed for nothing; unset while it
-  // is open. A workspace destroyed while closed says the closure it was
-  // destroyed in.
+  // Since when it has been closed, and is billed for nothing while it is;
+  // unset while it is open. A workspace destroyed while closed says the
+  // closure it was destroyed in.
   google.protobuf.Timestamp closed_since = 2;
 
   // When it was destroyed, for good; unset for one that was not.
@@ -197,9 +204,10 @@ message Payer {
   // Since when it has had nobody paying for it, and from when it is
   // restricted for that: as the deployment's policy table says of a
   // workspace with no payer (`dunning.kinds.payerless`) -- thirty days after,
-  // by default, or at once. Unset while it has a payer, for a workspace that
-  // never had one, and for one destroyed, which nobody pays for and nothing
-  // restricts.
+  // by default, or at once -- and from when it is read-only for it, the
+  // second stage (`readonly_from`, below): sixty days after, by default.
+  // Unset while it has a payer, for a workspace that never had one, and for
+  // one destroyed, which nobody pays for and nothing restricts.
   google.protobuf.Timestamp payerless_since = 5;
   google.protobuf.Timestamp restricted_from = 6;
 
@@ -216,6 +224,13 @@ message Payer {
   // next, and from when it restricts the workspace, the one that restricts
   // soonest first. Empty while there is none. Restricted by either -- an
   // invoice, or having no payer -- the workspace is restricted, by one key
-  // (`<product>.restricted`), until neither restricts it.
+  // (`<product>.restricted`), until neither restricts it; and read-only, by
+  // another (`<product>.readonly`), until neither makes it so.
   repeated Dunning dunning = 8;
+
+  // From when it is read-only for having had nobody paying for it, beside
+  // `restricted_from`: as the policy table's row of a workspace with no payer
+  // says, sixty days after `payerless_since` by default, and never sooner
+  // than it is restricted. Unset when `payerless_since` is.
+  google.protobuf.Timestamp readonly_from = 9;
 }

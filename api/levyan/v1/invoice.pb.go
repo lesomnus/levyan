@@ -1077,13 +1077,13 @@ func (b0 Invoice_builder) Build() *Invoice {
 
 // Dunning is what is done of an invoice its channel failed to collect
 // (#11), by the deployment's policy table: a row for each kind of decline --
-// its retries, its grace, and when what the invoice bills is restricted. Each
-// retry is a charge of its own through the same channel, and a charge is made
-// as soon as the billing account is collectable again -- a payer who began a
-// subscription anew, a payment that waited for them made -- whatever the row
-// schedules. Once no retry is left and the grace is over the invoice is
-// `INVOICE_STATE_UNCOLLECTIBLE`, still owed, and paid by the first charge of
-// it that succeeds.
+// its retries, its grace, when what the invoice bills is restricted, and when
+// it is read-only. Each retry is a charge of its own through the same
+// channel, and a charge is made as soon as the billing account is collectable
+// again -- a payer who began a subscription anew, a payment that waited for
+// them made -- whatever the row schedules. Once no retry is left and the
+// grace is over the invoice is `INVOICE_STATE_UNCOLLECTIBLE`, still owed, and
+// paid by the first charge of it that succeeds.
 //
 // Every time here is worked out from the invoice's charges as it is asked,
 // and moves only as they do. It is what a product shows: the payer, what to
@@ -1098,6 +1098,7 @@ type Dunning struct {
 	xxx_hidden_NextRetry      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=next_retry,json=nextRetry"`
 	xxx_hidden_GraceEnds      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=grace_ends,json=graceEnds"`
 	xxx_hidden_RestrictedFrom *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=restricted_from,json=restrictedFrom"`
+	xxx_hidden_ReadonlyFrom   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=readonly_from,json=readonlyFrom"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1176,6 +1177,13 @@ func (x *Dunning) GetRestrictedFrom() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Dunning) GetReadonlyFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_ReadonlyFrom
+	}
+	return nil
+}
+
 func (x *Dunning) SetInvoice(v string) {
 	x.xxx_hidden_Invoice = v
 }
@@ -1202,6 +1210,10 @@ func (x *Dunning) SetGraceEnds(v *timestamppb.Timestamp) {
 
 func (x *Dunning) SetRestrictedFrom(v *timestamppb.Timestamp) {
 	x.xxx_hidden_RestrictedFrom = v
+}
+
+func (x *Dunning) SetReadonlyFrom(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ReadonlyFrom = v
 }
 
 func (x *Dunning) HasFailed() bool {
@@ -1232,6 +1244,13 @@ func (x *Dunning) HasRestrictedFrom() bool {
 	return x.xxx_hidden_RestrictedFrom != nil
 }
 
+func (x *Dunning) HasReadonlyFrom() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ReadonlyFrom != nil
+}
+
 func (x *Dunning) ClearFailed() {
 	x.xxx_hidden_Failed = nil
 }
@@ -1246,6 +1265,10 @@ func (x *Dunning) ClearGraceEnds() {
 
 func (x *Dunning) ClearRestrictedFrom() {
 	x.xxx_hidden_RestrictedFrom = nil
+}
+
+func (x *Dunning) ClearReadonlyFrom() {
+	x.xxx_hidden_ReadonlyFrom = nil
 }
 
 type Dunning_builder struct {
@@ -1273,6 +1296,11 @@ type Dunning_builder struct {
 	// is paid.
 	GraceEnds      *timestamppb.Timestamp
 	RestrictedFrom *timestamppb.Timestamp
+	// From when what it bills is read-only (`<product>.readonly`), the second
+	// stage of its restriction: sixty days after its first failure, by
+	// default, and never sooner than `restricted_from`. It is read-only from
+	// then until it is paid, when both stages end at once.
+	ReadonlyFrom *timestamppb.Timestamp
 }
 
 func (b0 Dunning_builder) Build() *Dunning {
@@ -1286,6 +1314,7 @@ func (b0 Dunning_builder) Build() *Dunning {
 	x.xxx_hidden_NextRetry = b.NextRetry
 	x.xxx_hidden_GraceEnds = b.GraceEnds
 	x.xxx_hidden_RestrictedFrom = b.RestrictedFrom
+	x.xxx_hidden_ReadonlyFrom = b.ReadonlyFrom
 	return m0
 }
 
@@ -1680,7 +1709,7 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\bdue_date\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\adueDate\x124\n" +
 	"\asettled\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\asettled\x12%\n" +
 	"\x0echannel_number\x18\x14 \x01(\tR\rchannelNumber\x12,\n" +
-	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\"\xe7\x02\n" +
+	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\"\xa8\x03\n" +
 	"\aDunning\x12\x18\n" +
 	"\ainvoice\x18\x01 \x01(\tR\ainvoice\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12*\n" +
@@ -1690,7 +1719,8 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"next_retry\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tnextRetry\x129\n" +
 	"\n" +
 	"grace_ends\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tgraceEnds\x12C\n" +
-	"\x0frestricted_from\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\"\xa0\x01\n" +
+	"\x0frestricted_from\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\x12?\n" +
+	"\rreadonly_from\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\freadonlyFrom\"\xa0\x01\n" +
 	"\vInvoiceLine\x12\x1c\n" +
 	"\tstatement\x18\x01 \x01(\tR\tstatement\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x14\n" +
@@ -1770,14 +1800,15 @@ var file_levyan_v1_invoice_proto_depIdxs = []int32{
 	13, // 15: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
 	13, // 16: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
 	13, // 17: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
-	15, // 18: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
-	2,  // 19: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
-	13, // 20: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	13, // 18: levyan.v1.Dunning.readonly_from:type_name -> google.protobuf.Timestamp
+	15, // 19: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
+	2,  // 20: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
+	13, // 21: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_invoice_proto_init() }

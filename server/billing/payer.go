@@ -45,11 +45,13 @@ type Payer struct {
 // account, or stops and pays again, keeps its place. A workspace is counted
 // once, under the one payer of its period, whoever else owns it.
 //
-// A workspace away for the whole of the period -- closed through it, or
-// destroyed before it -- is none of what its payer paid for over it (#14,
-// Claude's): its place passes to the next, and it keeps its allowances
-// itself, should anything of it come to be rated for the period (when in
-// doubt, less). One closed for some of the period is counted.
+// A workspace away for the whole of the period -- closed through it and not
+// restored, or destroyed before it -- is none of what its payer paid for
+// over it (#14, Claude's): its place passes to the next, and it keeps its
+// allowances itself, should anything of it come to be rated for the period
+// (when in doubt, less). One closed for some of the period is counted, and
+// so is one closed through it and restored since, which is billed for it as
+// for any open time (the owner's, 2026-11-01).
 func (r Rater) PayerOf(ctx context.Context, product, ws uuid.UUID, p rating.Period) (Payer, error) {
 	ls, err := r.Db.Link.Query().
 		Where(

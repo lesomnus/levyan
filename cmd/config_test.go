@@ -205,10 +205,10 @@ mor:
 }
 
 // The policy table of what is done after a payment fails (#11) is the
-// defaults where `dunning.kinds` says nothing -- Claude's, provisional -- and
-// what it says row by row, field by field, over them: `other` over what
+// defaults where `dunning.kinds` says nothing -- the owner's, 2026-11-01 --
+// and what it says row by row, field by field, over them: `other` over what
 // `temporary` came to, and a workspace nobody pays for as `payers.grace` was.
-// From the file or the environment.
+// From the file or the environment, the second stage of a restriction too.
 func TestTheDunningTableIsTheDefaultsAndWhatTheConfigurationSays(t *testing.T) {
 	x := require.New(t)
 	day := 24 * time.Hour
@@ -225,48 +225,55 @@ func TestTheDunningTableIsTheDefaultsAndWhatTheConfigurationSays(t *testing.T) {
 dunning:
   every: 5m
   kinds:
-    temporary: {retries: [12h, 36h], grace: 96h}
-    replace: {restrict: at_once}
+    temporary: {retries: [12h, 36h], grace: 96h, readonly_after: 720h}
+    replace: {restrict: at_once, readonly_after: 24h}
     fraud: {grace: 24h, restrict: after_grace}
-    payerless: {grace: 240h, restrict: AT_ONCE}
-`, "LEVYAN_DUNNING_KINDS_REPLACE_RETRIES=24h,48h")
+    payerless: {grace: 240h, restrict: AT_ONCE, readonly_after: 480h}
+`, "LEVYAN_DUNNING_KINDS_REPLACE_RETRIES=24h,48h", "LEVYAN_DUNNING_KINDS_FRAUD_READONLY_AFTER=168h")
 	x.NoError(err)
 	p, err = c.Dunning.Policy()
 	x.NoError(err)
 	x.Equal(5*time.Minute, c.Dunning.DunEvery())
-	x.Equal(dunning.Row{Retries: []time.Duration{12 * time.Hour, 36 * time.Hour}, Grace: 96 * time.Hour}, p.Temporary)
-	x.Equal(dunning.Row{Retries: []time.Duration{day, 2 * day}, Grace: 7 * day, AtOnce: true}, p.Replace, "from the environment, and the file")
-	x.Equal(dunning.Row{Grace: day}, p.Fraud)
+	x.Equal(dunning.Row{Retries: []time.Duration{12 * time.Hour, 36 * time.Hour}, Grace: 96 * time.Hour, ReadonlyAfter: 30 * day}, p.Temporary)
+	x.Equal(dunning.Row{Retries: []time.Duration{day, 2 * day}, Grace: 14 * day, AtOnce: true, ReadonlyAfter: day}, p.Replace, "from the environment, and the file: read-only a day after, restricted at once")
+	x.Equal(dunning.Row{Grace: day, ReadonlyAfter: 7 * day}, p.Fraud)
 	x.Equal(p.Temporary, p.Other, "what other leaves out is what temporary came to")
-	x.Equal(dunning.Row{Grace: 10 * day, AtOnce: true}, p.Payerless)
+	x.Equal(dunning.Row{Grace: 10 * day, AtOnce: true, ReadonlyAfter: 20 * day}, p.Payerless)
 
 	c, err = load(t, "dunning: {kinds: {temporary: {grace: 48h}, other: {retries: []}}}\n")
 	x.NoError(err)
 	p, err = c.Dunning.Policy()
 	x.NoError(err)
 	x.Equal(dunning.Defaults().Temporary.Retries, p.Temporary.Retries)
-	x.Equal(dunning.Row{Grace: 2 * day}, p.Other, "none, said; the rest as temporary")
+	x.Equal(dunning.Row{Grace: 2 * day, ReadonlyAfter: 60 * day}, p.Other, "none, said; the rest as temporary")
 }
 
 // A table that says no schedule is refused as it is read, where it is
 // written: a retry not after the failure or not after the one before it, a
-// grace less than nothing, a restriction that is neither after the grace nor
-// at once, a kind there is no row of -- and retries of a workspace nobody
+// grace or a second stage less than nothing, a restriction that is neither
+// after the grace nor at once, a kind there is no row of, a row read-only
+// sooner than it is restricted -- what it says with its defaults, of
+// `other` with what `temporary` came to -- and retries of a workspace nobody
 // pays for, which nothing is charged of. `payers.grace` is the table's row
 // now. And Build refuses a table made in code before it opens anything.
 func TestADunningTableThatSaysNoScheduleIsRefused(t *testing.T) {
 	x := require.New(t)
 
 	for yaml, says := range map[string][]string{
-		"dunning:\n  kinds:\n    temporary:\n      retries: [72h, 24h]": {"levyan.yaml:4:", "dunning.kinds.temporary.retries: 24h0m0s is no later than the retry before it, 72h0m0s"},
-		"dunning:\n  kinds:\n    other:\n      retries: [0s]":           {"levyan.yaml:4:", "dunning.kinds.other.retries: 0s is no time after the failure"},
-		"dunning:\n  kinds:\n    replace:\n      grace: -1h":            {"levyan.yaml:4:", "dunning.kinds.replace.grace: -1h0m0s is less than nothing"},
-		"dunning:\n  kinds:\n    replace:\n      grace: soon":           {"levyan.yaml:4:", "dunning.kinds.replace.grace", `"soon"`},
-		"dunning:\n  kinds:\n    fraud:\n      restrict: never":         {"levyan.yaml:4:", `dunning.kinds.fraud.restrict: "never" is neither after_grace nor at_once`},
-		"dunning:\n  kinds:\n    payerless:\n      restrict: later":     {"levyan.yaml:4:", `dunning.kinds.payerless.restrict: "later" is neither`},
-		"dunning:\n  kinds:\n    fruad: {grace: 0s}":                    {"levyan.yaml:3:", "fruad", `"fraud"`},
-		"dunning:\n  kinds:\n    payerless:\n      retries: [24h]":      {"levyan.yaml:4:", "retries"},
-		"payers:\n  grace: 720h":                                        {"levyan.yaml:2:", "grace"},
+		"dunning:\n  kinds:\n    temporary:\n      retries: [72h, 24h]":  {"levyan.yaml:4:", "dunning.kinds.temporary.retries: 24h0m0s is no later than the retry before it, 72h0m0s"},
+		"dunning:\n  kinds:\n    other:\n      retries: [0s]":            {"levyan.yaml:4:", "dunning.kinds.other.retries: 0s is no time after the failure"},
+		"dunning:\n  kinds:\n    replace:\n      grace: -1h":             {"levyan.yaml:4:", "dunning.kinds.replace.grace: -1h0m0s is less than nothing"},
+		"dunning:\n  kinds:\n    replace:\n      grace: soon":            {"levyan.yaml:4:", "dunning.kinds.replace.grace", `"soon"`},
+		"dunning:\n  kinds:\n    fraud:\n      restrict: never":          {"levyan.yaml:4:", `dunning.kinds.fraud.restrict: "never" is neither after_grace nor at_once`},
+		"dunning:\n  kinds:\n    payerless:\n      restrict: later":      {"levyan.yaml:4:", `dunning.kinds.payerless.restrict: "later" is neither`},
+		"dunning:\n  kinds:\n    fruad: {grace: 0s}":                     {"levyan.yaml:3:", "fruad", `"fraud"`},
+		"dunning:\n  kinds:\n    payerless:\n      retries: [24h]":       {"levyan.yaml:4:", "retries"},
+		"payers:\n  grace: 720h":                                         {"levyan.yaml:2:", "grace"},
+		"dunning:\n  kinds:\n    temporary:\n      readonly_after: -1h":  {"levyan.yaml:4:", "dunning.kinds.temporary.readonly_after: -1h0m0s is less than nothing"},
+		"dunning:\n  kinds:\n    replace:\n      readonly_after: 100h":   {"dunning.kinds: replace: readonly_after: 100h0m0s is sooner than the restriction, 336h0m0s after the failure"},
+		"dunning:\n  kinds:\n    temporary:\n      grace: 2000h":         {"dunning.kinds: temporary: readonly_after: 1440h0m0s is sooner than the restriction, 2000h0m0s after the failure"},
+		"dunning:\n  kinds:\n    other:\n      grace: 1500h":             {"dunning.kinds: other: readonly_after: 1440h0m0s is sooner than the restriction, 1500h0m0s after the failure"},
+		"dunning:\n  kinds:\n    payerless:\n      readonly_after: 100h": {"dunning.kinds: payerless: readonly_after: 100h0m0s is sooner than the restriction, 720h0m0s after the failure"},
 	} {
 		_, err := load(t, yaml+"\n")
 		x.Error(err, yaml)
@@ -277,12 +284,17 @@ func TestADunningTableThatSaysNoScheduleIsRefused(t *testing.T) {
 
 	_, err := load(t, "{}\n", "LEVYAN_DUNNING_KINDS_TEMPORARY_RETRIES=24h,12h")
 	x.ErrorContains(err, "LEVYAN_DUNNING_KINDS_TEMPORARY_RETRIES: 12h0m0s is no later than the retry before it, 24h0m0s", "said where it was said")
+	_, err = load(t, "{}\n", "LEVYAN_DUNNING_KINDS_TEMPORARY_READONLY_AFTER=24h")
+	x.ErrorContains(err, "temporary: readonly_after: 24h0m0s is sooner than the restriction, 336h0m0s after the failure")
 
 	// Made in code, not loaded: refused all the same, before the database,
 	// which is named nowhere here.
 	back := cmd.Retries{cmd.Span(48 * time.Hour), cmd.Span(24 * time.Hour)}
 	_, err = cmd.Build(t.Context(), cmd.Config{Dunning: cmd.DunningConfig{Kinds: cmd.DunningKinds{Temporary: cmd.DunningKind{Retries: &back}}}})
 	x.ErrorContains(err, "dunning.kinds.temporary: retries: 24h0m0s is no later than the retry before it, 48h0m0s")
+	soon := cmd.Span(24 * time.Hour)
+	_, err = cmd.Build(t.Context(), cmd.Config{Dunning: cmd.DunningConfig{Kinds: cmd.DunningKinds{Fraud: cmd.DunningKind{ReadonlyAfter: &soon, Restrict: "after_grace", Grace: new(cmd.Span(48 * time.Hour))}}}})
+	x.ErrorContains(err, "dunning.kinds.fraud: readonly_after: 24h0m0s is sooner than the restriction, 48h0m0s after the failure")
 }
 
 // How the loop `levyan.reconcile` holds levyan to its channels is said in

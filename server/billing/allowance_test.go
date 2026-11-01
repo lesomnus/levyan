@@ -70,7 +70,7 @@ func TestAnAllowanceInForceForAWholePeriod(t *testing.T) {
 	x.Equal(int64(100), l.GetParts()[0].GetIncluded())
 	x.Equal(int64(500), l.GetParts()[0].GetAllowance())
 	x.Equal([]string{a.String()}, l.GetParts()[0].GetAllowances())
-	x.Equal(uint32(4), w.row(ws, on(1, 1)).Rating)
+	x.GreaterOrEqual(w.row(ws, on(1, 1)).Rating, uint32(4), "rated by the rules that give allowances, 4 and on")
 
 	// A workspace given nothing is rated as it was.
 	other := levyantest.Tenant()

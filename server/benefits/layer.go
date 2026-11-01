@@ -31,9 +31,14 @@ import (
 //     close has begun -- and who ended it and why, beside.
 //   - Apply is refused: a document is held to none of this.
 //
+// A pool (#43) is held to the same, but that it always expires -- after it
+// is in force from -- and that an end moves its expiry, no earlier than the
+// end of the last period whose close has begun: a period is taken from by a
+// pool in force at any moment of it.
+//
 // What a period was billed is what it was given then, so that a period
 // closed and rated again for its correction is given the same: hence no
-// allowance reaches into one. The rule is read on the transaction the write
+// allowance or pool reaches into one. The rule is read on the transaction the write
 // is made in, and [Allowances] holds the workspace's row first, as a close
 // of it does (`ledger.Lock`), so that a close and an allowance never both
 // take the other to have come first.
@@ -98,25 +103,8 @@ func (s layerAllowance) admit(ctx context.Context, req *levyan.AllowanceAddReque
 		return nil, pderr.Invalidf("ended_by", "an allowance is given before it is ended")
 	}
 
-	m, err := s.Next().Meter().Get(ctx, levyan.MeterGetRequest_builder{
-		Ref:    req.GetMeter(),
-		Select: levyan.MeterSelect_builder{UnboundedZero: proto.Bool(true), Key: proto.Bool(true)}.Build(),
-	}.Build())
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return nil, pderr.Invalidf("meter", "no such meter")
-		}
+	if err := s.byTheUnit(ctx, req.GetMeter()); err != nil {
 		return nil, err
-	}
-	if m.GetUnboundedZero() {
-		return nil, status.Errorf(codes.FailedPrecondition, "%s is priced by bands, whose 0 is above every bound: a band's fee includes nothing to give more of, and a credit is what is given there", m.GetKey())
-	}
-	banded, err := s.banded(ctx, m.GetId())
-	if err != nil {
-		return nil, err
-	}
-	if banded {
-		return nil, status.Errorf(codes.FailedPrecondition, "%s is priced by bands: a band's fee includes nothing to give more of, and a credit is what is given there", m.GetKey())
 	}
 
 	// To the microsecond, which is what PostgreSQL keeps of a time.
@@ -141,8 +129,37 @@ func (s layerAllowance) admit(ctx context.Context, req *levyan.AllowanceAddReque
 	return req, nil
 }
 
+// byTheUnit refuses meter `ref` unless it is priced by the unit: no version
+// of its price is by bands, nor is it a meter whose 0 is unbounded, which
+// only bands price. A band's fee is for a value held, and has nothing
+// included to give more of, nor anything billable to take from a pool.
+func (s Layer) byTheUnit(ctx context.Context, ref *levyan.MeterRef) error {
+	m, err := s.Next().Meter().Get(ctx, levyan.MeterGetRequest_builder{
+		Ref:    ref,
+		Select: levyan.MeterSelect_builder{UnboundedZero: proto.Bool(true), Key: proto.Bool(true)}.Build(),
+	}.Build())
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return pderr.Invalidf("meter", "no such meter")
+		}
+		return err
+	}
+	if m.GetUnboundedZero() {
+		return status.Errorf(codes.FailedPrecondition, "%s is priced by bands, whose 0 is above every bound: a band's fee includes nothing to give more of, and a credit is what is given there", m.GetKey())
+	}
+	banded, err := s.banded(ctx, m.GetId())
+	if err != nil {
+		return err
+	}
+	if banded {
+		return status.Errorf(codes.FailedPrecondition, "%s is priced by bands: a band's fee includes nothing to give more of, and a credit is what is given there", m.GetKey())
+	}
+
+	return nil
+}
+
 // banded says whether a version of the price of meter `id` is by bands.
-func (s layerAllowance) banded(ctx context.Context, id []byte) (bool, error) {
+func (s Layer) banded(ctx context.Context, id []byte) (bool, error) {
 	after := ""
 	for {
 		vs, err := s.Next().Price().List(ctx, levyan.PriceListRequest_builder{
@@ -253,4 +270,100 @@ func (s layerAllowance) Patch(ctx context.Context, req *levyan.AllowancePatchReq
 
 func (s layerAllowance) Apply(ctx context.Context, req *levyan.AllowanceApplyRequest) (*levyan.Allowance, error) {
 	return nil, status.Error(codes.FailedPrecondition, "an allowance is ended by its Patch, which holds what it may be, and never by a document")
+}
+
+type layerPool struct {
+	Layer
+	levyan.PoolServiceServer
+}
+
+func (s Layer) Pool() levyan.PoolServiceServer {
+	v := layerPool{s, s.Next().Pool()}
+	v.PoolServiceServer = bare.PoolWithAddRule(v.PoolServiceServer, v.admit)
+	return v
+}
+
+func (s layerPool) admit(ctx context.Context, req *levyan.PoolAddRequest) (*levyan.PoolAddRequest, error) {
+	switch {
+	case req.GetWorkspace() == nil:
+		return nil, pderr.Invalidf("workspace", "a pool is given to a workspace")
+	case req.GetMeter() == nil:
+		return nil, pderr.Invalidf("meter", "a pool is a bundle of a meter")
+	case req.GetQuantity() <= 0:
+		return nil, pderr.Invalidf("quantity", "a pool holds more than nothing")
+	case !req.HasDateExpires():
+		return nil, pderr.Invalidf("date_expires", "every pool expires")
+	case req.GetEndedBy() != nil || req.GetEndReason() != "":
+		return nil, pderr.Invalidf("ended_by", "a pool is given before it is ended")
+	}
+	if err := s.byTheUnit(ctx, req.GetMeter()); err != nil {
+		return nil, err
+	}
+
+	req = proto.CloneOf(req)
+	from := s.now().UTC().Truncate(time.Microsecond)
+	if req.HasValidFrom() {
+		from = req.GetValidFrom().AsTime().UTC().Truncate(time.Microsecond)
+	}
+	req.SetValidFrom(timestamppb.New(from))
+	expires := req.GetDateExpires().AsTime().UTC().Truncate(time.Microsecond)
+	if !expires.After(from) {
+		return nil, pderr.Invalidf("date_expires", "a pool expires after it is in force from")
+	}
+	req.SetDateExpires(timestamppb.New(expires))
+
+	if err := s.unclosed(ctx, req.GetTenant().GetId(), from, "valid_from"); err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// Patch is a pool ended: its expiry moved to a moment no later than it was,
+// no earlier than it is in force from, and in no period whose close has
+// begun; and nothing else of it but who ended it and why.
+func (s layerPool) Patch(ctx context.Context, req *levyan.PoolPatchRequest) (*levyan.Pool, error) {
+	rest := proto.CloneOf(req)
+	rest.ClearRef()
+	rest.ClearDateUpdated()
+	rest.ClearDateUpdatedForce()
+	rest.ClearDateExpires()
+	rest.ClearEndedBy()
+	rest.ClearEndReason()
+	switch {
+	case proto.Size(rest) > 0:
+		return nil, status.Error(codes.FailedPrecondition, "a pool is what it was given as: only its expiry moves, as it is ended")
+	case !req.HasDateExpires():
+		return nil, pderr.Invalidf("date_expires", "a pool is ended at a moment")
+	}
+
+	was, err := s.Next().Pool().Get(ctx, levyan.PoolGetRequest_builder{
+		Ref: req.GetRef(),
+		Select: levyan.PoolSelect_builder{
+			All:    proto.Bool(true),
+			Tenant: &levyan.TenantSelect{},
+		}.Build(),
+	}.Build())
+	if err != nil {
+		return nil, err
+	}
+
+	expires := req.GetDateExpires().AsTime().UTC().Truncate(time.Microsecond)
+	switch {
+	case expires.Before(was.GetValidFrom().AsTime()):
+		return nil, pderr.Invalidf("date_expires", "a pool expires no earlier than it is in force from")
+	case expires.After(was.GetDateExpires().AsTime()):
+		return nil, status.Error(codes.FailedPrecondition, "a pool's expiry moves no later: another is given for longer")
+	}
+	if err := s.unclosed(ctx, was.GetTenant().GetId(), expires, "date_expires"); err != nil {
+		return nil, err
+	}
+
+	req = proto.CloneOf(req)
+	req.SetDateExpires(timestamppb.New(expires))
+	return s.PoolServiceServer.Patch(ctx, req)
+}
+
+func (s layerPool) Apply(ctx context.Context, req *levyan.PoolApplyRequest) (*levyan.Pool, error) {
+	return nil, status.Error(codes.FailedPrecondition, "a pool is ended by its Patch, which holds what it may be, and never by a document")
 }

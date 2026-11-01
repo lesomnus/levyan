@@ -25,6 +25,12 @@ func Line(l rating.Line) *levyan.StatementLine {
 	if l.Allowance != nil && l.Allowance.Sign() != 0 {
 		out.SetAllowance(fraction(l.Allowance))
 	}
+	if l.Pooled != nil && l.Pooled.Sign() != 0 {
+		out.SetPooled(fraction(l.Pooled))
+	}
+	for _, t := range l.Takes {
+		out.SetPools(append(out.GetPools(), levyan.StatementPool_builder{Pool: t.Pool.Bytes(), Taken: fraction(t.Quantity)}.Build()))
+	}
 
 	for _, p := range l.Parts {
 		part := levyan.StatementPart_builder{
@@ -39,6 +45,9 @@ func Line(l rating.Line) *levyan.StatementLine {
 		}.Build()
 		for _, a := range p.Allowances {
 			part.SetAllowances(append(part.GetAllowances(), a.Bytes()))
+		}
+		if p.Pooled != nil && p.Pooled.Sign() != 0 {
+			part.SetPooled(fraction(p.Pooled))
 		}
 		for _, b := range p.Bands {
 			band := levyan.StatementBand_builder{Fee: b.Fee, Share: fraction(b.Share), Amount: fraction(b.Amount)}.Build()

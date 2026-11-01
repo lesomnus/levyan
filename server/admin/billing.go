@@ -55,8 +55,13 @@ type Line struct {
 	Included string     `json:"included"`
 	Billable string     `json:"billable"`
 	Amount   string     `json:"amount"`
-	Billed   string     `json:"billed,omitempty"`
-	Prices   []string   `json:"prices,omitempty"`
+
+	// What of included the workspace's allowances gave, and what of billable
+	// its pools took (#43): empty for none.
+	Allowance string   `json:"allowance,omitempty"`
+	Pooled    string   `json:"pooled,omitempty"`
+	Billed    string   `json:"billed,omitempty"`
+	Prices    []string `json:"prices,omitempty"`
 }
 
 func periodOf(v *ent.Period) Period {
@@ -77,6 +82,7 @@ func statementOf(v *ent.Statement, ws pdid.Id, lines bool) Statement {
 		line := Line{
 			Meter: l.GetKey(), Unit: l.GetUnit(), Kind: named(l.GetKind().String(), "LINE_KIND_"),
 			Usage: l.GetUsage(), Included: l.GetIncluded(), Billable: l.GetBillable(), Amount: l.GetAmount(),
+			Allowance: l.GetAllowance(), Pooled: l.GetPooled(),
 		}
 		if l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION {
 			at := l.GetCorrectsStart().AsTime()

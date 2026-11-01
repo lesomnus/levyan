@@ -133,3 +133,51 @@ func TestAnOperatorGivesAllowancesAndGrantsCredit(t *testing.T) {
 	code, _ = d.ask("", http.MethodGet, "/admin/products/loft/credits", nil)
 	x.Equal(http.StatusUnauthorized, code)
 }
+
+// An operator gives a workspace a bundle of a meter, lists it with what is
+// left of it, and ends it, saying why; the trail says who (#43).
+func TestAnOperatorGivesPools(t *testing.T) {
+	x := require.New(t)
+	d := open(t, map[string]string{"alice": aliceKey, "bob": bobKey})
+	loft := d.w.Product("loft")
+	d.w.Meter(loft, "loft.assets.active", "{asset}", levyan.MeterKind_METER_KIND_STOCK, levyan.Aggregation_AGGREGATION_TIME_WEIGHTED_AVERAGE)
+	ws := levyantest.Tenant().String()
+
+	var p admin.Pool
+	d.as(aliceKey, http.MethodPost, "/admin/products/loft/pools", map[string]any{
+		"workspace": ws, "meter": "loft.assets.active", "quantity": 10000, "reason": "자산·월 10,000",
+	}, &p)
+	x.Equal(ws, p.Workspace)
+	x.Equal("loft.assets.active", p.Meter)
+	x.Equal(int64(10000), p.Granted)
+	x.Equal("10000", p.Left)
+	x.WithinDuration(time.Now().AddDate(1, 0, 0), p.Expires, time.Minute, "a year, unless said")
+	x.Equal("alice", p.GrantedBy)
+	x.Equal(d.operator("alice"), d.actorOf(p.Id))
+
+	for _, body := range []map[string]any{
+		{"workspace": ws, "meter": "loft.assets.active", "quantity": 5},
+		{"workspace": ws, "meter": "loft.assets.active", "quantity": 0, "reason": "x"},
+		{"workspace": ws, "meter": "loft.assets.active", "quantity": 5, "reason": "x", "expires": time.Now().Add(-time.Hour)},
+	} {
+		code, b := d.ask(aliceKey, http.MethodPost, "/admin/products/loft/pools", body)
+		x.Equal(http.StatusBadRequest, code, "%v: %s", body, b)
+	}
+
+	var vs []admin.Pool
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/pools?workspace="+ws, nil, &vs)
+	x.Len(vs, 1)
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/pools?workspace="+levyantest.Tenant().String(), nil, &vs)
+	x.Empty(vs)
+
+	var ended admin.Pool
+	d.as(bobKey, http.MethodPost, "/admin/pools/"+p.Id+"/expire", map[string]string{"reason": "종료"}, &ended)
+	x.Equal("bob", ended.EndedBy)
+	x.False(ended.Expires.After(time.Now()), "from the start of the period now open")
+	code, _ := d.ask(bobKey, http.MethodPost, "/admin/pools/"+p.Id+"/expire", map[string]string{"reason": "again"})
+	x.Equal(http.StatusConflict, code)
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/pools", nil, &vs)
+	x.Empty(vs, "expired")
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/pools?all=true", nil, &vs)
+	x.Len(vs, 1)
+}

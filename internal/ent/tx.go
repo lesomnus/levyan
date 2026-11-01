@@ -62,6 +62,8 @@ type Tx struct {
 	Period *PeriodClient
 	// Point is the client for interacting with the Point builders.
 	Point *PointClient
+	// Pool is the client for interacting with the Pool builders.
+	Pool *PoolClient
 	// Price is the client for interacting with the Price builders.
 	Price *PriceClient
 	// Reading is the client for interacting with the Reading builders.
@@ -238,6 +240,7 @@ func (tx *Tx) init() {
 	tx.PaymentAttempt = NewPaymentAttemptClient(tx.config)
 	tx.Period = NewPeriodClient(tx.config)
 	tx.Point = NewPointClient(tx.config)
+	tx.Pool = NewPoolClient(tx.config)
 	tx.Price = NewPriceClient(tx.config)
 	tx.Reading = NewReadingClient(tx.config)
 	tx.RowSeal = NewRowSealClient(tx.config)

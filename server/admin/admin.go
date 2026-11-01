@@ -3,8 +3,8 @@
 // revokes its keys, writes its meters, publishes its prices, asks which was in
 // force when and which are missing -- what it asks of the ledger -- which
 // workspaces have stopped sending readings -- what it grants a workspace by
-// hand, what it gives them beyond their prices -- allowances and credit
-// (#43) -- what it does to invoices -- voids one, writes a credit note
+// hand, what it gives them beyond their prices -- allowances, pools and
+// credit (#43) -- what it does to invoices -- voids one, writes a credit note
 // against one, records a transfer for one -- and what it does of what reconciliation
 // found (#13) -- makes a pass now, accepts a finding, gives back what a key
 // was charged twice, settles an attempt from what its channel answers,
@@ -188,6 +188,9 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("GET /admin/products/{product}/allowances", a.allowances)
 	api.HandleFunc("POST /admin/products/{product}/allowances", a.giveAllowance)
 	api.HandleFunc("POST /admin/allowances/{id}/end", a.endAllowance)
+	api.HandleFunc("GET /admin/products/{product}/pools", a.pools)
+	api.HandleFunc("POST /admin/products/{product}/pools", a.grantPool)
+	api.HandleFunc("POST /admin/pools/{id}/expire", a.expirePool)
 	api.HandleFunc("GET /admin/products/{product}/credits", a.credits)
 	api.HandleFunc("POST /admin/products/{product}/credits", a.grantCredit)
 	api.HandleFunc("POST /admin/credits/{id}/expire", a.expireCredit)

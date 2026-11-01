@@ -73,6 +73,37 @@ message Usage {
   // allowance in force at any moment of the period, by when each begins:
   // what each line's `allowance` is of.
   repeated Allowance allowances = 8;
+
+  // The workspace's pools this period takes from -- each in force at any
+  // moment of it -- the soonest to expire first, each with what is left of
+  // it after the periods closed: what each line's `pools` takes of.
+  repeated Pool pools = 9;
+}
+
+// Pool is a bundle of a meter a workspace is given -- "자산·월 10,000" of a
+// time-weighted stock, bytes of a flow -- in the meter's unit for a period,
+// which an operator gives it. What its periods are billable for past what is
+// included is taken out of it first, the soonest to expire first, and only
+// the rest is priced. A period is taken from by every pool in force at any
+// moment of it, for the whole of what it is billable for, as far as the pool
+// goes; and what it took stays taken, a correction of the period taking what
+// it takes then of what the others left.
+message Pool {
+  // Its identifier, as text: what a line's `pools` name it by.
+  string id = 1;
+
+  // The meter it is a bundle of, by its key.
+  string meter = 2;
+
+  // How much it held, and how much is left of it after every period closed
+  // took of it: the period now open takes of what is left.
+  int64 granted = 3;
+  string left = 4;
+
+  // In force from `from`; no period that begins from `expires` on takes
+  // from it.
+  google.protobuf.Timestamp from = 5;
+  google.protobuf.Timestamp expires = 6;
 }
 
 // Allowance is more of a meter a workspace is given for nothing each period,
@@ -203,6 +234,21 @@ message Line {
   // prices include, each part weighed by its share of the period: "프로모션
   // 무료량 +500". Zero when none was in force.
   string allowance = 12;
+
+  // What of `billable` the workspace's pools took, and of which, the soonest
+  // to expire first: what is priced is what is billable past it. Zero, and
+  // none, when nothing was taken. For a correction, what the period it
+  // corrects takes now.
+  string pooled = 13;
+  repeated LinePool pools = 14;
+}
+
+// LinePool is what one pool was taken of for a line, in the meter's unit for
+// a period.
+message LinePool {
+  // The pool, by its identifier as `Usage.pools` says it.
+  string pool = 1;
+  string taken = 2;
 }
 
 // Stretch is a stretch of time, from `from` to the moment before `to`.
@@ -248,6 +294,11 @@ message LinePart {
   // where an allowance begins or ends, as it is where a version does.
   int64 allowance = 9;
   repeated string allowances = 10;
+
+  // By the unit: what of the stretch's billable, weighed by its share, the
+  // workspace's pools took -- the line's `pooled`, shared among its stretches
+  // in proportion to what each is billable for. What is priced is the rest.
+  string pooled = 11;
 }
 
 // BandShare is the time a stretch's value spent in one band.

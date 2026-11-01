@@ -12,15 +12,18 @@ import (
 	entallowance "github.com/lesomnus/levyan/internal/ent/allowance"
 	entcredit "github.com/lesomnus/levyan/internal/ent/credit"
 	entoperator "github.com/lesomnus/levyan/internal/ent/operator"
+	entpool "github.com/lesomnus/levyan/internal/ent/pool"
 	"github.com/lesomnus/levyan/internal/ent/predicate"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/lesomnus/levyan/server/benefits"
+	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/ledger"
 )
 
 // What an operator gives a product's workspaces beyond their prices (#43):
-// allowances -- more of a meter each period for nothing -- and credit,
+// allowances -- more of a meter each period for nothing -- pools -- bundles of
+// a meter what is billable is taken out of first -- and credit,
 // money taken off what is billed, to a workspace or to a billing account,
 // with an expiry. Each is written through the server with no wall, as the
 // operator, with their reason.
@@ -364,6 +367,177 @@ func (a *Routes) credits(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		out = append(out, c)
+	}
+
+	answer(w, http.StatusOK, out)
+}
+
+// Pool is a bundle of a meter a workspace is given, and what is left of it.
+type Pool struct {
+	Id        string    `json:"id"`
+	Workspace string    `json:"workspace"`
+	Meter     string    `json:"meter"`
+	Granted   int64     `json:"granted"`
+	Left      string    `json:"left"` // exactly, as a fraction: 1001/3
+	From      time.Time `json:"from"`
+	Expires   time.Time `json:"expires"`
+	Reason    string    `json:"reason"`
+	GrantedBy string    `json:"granted_by,omitempty"`
+	Given     time.Time `json:"given"`
+	EndedBy   string    `json:"ended_by,omitempty"`
+	EndReason string    `json:"end_reason,omitempty"`
+}
+
+// poolOf is pool `v` as an operator is told of it: what is left of it as its
+// workspace's statements say.
+func (a *Routes) poolOf(r *http.Request, v *ent.Pool, who map[uuid.UUID]string) (Pool, error) {
+	taps, err := billing.Rater{Db: a.S.Ent}.Taps(r.Context(), v.TenantId, v.WorkspaceId)
+	if err != nil {
+		return Pool{}, err
+	}
+	out := Pool{
+		Id: pdid.Id(v.Id).String(), Granted: v.Quantity, Left: taps.Left(v.Id).RatString(),
+		From: v.ValidFrom.UTC(), Expires: v.DateExpires.UTC(), Reason: v.Reason,
+		GrantedBy: who[v.GrantedById], Given: v.DateCreated.UTC(), EndedBy: who[v.EndedById], EndReason: v.EndReason,
+	}
+	if w := v.Edges.Workspace; w != nil {
+		out.Workspace = text(w.Key)
+	}
+	if m := v.Edges.Meter; m != nil {
+		out.Meter = m.Key
+	}
+
+	return out, nil
+}
+
+// grantPool gives a workspace of a product a bundle of a meter, by the
+// operator's hand.
+func (a *Routes) grantPool(w http.ResponseWriter, r *http.Request) {
+	t, ok := a.product(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		Workspace string     `json:"workspace"`
+		Meter     string     `json:"meter"`
+		Quantity  int64      `json:"quantity"`
+		From      *time.Time `json:"from"`
+		Expires   *time.Time `json:"expires"`
+		Reason    string     `json:"reason"`
+	}
+	if !read(w, r, &in) {
+		return
+	}
+	ws, err := ledger.Workspace(strings.TrimSpace(in.Workspace))
+	if err != nil {
+		http.Error(w, "workspace: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fill := benefits.Fill{Product: pdid.Id(t.Id), Workspace: ws, Meter: in.Meter, Quantity: in.Quantity, Reason: in.Reason}
+	if in.From != nil {
+		fill.From = *in.From
+	}
+	if in.Expires != nil {
+		fill.Expires = *in.Expires
+	}
+	v, err := a.S.Pools.Grant(r.Context(), fill)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	a.showPool(w, r, pdid.Id(v.Id), http.StatusCreated)
+}
+
+// expirePool ends a pool from the period now open, by the operator's hand:
+// what the periods before took of it stays taken.
+func (a *Routes) expirePool(w http.ResponseWriter, r *http.Request) {
+	id, err := pdid.Parse(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "a pool, by the identifier `pool ls` lists", http.StatusBadRequest)
+		return
+	}
+	var in struct {
+		Reason string `json:"reason"`
+	}
+	if !read(w, r, &in) {
+		return
+	}
+	if _, err := a.S.Pools.Expire(r.Context(), id, in.Reason); err != nil {
+		fail(w, r, err)
+		return
+	}
+	a.showPool(w, r, id, http.StatusOK)
+}
+
+func (a *Routes) showPool(w http.ResponseWriter, r *http.Request, id pdid.Id, code int) {
+	v, err := a.S.Ent.Pool.Query().Where(entpool.Id(id.Uuid())).WithWorkspace().WithMeter().Only(r.Context())
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	who, err := a.operators(r)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	out, err := a.poolOf(r, v, who)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	answer(w, code, out)
+}
+
+// pools are a product's pools, the soonest to expire first: in force or to
+// come, of one workspace when the query names one, and those expired too
+// with `all`.
+func (a *Routes) pools(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	t, ok := a.product(w, r)
+	if !ok {
+		return
+	}
+	var wss []uuid.UUID
+	key, named, ok := workspaceOf(w, r)
+	if !ok {
+		return
+	}
+	if named {
+		ws, err := a.S.Ent.Workspace.Query().Where(entworkspace.TenantId(t.Id), entworkspace.Key(key.Bytes())).OnlyId(ctx)
+		if ent.IsNotFound(err) {
+			answer(w, http.StatusOK, []Pool{})
+			return
+		}
+		if err != nil {
+			fail(w, r, err)
+			return
+		}
+		wss = append(wss, ws)
+	}
+	vs, err := benefits.PoolsOf(ctx, a.S.Ent, t.Id, wss...)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	who, err := a.operators(r)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	all := r.URL.Query().Get("all") == "true"
+	now := a.S.Clock()
+	out := []Pool{}
+	for _, v := range vs {
+		if !all && !v.DateExpires.After(now) {
+			continue
+		}
+		p, err := a.poolOf(r, v, who)
+		if err != nil {
+			fail(w, r, err)
+			return
+		}
+		out = append(out, p)
 	}
 
 	answer(w, http.StatusOK, out)

@@ -33,6 +33,7 @@ import (
 	paymentattempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	period "github.com/lesomnus/levyan/internal/ent/period"
 	point "github.com/lesomnus/levyan/internal/ent/point"
+	pool "github.com/lesomnus/levyan/internal/ent/pool"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
 	price "github.com/lesomnus/levyan/internal/ent/price"
 	reading "github.com/lesomnus/levyan/internal/ent/reading"
@@ -425,6 +426,7 @@ type Scope interface {
 	PaymentAttemptScope(ctx context.Context) (predicate.PaymentAttempt, error)
 	SeriesScope(ctx context.Context) (predicate.Series, error)
 	PointScope(ctx context.Context) (predicate.Point, error)
+	PoolScope(ctx context.Context) (predicate.Pool, error)
 	PriceScope(ctx context.Context) (predicate.Price, error)
 	ReadingScope(ctx context.Context) (predicate.Reading, error)
 	ServiceKeyScope(ctx context.Context) (predicate.ServiceKey, error)
@@ -534,6 +536,9 @@ func (Unscoped) SeriesScope(_ context.Context) (predicate.Series, error) {
 	return nil, nil
 }
 func (Unscoped) PointScope(_ context.Context) (predicate.Point, error) {
+	return nil, nil
+}
+func (Unscoped) PoolScope(_ context.Context) (predicate.Pool, error) {
 	return nil, nil
 }
 func (Unscoped) PriceScope(_ context.Context) (predicate.Price, error) {
@@ -1188,6 +1193,26 @@ func (ss Scopes) PointScope(ctx context.Context) (predicate.Point, error) {
 	return point.And(ps...), nil
 }
 
+func (ss Scopes) PoolScope(ctx context.Context) (predicate.Pool, error) {
+	ps := make([]predicate.Pool, 0, len(ss))
+	for _, s := range ss {
+		p, err := s.PoolScope(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			continue
+		}
+
+		ps = append(ps, p)
+	}
+	if len(ps) == 0 {
+		return nil, nil
+	}
+
+	return pool.And(ps...), nil
+}
+
 func (ss Scopes) PriceScope(ctx context.Context) (predicate.Price, error) {
 	ps := make([]predicate.Price, 0, len(ss))
 	for _, s := range ss {
@@ -1403,7 +1428,7 @@ func ItemError(i int, err error) error {
 // is rendered for that dialect, not just what this server writes.
 //
 // That set is also what a soft erasure needs, so this is the whole
-// check. Allowance, BillingAccount, Checkout, Credit, CreditNote, Departure, Finding, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Price, Reading, Series, ServiceKey, Statement, Subscription, Workspace and WorkspaceEvent free the names they held when a row
+// check. Allowance, BillingAccount, Checkout, Credit, CreditNote, Departure, Finding, Grant, Holder, Invoice, InvoiceLine, Link, Meter, Offer, Operator, PaymentAttempt, Period, Point, Pool, Price, Reading, Series, ServiceKey, Statement, Subscription, Workspace and WorkspaceEvent free the names they held when a row
 // is erased, which is a unique index covering only the rows that are
 // still there -- a partial index, and the dialects above are the ones
 // that have one. MySQL does not, and ent writes the annotation out for
@@ -1492,6 +1517,7 @@ func (s Server) PaymentAttempt() levyan.PaymentAttemptServiceServer {
 }
 func (s Server) Series() levyan.SeriesServiceServer   { return SeriesServiceServer{Store: s.Store} }
 func (s Server) Point() levyan.PointServiceServer     { return PointServiceServer{Store: s.Store} }
+func (s Server) Pool() levyan.PoolServiceServer       { return PoolServiceServer{Store: s.Store} }
 func (s Server) Price() levyan.PriceServiceServer     { return PriceServiceServer{Store: s.Store} }
 func (s Server) Reading() levyan.ReadingServiceServer { return ReadingServiceServer{Store: s.Store} }
 func (s Server) ServiceKey() levyan.ServiceKeyServiceServer {

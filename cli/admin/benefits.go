@@ -17,7 +17,8 @@ import (
 
 // What an operator gives a product's workspaces beyond their prices (#43):
 // `allowance` -- more of a meter each period for nothing, on top of what its
-// prices include -- and `credit`, money taken off what is billed, with an
+// prices include -- `pool`, a bundle of a meter what is billable is taken
+// out of first, and `credit`, money taken off what is billed, with an
 // expiry. Each write says why (`--reason`), and the trail says who.
 
 func printAllowance(self *xli.Command, v admin.Allowance) {
@@ -255,6 +256,125 @@ func newCmdCredit() *xli.Command {
 					}
 					for _, v := range vs {
 						printCredit(self, v)
+					}
+					return next(ctx)
+				}),
+			},
+		},
+		Handler: xli.RequireSubcommand(),
+	}
+}
+
+func printPool(self *xli.Command, v admin.Pool) {
+	extra := ""
+	if v.EndedBy != "" {
+		extra = "\tended by " + v.EndedBy + ": " + v.EndReason
+	}
+	self.Printf("%s\t%s\t%s\t%s of %d left\tfrom %s, expires %s\tby %s: %s%s\n",
+		v.Id, v.Workspace, v.Meter, v.Left, v.Granted, when(v.From), when(v.Expires), v.GrantedBy, v.Reason, extra)
+}
+
+func newCmdPool() *xli.Command {
+	return &xli.Command{
+		Name:  "pool",
+		Brief: "bundles of a meter a product's workspaces are given, which what they are billable for is taken out of before it is priced: grant, expire, list",
+		Commands: xli.Commands{
+			{
+				Name:  "grant",
+				Brief: "give a workspace a bundle of a meter, in its unit for a period -- asset-months of a time-weighted stock -- which every period it is in force for takes from, the soonest to expire first",
+				Flags: flg.Flags{
+					&flg.String{Name: "workspace", Brief: "the workspace, by the identifier of its payday tenant"},
+					&flg.Int64{Name: "quantity", Brief: "how much it holds, in the meter's unit for a period"},
+					&flg.String{Name: "from", Brief: "when it is in force from, as 2006-01-02 or RFC 3339, never in a period whose close has begun; now by default"},
+					&flg.String{Name: "expires", Brief: "when it expires: no period that begins from then takes from it; a year from now by default"},
+					&flg.String{Name: "reason", Brief: "why it is given, in your words"},
+					&flg.Switch{Name: "yes", Brief: "do it"},
+				},
+				Args: arg.Args{productArg, &arg.String{Name: "METER", Brief: "the meter it is a bundle of, by its key: loft.assets.active"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "pool grant"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					quantity, ok := flg.Find[int64](self, "quantity")
+					if !ok {
+						return errors.New("pool grant: --quantity, how much it holds")
+					}
+					body := map[string]any{
+						"workspace": str(self, "workspace"), "meter": argOf(self, "METER"),
+						"quantity": quantity, "reason": str(self, "reason"),
+					}
+					for _, k := range []string{"from", "expires"} {
+						if v := str(self, k); v != "" {
+							t, err := instant(v)
+							if err != nil {
+								return fmt.Errorf("--%s: %w", k, err)
+							}
+							body[k] = t
+						}
+					}
+
+					var v admin.Pool
+					if err := c.do(ctx, http.MethodPost, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/pools", body, &v); err != nil {
+						return err
+					}
+					printPool(self, v)
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "expire",
+				Brief: "end a pool: from the start of the period now open no period takes from it, and what the periods before took stays taken",
+				Flags: flg.Flags{
+					&flg.String{Name: "reason", Brief: "why it is ended, in your words"},
+					&flg.Switch{Name: "yes", Brief: "do it"},
+				},
+				Args: arg.Args{&arg.String{Name: "ID", Brief: "the pool, as `pool ls` lists it"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "pool expire"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					var v admin.Pool
+					if err := c.do(ctx, http.MethodPost, "/admin/pools/"+url.PathEscape(argOf(self, "ID"))+"/expire", map[string]string{"reason": str(self, "reason")}, &v); err != nil {
+						return err
+					}
+					printPool(self, v)
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "ls",
+				Brief: "a product's pools, the soonest to expire first, with what is left of each as the periods closed took of it",
+				Flags: flg.Flags{
+					&flg.String{Name: "workspace", Brief: "of one workspace, by the identifier of its payday tenant"},
+					&flg.Switch{Name: "all", Brief: "and those expired"},
+				},
+				Args: arg.Args{productArg},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					q := url.Values{}
+					if v := str(self, "workspace"); v != "" {
+						q.Set("workspace", v)
+					}
+					if v, _ := flg.Find[bool](self, "all"); v {
+						q.Set("all", "true")
+					}
+					var vs []admin.Pool
+					if err := c.do(ctx, http.MethodGet, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/pools?"+q.Encode(), nil, &vs); err != nil {
+						return err
+					}
+					for _, v := range vs {
+						printPool(self, v)
 					}
 					return next(ctx)
 				}),

@@ -64,6 +64,17 @@
 //     during it changes nothing of it. It never makes what is billable less
 //     than nothing, and a price by bands, which includes nothing, is given
 //     nothing by it.
+//   - What is billable past what is included -- allowances' included -- is
+//     taken first out of the workspace's pools ([Pool]), bundles of the
+//     meter's unit for a period: of each pool in force at any moment of the
+//     period, the soonest to expire first, as far as what is left of it goes,
+//     and with no share of the period -- a bundle is not prorated. What is
+//     priced is what is left, each part priced by the unit charged for its
+//     share of it: a pool takes of every part in proportion to what the part
+//     is billable for, so that which version priced what it took is no
+//     question. What is left of a pool for a period is the caller's to say
+//     -- its quantity less what the other periods took -- and what the
+//     period takes is said back ([Line.Takes]).
 package rating
 
 import (
@@ -96,7 +107,10 @@ import (
 //
 // 4 is a workspace's allowances added to what its prices include (#43). A
 // workspace given none comes to what it came to by 3.
-const Version = 4
+//
+// 5 is what is billable taken out of a workspace's pools before it is priced
+// (#43). A workspace given none comes to what it came to by 4.
+const Version = 5
 
 // Meter is a meter as it is rated.
 type Meter struct {
@@ -145,6 +159,11 @@ type Line struct {
 	Billable  *big.Rat
 	Allowance *big.Rat
 
+	// Pooled is what of Billable the workspace's pools took, and Takes what
+	// each took: what is priced is what is billable past it.
+	Pooled *big.Rat
+	Takes  []Take
+
 	// Amount is what it comes to in the currency's minor unit, exactly.
 	Amount *big.Rat
 
@@ -182,6 +201,11 @@ type Part struct {
 	Allowance  int64
 	Allowances []pdid.Id
 	Billable   *big.Rat
+
+	// Pooled is what of the part's billable, weighed by its share, the
+	// workspace's pools took: the line's [Line.Pooled] shared among its
+	// parts in proportion to what each is billable for.
+	Pooled *big.Rat
 
 	// By bands: the time spent in each.
 	Bands []Band
@@ -258,6 +282,27 @@ type Customer struct {
 	// Allowances are what the workspace was given of the meter being rated
 	// on top of what its prices include (#43), in any order.
 	Allowances []Allowance
+
+	// Pools are its bundles of the meter (#43), each with what is left of it
+	// for the period being rated, in any order.
+	Pools []Pool
+}
+
+// Pool is a bundle of a meter a workspace was given (#43), in the meter's
+// unit for a period: Left of it is left for the period being rated -- its
+// quantity less what the other periods took -- and it is taken from by a
+// period it is in force at any moment of, from From until Expires.
+type Pool struct {
+	Id      pdid.Id
+	Left    *big.Rat
+	From    time.Time
+	Expires time.Time
+}
+
+// Take is what of one pool a line took.
+type Take struct {
+	Pool     pdid.Id
+	Quantity *big.Rat
 }
 
 // Allowance is more of a meter a workspace was given for nothing each
@@ -290,6 +335,7 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, c Cu
 		Included:  new(big.Rat),
 		Billable:  new(big.Rat),
 		Allowance: new(big.Rat),
+		Pooled:    new(big.Rat),
 		Amount:    new(big.Rat),
 	}
 	if !p.Start.Before(p.End) {
@@ -396,7 +442,64 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, c Cu
 		}
 	}
 
+	take(&out, p, c.Pools)
+
 	return out, nil
+}
+
+// take takes what `l` is billable for out of `pools` in force over `p`, the
+// soonest to expire first, and charges each part priced by the unit for what
+// is left of its share: in proportion to what each is billable for.
+func take(l *Line, p Period, pools []Pool) {
+	if l.Billable.Sign() <= 0 || len(pools) == 0 {
+		return
+	}
+
+	in := []Pool{}
+	for _, v := range pools {
+		if v.Left != nil && v.Left.Sign() > 0 && v.From.Before(p.End) && v.Expires.After(p.Start) {
+			in = append(in, v)
+		}
+	}
+	slices.SortFunc(in, func(a, b Pool) int {
+		if c := a.Expires.Compare(b.Expires); c != 0 {
+			return c
+		}
+		if c := a.From.Compare(b.From); c != 0 {
+			return c
+		}
+		return slices.Compare(a.Id[:], b.Id[:])
+	})
+
+	need := new(big.Rat).Set(l.Billable)
+	for _, v := range in {
+		if need.Sign() == 0 {
+			break
+		}
+		n := new(big.Rat).Set(v.Left)
+		if n.Cmp(need) > 0 {
+			n.Set(need)
+		}
+		l.Takes = append(l.Takes, Take{Pool: v.Id, Quantity: n})
+		l.Pooled.Add(l.Pooled, n)
+		need.Sub(need, n)
+	}
+	if l.Pooled.Sign() == 0 {
+		return
+	}
+
+	// What of each part is left to price: its share of what the pools left.
+	left := new(big.Rat).Quo(need, l.Billable)
+	of := new(big.Rat).Quo(l.Pooled, l.Billable)
+	l.Amount = new(big.Rat)
+	for i := range l.Parts {
+		part := &l.Parts[i]
+		if part.Billable != nil && part.Billable.Sign() > 0 {
+			part.Pooled = new(big.Rat).Mul(new(big.Rat).Mul(part.Billable, part.Share), of)
+			part.Amount = new(big.Rat).Mul(part.Amount, left)
+		}
+		l.Amount.Add(l.Amount, part.Amount)
+	}
 }
 
 // pieces is [from, to) cut where one of `as` begins or ends inside it: the

@@ -435,7 +435,10 @@ func Estimate(ctx context.Context, r Rater, b Book, product, ws uuid.UUID, p rat
 }
 
 func compose(ctx context.Context, r Rater, b Book, product, ws uuid.UUID, p rating.Period, t Terms, until time.Time) (*Statement, error) {
-	lines, err := r.Lines(ctx, b, product, ws, p, t, until)
+	// What the workspace's pools have left (#43), taken from in the order
+	// the periods are rated: the corrected ones, oldest first, and then this
+	// one, each of what those before it left.
+	taps, err := r.Taps(ctx, product, ws)
 	if err != nil {
 		return nil, err
 	}
@@ -445,9 +448,13 @@ func compose(ctx context.Context, r Rater, b Book, product, ws uuid.UUID, p rati
 		skipped []*ent.Period
 	)
 	if t.Priced() {
-		if cs, skipped, err = r.Corrections(ctx, b, product, ws, p.Start, t); err != nil {
+		if cs, skipped, err = r.Corrections(ctx, b, product, ws, p.Start, t, taps); err != nil {
 			return nil, err
 		}
+	}
+	lines, err := r.Lines(ctx, b, product, ws, p, t, until, taps)
+	if err != nil {
+		return nil, err
 	}
 	for _, pr := range skipped {
 		log.From(ctx).ErrorContext(ctx, "billing: a correction is in another channel or currency than the statement it would be on, and waits",

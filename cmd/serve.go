@@ -133,9 +133,12 @@ type Server struct {
 	Invoices invoices.Invoices
 
 	// Allowances gives and ends what products' workspaces are given of their
-	// meters on top of what their prices include (#43), through the server
-	// with no wall, by an operator's hand through the operator's entry point.
+	// meters on top of what their prices include (#43), and Pools the
+	// bundles of them what is billable is taken out of first, through the
+	// server with no wall, by an operator's hand through the operator's
+	// entry point.
 	Allowances benefits.Allowances
+	Pools      benefits.Pools
 
 	// Grants gives and ends what products' workspaces are granted, through
 	// the server with no wall: by the loop `levyan.grants.renew`, and by an
@@ -423,6 +426,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// What products' workspaces are given beyond their prices (#43): an
 	// operator's, through the server with no wall, as them.
 	s.Allowances = benefits.Allowances{S: ungated, Drv: drv, Dialect: dialect, Now: clock}
+	s.Pools = benefits.Pools{S: ungated, Drv: drv, Dialect: dialect, Now: clock}
 	s.Spin = append(s.Spin, grants.Renewals(&s.Grants, c.Grants.RenewEvery()))
 
 	// Who pays (#4): through the server with no wall for the deployment's

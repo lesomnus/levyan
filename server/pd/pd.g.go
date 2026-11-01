@@ -42,6 +42,7 @@ import (
 	entPaymentAttempt "github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	entPeriod "github.com/lesomnus/levyan/internal/ent/period"
 	entPoint "github.com/lesomnus/levyan/internal/ent/point"
+	entPool "github.com/lesomnus/levyan/internal/ent/pool"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
 	entPrice "github.com/lesomnus/levyan/internal/ent/price"
 	entReading "github.com/lesomnus/levyan/internal/ent/reading"
@@ -148,6 +149,7 @@ const (
 	PaymentAttemptDomain pdid.Domain = 26  // "payment-attempt"
 	PeriodDomain         pdid.Domain = 16  // "period"
 	PointDomain          pdid.Domain = 15  // "point"
+	PoolDomain           pdid.Domain = 47  // "pool"
 	PriceDomain          pdid.Domain = 11  // "price"
 	ReadingDomain        pdid.Domain = 13  // "reading"
 	RowSealDomain        pdid.Domain = 255 // "row-seal"
@@ -186,6 +188,7 @@ func init() {
 	pdid.Register("levyan.PaymentAttempt", PaymentAttemptDomain, "payment-attempt")
 	pdid.Register("levyan.Period", PeriodDomain, "period")
 	pdid.Register("levyan.Point", PointDomain, "point")
+	pdid.Register("levyan.Pool", PoolDomain, "pool")
 	pdid.Register("levyan.Price", PriceDomain, "price")
 	pdid.Register("levyan.Reading", ReadingDomain, "reading")
 	pdid.Register("levyan.RowSeal", RowSealDomain, "row-seal")
@@ -228,6 +231,7 @@ var Domains = map[string]pdid.Domain{
 	"levyan.PaymentAttempt": PaymentAttemptDomain,
 	"levyan.Period":         PeriodDomain,
 	"levyan.Point":          PointDomain,
+	"levyan.Pool":           PoolDomain,
 	"levyan.Price":          PriceDomain,
 	"levyan.Reading":        ReadingDomain,
 	"levyan.RowSeal":        RowSealDomain,
@@ -310,6 +314,8 @@ var IndexRenames = []rename.Index{
 	{Table: "point", From: "point_series_id_started_at_counted_at", To: "point_counted"},
 	{Table: "point", From: "point_workspace_id_counted_at", To: "point_workspace"},
 	{Table: "point", From: "point_late_workspace_id_counted_at", To: "point_late"},
+	{Table: "pool", From: "pool_tenant_id_date_created_id", To: "pool_page"},
+	{Table: "pool", From: "pool_workspace_id_meter_id_date_expires", To: "pool_workspace"},
 	{Table: "price", From: "price_tenant_id_date_created_id", To: "price_page"},
 	{Table: "price", From: "price_meter_id_date_created_id", To: "price_meter"},
 	{Table: "reading", From: "reading_tenant_id_date_created_id", To: "reading_page"},
@@ -787,6 +793,24 @@ func (wall) PointScope(ctx context.Context) (predicate.Point, error) {
 	return entPoint.TenantIdIn(vs...), nil
 }
 
+// PoolScope: a row belongs to the tenant its "tenant" reaches.
+func (wall) PoolScope(ctx context.Context) (predicate.Pool, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Pool == nil {
+			return nothing[predicate.Pool](), nil
+		}
+
+		return r.Pool(ctx, a)
+	}
+
+	vs, all, err := frame.Narrow(ctx)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entPool.TenantIdIn(vs...), nil
+}
+
 // PriceScope: a row belongs to the tenant its "tenant" reaches.
 func (wall) PriceScope(ctx context.Context) (predicate.Price, error) {
 	if a, r, ok := accountReads(ctx); ok {
@@ -1199,6 +1223,24 @@ func (x grouped) PointScope(ctx context.Context) (predicate.Point, error) {
 	}
 
 	return entPoint.WorkspaceIdIn(vs...), nil
+}
+
+// PoolScope: in the Workspace its "workspace" names.
+func (x grouped) PoolScope(ctx context.Context) (predicate.Pool, error) {
+	if a, r, ok := accountReads(ctx); ok {
+		if r.Pool == nil {
+			return nothing[predicate.Pool](), nil
+		}
+
+		return r.Pool(ctx, a)
+	}
+
+	vs, all, err := frame.NarrowSet(ctx, x.of)
+	if all || err != nil {
+		return nil, err
+	}
+
+	return entPool.WorkspaceIdIn(vs...), nil
 }
 
 // PriceScope: in no set -- it declared no field 3, so this narrows nothing.
@@ -5995,6 +6037,366 @@ func filterPoint(f *levyan.PointFilter) (predicate.Point, error) {
 	return entPoint.And(ps...), nil
 }
 
+type sinkPool struct {
+	levyan.PoolServiceServer
+	store  bare.Store
+	w      *watch.Watch
+	namer  slug.Namer
+	joined bool
+}
+
+func (s Sink) Pool() levyan.PoolServiceServer {
+	v := sinkPool{s.Server.Pool(), s.Server.Store, s.w, s.namer, s.joined}
+	v.PoolServiceServer = bare.PoolWithAddRule(v.PoolServiceServer, v.admit)
+	return v
+}
+
+// admit is what is said of the tenancy of a row an Add of Pool writes: it
+// refuses it when its paths to a tenant do not agree.
+//
+// It is asked of an Add and of every item of an AddMany; see [Sink.Pool].
+func (s sinkPool) admit(ctx context.Context, req *levyan.PoolAddRequest) (*levyan.PoolAddRequest, error) {
+	// Copied rather than written to: the request belongs to whoever called,
+	// and for a call made in this process that is a message they may still
+	// be holding -- a server that changed a caller's own field would be
+	// changing a value they can read back.
+	r := proto.CloneOf(req)
+
+	if err := s.tenancy(ctx, r); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// Apply forgets what the transaction was told about the row, before it is
+// written: a document may move it to a set the caller cannot see. See
+// [seen.Forget].
+func (s sinkPool) Apply(ctx context.Context, req *levyan.PoolApplyRequest) (*levyan.Pool, error) {
+	seen.Forget(s.store.Db.Driver(), "Pool", req.GetRef())
+
+	return s.PoolServiceServer.Apply(ctx, req)
+}
+
+// Patch forgets what the transaction was told about the row, before it is
+// written; see [sinkPool.Apply].
+func (s sinkPool) Patch(ctx context.Context, req *levyan.PoolPatchRequest) (*levyan.Pool, error) {
+	seen.Forget(s.store.Db.Driver(), "Pool", req.GetRef())
+
+	return s.PoolServiceServer.Patch(ctx, req)
+}
+
+// tenantAtTenant is the tenant "tenant" arrives at.
+func (s sinkPool) tenantAtTenant(ctx context.Context, ref *levyan.TenantRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("tenant", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Tenant", "", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.TenantPick(ref)
+		if err != nil {
+			return nil, pderr.At("tenant", err)
+		}
+
+		k, err := s.store.Db.Tenant.Query().Where(pick).OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("tenant", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtWorkspaceTenant is the tenant "workspace.tenant" arrives at.
+func (s sinkPool) tenantAtWorkspaceTenant(ctx context.Context, ref *levyan.WorkspaceRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("workspace", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Workspace", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.WorkspacePick(ref)
+		if err != nil {
+			return nil, pderr.At("workspace", err)
+		}
+
+		k, err := s.store.Db.Workspace.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("workspace", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenantAtMeterTenant is the tenant "meter.tenant" arrives at.
+func (s sinkPool) tenantAtMeterTenant(ctx context.Context, ref *levyan.MeterRef) ([]byte, error) {
+	if ref == nil {
+		return nil, pderr.Invalidf("meter", "required: it is what says which tenant this belongs to")
+	}
+
+	// Asked once a transaction: no step past the first can be repointed, so
+	// where this walk arrives from a row is decided until the row is
+	// written. See [seen.Tenant].
+	return seen.Tenant(s.store.Db.Driver(), "Meter", "tenant", ref, func() ([]byte, error) {
+		// The row the edge names, picked the way every other reference is.
+		pick, err := bare.MeterPick(ref)
+		if err != nil {
+			return nil, pderr.At("meter", err)
+		}
+
+		k, err := s.store.Db.Meter.Query().Where(pick).QueryTenant().OnlyId(ctx)
+		if err != nil {
+			// Not there, or more than one -- both are the reference being wrong,
+			// and both are the caller's to fix.
+			return nil, pderr.Invalidf("meter", "it does not name one row")
+		}
+
+		return k[:], nil
+	})
+}
+
+// tenancy fills what the schema says this row's tenant is, and refuses a
+// row whose other paths do not agree with it.
+//
+// The request is already this server's copy by the time it arrives, so it
+// is written to rather than cloned again.
+func (s sinkPool) tenancy(ctx context.Context, req *levyan.PoolAddRequest) error {
+	want, err := s.tenantAtTenant(ctx, req.GetTenant())
+	if err != nil {
+		return err
+	}
+
+	if req.HasWorkspace() {
+		got, err := s.tenantAtWorkspaceTenant(ctx, req.GetWorkspace())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("workspace",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	if req.HasMeter() {
+		got, err := s.tenantAtMeterTenant(ctx, req.GetMeter())
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			// Both exist and both are visible to whoever is writing --
+			// the gate already saw to that. What it cannot see is that
+			// they are in different tenants, because it asks "may I read
+			// this" and a caller who holds several tenants may read both.
+			return pderr.Invalidf("meter",
+				"it is in another tenant than tenant")
+		}
+	}
+
+	return nil
+}
+
+// orderPool is how Pools come back.
+//
+// The last column is the key, and it is not decoration: a cursor cannot
+// tell apart two rows equal in every column of the order, so the page after
+// the first of them either repeats the second or skips it. Rows written by
+// one request are stamped a moment apart at best.
+var orderPool = []sqlpage.Order{
+	{Column: entPool.FieldDateCreated, Desc: false},
+	{Column: entPool.FieldId, Desc: false},
+}
+
+func afterPool(v string, by []sqlpage.Order, tag string) (func(*sql.Selector), error) {
+	var (
+		at0 time.Time
+		at1 uuid.UUID
+	)
+	if err := pdAfter(v, tag, &at0, &at1); err != nil {
+		return nil, err
+	}
+
+	return sqlpage.After(by, []any{at0, at1})
+}
+
+func nextPool(last *ent.Pool, tag string) (string, error) {
+	return pdNext(tag, last.DateCreated, last.Id)
+}
+
+// orderByPool is an order as ent orders a query by it.
+func orderByPool(by []sqlpage.Order) []entPool.OrderOption {
+	out := make([]entPool.OrderOption, len(by))
+	for i, o := range by {
+		if o.Desc {
+			out[i] = sql.OrderByField(o.Column, sql.OrderDesc()).ToFunc()
+			continue
+		}
+
+		out[i] = sql.OrderByField(o.Column).ToFunc()
+	}
+
+	return out
+}
+
+const (
+	// PoolPageSize is what a request that did not say gets, and
+	// PoolPageLimit is the most it gets however loudly it asks.
+	PoolPageSize  = 50
+	PoolPageLimit = 200
+
+	// PoolFilterLimit is how many filters one request may carry. Each is a
+	// predicate in the same query, so it is what says how much of the
+	// database a request may ask to read -- and it is refused rather than
+	// clamped, because dropping half the filters would answer a question
+	// nobody asked.
+	PoolFilterLimit = 32
+)
+
+// List answers with the Pools that match any of the given filters, or with
+// every one there is if the request named none, a page at a time.
+func (s sinkPool) List(ctx context.Context, req *levyan.PoolListRequest) (*levyan.PoolListResponse, error) {
+	q := s.store.Db.Pool.Query()
+
+	// Through the same narrowing every generated read goes through, and not
+	// by asking the scope alone: what narrows a read is the wall today and
+	// the wall and something else tomorrow, and a list that reached past it
+	// would be the one read that missed the something else.
+	if p, err := bare.PoolNarrow(ctx, s.store.Scope, nil); err != nil {
+		return nil, err
+	} else if p != nil {
+		q.Where(p)
+	}
+
+	if fs := req.GetFilters(); len(fs) > 0 {
+		if len(fs) > PoolFilterLimit {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"filters: %d of them, and %d is the most one list carries", len(fs), PoolFilterLimit)
+		}
+
+		ps := make([]predicate.Pool, 0, len(fs))
+		for i, f := range fs {
+			p, err := filterPool(f)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "filters[%d]: %s", i, err)
+			}
+
+			ps = append(ps, p)
+		}
+
+		q.Where(entPool.Or(ps...))
+	}
+
+	// Which order, and which way: one the schema declared, and never one a
+	// request makes up, since an order is a walk of an index.
+	by, after, next, tag := orderPool, afterPool, nextPool, ""
+	if req.GetReverse() {
+		// The same index, walked from the other end.
+		by, tag = pdReverse(by), tag+"/reverse"
+	}
+
+	if v := req.GetAfter(); v != "" {
+		p, err := after(v, by, tag)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "after: %s", err)
+		}
+
+		q.Where(p)
+	}
+
+	// One row more than the page, which is how "is there another" is answered
+	// without a second query and without a count. The extra is dropped before
+	// the answer is built; it was only ever asked for to see whether it was
+	// there -- so a full last page answers with no cursor rather than sending
+	// the caller back for an empty one.
+	size := sqlpage.Size(int(req.GetSize()), PoolPageSize, PoolPageLimit)
+	us, err := q.Order(orderByPool(by)...).Limit(size + 1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	more := len(us) > size
+	if more {
+		us = us[:size]
+	}
+
+	items := make([]*levyan.Pool, len(us))
+	for i, u := range us {
+		items[i] = u.Proto()
+	}
+
+	res := levyan.PoolListResponse_builder{Items: items}.Build()
+	if more {
+		v, err := next(us[len(us)-1], tag)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "next: %s", err)
+		}
+
+		res.SetNext(v)
+	}
+
+	return res, nil
+}
+
+// filterPool turns one filter into the predicate that selects what it
+// names. Naming nothing is refused, since the request asked for "these" and
+// did not say which.
+func filterPool(f *levyan.PoolFilter) (predicate.Pool, error) {
+	ps := make([]predicate.Pool, 0, 1)
+	if f.HasRef() {
+		p, err := bare.PoolPick(f.GetRef())
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, p)
+	}
+	if f.HasWorkspace() {
+		w := f.GetWorkspace()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "workspace: %s", err)
+			}
+
+			ps = append(ps, entPool.WorkspaceIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.WorkspacePick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entPool.HasWorkspaceWith(q))
+		}
+	}
+	if len(ps) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "a filter that names nothing")
+	}
+
+	return entPool.And(ps...), nil
+}
+
 type sinkPrice struct {
 	levyan.PriceServiceServer
 	store  bare.Store
@@ -9412,6 +9814,80 @@ func (s gatePoint) admit(ctx context.Context, req *levyan.PointAddRequest) (*lev
 	return req, nil
 }
 
+type gatePool struct {
+	Gate
+	levyan.PoolServiceServer
+}
+
+func (s Gate) Pool() levyan.PoolServiceServer {
+	v := gatePool{s, s.Next().Pool()}
+	v.PoolServiceServer = bare.PoolWithAddRule(v.PoolServiceServer, v.admit)
+	return accountsPool{v}
+}
+
+// admit refuses a Pool put into a Tenant this caller cannot see.
+//
+// The wall is a predicate and an Add has no query, so without this the
+// identifier in `tenant` becomes a foreign key with nothing consulted.
+// The row is then invisible to whoever planted it and visible to whoever
+// holds that Tenant, which is the shape of the bug rather than a
+// mitigation of it.
+//
+// NotFound rather than a refusal, for the reason on `gateHolder.admit`:
+// that a row exists is itself something a caller who may not see it
+// should not be told.
+//
+// It is what an Add is asked, and an AddMany of every item it carries;
+// see [Gate.Pool].
+func (s gatePool) admit(ctx context.Context, req *levyan.PoolAddRequest) (*levyan.PoolAddRequest, error) {
+	if ref := req.GetTenant(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Tenant", ref, func() error {
+			_, err := s.Gate.Next().Tenant().Get(ctx, levyan.TenantGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Tenant")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetWorkspace(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Workspace", ref, func() error {
+			_, err := s.Gate.Next().Workspace().Get(ctx, levyan.WorkspaceGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Workspace")
+			}
+
+			return nil, err
+		}
+	}
+
+	if ref := req.GetMeter(); ref != nil {
+		if err := seen.Visible(ctx, s.Gate.drv, "Meter", ref, func() error {
+			_, err := s.Gate.Next().Meter().Get(ctx, levyan.MeterGetRequest_builder{
+				Ref: ref,
+			}.Build())
+			return err
+		}); err != nil {
+			if status.Code(err) == codes.NotFound {
+				return nil, gate.ErrNotFound("Meter")
+			}
+
+			return nil, err
+		}
+	}
+
+	return req, nil
+}
+
 type gatePrice struct {
 	Gate
 	levyan.PriceServiceServer
@@ -10941,6 +11417,51 @@ func (s accountsPoint) List(ctx context.Context, req *levyan.PointListRequest) (
 	return s.PointServiceServer.List(ctx, req)
 }
 
+// accountsPool is PoolService as the gate serves it to a call an account
+// makes as itself: refused every method but the ones the schema marks the
+// account's own. See [gate.AsAccount].
+type accountsPool struct{ levyan.PoolServiceServer }
+
+func (s accountsPool) Add(ctx context.Context, req *levyan.PoolAddRequest) (*levyan.Pool, error) {
+	if err := gate.AsAccount(ctx, levyan.PoolService_Add_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PoolServiceServer.Add(ctx, req)
+}
+
+func (s accountsPool) Get(ctx context.Context, req *levyan.PoolGetRequest) (*levyan.Pool, error) {
+	if err := gate.AsAccount(ctx, levyan.PoolService_Get_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PoolServiceServer.Get(ctx, req)
+}
+
+func (s accountsPool) Patch(ctx context.Context, req *levyan.PoolPatchRequest) (*levyan.Pool, error) {
+	if err := gate.AsAccount(ctx, levyan.PoolService_Patch_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PoolServiceServer.Patch(ctx, req)
+}
+
+func (s accountsPool) Apply(ctx context.Context, req *levyan.PoolApplyRequest) (*levyan.Pool, error) {
+	if err := gate.AsAccount(ctx, levyan.PoolService_Apply_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PoolServiceServer.Apply(ctx, req)
+}
+
+func (s accountsPool) List(ctx context.Context, req *levyan.PoolListRequest) (*levyan.PoolListResponse, error) {
+	if err := gate.AsAccount(ctx, levyan.PoolService_List_FullMethodName, AccountMethod); err != nil {
+		return nil, err
+	}
+
+	return s.PoolServiceServer.List(ctx, req)
+}
+
 // accountsPrice is PriceService as the gate serves it to a call an account
 // makes as itself: refused every method but the ones the schema marks the
 // account's own. See [gate.AsAccount].
@@ -11395,6 +11916,8 @@ func described(key pdid.Id) (protoreflect.MessageDescriptor, []protoreflect.Fiel
 		return describedPeriod.md, describedPeriod.secret, describedPeriod.personal
 	case PointDomain:
 		return describedPoint.md, describedPoint.secret, describedPoint.personal
+	case PoolDomain:
+		return describedPool.md, describedPool.secret, describedPool.personal
 	case PriceDomain:
 		return describedPrice.md, describedPrice.secret, describedPrice.personal
 	case ReadingDomain:
@@ -11515,6 +12038,9 @@ var (
 	describedPoint = describe((*levyan.Point)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
+	describedPool = describe((*levyan.Pool)(nil),
+		[]protoreflect.FieldNumber{},
+		[]protoreflect.FieldNumber{12, 18})
 	describedPrice = describe((*levyan.Price)(nil),
 		[]protoreflect.FieldNumber{},
 		[]protoreflect.FieldNumber{})
@@ -11585,6 +12111,7 @@ func added(by string) bool {
 		levyan.PeriodService_Add_FullMethodName,
 		levyan.PointService_Add_FullMethodName,
 		levyan.PointService_AddMany_FullMethodName,
+		levyan.PoolService_Add_FullMethodName,
 		levyan.PriceService_Add_FullMethodName,
 		levyan.ReadingService_Add_FullMethodName,
 		levyan.ReadingService_AddMany_FullMethodName,
@@ -12040,6 +12567,38 @@ func subject(ctx context.Context, s bare.Server, key pdid.Id, image proto.Messag
 
 		return k, b, nil
 
+	case PoolDomain:
+		row, ok := image.(*levyan.Pool)
+		if !ok {
+			return uuid.Nil(), []byte{}, nil
+		}
+
+		b := []byte{}
+		if keep {
+			kept := row
+			kept = proto.Clone(row).(*levyan.Pool)
+			_, secret, personal := described(key)
+			audit.Clear(kept, secret)
+			audit.Clear(kept, personal)
+
+			v, err := proto.Marshal(kept)
+			if err != nil {
+				return uuid.Nil(), nil, err
+			}
+			b = v
+		}
+
+		if !row.HasTenant() {
+			return uuid.Nil(), b, nil
+		}
+
+		k, err := entuuid.FromBytes(row.GetTenant().GetId())
+		if err != nil {
+			return uuid.Nil(), nil, err
+		}
+
+		return k, b, nil
+
 	case PriceDomain:
 		row, ok := image.(*levyan.Price)
 		if !ok {
@@ -12317,6 +12876,8 @@ func left(ctx context.Context, s bare.Server, key pdid.Id, image proto.Message) 
 		vs, err = rowsPeriod(ctx, s.Db, entPeriod.IdEQ(uuid.UUID(key)))
 	case PointDomain:
 		vs, err = rowsPoint(ctx, s.Db, entPoint.IdEQ(uuid.UUID(key)))
+	case PoolDomain:
+		vs, err = rowsPool(ctx, s.Db, entPool.IdEQ(uuid.UUID(key)))
 	case PriceDomain:
 		vs, err = rowsPrice(ctx, s.Db, entPrice.IdEQ(uuid.UUID(key)))
 	case ReadingDomain:
@@ -12479,7 +13040,7 @@ func (v *keptTrail) write(ctx context.Context) error {
 // row's seal covers (payday#115).
 func isSealed(key pdid.Id) bool {
 	switch key.Domain() {
-	case AllowanceDomain, BillingAccountDomain, CreditDomain, CreditNoteDomain, FindingDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain, SubscriptionDomain:
+	case AllowanceDomain, BillingAccountDomain, CreditDomain, CreditNoteDomain, FindingDomain, HolderDomain, InvoiceDomain, OperatorDomain, PaymentAttemptDomain, PoolDomain, SubscriptionDomain:
 		return true
 	}
 
@@ -12753,6 +13314,9 @@ func Digests(ctx context.Context, db *ent.Client, d *audit.Digest, p trail.Polic
 	}
 	if err := audit.CheckKind(ctx, d, checkedPoint(db), archived, &out); err != nil {
 		return out, fmt.Errorf("point: %w", err)
+	}
+	if err := audit.CheckKind(ctx, d, checkedPool(db), archived, &out); err != nil {
+		return out, fmt.Errorf("pool: %w", err)
 	}
 	if err := audit.CheckKind(ctx, d, checkedPrice(db), archived, &out); err != nil {
 		return out, fmt.Errorf("price: %w", err)
@@ -13667,6 +14231,58 @@ func checkedPoint(db *ent.Client) audit.Kind {
 	}
 }
 
+// checkedPool is what a check of the rows reads of the pool kind.
+func checkedPool(db *ent.Client) audit.Kind {
+	read := func(ctx context.Context, ps ...predicate.Pool) (audit.Page, error) {
+		var out audit.Page
+		err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+			rows, err := rowsPool(ctx, db, ps...)
+			if err != nil {
+				return err
+			}
+
+			recorded, err := newestDigests(ctx, db, objects(rows))
+			if err != nil {
+				return err
+			}
+
+			seals, err := sealsOf(ctx, db, objects(rows))
+			out = audit.Page{Rows: rows, Recorded: recorded, Seals: seals}
+			return err
+		})
+
+		return out, err
+	}
+
+	return audit.Kind{
+		Domain: PoolDomain,
+		Sealed: true,
+		After: func(ctx context.Context, after pdid.Id) (audit.Page, error) {
+			return read(ctx, entPool.IdGT(uuid.UUID(after)))
+		},
+		Of: func(ctx context.Context, ids []pdid.Id) (audit.Page, error) {
+			return read(ctx, entPool.IdIn(uuids(ids)...))
+		},
+		Trail: func(ctx context.Context, yield func([]pdid.Id) error) error {
+			return trailObjects(ctx, db, PoolDomain, yield)
+		},
+		Gone: func(ctx context.Context, ids []pdid.Id) (map[pdid.Id]*audit.Recorded, error) {
+			var out map[pdid.Id]*audit.Recorded
+			err := snapshot(ctx, db, func(ctx context.Context, db *ent.Client) error {
+				rows, err := rowsPool(ctx, db, entPool.IdIn(uuids(ids)...))
+				if err != nil {
+					return err
+				}
+
+				out, err = goneOf(ctx, db, ids, rows)
+				return err
+			})
+
+			return out, err
+		},
+	}
+}
+
 // checkedPrice is what a check of the rows reads of the price kind.
 func checkedPrice(db *ent.Client) audit.Kind {
 	read := func(ctx context.Context, ps ...predicate.Price) (audit.Page, error) {
@@ -14485,6 +15101,26 @@ func rowsPoint(ctx context.Context, db *ent.Client, ps ...predicate.Point) ([]au
 	return out, nil
 }
 
+// rowsPool is the rows `ps` says of the pool kind -- every row there is,
+// live or erased softly -- at most a page of them in identifier order, each as
+// a Get reads it.
+func rowsPool(ctx context.Context, db *ent.Client, ps ...predicate.Pool) ([]audit.Live, error) {
+	q := db.Pool.Query().Where(ps...)
+	bare.PoolSelectInit(q, nil)
+
+	vs, err := q.Order(entPool.ById()).Limit(audit.RowsPage).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]audit.Live, len(vs))
+	for i, v := range vs {
+		out[i] = audit.Live{Object: pdid.Id(v.Id), Row: v.Proto()}
+	}
+
+	return out, nil
+}
+
 // rowsPrice is the rows `ps` says of the price kind -- every row there is,
 // live or erased softly -- at most a page of them in identifier order, each as
 // a Get reads it.
@@ -14924,6 +15560,8 @@ func record(ctx context.Context, db *ent.Client, content audit.Contents, action 
 				rows, err = rowsPeriod(ctx, db, entPeriod.IdIn(uuids(page)...))
 			case PointDomain:
 				rows, err = rowsPoint(ctx, db, entPoint.IdIn(uuids(page)...))
+			case PoolDomain:
+				rows, err = rowsPool(ctx, db, entPool.IdIn(uuids(page)...))
 			case PriceDomain:
 				rows, err = rowsPrice(ctx, db, entPrice.IdIn(uuids(page)...))
 			case ReadingDomain:
@@ -15092,6 +15730,8 @@ func (s trailStore) Carry(ctx context.Context, digest *audit.Digest, d pdid.Doma
 			rows, err = rowsPeriod(ctx, s.db, entPeriod.IdIn(uuids(ids)...))
 		case PointDomain:
 			rows, err = rowsPoint(ctx, s.db, entPoint.IdIn(uuids(ids)...))
+		case PoolDomain:
+			rows, err = rowsPool(ctx, s.db, entPool.IdIn(uuids(ids)...))
 		case PriceDomain:
 			rows, err = rowsPrice(ctx, s.db, entPrice.IdIn(uuids(ids)...))
 		case ReadingDomain:
@@ -16195,6 +16835,40 @@ func (s interceptPoint) Get(ctx context.Context, req *levyan.PointGetRequest) (*
 func (s interceptPoint) List(ctx context.Context, req *levyan.PointListRequest) (*levyan.PointListResponse, error) {
 	return grpcx.RunUnary(ctx, s.unary, s.PointServiceServer,
 		levyan.PointService_List_FullMethodName, req, s.PointServiceServer.List)
+}
+
+func (s Intercept) Pool() levyan.PoolServiceServer {
+	return interceptPool{s, s.Next().Pool()}
+}
+
+type interceptPool struct {
+	Intercept
+	levyan.PoolServiceServer
+}
+
+func (s interceptPool) Add(ctx context.Context, req *levyan.PoolAddRequest) (*levyan.Pool, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PoolServiceServer,
+		levyan.PoolService_Add_FullMethodName, req, s.PoolServiceServer.Add)
+}
+
+func (s interceptPool) Get(ctx context.Context, req *levyan.PoolGetRequest) (*levyan.Pool, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PoolServiceServer,
+		levyan.PoolService_Get_FullMethodName, req, s.PoolServiceServer.Get)
+}
+
+func (s interceptPool) Patch(ctx context.Context, req *levyan.PoolPatchRequest) (*levyan.Pool, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PoolServiceServer,
+		levyan.PoolService_Patch_FullMethodName, req, s.PoolServiceServer.Patch)
+}
+
+func (s interceptPool) Apply(ctx context.Context, req *levyan.PoolApplyRequest) (*levyan.Pool, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PoolServiceServer,
+		levyan.PoolService_Apply_FullMethodName, req, s.PoolServiceServer.Apply)
+}
+
+func (s interceptPool) List(ctx context.Context, req *levyan.PoolListRequest) (*levyan.PoolListResponse, error) {
+	return grpcx.RunUnary(ctx, s.unary, s.PoolServiceServer,
+		levyan.PoolService_List_FullMethodName, req, s.PoolServiceServer.List)
 }
 
 func (s Intercept) Price() levyan.PriceServiceServer {
@@ -17555,6 +18229,7 @@ type Reads struct {
 	PaymentAttempt func(ctx context.Context, account pdid.Id) (predicate.PaymentAttempt, error)
 	Period         func(ctx context.Context, account pdid.Id) (predicate.Period, error)
 	Point          func(ctx context.Context, account pdid.Id) (predicate.Point, error)
+	Pool           func(ctx context.Context, account pdid.Id) (predicate.Pool, error)
 	Price          func(ctx context.Context, account pdid.Id) (predicate.Price, error)
 	Reading        func(ctx context.Context, account pdid.Id) (predicate.Reading, error)
 	RowSeal        func(ctx context.Context, account pdid.Id) (predicate.RowSeal, error)
@@ -17773,6 +18448,22 @@ func init() {
 			},
 		}
 		r := (&levyan.PaymentAttemptRef{}).ProtoReflect().Descriptor()
+		refs[r.FullName()] = r.Fields().ByName("id")
+	}
+	{
+		md := (&levyan.Pool{}).ProtoReflect().Descriptor()
+		fs := md.Fields()
+		personals[md.FullName()] = personal{
+			key: fs.ByNumber(1),
+			fields: []protoreflect.FieldDescriptor{
+				fs.ByNumber(12),
+				fs.ByNumber(18),
+			},
+			tenant: func(m protoreflect.Message) pdid.Id {
+				return accessKeyOf(m.Get(fs.ByName("tenant")).Message())
+			},
+		}
+		r := (&levyan.PoolRef{}).ProtoReflect().Descriptor()
 		refs[r.FullName()] = r.Fields().ByName("id")
 	}
 	{
@@ -18056,6 +18747,9 @@ func (accessRecorder) Snapshots(method string) bare.SnapshotOptions {
 		levyan.PaymentAttemptService_Add_FullMethodName,
 		levyan.PaymentAttemptService_Patch_FullMethodName,
 		levyan.PaymentAttemptService_Apply_FullMethodName,
+		levyan.PoolService_Add_FullMethodName,
+		levyan.PoolService_Patch_FullMethodName,
+		levyan.PoolService_Apply_FullMethodName,
 		levyan.SubscriptionService_Add_FullMethodName,
 		levyan.SubscriptionService_Patch_FullMethodName,
 		levyan.SubscriptionService_Apply_FullMethodName:
@@ -18563,6 +19257,16 @@ func unpack(op *pdpb.Op) (proto.Message, error) {
 		v = &levyan.PointGetRequest{}
 	case levyan.PointService_List_FullMethodName:
 		v = &levyan.PointListRequest{}
+	case levyan.PoolService_Add_FullMethodName:
+		v = &levyan.PoolAddRequest{}
+	case levyan.PoolService_Get_FullMethodName:
+		v = &levyan.PoolGetRequest{}
+	case levyan.PoolService_Patch_FullMethodName:
+		v = &levyan.PoolPatchRequest{}
+	case levyan.PoolService_Apply_FullMethodName:
+		v = &levyan.PoolApplyRequest{}
+	case levyan.PoolService_List_FullMethodName:
+		v = &levyan.PoolListRequest{}
 	case levyan.PriceService_Add_FullMethodName:
 		v = &levyan.PriceAddRequest{}
 	case levyan.PriceService_Get_FullMethodName:
@@ -18837,6 +19541,16 @@ func dispatch(ctx context.Context, s levyan.Server, m string, v proto.Message) (
 		res, err = s.Point().Get(ctx, v.(*levyan.PointGetRequest))
 	case levyan.PointService_List_FullMethodName:
 		res, err = s.Point().List(ctx, v.(*levyan.PointListRequest))
+	case levyan.PoolService_Add_FullMethodName:
+		res, err = s.Pool().Add(ctx, v.(*levyan.PoolAddRequest))
+	case levyan.PoolService_Get_FullMethodName:
+		res, err = s.Pool().Get(ctx, v.(*levyan.PoolGetRequest))
+	case levyan.PoolService_Patch_FullMethodName:
+		res, err = s.Pool().Patch(ctx, v.(*levyan.PoolPatchRequest))
+	case levyan.PoolService_Apply_FullMethodName:
+		res, err = s.Pool().Apply(ctx, v.(*levyan.PoolApplyRequest))
+	case levyan.PoolService_List_FullMethodName:
+		res, err = s.Pool().List(ctx, v.(*levyan.PoolListRequest))
 	case levyan.PriceService_Add_FullMethodName:
 		res, err = s.Price().Add(ctx, v.(*levyan.PriceAddRequest))
 	case levyan.PriceService_Get_FullMethodName:
@@ -18915,6 +19629,7 @@ func Resources(s levyan.Server, drv dialect.Driver, guard batch.Guard, w *watch.
 		&levyan.PaymentAttempt{},
 		&levyan.Period{},
 		&levyan.Point{},
+		&levyan.Pool{},
 		&levyan.Price{},
 		&levyan.Reading{},
 		&levyan.RowSeal{},
@@ -19760,6 +20475,47 @@ func ResourceProjector(db *ent.Client, scope bare.Scope, guard batch.Guard) reso
 				return nil, err
 			}
 			return publicResource(v), nil
+		case *levyan.Pool:
+			ctx, err := read.Allow(ctx, levyan.PoolService_Get_FullMethodName, 1)
+			if err != nil {
+				switch status.Code(err) {
+				case codes.PermissionDenied, codes.Unauthenticated, codes.Unimplemented:
+					return nil, nil
+				}
+				return nil, err
+			}
+			pred, err := bare.PoolNarrow(ctx, scope, nil)
+			if err != nil {
+				return nil, err
+			}
+			row, err := resourcesql.Row(db.Dialect(), entPool.Table, []resourcesql.Column{
+				{Number: 1, Name: entPool.FieldId, Type: 64, Nullable: false, Key: 0},
+				{Number: 2, Name: entPool.TenantColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 3, Name: entPool.WorkspaceColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 8, Name: entPool.MeterColumn, Type: 64, Nullable: false, Key: 1},
+				{Number: 9, Name: entPool.FieldQuantity, Type: 3, Nullable: false, Key: 0},
+				{Number: 10, Name: entPool.FieldValidFrom, Type: 65, Nullable: false, Key: 0},
+				{Number: 11, Name: entPool.FieldDateExpires, Type: 65, Nullable: false, Key: 0},
+				{Number: 12, Name: entPool.FieldReason, Type: 9, Nullable: false, Key: 0},
+				{Number: 13, Name: entPool.FieldDateUpdated, Type: 65, Nullable: false, Key: 0},
+				{Number: 14, Name: entPool.FieldDateErased, Type: 65, Nullable: true, Key: 0},
+				{Number: 15, Name: entPool.FieldDateCreated, Type: 65, Nullable: false, Key: 0},
+				{Number: 16, Name: entPool.GrantedByColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 17, Name: entPool.EndedByColumn, Type: 64, Nullable: true, Key: 1},
+				{Number: 18, Name: entPool.FieldEndReason, Type: 9, Nullable: false, Key: 0},
+			}, v)
+			if err != nil {
+				return nil, err
+			}
+			query := db.Pool.Query()
+			if pred != nil {
+				query.Where(pred)
+			}
+			ok, err := query.Modify(func(q *sql.Selector) { q.From(row) }).Exist(ctx)
+			if err != nil || !ok {
+				return nil, err
+			}
+			return publicResource(v), nil
 		case *levyan.Price:
 			ctx, err := read.Allow(ctx, levyan.PriceService_Get_FullMethodName, 1)
 			if err != nil {
@@ -20249,6 +21005,12 @@ func resourceChangeKind(method string) pdpb.ChangeKind {
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.PointService_AddMany_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.PoolService_Add_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_CREATED
+	case levyan.PoolService_Patch_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
+	case levyan.PoolService_Apply_FullMethodName:
+		return pdpb.ChangeKind_CHANGE_KIND_UPDATED
 	case levyan.PriceService_Add_FullMethodName:
 		return pdpb.ChangeKind_CHANGE_KIND_CREATED
 	case levyan.ReadingService_Add_FullMethodName:
@@ -20315,7 +21077,7 @@ func (r resourceRecorder) Record(ctx context.Context, s bare.Server, c bare.Chan
 		return nil
 	}
 	switch image.ProtoReflect().Descriptor().FullName() {
-	case "levyan.Access", "levyan.Allowance", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Finding", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace", "levyan.WorkspaceEvent":
+	case "levyan.Access", "levyan.Allowance", "levyan.Audit", "levyan.BillingAccount", "levyan.Checkout", "levyan.Credit", "levyan.CreditNote", "levyan.Departure", "levyan.Finding", "levyan.Grant", "levyan.Holder", "levyan.Invoice", "levyan.InvoiceLine", "levyan.Link", "levyan.Meter", "levyan.Offer", "levyan.Operator", "levyan.PaymentAttempt", "levyan.Period", "levyan.Point", "levyan.Pool", "levyan.Price", "levyan.Reading", "levyan.Series", "levyan.ServiceKey", "levyan.Statement", "levyan.Subscription", "levyan.Tenant", "levyan.Workspace", "levyan.WorkspaceEvent":
 	default:
 		return nil
 	}

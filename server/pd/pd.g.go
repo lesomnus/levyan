@@ -330,6 +330,7 @@ var IndexRenames = []rename.Index{
 	{Table: "statement", From: "statement_tenant_id_date_start_id", To: "statement_page"},
 	{Table: "statement", From: "statement_tenant_id_workspace_id_period_id", To: "statement_closed"},
 	{Table: "statement", From: "statement_workspace_id_date_start_id", To: "statement_workspace"},
+	{Table: "statement", From: "statement_tenant_id_billing_account_id_date_start_id", To: "statement_billing"},
 	{Table: "subscription", From: "subscription_date_created_id", To: "subscription_page"},
 	{Table: "subscription", From: "subscription_billing_account_id_date_created_id", To: "subscription_billing_account"},
 	{Table: "subscription", From: "subscription_mor_mor_subscription", To: "subscription_mor_subscription"},
@@ -7982,6 +7983,31 @@ func filterStatement(f *levyan.StatementFilter) (predicate.Statement, error) {
 			}
 
 			ps = append(ps, entStatement.HasWorkspaceWith(q))
+		}
+	}
+	if f.HasBillingAccount() {
+		w := f.GetBillingAccount()
+		if b := w.GetId(); len(b) > 0 {
+			// The **foreign key column** on this row, which is what an
+			// edge is. A subquery for a comparison against an indexed
+			// column is work nobody asked for.
+			k, err := entuuid.FromBytes(b)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "billing_account: %s", err)
+			}
+
+			ps = append(ps, entStatement.BillingAccountIdEQ(k))
+		} else {
+			// Named some other way -- an alias, a slug. Resolving it
+			// would be a read, and a predicate is built without one, so
+			// it becomes a condition on the target instead. One hop,
+			// against whatever index that column has.
+			q, err := bare.BillingAccountPick(w)
+			if err != nil {
+				return nil, err
+			}
+
+			ps = append(ps, entStatement.HasBillingAccountWith(q))
 		}
 	}
 	if len(ps) == 0 {
@@ -18101,6 +18127,8 @@ var AccountMethods = []string{
 	levyan.PayerService_ListInvoices_FullMethodName,
 	levyan.PayerService_GetInvoice_FullMethodName,
 	levyan.PayerService_ListCreditNotes_FullMethodName,
+	levyan.PayerService_ListStatements_FullMethodName,
+	levyan.PayerService_GetStatement_FullMethodName,
 	levyan.PayerService_GetBillingAccount_FullMethodName,
 	levyan.PayerService_StartCheckout_FullMethodName,
 	levyan.PayerService_CompleteCheckout_FullMethodName,

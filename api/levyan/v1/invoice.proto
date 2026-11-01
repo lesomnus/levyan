@@ -1,7 +1,8 @@
 edition = "2023";
 
 // What a billing account is asked to pay: its invoices, their lines, and the
-// credit notes that take some of an invoice back.
+// credit notes that take some of an invoice back -- and, to its payer, the
+// statements its invoices' lines are.
 package levyan.v1;
 
 import "google/protobuf/timestamp.proto";
@@ -58,6 +59,38 @@ message ListCreditNotesRequest {
 message ListCreditNotesResponse {
   // The earliest first.
   repeated CreditNote credit_notes = 1;
+}
+
+// PayerServiceListStatementsRequest is named for its service, as a request
+// is whose method's name another service has too (`BillingService`'s
+// `ListStatementsRequest`).
+message PayerServiceListStatementsRequest {
+  // Of one of the account's billing accounts, by its identifier; empty is
+  // of every one. One that is not the account's is NotFound.
+  string billing_account = 1;
+
+  // How many to answer with: 20 when unset, and at most 100.
+  int32 page_size = 2;
+
+  // Where to carry on from: the `next_page_token` of the answer before.
+  string page_token = 3;
+}
+
+message PayerServiceListStatementsResponse {
+  // The latest period first, each with its lines.
+  repeated Statement statements = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  string next_page_token = 2;
+}
+
+message PayerServiceGetStatementRequest {
+  // The statement, by its identifier as text.
+  string id = 1;
+}
+
+message PayerServiceGetStatementResponse {
+  Statement statement = 1;
 }
 
 // Invoice is what a billing account is asked to pay for a product's period:
@@ -252,7 +285,7 @@ enum DeclineKind {
 // one period.
 message InvoiceLine {
   // The statement, by its identifier as `BillingService.GetStatement` takes
-  // it.
+  // it, and `PayerService.GetStatement` for its payer.
   string statement = 1;
 
   // The workspace, as the product names it, and what the product called it

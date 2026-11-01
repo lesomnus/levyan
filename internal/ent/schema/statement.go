@@ -102,6 +102,8 @@ func (Statement) Indexes() []ent.Index {
 			Annotations(entsql.IndexWhere("date_erased IS NULL")),
 		index.Fields("workspace_id", "date_start", "id").
 			StorageKey("statement_workspace"),
+		index.Fields("tenant_id", "billing_account_id", "date_start", "id").
+			StorageKey("statement_billing"),
 	}
 }
 

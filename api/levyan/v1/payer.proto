@@ -79,6 +79,19 @@ service PayerService {
   // ListCreditNotes is the credit notes of them.
   rpc ListCreditNotes(ListCreditNotesRequest) returns (ListCreditNotesResponse);
 
+  // ListStatements is the statements of the product's workspaces that the
+  // account's billing accounts paid for -- each of a period one of them paid
+  // for its workspace, whatever became of the invoice it is a line of -- the
+  // latest period first, line by line as `BillingService` answers the
+  // product. A period somebody else paid for, before the account began
+  // paying for the workspace or after it stopped, is theirs and not the
+  // account's.
+  rpc ListStatements(PayerServiceListStatementsRequest) returns (PayerServiceListStatementsResponse);
+
+  // GetStatement is one of them, by its identifier: what an invoice's line
+  // names (`InvoiceLine.statement`).
+  rpc GetStatement(PayerServiceGetStatementRequest) returns (PayerServiceGetStatementResponse);
+
   // GetBillingAccount is one of the account's billing accounts, with whether
   // what it is billed can be collected now, the subscription it is collected
   // through on the merchant of record's channel, and what is done of the

@@ -106,6 +106,18 @@ service PayerService {
     option (payday.method) = {account: {}};
   }
 
+  // The statements of the workspaces of the product that relays the call,
+  // each of a period one of the account's billing accounts paid for it: what
+  // an invoice's lines are, line by line (#47).
+  rpc ListStatements(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
+
+  // One of them.
+  rpc GetStatement(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (payday.method) = {account: {}};
+  }
+
   // One of the account's billing accounts, with whether what it is billed
   // can be collected now and the subscription it is collected through (#12).
   rpc GetBillingAccount(google.protobuf.Empty) returns (google.protobuf.Empty) {

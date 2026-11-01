@@ -5,7 +5,8 @@
 // source: levyan/v1/invoice.proto
 
 // What a billing account is asked to pay: its invoices, their lines, and the
-// credit notes that take some of an invoice back.
+// credit notes that take some of an invoice back -- and, to its payer, the
+// statements its invoices' lines are.
 
 package levyanv1
 
@@ -659,6 +660,299 @@ func (b0 ListCreditNotesResponse_builder) Build() *ListCreditNotesResponse {
 	return m0
 }
 
+// PayerServiceListStatementsRequest is named for its service, as a request
+// is whose method's name another service has too (`BillingService`'s
+// `ListStatementsRequest`).
+type PayerServiceListStatementsRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_BillingAccount string                 `protobuf:"bytes,1,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_PageSize       int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
+	xxx_hidden_PageToken      string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *PayerServiceListStatementsRequest) Reset() {
+	*x = PayerServiceListStatementsRequest{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PayerServiceListStatementsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PayerServiceListStatementsRequest) ProtoMessage() {}
+
+func (x *PayerServiceListStatementsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PayerServiceListStatementsRequest) GetBillingAccount() string {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return ""
+}
+
+func (x *PayerServiceListStatementsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.xxx_hidden_PageSize
+	}
+	return 0
+}
+
+func (x *PayerServiceListStatementsRequest) GetPageToken() string {
+	if x != nil {
+		return x.xxx_hidden_PageToken
+	}
+	return ""
+}
+
+func (x *PayerServiceListStatementsRequest) SetBillingAccount(v string) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *PayerServiceListStatementsRequest) SetPageSize(v int32) {
+	x.xxx_hidden_PageSize = v
+}
+
+func (x *PayerServiceListStatementsRequest) SetPageToken(v string) {
+	x.xxx_hidden_PageToken = v
+}
+
+type PayerServiceListStatementsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Of one of the account's billing accounts, by its identifier; empty is
+	// of every one. One that is not the account's is NotFound.
+	BillingAccount string
+	// How many to answer with: 20 when unset, and at most 100.
+	PageSize int32
+	// Where to carry on from: the `next_page_token` of the answer before.
+	PageToken string
+}
+
+func (b0 PayerServiceListStatementsRequest_builder) Build() *PayerServiceListStatementsRequest {
+	m0 := &PayerServiceListStatementsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_PageSize = b.PageSize
+	x.xxx_hidden_PageToken = b.PageToken
+	return m0
+}
+
+type PayerServiceListStatementsResponse struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Statements    *[]*Statement          `protobuf:"bytes,1,rep,name=statements"`
+	xxx_hidden_NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *PayerServiceListStatementsResponse) Reset() {
+	*x = PayerServiceListStatementsResponse{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PayerServiceListStatementsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PayerServiceListStatementsResponse) ProtoMessage() {}
+
+func (x *PayerServiceListStatementsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PayerServiceListStatementsResponse) GetStatements() []*Statement {
+	if x != nil {
+		if x.xxx_hidden_Statements != nil {
+			return *x.xxx_hidden_Statements
+		}
+	}
+	return nil
+}
+
+func (x *PayerServiceListStatementsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.xxx_hidden_NextPageToken
+	}
+	return ""
+}
+
+func (x *PayerServiceListStatementsResponse) SetStatements(v []*Statement) {
+	x.xxx_hidden_Statements = &v
+}
+
+func (x *PayerServiceListStatementsResponse) SetNextPageToken(v string) {
+	x.xxx_hidden_NextPageToken = v
+}
+
+type PayerServiceListStatementsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The latest period first, each with its lines.
+	Statements []*Statement
+	// What to ask for next, and empty when this was the last of them.
+	NextPageToken string
+}
+
+func (b0 PayerServiceListStatementsResponse_builder) Build() *PayerServiceListStatementsResponse {
+	m0 := &PayerServiceListStatementsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Statements = &b.Statements
+	x.xxx_hidden_NextPageToken = b.NextPageToken
+	return m0
+}
+
+type PayerServiceGetStatementRequest struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id string                 `protobuf:"bytes,1,opt,name=id"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PayerServiceGetStatementRequest) Reset() {
+	*x = PayerServiceGetStatementRequest{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PayerServiceGetStatementRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PayerServiceGetStatementRequest) ProtoMessage() {}
+
+func (x *PayerServiceGetStatementRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PayerServiceGetStatementRequest) GetId() string {
+	if x != nil {
+		return x.xxx_hidden_Id
+	}
+	return ""
+}
+
+func (x *PayerServiceGetStatementRequest) SetId(v string) {
+	x.xxx_hidden_Id = v
+}
+
+type PayerServiceGetStatementRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The statement, by its identifier as text.
+	Id string
+}
+
+func (b0 PayerServiceGetStatementRequest_builder) Build() *PayerServiceGetStatementRequest {
+	m0 := &PayerServiceGetStatementRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	return m0
+}
+
+type PayerServiceGetStatementResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Statement *Statement             `protobuf:"bytes,1,opt,name=statement"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *PayerServiceGetStatementResponse) Reset() {
+	*x = PayerServiceGetStatementResponse{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PayerServiceGetStatementResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PayerServiceGetStatementResponse) ProtoMessage() {}
+
+func (x *PayerServiceGetStatementResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PayerServiceGetStatementResponse) GetStatement() *Statement {
+	if x != nil {
+		return x.xxx_hidden_Statement
+	}
+	return nil
+}
+
+func (x *PayerServiceGetStatementResponse) SetStatement(v *Statement) {
+	x.xxx_hidden_Statement = v
+}
+
+func (x *PayerServiceGetStatementResponse) HasStatement() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Statement != nil
+}
+
+func (x *PayerServiceGetStatementResponse) ClearStatement() {
+	x.xxx_hidden_Statement = nil
+}
+
+type PayerServiceGetStatementResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Statement *Statement
+}
+
+func (b0 PayerServiceGetStatementResponse_builder) Build() *PayerServiceGetStatementResponse {
+	m0 := &PayerServiceGetStatementResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Statement = b.Statement
+	return m0
+}
+
 // Invoice is what a billing account is asked to pay for a product's period:
 // every statement of the workspaces it paid for over the period, a line each.
 // One that came to less than its channel collects waits for the next period,
@@ -696,7 +990,7 @@ type Invoice struct {
 
 func (x *Invoice) Reset() {
 	*x = Invoice{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[6]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -708,7 +1002,7 @@ func (x *Invoice) String() string {
 func (*Invoice) ProtoMessage() {}
 
 func (x *Invoice) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[6]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1108,7 +1402,7 @@ type InvoiceCredit struct {
 
 func (x *InvoiceCredit) Reset() {
 	*x = InvoiceCredit{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1120,7 +1414,7 @@ func (x *InvoiceCredit) String() string {
 func (*InvoiceCredit) ProtoMessage() {}
 
 func (x *InvoiceCredit) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1233,7 +1527,7 @@ type Credit struct {
 
 func (x *Credit) Reset() {
 	*x = Credit{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1245,7 +1539,7 @@ func (x *Credit) String() string {
 func (*Credit) ProtoMessage() {}
 
 func (x *Credit) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1430,7 +1724,7 @@ type Dunning struct {
 
 func (x *Dunning) Reset() {
 	*x = Dunning{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1442,7 +1736,7 @@ func (x *Dunning) String() string {
 func (*Dunning) ProtoMessage() {}
 
 func (x *Dunning) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1658,7 +1952,7 @@ type InvoiceLine struct {
 
 func (x *InvoiceLine) Reset() {
 	*x = InvoiceLine{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[10]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1670,7 +1964,7 @@ func (x *InvoiceLine) String() string {
 func (*InvoiceLine) ProtoMessage() {}
 
 func (x *InvoiceLine) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[10]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1751,7 +2045,7 @@ type InvoiceLine_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The statement, by its identifier as `BillingService.GetStatement` takes
-	// it.
+	// it, and `PayerService.GetStatement` for its payer.
 	Statement string
 	// The workspace, as the product names it, and what the product called it
 	// when the line was written.
@@ -1796,7 +2090,7 @@ type CreditNote struct {
 
 func (x *CreditNote) Reset() {
 	*x = CreditNote{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[11]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1808,7 +2102,7 @@ func (x *CreditNote) String() string {
 func (*CreditNote) ProtoMessage() {}
 
 func (x *CreditNote) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[11]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2011,7 +2305,21 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x0fbilling_account\x18\x01 \x01(\tR\x0ebillingAccount\x12\x18\n" +
 	"\ainvoice\x18\x02 \x01(\tR\ainvoice\"S\n" +
 	"\x17ListCreditNotesResponse\x128\n" +
-	"\fcredit_notes\x18\x01 \x03(\v2\x15.levyan.v1.CreditNoteR\vcreditNotes\"\xa1\x06\n" +
+	"\fcredit_notes\x18\x01 \x03(\v2\x15.levyan.v1.CreditNoteR\vcreditNotes\"\x88\x01\n" +
+	"!PayerServiceListStatementsRequest\x12'\n" +
+	"\x0fbilling_account\x18\x01 \x01(\tR\x0ebillingAccount\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x82\x01\n" +
+	"\"PayerServiceListStatementsResponse\x124\n" +
+	"\n" +
+	"statements\x18\x01 \x03(\v2\x14.levyan.v1.StatementR\n" +
+	"statements\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"1\n" +
+	"\x1fPayerServiceGetStatementRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"V\n" +
+	" PayerServiceGetStatementResponse\x122\n" +
+	"\tstatement\x18\x01 \x01(\v2\x14.levyan.v1.StatementR\tstatement\"\xa1\x06\n" +
 	"\aInvoice\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12-\n" +
@@ -2102,59 +2410,66 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x1fCREDIT_NOTE_REASON_CANCELLATION\x10\x03B8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_v1_invoice_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_levyan_v1_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_levyan_v1_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_levyan_v1_invoice_proto_goTypes = []any{
-	(InvoiceState)(0),               // 0: levyan.v1.InvoiceState
-	(DeclineKind)(0),                // 1: levyan.v1.DeclineKind
-	(CreditNoteReason)(0),           // 2: levyan.v1.CreditNoteReason
-	(*ListInvoicesRequest)(nil),     // 3: levyan.v1.ListInvoicesRequest
-	(*ListInvoicesResponse)(nil),    // 4: levyan.v1.ListInvoicesResponse
-	(*GetInvoiceRequest)(nil),       // 5: levyan.v1.GetInvoiceRequest
-	(*GetInvoiceResponse)(nil),      // 6: levyan.v1.GetInvoiceResponse
-	(*ListCreditNotesRequest)(nil),  // 7: levyan.v1.ListCreditNotesRequest
-	(*ListCreditNotesResponse)(nil), // 8: levyan.v1.ListCreditNotesResponse
-	(*Invoice)(nil),                 // 9: levyan.v1.Invoice
-	(*InvoiceCredit)(nil),           // 10: levyan.v1.InvoiceCredit
-	(*Credit)(nil),                  // 11: levyan.v1.Credit
-	(*Dunning)(nil),                 // 12: levyan.v1.Dunning
-	(*InvoiceLine)(nil),             // 13: levyan.v1.InvoiceLine
-	(*CreditNote)(nil),              // 14: levyan.v1.CreditNote
-	(*timestamppb.Timestamp)(nil),   // 15: google.protobuf.Timestamp
-	(Channel)(0),                    // 16: levyan.v1.Channel
-	(*Period)(nil),                  // 17: levyan.v1.Period
+	(InvoiceState)(0),                          // 0: levyan.v1.InvoiceState
+	(DeclineKind)(0),                           // 1: levyan.v1.DeclineKind
+	(CreditNoteReason)(0),                      // 2: levyan.v1.CreditNoteReason
+	(*ListInvoicesRequest)(nil),                // 3: levyan.v1.ListInvoicesRequest
+	(*ListInvoicesResponse)(nil),               // 4: levyan.v1.ListInvoicesResponse
+	(*GetInvoiceRequest)(nil),                  // 5: levyan.v1.GetInvoiceRequest
+	(*GetInvoiceResponse)(nil),                 // 6: levyan.v1.GetInvoiceResponse
+	(*ListCreditNotesRequest)(nil),             // 7: levyan.v1.ListCreditNotesRequest
+	(*ListCreditNotesResponse)(nil),            // 8: levyan.v1.ListCreditNotesResponse
+	(*PayerServiceListStatementsRequest)(nil),  // 9: levyan.v1.PayerServiceListStatementsRequest
+	(*PayerServiceListStatementsResponse)(nil), // 10: levyan.v1.PayerServiceListStatementsResponse
+	(*PayerServiceGetStatementRequest)(nil),    // 11: levyan.v1.PayerServiceGetStatementRequest
+	(*PayerServiceGetStatementResponse)(nil),   // 12: levyan.v1.PayerServiceGetStatementResponse
+	(*Invoice)(nil),                            // 13: levyan.v1.Invoice
+	(*InvoiceCredit)(nil),                      // 14: levyan.v1.InvoiceCredit
+	(*Credit)(nil),                             // 15: levyan.v1.Credit
+	(*Dunning)(nil),                            // 16: levyan.v1.Dunning
+	(*InvoiceLine)(nil),                        // 17: levyan.v1.InvoiceLine
+	(*CreditNote)(nil),                         // 18: levyan.v1.CreditNote
+	(*Statement)(nil),                          // 19: levyan.v1.Statement
+	(*timestamppb.Timestamp)(nil),              // 20: google.protobuf.Timestamp
+	(Channel)(0),                               // 21: levyan.v1.Channel
+	(*Period)(nil),                             // 22: levyan.v1.Period
 }
 var file_levyan_v1_invoice_proto_depIdxs = []int32{
-	9,  // 0: levyan.v1.ListInvoicesResponse.invoices:type_name -> levyan.v1.Invoice
-	9,  // 1: levyan.v1.GetInvoiceResponse.invoice:type_name -> levyan.v1.Invoice
-	14, // 2: levyan.v1.GetInvoiceResponse.credit_notes:type_name -> levyan.v1.CreditNote
-	12, // 3: levyan.v1.GetInvoiceResponse.dunning:type_name -> levyan.v1.Dunning
-	14, // 4: levyan.v1.ListCreditNotesResponse.credit_notes:type_name -> levyan.v1.CreditNote
-	0,  // 5: levyan.v1.Invoice.state:type_name -> levyan.v1.InvoiceState
-	15, // 6: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
-	15, // 7: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
-	16, // 8: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
-	15, // 9: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
-	15, // 10: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
-	15, // 11: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
-	13, // 12: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
-	10, // 13: levyan.v1.Invoice.credits:type_name -> levyan.v1.InvoiceCredit
-	15, // 14: levyan.v1.InvoiceCredit.expires:type_name -> google.protobuf.Timestamp
-	15, // 15: levyan.v1.Credit.expires:type_name -> google.protobuf.Timestamp
-	15, // 16: levyan.v1.Credit.created:type_name -> google.protobuf.Timestamp
-	1,  // 17: levyan.v1.Dunning.kind:type_name -> levyan.v1.DeclineKind
-	15, // 18: levyan.v1.Dunning.failed:type_name -> google.protobuf.Timestamp
-	15, // 19: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
-	15, // 20: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
-	15, // 21: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
-	15, // 22: levyan.v1.Dunning.readonly_from:type_name -> google.protobuf.Timestamp
-	17, // 23: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
-	2,  // 24: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
-	15, // 25: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	13, // 0: levyan.v1.ListInvoicesResponse.invoices:type_name -> levyan.v1.Invoice
+	13, // 1: levyan.v1.GetInvoiceResponse.invoice:type_name -> levyan.v1.Invoice
+	18, // 2: levyan.v1.GetInvoiceResponse.credit_notes:type_name -> levyan.v1.CreditNote
+	16, // 3: levyan.v1.GetInvoiceResponse.dunning:type_name -> levyan.v1.Dunning
+	18, // 4: levyan.v1.ListCreditNotesResponse.credit_notes:type_name -> levyan.v1.CreditNote
+	19, // 5: levyan.v1.PayerServiceListStatementsResponse.statements:type_name -> levyan.v1.Statement
+	19, // 6: levyan.v1.PayerServiceGetStatementResponse.statement:type_name -> levyan.v1.Statement
+	0,  // 7: levyan.v1.Invoice.state:type_name -> levyan.v1.InvoiceState
+	20, // 8: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
+	20, // 9: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
+	21, // 10: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
+	20, // 11: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
+	20, // 12: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
+	20, // 13: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
+	17, // 14: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
+	14, // 15: levyan.v1.Invoice.credits:type_name -> levyan.v1.InvoiceCredit
+	20, // 16: levyan.v1.InvoiceCredit.expires:type_name -> google.protobuf.Timestamp
+	20, // 17: levyan.v1.Credit.expires:type_name -> google.protobuf.Timestamp
+	20, // 18: levyan.v1.Credit.created:type_name -> google.protobuf.Timestamp
+	1,  // 19: levyan.v1.Dunning.kind:type_name -> levyan.v1.DeclineKind
+	20, // 20: levyan.v1.Dunning.failed:type_name -> google.protobuf.Timestamp
+	20, // 21: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
+	20, // 22: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
+	20, // 23: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
+	20, // 24: levyan.v1.Dunning.readonly_from:type_name -> google.protobuf.Timestamp
+	22, // 25: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
+	2,  // 26: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
+	20, // 27: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_invoice_proto_init() }
@@ -2170,7 +2485,7 @@ func file_levyan_v1_invoice_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_v1_invoice_proto_rawDesc), len(file_levyan_v1_invoice_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   12,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -1440,7 +1440,7 @@ var File_levyan_statement_proto protoreflect.FileDescriptor
 
 const file_levyan_statement_proto_rawDesc = "" +
 	"\n" +
-	"\x16levyan/statement.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/period.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xe7\b\n" +
+	"\x16levyan/statement.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/period.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xbe\t\n" +
 	"\tStatement\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
@@ -1462,7 +1462,7 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x05payer\x18\x14 \x01(\fB\x10\xea\x82\x16\x06\x10@8\x01@\x01\xaa\xc1\x16\x02\x18\x00R\x05payer\x12I\n" +
 	"\x0fbilling_account\x18\x15 \x01(\v2\x16.levyan.BillingAccountB\b\xf2\x82\x16\x048\x01@\x01R\x0ebillingAccount\x12(\n" +
 	"\n" +
-	"first_unit\x18\x16 \x01(\bB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tfirstUnit:\x84\x02\xca\xfc\x15\x9c\x01\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a*\x12\x04page\x1a\n" +
+	"first_unit\x18\x16 \x01(\bB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tfirstUnit:\xdb\x02\xca\xfc\x15\xe0\x01\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a*\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x0e\n" +
 	"\n" +
@@ -1476,7 +1476,13 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\tworkspace\x10\x03\x1a\x0e\n" +
 	"\n" +
 	"date_start\x10\t\x1a\x06\n" +
-	"\x02id\x10\x01\x8a\xbb\x16_\b\x1120\n" +
+	"\x02id\x10\x01\x1aB\x12\abilling\x1a\n" +
+	"\n" +
+	"\x06tenant\x10\x02\x1a\x13\n" +
+	"\x0fbilling_account\x10\x15\x1a\x0e\n" +
+	"\n" +
+	"date_start\x10\t\x1a\x06\n" +
+	"\x02id\x10\x01\x8a\xbb\x16r\b\x112C\n" +
 	"\x0e\n" +
 	"\f\n" +
 	"\n" +
@@ -1485,7 +1491,8 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x04\n" +
 	"\x02id\x1a\x05\n" +
 	"\x03ref\x1a\v\n" +
-	"\tworkspace \x14(d\")\n" +
+	"\tworkspace\x1a\x11\n" +
+	"\x0fbilling_account \x14(d\")\n" +
 	"\x06tenant\"\x10workspace.tenant\"\rperiod.tenant\"=\n" +
 	"\x0eStatementLines\x12+\n" +
 	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xd4\x04\n" +

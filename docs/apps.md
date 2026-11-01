@@ -96,13 +96,14 @@ on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
 | 1단계, 제한 | `<제품>.restricted` (`loft.restricted`) | 결제가 실패한 청구서의 유예가 끝날 때(행이 바로라고 하면 첫 실패에), 지불자가 없어진 지 30일 뒤 | 그 워크스페이스가 청구되는 것을 늘리는 쓰기를 막는다. 일상 업무는 계속된다 |
 | 2단계, 읽기 전용 | `<제품>.readonly` (`loft.readonly`) | 그 청구서의 첫 실패 60일 뒤, 지불자가 없어진 지 60일 뒤. 1단계보다 이르지 않다 | 아래의 것 말고는 그 워크스페이스의 모든 쓰기를 거부한다 |
 
-**`<제품>.readonly`가 있는 워크스페이스에서 앱이 받는 것**은 이것뿐이다.
+**`<제품>.readonly`가 있는 워크스페이스에서 앱이 받는 것**은 이것뿐이다. 읽기, 내보내기, 결제, 닫기는 대표가 정했고(2026-11-01), 떠나기와 한 사람 자신의 것은 Claude가 더했다.
 
 - **읽기.** 모든 읽기.
 - **내보내기와 내려받기.** 워크스페이스의 데이터를 내보내고, 파일을 내려받는 것.
 - **결제.** 지불자와 결제의 모든 것. 결제 계정을 만들고 고치는 것, 결제창(`StartCheckout`, `CompleteCheckout`), 지불자가 되는 것(제안, 받아들이기와 거절하기, `Use`, `Stop`)과, 그 화면이 앱에 쓰는 것.
 - **닫기.** 워크스페이스를 닫는 것.
-- **떠나기.** 구성원이 워크스페이스를 떠나는 것.
+- **떠나기.** 구성원이 워크스페이스를 떠나는 것(Claude).
+- **한 사람 자신의 것.** 워크스페이스의 데이터를 늘리지 않는, 부르는 사람 자신의 것. 자기 계정(비밀번호 같은 것)과, 자기 알림을 읽음으로 표시하고 메일을 끄는 것이다(Claude, loft#255). 알림을 끌 수 없으면 받는 사람이 그것을 멈출 수도 없다.
 
 그 밖의 쓰기는 모두 거부한다(FailedPrecondition). 지키는 것은 앱이다. levyan은 키를 줄 뿐이다.
 
@@ -111,7 +112,7 @@ readonly, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.readonly")
 if err != nil {
 	return err
 }
-if readonly && !allowedWhenReadonly(method) { // 읽기, 내보내기·내려받기, 결제, 닫기, 떠나기
+if readonly && !allowedWhenReadonly(method) { // 읽기, 내보내기·내려받기, 결제, 닫기, 떠나기, 자기 것
 	return status.Error(codes.FailedPrecondition, "this workspace is read-only until its billing is settled")
 }
 ```
@@ -119,6 +120,7 @@ if readonly && !allowedWhenReadonly(method) { // 읽기, 내보내기·내려받
 - **각자 검사한다.** `<제품>.readonly`는 `<제품>.restricted`보다 먼저 오지 않지만, 앱은 `<제품>.readonly` 하나만 보고도 읽기 전용으로 다룬다. 둘이 한 트랜잭션에 오는 것은 아니다.
 - **풀리는 때.** 청구서가 결제되면 두 Grant가 함께 끝난다(levyan이 1분 안에 끝내고, 스트림으로 온다). 지불자가 없던 워크스페이스는 누가 받아들이면 levyan의 Grant 루프(1시간)에서 둘 다 끝난다.
 - **언제 오는지**는 `GetPayer`의 `payer.restricted_from`·`payer.readonly_from`(지불자 없음, 4장)과 `payer.dunning[]`의 `restricted_from`·`readonly_from`(청구서, 6장)이 말한다. 그 때가 지났는데 Grant가 아직 오지 않았으면 배너만 보이고 막지 않는다.
+- **할 수 없는 일을 하라고 알리지 않는다**(Claude, loft#255). 읽기 전용인 동안 앱은 그 워크스페이스가 받지 않는 일을 기한 안에 하라는 알림(반납 기한, 다가오는 작업 같은 것)을 보내지 않는다. 다시 쓸 수 있게 된 뒤에 아직 참인 것을 한 번 알린다. 앱이 스스로 한 일(만료, 해제)과 결제에 관한 알림은 그대로 보낸다. loft는 design D67이 그렇게 한다.
 - 기간(30일, 60일)은 levyan 배포의 정책 표의 값이고(`dunning.kinds`), 배포가 바꿀 수 있다.
 
 ### levyan이 멈췄을 때

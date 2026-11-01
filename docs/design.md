@@ -1052,6 +1052,8 @@ levyan#1의 "2026-11-01, 대표" 댓글이 102번에 답했다.
   1. **모으고 정한다**(`Invoices.Account`, 결제 계정마다). 그 결제 계정의 행을 잡고(`FOR UPDATE`), 아직 청구서에 없는 내역을 기간 순으로 초안에 줄로 더한다. 초안이 없으면 만든다. 초안이 덮는 기간이 닫혔으면 정한다(아래). 더 나중 기간의 내역은 초안의 기간을 먼저 정한 뒤에 더한다.
   2. **발행한다**(`Invoices.Issue`). 판매자 채널에서 번호를 받았고 아직 발행하지 않은 청구서와 정정 청구의 법적 서류를 수금기에 낸다.
   3. **수금한다**(`Invoices.Collect`). 밀어서 받는 채널의 미결 청구서에 첫 시도를 만들고, 끝나지 않은 시도마다 한 걸음씩 간다. 나가 있지 않은 것은 보내고, 나가 있는 것은 묻는다.
+
+  운영자의 `levyan-admin invoice collect`는 이 한 번을 지금, 그 운영자로서 한다(구현에서 정한 것). `period close`가 루프 `levyan.periods.close`의 일을 손으로 하는 것과 같다. 쓰는 것은 모두 결제 계정의 행을 잡고 쓰므로, 루프와 같은 때에 돌아도 두 번 쓰지 않는다.
 - **초안을 정하기**(`decide`): 그 초안이 덮는 기간(끝이 같은 기간)이 닫힌 뒤에 한다.
   - 수금하는 채널이 없으면 초안으로 둔다(로그). 아무것도 묻지 않는다.
   - 소계에 판매자의 세금을 더해 합계를 낸다. 합계가 0 이하이면 확정하고 정산된 것(PAID)으로 한다. 0보다 작은 만큼은 크레딧(NEGATIVE)이다.
@@ -1097,7 +1099,7 @@ levyan#1의 "2026-11-01, 대표" 댓글이 102번에 답했다.
   - 닫기는 기간마다 (제품, 미터, 채널, 통화)마다 경고 한 줄을 남긴다. 워크스페이스가 몇 개인지와 함께다.
   - 운영자의 `levyan-admin price check PRODUCT`: 지금 열린 기간의 시작부터의 고객에게, 지금, 제품의 조건과 있는 모든 결제 계정의 채널·통화마다 가격이 없는 미터를 보여 준다. 그 미터가 어디에 가격이 있는지도 보여 준다.
 - **지불자의 API**(`levyan.v1.PayerService`): `ListInvoices`(최근 기간부터, 결제 계정으로 거를 수 있다, 줄 없이), `GetInvoice`(줄과 정정 청구와 함께), `ListCreditNotes`. 스키마의 같은 이름 메서드로 서빙하고, 읽는 것을 선언한다(`pd.AccountReads`). 그 계정의 결제 계정의, 대신 부르는 제품의, 확정된 청구서와 그 줄과 정정 청구뿐이다. 초안과 털어 낸 청구서는 보이지 않는다. 줄의 워크스페이스와 기간의 zone은 wall이 답한 것에 대해서만 ent로 읽는다. 줄의 내역은 `ListStatements`와 `GetStatement`로 읽는다(#47, 아래 "지불자가 읽는 내역").
-- **운영자 명령**: `invoice ls [--state] [--billing-account] PRODUCT`, `invoice show ID`(줄, 정정 청구, 시도, 그 결제 계정의 크레딧 잔액), `invoice void [--reason] --yes ID`, `invoice credit --amount N [--reason correction|refund] [--refund] [--words] [--reference --date] --yes ID`, `invoice paid --amount N [--date] --reference R --yes ID`, `price check PRODUCT`.
+- **운영자 명령**: `invoice ls [--state] [--billing-account] PRODUCT`, `invoice show ID`(줄, 정정 청구, 시도, 그 결제 계정의 크레딧 잔액), `invoice collect --yes`(루프 `levyan.invoices.collect`의 한 번을 지금, 그 운영자로서. 다 한 뒤에 답한다. 손으로 닫은 기간을 루프를 기다리지 않고 청구서로 모으고, `scripts/upgrade.sh`가 루프의 시계를 기다리지 않게 한다. 구현에서 정한 것), `invoice void [--reason] --yes ID`, `invoice credit --amount N [--reason correction|refund] [--refund] [--words] [--reference --date] --yes ID`, `invoice paid --amount N [--date] --reference R --yes ID`, `price check PRODUCT`.
 
 ### 계좌이체 채널 (구현됨)
 
@@ -1591,6 +1593,11 @@ levyan이 가진 것을 채널이 답하는 것과, 그리고 levyan 자신과 �
   - 어댑터: 창을 보지 않기, 창을 지나서도 읽기, 오래된 것부터 읽기, 커서를 페이지의 처음으로 주기.
   - 가짜: 조정이 그 거래를 옮기게 하기(대시보드 환불과 차지백, 환불의 요청).
 - `scripts/upgrade.sh`: 앞 빌드에 대조가 있으면 그 빌드가 한 번 돌리고(수금기가 없는 이체 채널의 초안을 찾는다), 그 찾은 것을 뒤 빌드가 다시 읽는다. 이 빌드가 뒤 빌드일 때는 `levyan-admin reconcile run`과 `ls`를 돌려 모든 검사를 하는지 본다(MoR이 없어 그 검사는 건너뛴다). 새 테이블(`finding`)과, 이미 있는 테이블의 기본값 있는 열 두 개(`paymentattempt.extra_of`, `refunds`)가 앞 빌드와 OLDEST가 쓴 DB에 SQLite와 PostgreSQL에서 더해진다.
+  - 시드는 루프의 시계와 돌린 날짜에 기대지 않는다(구현에서 정한 것, 2026-11-02).
+    - 빌드가 아는 설정 이름(`levyan config env`)은 다 읽은 뒤에 찾는다. 전에는 `grep -q`로 파이프를 넘겼는데, `grep`이 먼저 끝나면 빌드가 SIGPIPE로 죽고 `pipefail`이 그것을 "그 설정이 없다"로 읽었다. 그래서 이따금 `reconcile.stale.draft`(1ns)가 빠져 초안이 하루 동안 오래된 것이 아니었고(2026-11-01 CI), `invoices.every`(1초)가 빠져 루프가 10분 뒤에야 돌았다.
+    - 앞 빌드에 `invoice collect`가 있으면 기간을 닫은 뒤에 그것으로 초안을 모은다. 없는 빌드만 루프를 1초마다 돌려 기다린다.
+    - 기간은 손으로만 닫는다. 앞 빌드의 `periods.grace`를 100년으로 주어, 루프의 첫 통과가 늦게 와도 먼저 닫지 않는다.
+    - 달은 시드가 시작한 한 순간에서 세고, `period close --through`로 그 두 달만 닫는다. 달이 바뀌는 때에 돌아도 행이 서로 다른 달에 쓰이지 않는다.
 
 ## 16. 앞으로의 설계 (levyan#1, 제안)
 

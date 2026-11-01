@@ -24,10 +24,12 @@
 # with the key, two workspaces arrived, readings and a flow's points in the two
 # months before this one and in this one, and an offer; the two months closed
 # (`period close`) into statements, and those of the billing account gathered
-# into its invoice; and the second workspace closed in the month before this
-# one, said after that month was closed, so that it is late (#14); and, by a
-# build that reconciles, what that found (#13). What a build does not have
-# yet -- a command, a method, a setting -- it is not asked, and that is said. Nothing here reaches a roster
+# into its invoice (`invoice collect`, the loop's pass made by hand, so that
+# what is written does not wait on the loop's clock); and the second
+# workspace closed in the month before this one, said after that month was
+# closed, so that it is late (#14); and, by a build that reconciles, what
+# that found (#13). What a build does not have yet -- a command, a method, a
+# setting -- it is not asked, and that is said. Nothing here reaches a roster
 # or a merchant of record, so what only they make happen is not made: an
 # account's own billing accounts and what it answers, a departure, a
 # checkout, a subscription, its notices, and an invoice finalized and paid.
@@ -131,8 +133,17 @@ openssl rand -base64 32 >"${dir}/digest.key"
 export LEVYAN_ADMIN_KEYS="upgrade=\${file:${dir}/operator.key}"
 export LEVYAN_AUDIT_DIGEST_KEY="${dir}/digest.key"
 
-# reads B NAME: whether build B is told anything through NAME.
-reads() { "$1/levyan" config env | grep -qx "$2"; }
+# reads B NAME: whether build B is told anything through NAME. What it lists
+# is read whole before it is looked through: `grep -q` stops at the first
+# line that matches, the build writing the rest into a pipe nobody reads is
+# killed by SIGPIPE, and `pipefail` makes that a "no" -- now and then, of a
+# name the build has. The seed then went without the setting: the loop that
+# invoices ran every ten minutes, or the draft was not stale for a day.
+reads() {
+	local names
+	names="$("$1/levyan" config env)" || fail "${log}" "$1/levyan config env: failed"
+	grep -qx -- "$2" <<<"${names}"
+}
 
 # has B COMMAND...: whether build B's levyan-admin has COMMAND.
 has() {
@@ -141,12 +152,14 @@ has() {
 	"${b}/levyan-admin" "$@" --help >/dev/null 2>&1
 }
 
-# month N: the first moment of the month N months before this one, in UTC --
-# the product's zone, which it names none of.
+# month N: the first moment of the month N months before the one the seed
+# began in (`began`, YYYY-MM), in UTC -- the product's zone, which it names
+# none of. Of that one moment, so that a seed running across the end of a
+# month writes every row of the same months, and closes the same two.
 month() {
 	local y m
-	y="$(date -u +%Y)"
-	m=$((10#$(date -u +%m) - $1))
+	y="${began%-*}"
+	m=$((10#${began#*-} - $1))
 	while [ "${m}" -lt 1 ]; do
 		m=$((m + 12))
 		y=$((y - 1))
@@ -260,13 +273,23 @@ other=0190c0de-0000-8000-8002-0000000000c2
 
 # seed: what BEFORE writes, up and then stopped.
 seed() {
-	local b="${before}" out id ws extra=() billing=""
+	local b="${before}" out id ws extra=() billing="" began
+	began="$(date -u +%Y-%m)"
 	if ! "${b}/levyan" migrate >>"${log}" 2>&1; then
 		fail "${log}" "the build before did not migrate an empty database"
 	fi
-	# So that what the close writes is invoiced while this waits.
-	if reads "${b}" LEVYAN_INVOICES_EVERY; then
+	# What the close writes is invoiced by an operator's pass of the loop
+	# that invoices (`invoice collect`), made once the close is done. A build
+	# without it is invoiced by its loop, every second, while this waits.
+	if ! has "${b}" invoice collect && reads "${b}" LEVYAN_INVOICES_EVERY; then
 		extra+=(LEVYAN_INVOICES_EVERY=1s)
+	fi
+	# The months are closed by hand (`period close`), and never by the loop
+	# that closes them, whenever its first pass comes: what has ended waits a
+	# century for it. Its pass made late, after the readings, would have closed
+	# them first and left the operator's close nothing to close.
+	if reads "${b}" LEVYAN_PERIODS_GRACE; then
+		extra+=(LEVYAN_PERIODS_GRACE=876000h)
 	fi
 	# And so that the draft of the billing account paid by transfer -- a
 	# channel nothing collects on here -- is one its reconciliation finds
@@ -338,8 +361,10 @@ seed() {
 					dataPoints: [p($a; "5000"), p($b; "9000"), p($c; "12000")]}}]}]}]}')")"
 	jq -e '(.partialSuccess.rejectedDataPoints // "0") == "0"' <<<"${out}" >/dev/null || fail "${log}" "points were refused"
 
-	# The two months closed, now rather than after their grace.
-	out="$(admin "${b}" period close --yes loft)"
+	# The two months closed, now rather than after their grace -- through the
+	# start of the month the seed began in, which this one is unless it has
+	# ended since.
+	out="$(admin "${b}" period close --through "$(month 0)" --yes loft)"
 	grep -q $'\t' <<<"${out}" || fail "${log}" "the close closed no period"
 	while read -r id; do
 		expect "${id}" period ls loft
@@ -373,15 +398,24 @@ seed() {
 			'.usage | {period: .period.start, lines: [.lines[] | {meter, usage}]}'
 	done
 
-	# What the statements of the billing account came to, gathered by the
-	# loop onto its draft.
+	# What the statements of the billing account came to, gathered onto its
+	# draft: by a pass made now, which has gathered both months' when it
+	# answers -- or, by a build before `invoice collect`, by its loop's next
+	# pass, which this waits for.
 	if [ -n "${billing}" ] && has "${b}" invoice ls; then
-		for _ in $(seq 1 60); do
+		if has "${b}" invoice collect; then
+			admin "${b}" invoice collect --yes >/dev/null
 			out="$(admin "${b}" invoice ls loft)"
-			[ -z "${out}" ] || break
-			sleep 0.5
-		done
-		[ -n "${out}" ] || fail "${log}" "nothing the close wrote was invoiced within half a minute"
+			[ -n "${out}" ] || fail "${log}" "levyan-admin invoice collect: nothing the close wrote was invoiced"
+		else
+			say "the build before has no \`invoice collect\`: what the close wrote is invoiced by its loop, every second, while this waits"
+			for _ in $(seq 1 60); do
+				out="$(admin "${b}" invoice ls loft)"
+				[ -z "${out}" ] || break
+				sleep 0.5
+			done
+			[ -n "${out}" ] || fail "${log}" "nothing the close wrote was invoiced within half a minute"
+		fi
 		while read -r id; do
 			expect "${id}" invoice ls loft
 			expect "${id}" invoice show "${id}"

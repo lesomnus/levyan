@@ -128,6 +128,15 @@ write what a product and an operator write, and this build migrates it and
 reads it back. A feature that writes rows reachable without a roster or a
 merchant of record is written there too, and read back.
 
+What the seed needs a loop to have done, it drives: the operator's command
+that makes the loop's pass (`period close`, `invoice collect`, `reconcile
+run`), which is done when it answers -- never a wait on the loop's clock. A
+build too old for the command is said, and waited for. And never pipe a
+build's output, under `pipefail`, into what stops reading once it has its
+answer -- `grep -q`, `head`: the build is killed by SIGPIPE now and then,
+and the pipe says "no". Read it whole first. This is the implementation's
+rule (2026-11-02), after `reads` said so of a setting on CI (2026-11-01).
+
 ```sh
 go build -o /tmp/now/ ./cmd/levyan ./cmd/levyan-admin
 git worktree add --detach /tmp/before-src origin/main
@@ -876,7 +885,10 @@ levyan's own:
 - `levyan.invoices.collect` (`invoices.Collects`, every `invoices.every`, ten
   minutes, which is `mor.Settle`) invoices what the close wrote, decides
   drafts, issues a seller's documents and sends and asks about attempts,
-  through `Ungated` as the deployment.
+  through `Ungated` as the deployment. An operator's `levyan-admin invoice
+  collect` is the same pass through their frame, done when it answers (the
+  implementation's): what a script that closes a period by hand drives,
+  rather than waiting on the loop's clock.
 - `levyan.invoices.dunning` (`invoices.Duns`, every `dunning.every`, a
   minute) makes and sends the charges the dunning table says are due, marks
   what is spent `UNCOLLECTIBLE`, and follows the rules `dunning` and

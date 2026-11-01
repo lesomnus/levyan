@@ -402,6 +402,31 @@ func (a *Routes) paidInvoice(w http.ResponseWriter, r *http.Request) {
 	a.showInvoice(w, r, id, http.StatusCreated)
 }
 
+// InvoicePass is a pass of the loop that keeps invoices, made by an
+// operator's hand: when it was made, by the deployment's clock.
+type InvoicePass struct {
+	At time.Time `json:"at"`
+}
+
+// collectInvoices makes a pass of the loop that keeps invoices
+// (`levyan.invoices.collect`) now, as the operator, and answers once it is
+// done: every statement on no invoice put on its draft and every draft whose
+// periods are closed decided, the documents of what was finalized issued,
+// and what is due sent and asked about -- [invoices.Invoices.Run], which the
+// loop makes every `invoices.every`. So an operator who closed a period by
+// hand need not wait for the loop to invoice it, and a script that closed one
+// knows when it is invoiced (the implementation's). It is the loop's pass
+// and no other, which is safe made twice at once: what it writes, it writes
+// holding the billing account's row.
+func (a *Routes) collectInvoices(w http.ResponseWriter, r *http.Request) {
+	at := ledger.Moment(a.S.Clock())
+	if err := a.S.Invoices.Run(r.Context()); err != nil {
+		fail(w, r, err)
+		return
+	}
+	answer(w, http.StatusOK, InvoicePass{At: at})
+}
+
 // Unpriced is a meter with no price on a channel and currency a statement of
 // it may be priced on, while it has one on another.
 type Unpriced struct {

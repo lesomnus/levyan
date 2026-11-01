@@ -131,6 +131,58 @@ func TestAnOperatorKeepsAProductsInvoices(t *testing.T) {
 	x.Equal(1, n, "February's was sent")
 }
 
+// An operator who closed a period invoices what the close wrote now, rather
+// than when the loop next comes round: the loop's pass, made as them and done
+// when it answers -- on the trail as theirs -- and a pass made again invoices
+// nothing twice.
+func TestAnOperatorInvoicesWhatWasClosedNow(t *testing.T) {
+	d := open(t, map[string]string{"alice": aliceKey})
+	x := d.w.X
+	jan := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+	d.w.At(jan.Add(-time.Hour))
+
+	loft := d.w.Terms(d.w.Product("loft"), "UTC", levyan.Channel_CHANNEL_MOR, "KRW")
+	assets := d.w.Meter(loft, "loft.assets.active", "{asset}", levyan.MeterKind_METER_KIND_STOCK, levyan.Aggregation_AGGREGATION_LAST)
+	d.w.Price(loft, assets, levyan.Channel_CHANNEL_MOR, "KRW", 100, 50, jan)
+	key, _ := d.w.Key(loft, "loft-prod", nil)
+	d.w.S.Invoices.Collectors[levyan.Channel_CHANNEL_MOR] = &invoicestest.Channel{After: 30 * 24 * time.Hour}
+	conn := d.w.Serve()
+	product := levyantest.As(context.Background(), key)
+
+	d.w.At(jan)
+	a, ws := levyantest.Account(), levyantest.Tenant()
+	_, err := d.w.S.Payers.Create(context.Background(), a, levyan.BillingAccount_builder{Country: "KR", Recipient: "수민"}.Build())
+	x.NoError(err)
+	_, err = levyanv1.NewWorkspaceServiceClient(conn).Arrive(product, levyanv1.ArriveRequest_builder{Workspace: ws.String(), Creator: a.String()}.Build())
+	x.NoError(err)
+	feb := jan.AddDate(0, 1, 0)
+	d.w.At(feb)
+	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+	}}.Build())
+	x.NoError(err)
+	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
+
+	var vs []admin.Invoice
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
+	x.Empty(vs, "closed, and not invoiced yet")
+	code, _ := d.ask("", http.MethodPost, "/admin/invoices/collect", map[string]any{})
+	x.Equal(http.StatusUnauthorized, code)
+
+	var p admin.InvoicePass
+	d.as(aliceKey, http.MethodPost, "/admin/invoices/collect", map[string]any{}, &p)
+	x.True(feb.Equal(p.At), "by the deployment's clock")
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
+	x.Len(vs, 1, "invoiced by the time it answered")
+	x.Equal("open", vs[0].State, "and decided: its period is closed")
+	x.Equal(int64(5000), vs[0].Due)
+	x.Equal(d.operator("alice"), d.actorOf(vs[0].Id), "the trail says whose pass it was")
+
+	d.as(aliceKey, http.MethodPost, "/admin/invoices/collect", map[string]any{}, &p)
+	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
+	x.Len(vs, 1, "nothing invoiced twice")
+}
+
 // What a statement of a product would come to nothing for, for want of a
 // price on its channel and currency while its meter is priced on another, is
 // what an operator is told before a period closes: of the product's own

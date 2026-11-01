@@ -269,9 +269,10 @@ curl -sX POST http://localhost:8080/levyan.v1.WorkspaceService/Close \
 
 ### 청구서
 
-`levyan serve`의 루프(`levyan.invoices.collect`, 기본 10분마다, `invoices.every`)가 닫힌 기간의 내역을 결제 계정마다 청구서로 모으고, 확정하고, 채널로 받는다. 채널마다 수금기가 있어야 한다. 수금기가 없는 채널의 청구서는 초안으로 모이기만 하고 확정하지 않는다. 판매자 채널의 세금은 `invoices.tax`(퍼센트, 기본 10)다.
+`levyan serve`의 루프(`levyan.invoices.collect`, 기본 10분마다, `invoices.every`)가 닫힌 기간의 내역을 결제 계정마다 청구서로 모으고, 확정하고, 채널로 받는다. 채널마다 수금기가 있어야 한다. 수금기가 없는 채널의 청구서는 초안으로 모이기만 하고 확정하지 않는다. 판매자 채널의 세금은 `invoices.tax`(퍼센트, 기본 10)다. 운영자는 루프를 기다리지 않고 그 한 번을 지금 돌린다(`invoice collect`, 구현에서 정한 것). 루프와 같은 일을 그 운영자로서 하고(trail에 그 운영자가 남는다), 다 한 뒤에 답한다. 그래서 손으로 닫은 기간을 바로 청구서로 모을 수 있다.
 
 ```sh
+admin invoice collect --yes              # 루프의 한 번을 지금: 닫힌 기간의 내역을 모으고, 초안을 정하고, 서류를 내고, 받을 것을 보낸다
 admin invoice ls --state open loft
 admin invoice show <invoice id>          # 줄, 정정 청구, 결제 시도, 그 결제 계정의 크레딧, 연체
 admin invoice credit --amount 1000 --words '단가 착오' --yes <invoice id>    # 정정: 남은 금액에서 빼고, 나머지는 크레딧

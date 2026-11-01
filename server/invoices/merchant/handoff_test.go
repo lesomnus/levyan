@@ -31,8 +31,10 @@ type recorder struct {
 	transaction mor.Transaction
 }
 
-func (r *recorder) Name() string                         { return "paddle" }
-func (r *recorder) Minimum(currency string) money.Amount { return money.Amount{Minor: 980, Currency: currency} }
+func (r *recorder) Name() string { return "paddle" }
+func (r *recorder) Minimum(currency string) money.Amount {
+	return money.Amount{Minor: 980, Currency: currency}
+}
 
 func (r *recorder) Charge(_ context.Context, c mor.Charge) (mor.Transaction, error) {
 	r.charges = append(r.charges, c)

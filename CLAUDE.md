@@ -626,8 +626,12 @@ What billing accounts are asked to pay, and the money it moves
 - **Kept five years**: invoices, lines, credit notes, attempts and credit have
   no Erase, and a finalized invoice keeps its bill-to as it was.
 - **A payer reads** its billing accounts' finalized invoices of the relaying
-  product (`PayerService` `ListInvoices`, `GetInvoice`, `ListCreditNotes`,
-  each declaring what it reads with `pd.AccountReads`).
+  product (`PayerService` `ListInvoices`, `GetInvoice`, `ListCreditNotes`)
+  and the statements its billing accounts paid for (`ListStatements`,
+  `GetStatement`, #47) -- each declaring what it reads with
+  `pd.AccountReads`. A statement is the payer's whose billing account it
+  names, whatever became of its invoice; an app shows an invoice's lines
+  through `GetStatement` as the payer, never with its own key.
 - A workspace's `label` is what the product calls it (`Arrive`'s `label`); a
   line keeps the label it was written with.
 - **The merchant of record's channel** (`CHANNEL_MOR`,

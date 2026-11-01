@@ -549,7 +549,8 @@ product in a transaction holding the workspace's row (`payers.Payers.Close`,
   it was a customer (`rating.Customer`). What it holds while closed is
   still sent and kept, and billed once it is restored. This is rating
   version 3; a workspace never restored comes to what it did by 2, and one
-  with no events to what it did by 1.
+  with no events to what it did by 1. Version 4 is a workspace's allowances
+  (below, "Benefits and credits").
 - **Destroyed**: the ledger refuses a reading or point of a moment at or
   after it (`ledger.Destroyed`, `REFUSAL_DESTROYED`), its links end there
   (`LINK_ENDED_DESTROYED`) and its offers are withdrawn, and nothing is
@@ -593,8 +594,9 @@ What billing accounts are asked to pay, and the money it moves
   note, or a late row's correction line on a later statement -- never the row.
 - **Amounts.** `subtotal` is its lines' totals; `tax` only on a seller's
   channel (`invoices.Seller`: every channel but the MoR), `invoices.tax` of
-  the subtotal toward nothing; `total`; `credited`, what the credit balance
-  paid, taken off the total before the channel sees it; `due`. Remaining is
+  the subtotal toward nothing; `total`; `credited`, what credit paid -- the
+  lots an operator granted, then the balance -- taken off the total before
+  the channel sees it; `due`. Remaining is
   `due - paid - reduced`. What is owed back is never paid out: it is a
   `Credit` row (the balance is their sum, per product and billing account),
   and money goes back only through a credit note against a paid invoice.
@@ -722,6 +724,55 @@ fraud restricted at once, 30 days for a workspace with no payer, read-only
 - **levyan sends no mail.** The API says it (`Dunning` on
   `GetBillingAccount`, `GetInvoice`, `Payer`), and the product tells people
   (docs/apps.md §6). `server/api` is handed the table, never `Ungated`.
+
+## Benefits and credits
+
+What an operator gives a workspace beyond its prices (#43, docs/design.md
+§19). Wanting it is the owner's (2026-11-01); its shape -- the workspace's
+whoever pays, an expiry always (a year by default), the order applied,
+operators alone giving it -- is Claude's proposal, which the owner had
+carried out: write it as Claude's, never as the owner's.
+
+- **An allowance** (`Allowance`, `server/benefits`) is more of a meter each
+  period, added to what the version in force includes for the share of the
+  period it is in force: `rating.Rate` cuts a part priced by the unit where an
+  allowance begins or ends, as the period is cut where a version does, and
+  weighs each piece by its share of the time the workspace was a customer. It
+  is the workspace's -- a `first_unit` workspace is given it, and a price
+  changed changes nothing of it -- never makes billable less than nothing,
+  and a meter priced by bands (or `unbounded_zero`) is refused one. The
+  statement's line says it (`allowance`; `included` is the price's and the
+  allowance's together), and its parts which (`allowances`). Rating version
+  4. **No allowance reaches into a period whose close has begun**
+  (`benefits.Layer`, read under the workspace's lock), so a period corrected
+  later is given what it was given when it closed.
+- **Credit an operator grants** is a lot of the credit ledger: a
+  `CREDIT_KIND_GRANTED` row whose `lot` is its own id, with `date_expires`,
+  `reason` (`personal`) and `operator`, of a billing account or of one
+  workspace (`workspace`; no billing account, so `Credit.billing_account` may
+  be NULL since #43). What is spent of it (`APPLIED`), comes back to it
+  (`RETURNED`) and is taken off it as it expires (`EXPIRED`) name the lot;
+  what is left is their sum (`invoices.Lots`). **The balance is the rows that
+  name no lot** (`invoices.Balance`): never add a lot's rows to it.
+- **Spent as a draft is decided** (`Invoices.spend`): the lots of the
+  invoice's product and currency -- its billing account's, and those of the
+  workspaces of its lines -- not over (expired by the deciding moment, or
+  ended by an operator: `Lot.Over`), the soonest to expire first, a
+  workspace's no further than its lines and their tax; then the balance. A
+  draft that waits, a shadow, and a written-off draft spend nothing. On
+  PostgreSQL the lots spent of are held (`FOR UPDATE`, by id) after the
+  billing account's row.
+- **What a credit note credits goes back to the lots that paid the invoice
+  first** (`returns`, the latest to expire first), and only the rest to the
+  balance: a lot's credit never becomes the balance's, nor money.
+- **Expiring leaves a row**: `Invoices.Expired`, the first step of every pass
+  of `levyan.invoices.collect`, takes what is left of every lot that is over
+  off it. An operator ends one with `levyan-admin credit expire`.
+- Operators alone give either (`benefits.Operator`: a frame whose row is an
+  `Operator`), through `Ungated` as themselves, with a reason. No RPC is
+  added: what products and payers read is fields of `GetUsage`, `GetPayer`,
+  `GetBillingAccount` and `GetInvoice` (docs/apps.md §7), which never carry
+  the reason nor who gave it.
 
 ## Reconciliation
 

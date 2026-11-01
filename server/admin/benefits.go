@@ -352,7 +352,10 @@ func (a *Routes) credits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Query().Get("all") != "true" {
-		ls = invoices.Live(ls, a.S.Clock())
+		if ls, err = invoices.Live(ctx, a.S.Ent, ls, a.S.Clock()); err != nil {
+			fail(w, r, err)
+			return
+		}
 	}
 	who, err := a.operators(r)
 	if err != nil {

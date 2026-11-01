@@ -249,9 +249,11 @@ func TestCreditThatExpiredIsNotSpentAndSaysSo(t *testing.T) {
 	w := setup(t, mor)
 	x := w.X
 
+	// Granted on the last day of 2026, until 2027 begins: January began as
+	// it expired.
 	a := levyantest.Tenant()
+	lot := w.grant(a, pdid.Nil, 7000, on(1, 1))
 	_, ba := w.payer(a)
-	lot := w.grant(a, pdid.Nil, 7000, on(2, 5))
 
 	w.At(on(2, 10))
 	w.daily(a, on(1, 1), on(2, 1), 200)
@@ -535,6 +537,194 @@ func TestALotEndedStaysEnded(t *testing.T) {
 	x.Zero(w.left(lot), "and what came back to it is taken off it again")
 	_, err = w.S.Invoices.Expire(w.Operator(w.ctx, "bob"), lot, "again")
 	x.Equal(codes.FailedPrecondition, status.Code(err))
+
+	w.clean()
+}
+
+// A credit that expires on December's last day was in force while
+// December's usage happened, and pays December's invoice though it is
+// decided on January's third, once December has closed -- and one that
+// expired in the middle of December too. It pays nothing of January's,
+// though something is left of it. What is left of it is taken off once
+// nothing may spend it any more: after December is invoiced, never while
+// December is still to close (Claude's, 2026-11-02).
+func TestACreditPaysTheInvoiceOfAPeriodBegunBeforeItExpired(t *testing.T) {
+	w := setup(t, mor)
+	x := w.X
+
+	a := levyantest.Tenant()
+	_, ba := w.payer(a)
+	dec31 := w.grant(a, pdid.Nil, 7000, on(12, 31))
+	dec15 := w.grant(pdid.Nil, ba, 1000, on(12, 15))
+	expired := func(id pdid.Id) []*ent.Credit {
+		vs, err := w.S.Ent.Credit.Query().Where(entcredit.Lot(id.Uuid()), entcredit.Kind(int32(levyan.CreditKind_CREDIT_KIND_EXPIRED))).All(w.ctx)
+		x.NoError(err)
+		return vs
+	}
+
+	w.At(on(12, 31))
+	w.daily(a, on(12, 1), on(13, 1), 200)
+
+	// The year turned, and December has not closed: what is left of both
+	// waits for it, and is shown so.
+	w.At(on(13, 1).Add(time.Hour))
+	w.run()
+	x.Empty(expired(dec31))
+	x.Empty(expired(dec15))
+	x.Equal(int64(7000), w.left(dec31))
+	res, err := levyanv1.NewWorkspaceServiceClient(w.conn).GetPayer(w.as, levyanv1.GetPayerRequest_builder{Workspace: a.String()}.Build())
+	x.NoError(err)
+	x.Len(res.GetPayer().GetCredits(), 1, "still owed to December")
+
+	// December closed, and invoiced on January's third.
+	w.At(on(13, 3))
+	w.close(on(13, 3))
+	w.run()
+	dec := w.only(ba)
+	x.True(dec.DateStart.Equal(on(12, 1)))
+	x.Equal(int64(5000), dec.Total)
+	x.Equal(int64(5000), dec.Credited, "both pay it: the one gone mid-December first")
+	x.Equal(map[pdid.Id]int64{dec15: 1000, dec31: 4000}, w.spent(dec))
+	x.Equal(int64(3000), w.left(dec31))
+	x.Empty(expired(dec31), "taken off on the pass after December is invoiced")
+
+	// January: what is left pays nothing of it -- January began after it
+	// expired.
+	w.At(on(14, 3))
+	w.daily(a, on(13, 1), on(14, 1), 200)
+	w.close(on(14, 3))
+	x.NoError(w.S.Invoices.Account(w.ctx, w.product.Uuid(), ba.Uuid()))
+	jan := w.invoices(ba)[1]
+	x.True(jan.DateStart.Equal(on(13, 1)))
+	x.Zero(jan.Credited)
+	x.Equal(int64(3000), w.left(dec31), "left, and not for January")
+
+	w.At(on(14, 3).Add(time.Hour))
+	w.run()
+	vs := expired(dec31)
+	x.Len(vs, 1)
+	x.Equal(int64(-3000), vs[0].Amount)
+	x.True(vs[0].DateCreated.After(*dec.DateFinalized), "after December was invoiced")
+	x.Zero(w.left(dec31))
+	x.Zero(w.left(dec15), "spent, and nothing to take off")
+
+	w.clean()
+}
+
+// A draft that waited covers November and December, and is paid by a credit
+// that expired on November's twentieth: its earliest period began before
+// the credit expired, though its latest did not. Paid 300 of November's 500,
+// November alone was less than its channel collects, and waited -- spending
+// nothing -- and nothing takes the credit off while the draft waits.
+func TestADraftThatWaitedIsPaidByWhatItsEarliestPeriodMay(t *testing.T) {
+	w := setup(t, mor)
+	x := w.X
+	w.ch.Least = map[string]int64{"KRW": 1000}
+
+	a := levyantest.Tenant()
+	_, ba := w.payer(a)
+	lot := w.grant(a, pdid.Nil, 300, on(11, 20))
+
+	w.At(on(11, 30))
+	w.daily(a, on(11, 1), on(12, 1), 110)
+	w.At(on(12, 3))
+	w.close(on(12, 3))
+	w.run()
+	d := w.only(ba)
+	x.Equal(draft, d.State, "200 left to ask for is less than the channel collects")
+	x.Equal(int64(500), d.Subtotal)
+	w.At(on(12, 20))
+	w.run()
+	x.Equal(int64(300), w.left(lot), "nothing spends it nor takes it off while the draft waits")
+
+	w.At(on(12, 31))
+	w.daily(a, on(12, 1), on(13, 1), 200)
+	w.At(on(13, 3))
+	w.close(on(13, 3))
+	w.run()
+	d = w.again(d)
+	x.True(d.DateStart.Equal(on(11, 1)))
+	x.True(d.DateEnd.Equal(on(13, 1)), "November and December")
+	x.Equal(int64(5500), d.Total)
+	x.Equal(int64(300), d.Credited, "by its earliest period")
+	x.Equal(int64(5200), d.Due)
+	x.Zero(w.left(lot))
+
+	w.clean()
+}
+
+// An operator who ends a credit ends it at once: nothing of it pays
+// December's invoice, though December began before it was to expire, and
+// what is left of it is taken off as they end it.
+func TestACreditAnOperatorEndsEndsAtOnce(t *testing.T) {
+	w := setup(t, mor)
+	x := w.X
+
+	a := levyantest.Tenant()
+	_, ba := w.payer(a)
+	lot := w.grant(a, pdid.Nil, 7000, on(12, 31))
+
+	w.At(on(12, 10))
+	w.daily(a, on(12, 1), on(12, 11), 200)
+	got, err := w.S.Invoices.Expire(w.Operator(w.ctx, "bob"), lot, "프로모션 철회")
+	x.NoError(err)
+	x.Zero(got.Left)
+	x.False(got.Ended.IsZero())
+	vs, err := w.S.Ent.Credit.Query().Where(entcredit.Lot(lot.Uuid()), entcredit.Kind(int32(levyan.CreditKind_CREDIT_KIND_EXPIRED))).All(w.ctx)
+	x.NoError(err)
+	x.Len(vs, 1, "at once")
+	x.Equal("프로모션 철회", vs[0].Reason)
+
+	w.At(on(12, 31))
+	w.daily(a, on(12, 11), on(13, 1), 200)
+	w.At(on(13, 3))
+	w.close(on(13, 3))
+	x.NoError(w.S.Invoices.Account(w.ctx, w.product.Uuid(), ba.Uuid()))
+	dec := w.only(ba)
+	x.Zero(dec.Credited)
+	x.Equal(int64(5000), dec.Due)
+
+	w.clean()
+}
+
+// An open invoice of a credit's scope, of a period begun before the credit
+// expired, holds what is left of it until it is settled (Claude's,
+// 2026-11-02): voided, what the credit paid of it comes back to it, and
+// what is left is then taken off in one row.
+func TestAnOpenInvoiceHoldsWhatIsLeftOfACreditUntilSettled(t *testing.T) {
+	w := setup(t, mor)
+	x := w.X
+	w.ch.Push = false
+
+	a, b := levyantest.Tenant(), levyantest.Tenant()
+	_, ba := w.payer(a, b)
+	lot := w.grant(a, pdid.Nil, 7000, on(12, 31))
+
+	w.At(on(12, 31))
+	w.daily(a, on(12, 1), on(13, 1), 200)
+	w.daily(b, on(12, 1), on(13, 1), 200)
+	w.At(on(13, 3))
+	w.close(on(13, 3))
+	w.run()
+	dec := w.only(ba)
+	x.Equal(open, dec.State)
+	x.Equal(int64(5000), dec.Credited, "a's lines")
+	x.Equal(int64(2000), w.left(lot))
+
+	w.At(on(13, 10))
+	w.run()
+	x.Equal(int64(2000), w.left(lot), "held while the invoice is open")
+
+	_, err := w.S.Invoices.Void(w.ctx, id(dec), "계약 해지")
+	x.NoError(err)
+	x.Equal(int64(7000), w.left(lot), "what it paid came back")
+	w.At(on(13, 10).Add(time.Hour))
+	w.run()
+	x.Zero(w.left(lot))
+	vs, err := w.S.Ent.Credit.Query().Where(entcredit.Lot(lot.Uuid()), entcredit.Kind(int32(levyan.CreditKind_CREDIT_KIND_EXPIRED))).All(w.ctx)
+	x.NoError(err)
+	x.Len(vs, 1)
+	x.Equal(int64(-7000), vs[0].Amount)
 
 	w.clean()
 }

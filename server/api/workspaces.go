@@ -288,7 +288,11 @@ func (h Workspaces) payer(ctx context.Context, product pdid.Id, st payers.State)
 		return nil, err
 	}
 	keys := map[uuid.UUID]string{ws: st.Workspace.String()}
-	for _, l := range invoices.Live(ls, ledger.Moment(clock(h.Now))) {
+	live, err := invoices.Live(ctx, h.Db, ls, ledger.Moment(clock(h.Now)))
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range live {
 		out.SetCredits(append(out.GetCredits(), creditOf(l, keys)))
 	}
 

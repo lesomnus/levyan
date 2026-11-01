@@ -1,6 +1,8 @@
 // Package benefits is what a product's workspaces are given beyond what their
 // prices say (#43): allowances -- more of a meter each period for nothing, on
-// top of what a price includes -- given and ended by an operator.
+// top of what a price includes -- and pools -- bundles of a meter that what
+// is billable is taken out of before it is priced -- given and ended by an
+// operator.
 //
 // That the owner wants a workspace given such things is the owner's
 // (2026-11-01). Their shape -- the workspace's, whoever pays for it; given by
@@ -8,8 +10,9 @@
 // added to what a price includes before anything is priced -- is Claude's
 // proposal, which the owner had carried out ("진행해줘"), and may overturn.
 // What a period of a workspace comes to with them is `internal/rating`'s
-// ([rating.Allowance]); the money a billing account or a workspace is
-// granted -- a credit, with an expiry -- is the credit ledger's
+// ([rating.Allowance], [rating.Pool]), and what each period took of a pool is
+// its statements' (`billing.Taps`); the money a billing account or a
+// workspace is granted -- a credit, with an expiry -- is the credit ledger's
 // (`server/invoices`).
 //
 // # Written through the servers, by an operator
@@ -217,18 +220,24 @@ func (a Allowances) End(ctx context.Context, id pdid.Id, reason string) (*ent.Al
 // held is `f` in a transaction that holds workspace `ws`'s row first, and
 // refuses one destroyed: a workspace destroyed is given nothing more (#14).
 func (a Allowances) held(ctx context.Context, product, ws uuid.UUID, f func(s levyan.Server, db *ent.Client) error) error {
-	tdrv, tx, err := dialect.BeginTx(ctx, a.Drv)
+	return held(ctx, a.S, a.Drv, a.postgres(), product, ws, f)
+}
+
+// held is `f` in a transaction on `drv` with `next` on it, which holds
+// workspace `ws`'s row first, and refuses one destroyed.
+func held(ctx context.Context, next levyan.Server, drv dialect.Driver, postgres bool, product, ws uuid.UUID, f func(s levyan.Server, db *ent.Client) error) error {
+	tdrv, tx, err := dialect.BeginTx(ctx, drv)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	s, err := enttx.Rebind(a.S, tdrv)
+	s, err := enttx.Rebind(next, tdrv)
 	if err != nil {
 		return err
 	}
 	db := ent.NewClient(ent.Driver(tdrv))
-	if err := ledger.Lock(ctx, db, a.postgres(), ws); err != nil {
+	if err := ledger.Lock(ctx, db, postgres, ws); err != nil {
 		return err
 	}
 	d, err := ledger.Destroyed(ctx, db, product, ws)

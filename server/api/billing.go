@@ -116,6 +116,20 @@ func (b Billing) GetUsage(ctx context.Context, req *levyanv1.GetUsageRequest) (*
 		u.SetAllowances(append(u.GetAllowances(), allowanceOf(a)))
 	}
 
+	// And the pools the period takes from, with what the periods closed
+	// left of each (#43).
+	taps, err := r.Taps(ctx, product.Id, w.Id)
+	if err != nil {
+		return nil, err
+	}
+	keys := map[[16]byte]string{}
+	for _, m := range book.Meters {
+		keys[m.Id] = m.Key
+	}
+	for _, v := range taps.InForce(p) {
+		u.SetPools(append(u.GetPools(), poolOf(v, keys[v.Row.MeterId])))
+	}
+
 	return levyanv1.GetUsageResponse_builder{Usage: u}.Build(), nil
 }
 
@@ -254,6 +268,14 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 	} else {
 		out.SetAllowance("0")
 	}
+	if v := l.GetPooled(); v != "" {
+		out.SetPooled(decimal(v))
+	} else {
+		out.SetPooled("0")
+	}
+	for _, t := range l.GetPools() {
+		out.SetPools(append(out.GetPools(), levyanv1.LinePool_builder{Pool: text(t.GetPool()), Taken: decimal(t.GetTaken())}.Build()))
+	}
 	if l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION {
 		out.SetCorrects(period(l.GetCorrectsStart().AsTime(), l.GetCorrectsEnd().AsTime(), zone))
 		out.SetBilled(decimal(l.GetBilled()))
@@ -272,6 +294,11 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 		}.Build()
 		for _, a := range p.GetAllowances() {
 			part.SetAllowances(append(part.GetAllowances(), text(a)))
+		}
+		if v := p.GetPooled(); v != "" {
+			part.SetPooled(decimal(v))
+		} else {
+			part.SetPooled("0")
 		}
 		for _, b := range p.GetBands() {
 			band := levyanv1.BandShare_builder{Fee: b.GetFee(), Share: decimal(b.GetShare()), Amount: decimal(b.GetAmount())}.Build()

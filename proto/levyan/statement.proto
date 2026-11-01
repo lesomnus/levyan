@@ -269,6 +269,22 @@ message StatementLine {
   // Empty on a line no allowance was in force for, and on every line written
   // before rating version 4.
   string allowance = 15;
+
+  // What of `billable` the workspace's pools took (#43), and of which: what
+  // is priced is what is billable past it. For a correction, what the
+  // period it corrects takes now -- which is what each pool's draw of that
+  // period is from then on. Empty on a line no pool was taken from, and on
+  // every line written before rating version 5.
+  string pooled = 16;
+  repeated StatementPool pools = 17;
+}
+
+// StatementPool is what one pool was taken from for a line.
+message StatementPool {
+  // The pool, by its identifier, and what was taken of it, in the meter's
+  // unit for a period.
+  bytes pool = 1;
+  string taken = 2;
 }
 
 // StatementUnpriced is a stretch of a line's period its meter was priced on
@@ -315,6 +331,11 @@ message StatementPart {
   // by their identifiers (#43). What is billable is past the two.
   int64 allowance = 9;
   repeated bytes allowances = 10;
+
+  // By the unit: what of the stretch's billable, weighed by its share, the
+  // workspace's pools took (#43): the line's `pooled` shared among its parts
+  // in proportion to what each is billable for. What is priced is the rest.
+  string pooled = 11;
 }
 
 // StatementBand is the time a stretch's value spent in one band.

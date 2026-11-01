@@ -1306,6 +1306,73 @@ var (
 			},
 		},
 	}
+	// PoolColumns holds the columns for the "pool" table.
+	PoolColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "quantity", Type: field.TypeInt64},
+		{Name: "valid_from", Type: field.TypeTime, Nullable: true},
+		{Name: "date_expires", Type: field.TypeTime, Nullable: true},
+		{Name: "reason", Type: field.TypeString},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "end_reason", Type: field.TypeString},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "meter_id", Type: field.TypeUuid},
+		{Name: "granted_by_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "ended_by_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// PoolTable holds the schema information for the "pool" table.
+	PoolTable = &schema.Table{
+		Name:       "pool",
+		Columns:    PoolColumns,
+		PrimaryKey: []*schema.Column{PoolColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "pool_tenant_tenant",
+				Columns:    []*schema.Column{PoolColumns[9]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "pool_workspace_workspace",
+				Columns:    []*schema.Column{PoolColumns[10]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "pool_meter_meter",
+				Columns:    []*schema.Column{PoolColumns[11]},
+				RefColumns: []*schema.Column{MeterColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "pool_operator_granted_by",
+				Columns:    []*schema.Column{PoolColumns[12]},
+				RefColumns: []*schema.Column{OperatorColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "pool_operator_ended_by",
+				Columns:    []*schema.Column{PoolColumns[13]},
+				RefColumns: []*schema.Column{OperatorColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pool_page",
+				Unique:  false,
+				Columns: []*schema.Column{PoolColumns[9], PoolColumns[7], PoolColumns[0]},
+			},
+			{
+				Name:    "pool_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{PoolColumns[10], PoolColumns[11], PoolColumns[3]},
+			},
+		},
+	}
 	// PriceColumns holds the columns for the "price" table.
 	PriceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -1806,6 +1873,7 @@ var (
 		PaymentattemptTable,
 		PeriodTable,
 		PointTable,
+		PoolTable,
 		PriceTable,
 		ReadingTable,
 		RowsealTable,
@@ -1939,6 +2007,14 @@ func init() {
 	PointTable.ForeignKeys[2].RefTable = SeriesTable
 	PointTable.Annotation = &entsql.Annotation{
 		Table: "point",
+	}
+	PoolTable.ForeignKeys[0].RefTable = TenantTable
+	PoolTable.ForeignKeys[1].RefTable = WorkspaceTable
+	PoolTable.ForeignKeys[2].RefTable = MeterTable
+	PoolTable.ForeignKeys[3].RefTable = OperatorTable
+	PoolTable.ForeignKeys[4].RefTable = OperatorTable
+	PoolTable.Annotation = &entsql.Annotation{
+		Table: "pool",
 	}
 	PriceTable.ForeignKeys[0].RefTable = TenantTable
 	PriceTable.ForeignKeys[1].RefTable = MeterTable

@@ -20,7 +20,7 @@
 # What BEFORE writes, each through its door and as its caller: through
 # `levyan-admin`, a product and its terms, a stock meter and a flow, a price of
 # each, a key, a billing account paid by transfer, grants, and what is given
-# beyond a price -- an allowance, and credit (#43); through the API
+# beyond a price -- an allowance, a pool and credit (#43); through the API
 # with the key, two workspaces arrived, readings and a flow's points in the two
 # months before this one and in this one, and an offer; the two months closed
 # (`period close`) into statements, and those of the billing account gathered
@@ -37,8 +37,8 @@
 # BEFORE wrote reads as BEFORE read it -- the product, its key, meters and
 # prices, its periods, statements and invoices, the grants (as an operator
 # lists them and as payday's `GrantService` answers the product), the
-# allowance and the credit (as an operator lists them and the product reads
-# them), each
+# allowance, the pool and the credit (as an operator lists them and the
+# product reads them), each
 # workspace's payer and what became of it, and what this month's readings come
 # to so far -- nothing, of the workspace closed -- and what the build before's
 # reconciliation found. And if it has `levyan trail rows`, every row is what
@@ -410,6 +410,14 @@ seed() {
 			'[.usage.allowances[] | {id, meter, quantity, from}]'
 	else
 		say "the build before has no \`allowance add\`: no allowance"
+	fi
+	if has "${b}" pool grant; then
+		out="$(admin "${b}" pool grant --workspace "${ws1}" --quantity 1000 --reason pilot --yes loft loft.assets.active)"
+		expect "$(cut -f1 <<<"${out}")" pool ls loft
+		ask "pools-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
+			'[.usage.pools[] | {id, meter, granted, left, from, expires}]'
+	else
+		say "the build before has no \`pool grant\`: no pool"
 	fi
 	if has "${b}" credit grant; then
 		out="$(admin "${b}" credit grant --workspace "${ws1}" --amount 1000 --currency KRW --reason pilot --yes loft)"

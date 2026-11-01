@@ -581,6 +581,8 @@ type StatementLine struct {
 	xxx_hidden_Parts         *[]*StatementPart      `protobuf:"bytes,13,rep,name=parts"`
 	xxx_hidden_Unpriced      *[]*StatementUnpriced  `protobuf:"bytes,14,rep,name=unpriced"`
 	xxx_hidden_Allowance     string                 `protobuf:"bytes,15,opt,name=allowance"`
+	xxx_hidden_Pooled        string                 `protobuf:"bytes,16,opt,name=pooled"`
+	xxx_hidden_Pools         *[]*StatementPool      `protobuf:"bytes,17,rep,name=pools"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -719,6 +721,22 @@ func (x *StatementLine) GetAllowance() string {
 	return ""
 }
 
+func (x *StatementLine) GetPooled() string {
+	if x != nil {
+		return x.xxx_hidden_Pooled
+	}
+	return ""
+}
+
+func (x *StatementLine) GetPools() []*StatementPool {
+	if x != nil {
+		if x.xxx_hidden_Pools != nil {
+			return *x.xxx_hidden_Pools
+		}
+	}
+	return nil
+}
+
 func (x *StatementLine) SetMeter(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -785,6 +803,14 @@ func (x *StatementLine) SetAllowance(v string) {
 	x.xxx_hidden_Allowance = v
 }
 
+func (x *StatementLine) SetPooled(v string) {
+	x.xxx_hidden_Pooled = v
+}
+
+func (x *StatementLine) SetPools(v []*StatementPool) {
+	x.xxx_hidden_Pools = &v
+}
+
 func (x *StatementLine) HasCorrectsStart() bool {
 	if x == nil {
 		return false
@@ -847,6 +873,13 @@ type StatementLine_builder struct {
 	// Empty on a line no allowance was in force for, and on every line written
 	// before rating version 4.
 	Allowance string
+	// What of `billable` the workspace's pools took (#43), and of which: what
+	// is priced is what is billable past it. For a correction, what the
+	// period it corrects takes now -- which is what each pool's draw of that
+	// period is from then on. Empty on a line no pool was taken from, and on
+	// every line written before rating version 5.
+	Pooled string
+	Pools  []*StatementPool
 }
 
 func (b0 StatementLine_builder) Build() *StatementLine {
@@ -868,6 +901,85 @@ func (b0 StatementLine_builder) Build() *StatementLine {
 	x.xxx_hidden_Parts = &b.Parts
 	x.xxx_hidden_Unpriced = &b.Unpriced
 	x.xxx_hidden_Allowance = b.Allowance
+	x.xxx_hidden_Pooled = b.Pooled
+	x.xxx_hidden_Pools = &b.Pools
+	return m0
+}
+
+// StatementPool is what one pool was taken from for a line.
+type StatementPool struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Pool  []byte                 `protobuf:"bytes,1,opt,name=pool"`
+	xxx_hidden_Taken string                 `protobuf:"bytes,2,opt,name=taken"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *StatementPool) Reset() {
+	*x = StatementPool{}
+	mi := &file_levyan_statement_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatementPool) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatementPool) ProtoMessage() {}
+
+func (x *StatementPool) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_statement_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *StatementPool) GetPool() []byte {
+	if x != nil {
+		return x.xxx_hidden_Pool
+	}
+	return nil
+}
+
+func (x *StatementPool) GetTaken() string {
+	if x != nil {
+		return x.xxx_hidden_Taken
+	}
+	return ""
+}
+
+func (x *StatementPool) SetPool(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Pool = v
+}
+
+func (x *StatementPool) SetTaken(v string) {
+	x.xxx_hidden_Taken = v
+}
+
+type StatementPool_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The pool, by its identifier, and what was taken of it, in the meter's
+	// unit for a period.
+	Pool  []byte
+	Taken string
+}
+
+func (b0 StatementPool_builder) Build() *StatementPool {
+	m0 := &StatementPool{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Pool = b.Pool
+	x.xxx_hidden_Taken = b.Taken
 	return m0
 }
 
@@ -883,7 +995,7 @@ type StatementUnpriced struct {
 
 func (x *StatementUnpriced) Reset() {
 	*x = StatementUnpriced{}
-	mi := &file_levyan_statement_proto_msgTypes[3]
+	mi := &file_levyan_statement_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -895,7 +1007,7 @@ func (x *StatementUnpriced) String() string {
 func (*StatementUnpriced) ProtoMessage() {}
 
 func (x *StatementUnpriced) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_statement_proto_msgTypes[3]
+	mi := &file_levyan_statement_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,13 +1092,14 @@ type StatementPart struct {
 	xxx_hidden_Bands      *[]*StatementBand      `protobuf:"bytes,8,rep,name=bands"`
 	xxx_hidden_Allowance  int64                  `protobuf:"varint,9,opt,name=allowance"`
 	xxx_hidden_Allowances [][]byte               `protobuf:"bytes,10,rep,name=allowances"`
+	xxx_hidden_Pooled     string                 `protobuf:"bytes,11,opt,name=pooled"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
 
 func (x *StatementPart) Reset() {
 	*x = StatementPart{}
-	mi := &file_levyan_statement_proto_msgTypes[4]
+	mi := &file_levyan_statement_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +1111,7 @@ func (x *StatementPart) String() string {
 func (*StatementPart) ProtoMessage() {}
 
 func (x *StatementPart) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_statement_proto_msgTypes[4]
+	mi := &file_levyan_statement_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,6 +1194,13 @@ func (x *StatementPart) GetAllowances() [][]byte {
 	return nil
 }
 
+func (x *StatementPart) GetPooled() string {
+	if x != nil {
+		return x.xxx_hidden_Pooled
+	}
+	return ""
+}
+
 func (x *StatementPart) SetPrice(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -1122,6 +1242,10 @@ func (x *StatementPart) SetAllowance(v int64) {
 
 func (x *StatementPart) SetAllowances(v [][]byte) {
 	x.xxx_hidden_Allowances = v
+}
+
+func (x *StatementPart) SetPooled(v string) {
+	x.xxx_hidden_Pooled = v
 }
 
 func (x *StatementPart) HasFrom() bool {
@@ -1167,6 +1291,10 @@ type StatementPart_builder struct {
 	// by their identifiers (#43). What is billable is past the two.
 	Allowance  int64
 	Allowances [][]byte
+	// By the unit: what of the stretch's billable, weighed by its share, the
+	// workspace's pools took (#43): the line's `pooled` shared among its parts
+	// in proportion to what each is billable for. What is priced is the rest.
+	Pooled string
 }
 
 func (b0 StatementPart_builder) Build() *StatementPart {
@@ -1183,6 +1311,7 @@ func (b0 StatementPart_builder) Build() *StatementPart {
 	x.xxx_hidden_Bands = &b.Bands
 	x.xxx_hidden_Allowance = b.Allowance
 	x.xxx_hidden_Allowances = b.Allowances
+	x.xxx_hidden_Pooled = b.Pooled
 	return m0
 }
 
@@ -1201,7 +1330,7 @@ type StatementBand struct {
 
 func (x *StatementBand) Reset() {
 	*x = StatementBand{}
-	mi := &file_levyan_statement_proto_msgTypes[5]
+	mi := &file_levyan_statement_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1213,7 +1342,7 @@ func (x *StatementBand) String() string {
 func (*StatementBand) ProtoMessage() {}
 
 func (x *StatementBand) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_statement_proto_msgTypes[5]
+	mi := &file_levyan_statement_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1488,7 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\tworkspace \x14(d\")\n" +
 	"\x06tenant\"\x10workspace.tenant\"\rperiod.tenant\"=\n" +
 	"\x0eStatementLines\x12+\n" +
-	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\x8f\x04\n" +
+	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xd4\x04\n" +
 	"\rStatementLine\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\fR\x05meter\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
@@ -1376,10 +1505,15 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x06billed\x18\f \x01(\tR\x06billed\x12+\n" +
 	"\x05parts\x18\r \x03(\v2\x15.levyan.StatementPartR\x05parts\x125\n" +
 	"\bunpriced\x18\x0e \x03(\v2\x19.levyan.StatementUnpricedR\bunpriced\x12\x1c\n" +
-	"\tallowance\x18\x0f \x01(\tR\tallowance\"o\n" +
+	"\tallowance\x18\x0f \x01(\tR\tallowance\x12\x16\n" +
+	"\x06pooled\x18\x10 \x01(\tR\x06pooled\x12+\n" +
+	"\x05pools\x18\x11 \x03(\v2\x15.levyan.StatementPoolR\x05pools\"9\n" +
+	"\rStatementPool\x12\x12\n" +
+	"\x04pool\x18\x01 \x01(\fR\x04pool\x12\x14\n" +
+	"\x05taken\x18\x02 \x01(\tR\x05taken\"o\n" +
 	"\x11StatementUnpriced\x12.\n" +
 	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xd2\x02\n" +
+	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xea\x02\n" +
 	"\rStatementPart\x12\x14\n" +
 	"\x05price\x18\x01 \x01(\fR\x05price\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
@@ -1393,7 +1527,8 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\n" +
 	"allowances\x18\n" +
 	" \x03(\fR\n" +
-	"allowances\"k\n" +
+	"allowances\x12\x16\n" +
+	"\x06pooled\x18\v \x01(\tR\x06pooled\"k\n" +
 	"\rStatementBand\x12\x1a\n" +
 	"\x05up_to\x18\x01 \x01(\x03B\x05\xaa\x01\x02\b\x01R\x04upTo\x12\x10\n" +
 	"\x03fee\x18\x02 \x01(\x03R\x03fee\x12\x14\n" +
@@ -1405,47 +1540,49 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x14LINE_KIND_CORRECTION\x10\x02B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_statement_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_levyan_statement_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_levyan_statement_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_levyan_statement_proto_goTypes = []any{
 	(LineKind)(0),                 // 0: levyan.LineKind
 	(*Statement)(nil),             // 1: levyan.Statement
 	(*StatementLines)(nil),        // 2: levyan.StatementLines
 	(*StatementLine)(nil),         // 3: levyan.StatementLine
-	(*StatementUnpriced)(nil),     // 4: levyan.StatementUnpriced
-	(*StatementPart)(nil),         // 5: levyan.StatementPart
-	(*StatementBand)(nil),         // 6: levyan.StatementBand
-	(*Tenant)(nil),                // 7: levyan.Tenant
-	(*Workspace)(nil),             // 8: levyan.Workspace
-	(*Period)(nil),                // 9: levyan.Period
-	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
-	(*BillingAccount)(nil),        // 11: levyan.BillingAccount
+	(*StatementPool)(nil),         // 4: levyan.StatementPool
+	(*StatementUnpriced)(nil),     // 5: levyan.StatementUnpriced
+	(*StatementPart)(nil),         // 6: levyan.StatementPart
+	(*StatementBand)(nil),         // 7: levyan.StatementBand
+	(*Tenant)(nil),                // 8: levyan.Tenant
+	(*Workspace)(nil),             // 9: levyan.Workspace
+	(*Period)(nil),                // 10: levyan.Period
+	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
+	(*BillingAccount)(nil),        // 12: levyan.BillingAccount
 }
 var file_levyan_statement_proto_depIdxs = []int32{
-	7,  // 0: levyan.Statement.tenant:type_name -> levyan.Tenant
-	8,  // 1: levyan.Statement.workspace:type_name -> levyan.Workspace
-	9,  // 2: levyan.Statement.period:type_name -> levyan.Period
-	10, // 3: levyan.Statement.date_start:type_name -> google.protobuf.Timestamp
-	10, // 4: levyan.Statement.date_end:type_name -> google.protobuf.Timestamp
-	10, // 5: levyan.Statement.date_erased:type_name -> google.protobuf.Timestamp
-	10, // 6: levyan.Statement.date_created:type_name -> google.protobuf.Timestamp
+	8,  // 0: levyan.Statement.tenant:type_name -> levyan.Tenant
+	9,  // 1: levyan.Statement.workspace:type_name -> levyan.Workspace
+	10, // 2: levyan.Statement.period:type_name -> levyan.Period
+	11, // 3: levyan.Statement.date_start:type_name -> google.protobuf.Timestamp
+	11, // 4: levyan.Statement.date_end:type_name -> google.protobuf.Timestamp
+	11, // 5: levyan.Statement.date_erased:type_name -> google.protobuf.Timestamp
+	11, // 6: levyan.Statement.date_created:type_name -> google.protobuf.Timestamp
 	2,  // 7: levyan.Statement.lines:type_name -> levyan.StatementLines
-	11, // 8: levyan.Statement.billing_account:type_name -> levyan.BillingAccount
+	12, // 8: levyan.Statement.billing_account:type_name -> levyan.BillingAccount
 	3,  // 9: levyan.StatementLines.lines:type_name -> levyan.StatementLine
 	0,  // 10: levyan.StatementLine.kind:type_name -> levyan.LineKind
-	10, // 11: levyan.StatementLine.corrects_start:type_name -> google.protobuf.Timestamp
-	10, // 12: levyan.StatementLine.corrects_end:type_name -> google.protobuf.Timestamp
-	5,  // 13: levyan.StatementLine.parts:type_name -> levyan.StatementPart
-	4,  // 14: levyan.StatementLine.unpriced:type_name -> levyan.StatementUnpriced
-	10, // 15: levyan.StatementUnpriced.from:type_name -> google.protobuf.Timestamp
-	10, // 16: levyan.StatementUnpriced.to:type_name -> google.protobuf.Timestamp
-	10, // 17: levyan.StatementPart.from:type_name -> google.protobuf.Timestamp
-	10, // 18: levyan.StatementPart.to:type_name -> google.protobuf.Timestamp
-	6,  // 19: levyan.StatementPart.bands:type_name -> levyan.StatementBand
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	11, // 11: levyan.StatementLine.corrects_start:type_name -> google.protobuf.Timestamp
+	11, // 12: levyan.StatementLine.corrects_end:type_name -> google.protobuf.Timestamp
+	6,  // 13: levyan.StatementLine.parts:type_name -> levyan.StatementPart
+	5,  // 14: levyan.StatementLine.unpriced:type_name -> levyan.StatementUnpriced
+	4,  // 15: levyan.StatementLine.pools:type_name -> levyan.StatementPool
+	11, // 16: levyan.StatementUnpriced.from:type_name -> google.protobuf.Timestamp
+	11, // 17: levyan.StatementUnpriced.to:type_name -> google.protobuf.Timestamp
+	11, // 18: levyan.StatementPart.from:type_name -> google.protobuf.Timestamp
+	11, // 19: levyan.StatementPart.to:type_name -> google.protobuf.Timestamp
+	7,  // 20: levyan.StatementPart.bands:type_name -> levyan.StatementBand
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_levyan_statement_proto_init() }
@@ -1463,7 +1600,7 @@ func file_levyan_statement_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_statement_proto_rawDesc), len(file_levyan_statement_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

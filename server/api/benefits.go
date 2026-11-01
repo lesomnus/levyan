@@ -14,11 +14,13 @@ import (
 	"github.com/lesomnus/levyan/internal/ent"
 	entcredit "github.com/lesomnus/levyan/internal/ent/credit"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
+	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/invoices"
 )
 
 // What a workspace and a billing account are given beyond their prices (#43),
-// as the API says it: the allowances in force over a period, the credit an
+// as the API says it: the allowances in force over a period, the pools it
+// takes from and what is left of them, the credit an
 // operator granted that is left to spend, and what paid an invoice's
 // `credited`. None of it names why it was given or who gave it: those are an
 // operator's words, and the operator's.
@@ -38,6 +40,18 @@ func allowanceOf(v *ent.Allowance) *levyanv1.Allowance {
 	}
 
 	return out
+}
+
+// poolOf is a pool, of the meter keyed `meter`, as the API says it.
+func poolOf(v billing.PoolLeft, meter string) *levyanv1.Pool {
+	return levyanv1.Pool_builder{
+		Id:      pdid.Id(v.Row.Id).String(),
+		Meter:   meter,
+		Granted: v.Row.Quantity,
+		Left:    decimal(v.Left.RatString()),
+		From:    timestamppb.New(v.Row.ValidFrom),
+		Expires: timestamppb.New(v.Row.DateExpires),
+	}.Build()
 }
 
 // creditOf is a lot an operator granted as the API says it, its workspace by

@@ -34,6 +34,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/paymentattempt"
 	"github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/point"
+	"github.com/lesomnus/levyan/internal/ent/pool"
 	"github.com/lesomnus/levyan/internal/ent/price"
 	"github.com/lesomnus/levyan/internal/ent/reading"
 	"github.com/lesomnus/levyan/internal/ent/rowseal"
@@ -132,6 +133,7 @@ func checkColumn(t, c string) error {
 			paymentattempt.Table: paymentattempt.ValidColumn,
 			period.Table:         period.ValidColumn,
 			point.Table:          point.ValidColumn,
+			pool.Table:           pool.ValidColumn,
 			price.Table:          price.ValidColumn,
 			reading.Table:        reading.ValidColumn,
 			rowseal.Table:        rowseal.ValidColumn,

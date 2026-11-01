@@ -57,6 +57,7 @@ type Server interface {
 	PaymentAttempt() PaymentAttemptServiceServer
 	Series() SeriesServiceServer
 	Point() PointServiceServer
+	Pool() PoolServiceServer
 	Price() PriceServiceServer
 	Reading() ReadingServiceServer
 	ServiceKey() ServiceKeyServiceServer
@@ -99,6 +100,7 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 	RegisterPaymentAttemptServiceServer(g, s.PaymentAttempt())
 	RegisterSeriesServiceServer(g, s.Series())
 	RegisterPointServiceServer(g, s.Point())
+	RegisterPoolServiceServer(g, s.Pool())
 	RegisterPriceServiceServer(g, s.Price())
 	RegisterReadingServiceServer(g, s.Reading())
 	RegisterServiceKeyServiceServer(g, s.ServiceKey())
@@ -137,6 +139,7 @@ type UnimplementedServer struct {
 	PaymentAttemptServer PaymentAttemptServiceServer
 	SeriesServer         SeriesServiceServer
 	PointServer          PointServiceServer
+	PoolServer           PoolServiceServer
 	PriceServer          PriceServiceServer
 	ReadingServer        ReadingServiceServer
 	ServiceKeyServer     ServiceKeyServiceServer
@@ -200,6 +203,7 @@ func (UnimplementedServer) PaymentAttempt() PaymentAttemptServiceServer {
 }
 func (UnimplementedServer) Series() SeriesServiceServer   { return UnimplementedSeriesServiceServer{} }
 func (UnimplementedServer) Point() PointServiceServer     { return UnimplementedPointServiceServer{} }
+func (UnimplementedServer) Pool() PoolServiceServer       { return UnimplementedPoolServiceServer{} }
 func (UnimplementedServer) Price() PriceServiceServer     { return UnimplementedPriceServiceServer{} }
 func (UnimplementedServer) Reading() ReadingServiceServer { return UnimplementedReadingServiceServer{} }
 func (UnimplementedServer) ServiceKey() ServiceKeyServiceServer {
@@ -241,6 +245,7 @@ type StaticServer struct {
 	PaymentAttemptServer PaymentAttemptServiceServer
 	SeriesServer         SeriesServiceServer
 	PointServer          PointServiceServer
+	PoolServer           PoolServiceServer
 	PriceServer          PriceServiceServer
 	ReadingServer        ReadingServiceServer
 	ServiceKeyServer     ServiceKeyServiceServer
@@ -278,6 +283,7 @@ func (s StaticServer) RowSeal() RowSealServiceServer               { return s.Ro
 func (s StaticServer) PaymentAttempt() PaymentAttemptServiceServer { return s.PaymentAttemptServer }
 func (s StaticServer) Series() SeriesServiceServer                 { return s.SeriesServer }
 func (s StaticServer) Point() PointServiceServer                   { return s.PointServer }
+func (s StaticServer) Pool() PoolServiceServer                     { return s.PoolServer }
 func (s StaticServer) Price() PriceServiceServer                   { return s.PriceServer }
 func (s StaticServer) Reading() ReadingServiceServer               { return s.ReadingServer }
 func (s StaticServer) ServiceKey() ServiceKeyServiceServer         { return s.ServiceKeyServer }
@@ -315,6 +321,7 @@ type Client interface {
 	PaymentAttempt() PaymentAttemptServiceClient
 	Series() SeriesServiceClient
 	Point() PointServiceClient
+	Pool() PoolServiceClient
 	Price() PriceServiceClient
 	Reading() ReadingServiceClient
 	ServiceKey() ServiceKeyServiceClient
@@ -354,6 +361,7 @@ func NewClient(c *grpc.ClientConn) Client {
 		_PaymentAttempt: NewPaymentAttemptServiceClient(c),
 		_Series:         NewSeriesServiceClient(c),
 		_Point:          NewPointServiceClient(c),
+		_Pool:           NewPoolServiceClient(c),
 		_Price:          NewPriceServiceClient(c),
 		_Reading:        NewReadingServiceClient(c),
 		_ServiceKey:     NewServiceKeyServiceClient(c),
@@ -393,6 +401,7 @@ type client struct {
 	_PaymentAttempt PaymentAttemptServiceClient
 	_Series         SeriesServiceClient
 	_Point          PointServiceClient
+	_Pool           PoolServiceClient
 	_Price          PriceServiceClient
 	_Reading        ReadingServiceClient
 	_ServiceKey     ServiceKeyServiceClient
@@ -430,6 +439,7 @@ func (c *client) RowSeal() RowSealServiceClient               { return c._RowSea
 func (c *client) PaymentAttempt() PaymentAttemptServiceClient { return c._PaymentAttempt }
 func (c *client) Series() SeriesServiceClient                 { return c._Series }
 func (c *client) Point() PointServiceClient                   { return c._Point }
+func (c *client) Pool() PoolServiceClient                     { return c._Pool }
 func (c *client) Price() PriceServiceClient                   { return c._Price }
 func (c *client) Reading() ReadingServiceClient               { return c._Reading }
 func (c *client) ServiceKey() ServiceKeyServiceClient         { return c._ServiceKey }

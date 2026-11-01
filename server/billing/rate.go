@@ -256,7 +256,7 @@ func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating
 // `p`, a line for each the ledger says anything of in it, in the order of
 // their keys. A product its terms price nothing for has its lines of usage
 // and no parts.
-func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p rating.Period, t Terms, until time.Time) ([]rating.Line, error) {
+func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p rating.Period, t Terms, until time.Time, taps *Taps) ([]rating.Line, error) {
 	since, ok, err := r.Since(ctx, product, ws)
 	if err != nil || !ok {
 		return nil, err
@@ -288,10 +288,13 @@ func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p ratin
 		case t.FirstUnit:
 			book = fromFirst(book)
 		}
-		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, rating.Customer{Since: since, Away: life.Away, Allowances: given[m.Id]})
+		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, rating.Customer{
+			Since: since, Away: life.Away, Allowances: given[m.Id], Pools: taps.For(m.Id, p),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", m.Key, err)
 		}
+		taps.Took(m.Id, p, l.Takes)
 		out = append(out, l)
 	}
 
@@ -356,13 +359,14 @@ type Correction struct {
 
 // Corrections is how much what workspace `ws` was billed for the product's
 // periods closed before `before` moves, for each period a late row of its
-// speaks for: a correction of each meter whose amount moved, in the order of
-// the periods and then of the meters' keys. One already made comes to
-// nothing, and is not here.
+// speaks for: a correction of each meter whose amount moved -- or what it
+// takes of the workspace's pools, which `taps` says and is told (#43) -- in
+// the order of the periods and then of the meters' keys. One already made
+// comes to nothing, and is not here.
 //
 // A period whose statement is in another channel or currency than `t` cannot
 // be corrected on a statement in `t`, and is said in `skipped`.
-func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, before time.Time, t Terms) (out []Correction, skipped []*ent.Period, err error) {
+func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, before time.Time, t Terms, taps *Taps) (out []Correction, skipped []*ent.Period, err error) {
 	periods, err := r.Db.Period.Query().
 		Where(entperiod.TenantId(product), entperiod.DateStartLT(before)).
 		Order(ent.Asc(entperiod.FieldDateStart)).
@@ -424,7 +428,7 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 			return nil, nil, err
 		}
 		p := rating.Period{Start: ledger.Moment(pr.DateStart), End: ledger.Moment(pr.DateEnd)}
-		lines, err := r.Lines(ctx, b, product, ws, p, terms, time.Time{})
+		lines, err := r.Lines(ctx, b, product, ws, p, terms, time.Time{}, taps)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -453,14 +457,18 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 				if m == nil {
 					return nil, nil, fmt.Errorf("billing: a statement names meter %s, which the product has not got", pdid.Id(id))
 				}
-				l = rating.Line{Meter: meterOf(m), Quantity: new(big.Rat), Included: new(big.Rat), Billable: new(big.Rat), Allowance: new(big.Rat), Amount: new(big.Rat)}
+				l = rating.Line{Meter: meterOf(m), Quantity: new(big.Rat), Included: new(big.Rat), Billable: new(big.Rat), Allowance: new(big.Rat), Pooled: new(big.Rat), Amount: new(big.Rat)}
+				taps.Took(id, p, nil)
 			}
 			was := billed[id]
 			if was == nil {
 				was = new(big.Rat)
 			}
 			moves := new(big.Rat).Sub(l.Amount, was)
-			if moves.Sign() == 0 {
+			if moves.Sign() == 0 && !taps.Moved(id, p) {
+				// Nothing moves: neither what it comes to, nor what it
+				// takes of the workspace's pools (#43), which the periods
+				// after it take from what it leaves.
 				continue
 			}
 			out = append(out, Correction{Period: pr, Statement: of, Now: l, Billed: was, Moves: moves})

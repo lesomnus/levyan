@@ -136,6 +136,9 @@ type Period func(*sql.Selector)
 // Point is the predicate function for point builders.
 type Point func(*sql.Selector)
 
+// Pool is the predicate function for pool builders.
+type Pool func(*sql.Selector)
+
 // Price is the predicate function for price builders.
 type Price func(*sql.Selector)
 

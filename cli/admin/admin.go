@@ -51,7 +51,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 	product, key, meter, price, gap := newCmdProduct(), newCmdKey(), newCmdMeter(), newCmdPrice(), newCmdGap()
 	period, statement, grant := newCmdPeriod(), newCmdStatement(), newCmdGrant()
 	invoice, account, reconcile := newCmdInvoice(), newCmdBillingAccount(), newCmdReconcile()
-	allowance, credit := newCmdAllowance(), newCmdCredit()
+	allowance, pool, credit := newCmdAllowance(), newCmdPool(), newCmdCredit()
 
 	return &xli.Command{
 		Name:  "levyan-admin",
@@ -76,6 +76,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 			statement,
 			grant,
 			allowance,
+			pool,
 			credit,
 			invoice,
 			account,
@@ -84,7 +85,7 @@ func Cmd(c *cmd.Config) *xli.Command {
 
 		// What asks the entry point reads none of a deployment's
 		// configuration: an operator runs it from their own machine.
-		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant, allowance, credit, invoice, account, reconcile), xli.RequireSubcommand()),
+		Handler: xli.Chain(cfg.Load(l, version, product, key, meter, price, gap, period, statement, grant, allowance, pool, credit, invoice, account, reconcile), xli.RequireSubcommand()),
 	}
 }
 
@@ -896,7 +897,14 @@ func newCmdStatement() *xli.Command {
 						if l.Corrects != nil {
 							what = "corrects " + when(*l.Corrects) + ", billed " + l.Billed
 						}
-						self.Printf("  %s\t%s %s\tincluded %s, billable %s\t%s\t%s\n", l.Meter, l.Usage, l.Unit, l.Included, l.Billable, l.Amount, what)
+						included, billable := l.Included, l.Billable
+						if l.Allowance != "" {
+							included += " (" + l.Allowance + " of it allowances')"
+						}
+						if l.Pooled != "" {
+							billable += " (" + l.Pooled + " of it from pools)"
+						}
+						self.Printf("  %s\t%s %s\tincluded %s, billable %s\t%s\t%s\n", l.Meter, l.Usage, l.Unit, included, billable, l.Amount, what)
 					}
 					self.Printf("  total\t%s exactly, %s\trated by version %d\n", v.Exact, money.String(v.Total, v.Currency), v.Rating)
 					return next(ctx)

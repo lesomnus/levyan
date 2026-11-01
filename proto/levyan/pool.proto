@@ -1,0 +1,171 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/meter.proto";
+import "levyan/operator.proto";
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Pool is a bundle of a meter a workspace is given, in the meter's unit for a
+// period -- "자산·월 10,000" of a time-weighted stock, bytes of a flow -- out
+// of which what its periods are billable for past what is included is taken
+// before anything is priced (#43). The owner wanted it (2026-11-01); its
+// shape -- the workspace's, an expiry always, a year unless said, the
+// soonest to expire taken from first, given by an operator with a reason --
+// is Claude's proposal, which the owner had carried out ("진행해줘") and may
+// overturn.
+//
+// A period is taken from by each pool in force at any moment of it -- one
+// that began before the period ended, and expires after it began -- for the
+// whole of what it is billable for, as far as the pool goes: a bundle is not
+// prorated. What each period took is said on its statement's line, and on
+// every correction of it since (`StatementLine.pools`): a pool's draw of a
+// period is what the latest of those says, and what is left of the pool is
+// its quantity less what every period's draw comes to. A period rated again
+// takes what it takes now of what the other periods left, never what it took
+// before as well -- so a correction takes once (`server/billing`).
+//
+// A meter priced by bands is given none: a band's fee is for a value held,
+// and has no quantity to take from. It never reaches into a period whose
+// close has begun, and an operator ends one from the period now open
+// (`server/benefits`).
+//
+// Written through the servers by an operator (`levyan-admin pool`), so the
+// trail says who gave it and who ended it; never deleted: there is no Erase.
+message Pool {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is given in.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it is given to: the set it is in.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The meter it is a bundle of: one of the product's, priced by the unit.
+  Meter meter = 8 [(orm.edge) = {immutable: true}];
+
+  // How much it holds, in the meter's unit for a period -- what its periods
+  // are billable for is taken out of it: more than nothing.
+  int64 quantity = 9 [(orm.field) = {immutable: true}];
+
+  // From when it is in force: unset is the moment it is given. Never in a
+  // period whose close has begun.
+  google.protobuf.Timestamp valid_from = 10 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // When it expires, which every pool says: no period that begins from then
+  // on takes from it. An operator ending it moves it to the start of the
+  // period now open, and never later, nor into a period whose close has
+  // begun.
+  google.protobuf.Timestamp date_expires = 11 [(orm.field) = {default: ""}];
+
+  // Why it was given, in the operator's words.
+  string reason = 12 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: true}
+  ];
+
+  // Stamped with every change.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was given.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // The operator who gave it.
+  Operator granted_by = 16 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // The operator who ended it before it expired, and why, in their words;
+  // unset while nobody has.
+  Operator ended_by = 17 [(orm.edge) = {nullable: true}];
+  string end_reason = 18 [(payday.field) = {personal: true}];
+
+  option (orm.message) = {
+    // Patch is how it is ended (`server/benefits`), and nothing else of it
+    // changes.
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A workspace's pools of a meter, which a period of it takes from.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "meter"
+            number: 8
+          },
+          {
+            name: "date_expires"
+            number: 11
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 47
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "workspace.tenant",
+        "meter.tenant"
+      ]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "workspace"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}

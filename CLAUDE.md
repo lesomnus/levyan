@@ -549,8 +549,8 @@ product in a transaction holding the workspace's row (`payers.Payers.Close`,
   it was a customer (`rating.Customer`). What it holds while closed is
   still sent and kept, and billed once it is restored. This is rating
   version 3; a workspace never restored comes to what it did by 2, and one
-  with no events to what it did by 1. Version 4 is a workspace's allowances
-  (below, "Benefits and credits").
+  with no events to what it did by 1. Version 4 is a workspace's allowances,
+  and 5 its pools (below, "Benefits and credits").
 - **Destroyed**: the ledger refuses a reading or point of a moment at or
   after it (`ledger.Destroyed`, `REFUSAL_DESTROYED`), its links end there
   (`LINK_ENDED_DESTROYED`) and its offers are withdrawn, and nothing is
@@ -743,9 +743,25 @@ carried out: write it as Claude's, never as the owner's.
   and a meter priced by bands (or `unbounded_zero`) is refused one. The
   statement's line says it (`allowance`; `included` is the price's and the
   allowance's together), and its parts which (`allowances`). Rating version
-  4. **No allowance reaches into a period whose close has begun**
+  4. **No allowance or pool reaches into a period whose close has begun**
   (`benefits.Layer`, read under the workspace's lock), so a period corrected
   later is given what it was given when it closed.
+- **A pool** (`Pool`, `server/benefits`) is a bundle of a meter in its unit
+  for a period: what is billable past what is included (allowances too) is
+  taken out of the pools in force at any moment of the period -- the whole
+  of it, never prorated -- the soonest to expire first, and only the rest is
+  priced, each part priced by the unit for its share in proportion to what it
+  is billable for. Rating version 5. **What each period took is on its
+  statements, nowhere else**: the line's `pools`, and each correction of the
+  period since says what it takes then (absolute, not a delta); a period's
+  draw is the latest of those (`billing.Taps`), and what is left of a pool is
+  its quantity less every period's draw. A period rated again takes of what
+  the others left, never its own draw again; a statement rates its corrected
+  periods first, oldest first, and then its own. A correction whose draw
+  moves is written though its amount does not (`Taps.Moved`), or the periods
+  after it would read a pool wrong. Refused for a meter priced by bands, and
+  reaching into no period whose close has begun; an operator's end moves the
+  expiry to the start of the period now open.
 - **Credit an operator grants** is a lot of the credit ledger: a
   `CREDIT_KIND_GRANTED` row whose `lot` is its own id, with `date_expires`,
   `reason` (`personal`) and `operator`, of a billing account or of one
@@ -768,11 +784,11 @@ carried out: write it as Claude's, never as the owner's.
 - **Expiring leaves a row**: `Invoices.Expired`, the first step of every pass
   of `levyan.invoices.collect`, takes what is left of every lot that is over
   off it. An operator ends one with `levyan-admin credit expire`.
-- Operators alone give either (`benefits.Operator`: a frame whose row is an
-  `Operator`), through `Ungated` as themselves, with a reason. No RPC is
-  added: what products and payers read is fields of `GetUsage`, `GetPayer`,
-  `GetBillingAccount` and `GetInvoice` (docs/apps.md §7), which never carry
-  the reason nor who gave it.
+- Operators alone give any of them (`benefits.Operator`: a frame whose row
+  is an `Operator`), through `Ungated` as themselves, with a reason. No RPC
+  is added: what products and payers read is fields of `GetUsage`,
+  `GetPayer`, `GetBillingAccount` and `GetInvoice` (docs/apps.md §7), which
+  never carry the reason nor who gave it.
 
 ## Reconciliation
 

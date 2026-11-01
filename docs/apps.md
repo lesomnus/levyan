@@ -72,7 +72,7 @@ on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
 
 사본에 없는 키는 권한이 없는 것이다. 그러니 **levyan에 빈틈이 생기면 Grant가 주던 것만 사라진다.** Grant가 갱신되지 못하고 끝나거나, 스트림이 돌아오지 않는 경우다. 이 성질은 유료 기능에는 맞지만, 앱의 핵심 쓰기를 Grant에 묶으면 levyan의 빈틈 하나가 모든 워크스페이스를 잠근다.
 
-- **제한은 있으면 막는 Grant로 검사한다.** levyan은 제한을 `loft.restricted` ON 같은 Grant로 준다(지불자 없이 유예가 지난 워크스페이스는 4장, 결제가 실패한 채 유예가 지난 청구서의 워크스페이스는 6장). 둘 다 같은 키다. 앱은 그 Grant가 **있을 때** 막는다.
+- **제한은 있으면 막는 Grant로 검사한다.** levyan은 제한을 `loft.restricted` ON 같은 Grant로 준다(지불자 없이 유예가 지난 워크스페이스는 4장, 결제가 실패한 채 유예가 지난 청구서의 워크스페이스는 6장). 둘 다 같은 키다. 제한의 두 번째 단계인 읽기 전용은 `loft.readonly` ON이다(아래 "제한의 두 단계"). 앱은 그 Grant가 **있을 때** 막는다.
 
   ```go
   restricted, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.restricted")
@@ -87,6 +87,40 @@ on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
 - **하지 않는 것**: `entitle.Has(ctx, r, "loft.writes")`가 거짓이면 쓰기를 막는 것. levyan이 멈추면 모든 워크스페이스가 막힌다.
 - **긍정 Grant는 유료 기능과 한도에만 쓴다.** 내보내기, 좌석 수, 로봇 수처럼 돈을 내야 얻는 것이다. 무료 범위는 Grant 없이 앱이 정한다.
 
+### 제한의 두 단계: `<제품>.restricted`와 `<제품>.readonly`
+
+결제되지 않은 워크스페이스는 두 단계로 막는다(대표, 2026-11-01). 두 Grant는 각자의 규칙이 따로 주고, 앱은 둘을 따로 검사한다. 어느 것이든 **있을 때** 막는다.
+
+| 단계 | 키 | 언제 오는가 | 앱이 하는 것 |
+| --- | --- | --- | --- |
+| 1단계, 제한 | `<제품>.restricted` (`loft.restricted`) | 결제가 실패한 청구서의 유예가 끝날 때(행이 바로라고 하면 첫 실패에), 지불자가 없어진 지 30일 뒤 | 그 워크스페이스가 청구되는 것을 늘리는 쓰기를 막는다. 일상 업무는 계속된다 |
+| 2단계, 읽기 전용 | `<제품>.readonly` (`loft.readonly`) | 그 청구서의 첫 실패 60일 뒤, 지불자가 없어진 지 60일 뒤. 1단계보다 이르지 않다 | 아래의 것 말고는 그 워크스페이스의 모든 쓰기를 거부한다 |
+
+**`<제품>.readonly`가 있는 워크스페이스에서 앱이 받는 것**은 이것뿐이다.
+
+- **읽기.** 모든 읽기.
+- **내보내기와 내려받기.** 워크스페이스의 데이터를 내보내고, 파일을 내려받는 것.
+- **결제.** 지불자와 결제의 모든 것. 결제 계정을 만들고 고치는 것, 결제창(`StartCheckout`, `CompleteCheckout`), 지불자가 되는 것(제안, 받아들이기와 거절하기, `Use`, `Stop`)과, 그 화면이 앱에 쓰는 것.
+- **닫기.** 워크스페이스를 닫는 것.
+- **떠나기.** 구성원이 워크스페이스를 떠나는 것.
+
+그 밖의 쓰기는 모두 거부한다(FailedPrecondition). 지키는 것은 앱이다. levyan은 키를 줄 뿐이다.
+
+```go
+readonly, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.readonly")
+if err != nil {
+	return err
+}
+if readonly && !allowedWhenReadonly(method) { // 읽기, 내보내기·내려받기, 결제, 닫기, 떠나기
+	return status.Error(codes.FailedPrecondition, "this workspace is read-only until its billing is settled")
+}
+```
+
+- **각자 검사한다.** `<제품>.readonly`는 `<제품>.restricted`보다 먼저 오지 않지만, 앱은 `<제품>.readonly` 하나만 보고도 읽기 전용으로 다룬다. 둘이 한 트랜잭션에 오는 것은 아니다.
+- **풀리는 때.** 청구서가 결제되면 두 Grant가 함께 끝난다(levyan이 1분 안에 끝내고, 스트림으로 온다). 지불자가 없던 워크스페이스는 누가 받아들이면 levyan의 Grant 루프(1시간)에서 둘 다 끝난다.
+- **언제 오는지**는 `GetPayer`의 `payer.restricted_from`·`payer.readonly_from`(지불자 없음, 4장)과 `payer.dunning[]`의 `restricted_from`·`readonly_from`(청구서, 6장)이 말한다. 그 때가 지났는데 Grant가 아직 오지 않았으면 배너만 보이고 막지 않는다.
+- 기간(30일, 60일)은 levyan 배포의 정책 표의 값이고(`dunning.kinds`), 배포가 바꿀 수 있다.
+
 ### levyan이 멈췄을 때
 
 - 사본은 마지막으로 들은 대로 답한다. 소식을 못 들었다고 지우지 않는다.
@@ -95,7 +129,7 @@ on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
 
 ### 키
 
-키는 앱의 이름으로 시작하는 점으로 이은 소문자 단어다(`entitle.CheckKey`): `loft.export`, `loft.seats`, `loft.restricted`. 어떤 키에 무엇을 주는지는 levyan이 정하고, 앱은 검사할 키만 안다. 지금 levyan이 주는 것은 운영자의 Grant(파일럿, 계약, 체험)와 제한의 `loft.restricted`다. 지불자 없이 유예가 지난 워크스페이스(4장)와, 결제가 실패한 채 유예가 지난 청구서의 워크스페이스(6장)에 준다.
+키는 앱의 이름으로 시작하는 점으로 이은 소문자 단어다(`entitle.CheckKey`): `loft.export`, `loft.seats`, `loft.restricted`. 어떤 키에 무엇을 주는지는 levyan이 정하고, 앱은 검사할 키만 안다. 지금 levyan이 주는 것은 운영자의 Grant(파일럿, 계약, 체험)와 제한의 `loft.restricted`, `loft.readonly`다. 지불자 없이 유예가 지난 워크스페이스(4장)와, 결제가 실패한 채 유예가 지난 청구서의 워크스페이스(6장)에 `loft.restricted`를, 그 60일 뒤에 `loft.readonly`를 준다(위의 "제한의 두 단계").
 
 ## 4. 누가 내는가: 워크스페이스의 지불자
 
@@ -106,7 +140,7 @@ on, err := entitle.Has(ctx, pd.Entitlements(drv), "loft.export")
 - **`Arrive(workspace, creator, created)`**: 워크스페이스를 만들 때마다 부른다. 만든 사람이 만든 때부터 지불자다. 다시 불러도 같으므로, 실패하면 그대로 다시 보낸다. levyan을 붙이기 전에 있던 워크스페이스는 한 번씩 `created`에 만든 때를 넣어 부른다.
 - **`Leave(workspace, account)`**: 계정이 워크스페이스를 떠날 때 부른다(roster가 계정을 지운 경우 포함). 그 계정이 지불자였다면 지금부터 지불자가 없다.
 - **`Offer(workspace, account)`**: 소유자가 다른 계정에게 지불자가 되어 달라고 할 때 부른다. 받아들이는 것은 그 계정이 한다(아래).
-- **`GetPayer(workspace)`**: 지금과 다음 기간의 지불자, 열린 제안, 지불자가 없는 때(`payerless_since`)와 제한되는 때(`restricted_from`), 그 워크스페이스를 청구한 청구서 중 결제가 실패한 것(`dunning`, 6장). 소유자에게 "지불자가 없습니다, 언제부터 제한됩니다"를 보여 주는 것은 앱이다.
+- **`GetPayer(workspace)`**: 지금과 다음 기간의 지불자, 열린 제안, 지불자가 없는 때(`payerless_since`)와 제한되는 때(`restricted_from`)와 읽기 전용이 되는 때(`readonly_from`), 그 워크스페이스를 청구한 청구서 중 결제가 실패한 것(`dunning`, 6장). 소유자에게 "지불자가 없습니다, 언제부터 제한됩니다"를 보여 주는 것은 앱이다.
 
 ### 지불자의 화면 (`levyan.v1.PayerService`, 사용자를 대신해서)
 
@@ -158,11 +192,11 @@ MoR 채널의 결제 계정(`channel`이 `CHANNEL_MOR`)은 지불자가 Paddle�
 
 ### 지불자가 없으면
 
-마지막 지불자가 떠난 지 30일이 지나면 levyan이 `<제품>.restricted` ON을 준다(loft는 `loft.restricted`). 30일은 levyan 배포의 정책 표에서 지불자 없는 워크스페이스의 행(`dunning.kinds.payerless`)의 기본값이고, 행은 바로 제한하라고 할 수도 있다. `GetPayer`의 `restricted_from`이 그때를 말한다. 앱은 3장처럼 **그 Grant가 있을 때** 막는다. 누가 받아들이면 Grant는 끝난다.
+마지막 지불자가 떠난 지 30일이 지나면 levyan이 `<제품>.restricted` ON을 준다(loft는 `loft.restricted`). 60일이 지나면 `<제품>.readonly` ON도 준다(`loft.readonly`, 3장의 "제한의 두 단계"). 30일과 60일은 levyan 배포의 정책 표에서 지불자 없는 워크스페이스의 행(`dunning.kinds.payerless`)의 기본값이고, 행은 바로 제한하라고 할 수도 있다. `GetPayer`의 `restricted_from`과 `readonly_from`이 그때를 말한다. 앱은 3장처럼 **그 Grant가 있을 때** 막는다. 누가 받아들이면 두 Grant는 끝난다.
 
 ## 5. 워크스페이스의 생애 사건: 닫힘, 복원, 파기
 
-닫힌 워크스페이스는 닫힌 동안 청구하지 않고, 되돌리면 그때부터 다시 청구하며, 파기한 워크스페이스는 그때 영원히 끝난다(Claude, design 14장의 생애 사건). levyan이 그것을 알려면 앱이 알려야 한다. 셋 다 제품 키로 부르는 `levyan.v1.WorkspaceService`의 호출이다.
+닫힌 워크스페이스는 닫혀 있는 동안 청구하지 않는다. 되돌리면 닫혀 있던 구간까지 청구하고, 닫힌 채 파기하면 닫힌 때부터 청구하지 않는다(대표, 2026-11-01). 시스템은 복구 기간을 청구하지 않고, 되돌린 워크스페이스는 닫힌 적이 없었던 것처럼 청구한다. 파기한 워크스페이스는 그때 영원히 끝난다(Claude, design 14장의 생애 사건). levyan이 그것을 알려면 앱이 알려야 한다. 셋 다 제품 키로 부르는 `levyan.v1.WorkspaceService`의 호출이다. loft는 이미 `Restore`를 보낸다. 앱이 보내는 것은 바뀌지 않았고, 바뀐 것은 levyan이 매기는 금액이다.
 
 | 호출 | 언제 보내는가 | `at` |
 | --- | --- | --- |
@@ -175,6 +209,7 @@ MoR 채널의 결제 계정(`channel`이 `CHANNEL_MOR`)은 지불자가 Paddle�
 - **`Arrive`가 먼저다.** levyan이 들은 적 없는 워크스페이스의 사건은 NotFound다. 같은 outbox에 차례로 쓰면 `Arrive`가 먼저 나간다. 한 워크스페이스의 생애 사건끼리는 순서가 바뀌어도 괜찮다.
 - **다시 보내도 된다.** 같은 사건을 다시 말하면 아무것도 바뀌지 않고 성공으로 답한다. 이미 파기된 워크스페이스에 더 늦은 `at`으로 `Destroy`를 보내도 성공이고 바뀌는 것은 없다. 더 이른 `at`이면 그때가 파기한 시각이 된다.
 - **늦게 보내도 된다.** 기간이 이미 닫힌 뒤에 그 기간의 사건이 오면(levyan이 멈췄던 동안 등), 그 기간은 다음 내역에서 정정된다. 답의 `late`가 그렇다고 말한다. 앱이 따로 할 것은 없다.
+- **복원은 닫힘까지 거슬러 닿는다.** 되돌리면 닫혀 있던 구간을 청구하므로, 닫은 때가 든 기간이 이미 닫혔다면 복원을 제때 보내도 `late`가 참이다. 그 기간들이 다음 내역에서 정정된다(닫혀 있던 구간이 청구된다). 이것도 앱이 따로 할 것은 없다.
 
 ### 파기와 마지막 측정
 
@@ -204,7 +239,7 @@ outbox 행은 파기되는 워크스페이스의 행이 아니라 배포의 것�
 
 ### levyan이 하는 것
 
-- 닫힌 동안에도 앱은 지금처럼 잰다(loft의 리더는 파기될 때까지 모든 워크스페이스를 잰다). levyan은 그 값을 남기되 닫힌 구간을 청구하지 않는다. 지불자는 그대로이고 Grant도 그대로다.
+- 닫힌 동안에도 앱은 지금처럼 잰다(loft의 리더는 파기될 때까지 모든 워크스페이스를 잰다). levyan은 그 값을 남기고, 닫혀 있는 동안은 청구하지 않는다. 되돌리면 그 값으로 닫혀 있던 구간을 청구하고, 닫힌 채 파기되면 끝내 청구하지 않는다. 지불자는 그대로이고 Grant도 그대로다.
 - 파기하면 지불자의 연결이 그 시각에 끝나고(`LINK_ENDED_DESTROYED`), 그 워크스페이스에 한 제안은 거둔다. 지불자 없음의 제한(`<제품>.restricted`)도 주지 않는다. 그 워크스페이스에 새 Grant를 주지 않고, 갱신되던 Grant는 갱신할 때가 되면 끝낸다(늦어도 3.5일 안). 끝이 정해진 Grant는 그 끝까지다. 어느 쪽이든 앱이 모르는 tenant의 Grant이므로 사본에서 아무것에도 쓰이지 않는다.
 - 파기한 워크스페이스를 같은 식별자로 되살리면(loft의 `tenant import`) levyan은 그 워크스페이스의 값을 거부한다(`REFUSAL_DESTROYED`). 어떻게 알릴지는 아직 정하지 않았다(design 17장 104번).
 
@@ -214,26 +249,29 @@ outbox 행은 파기되는 워크스페이스의 행이 아니라 배포의 것�
 
 ### levyan이 하는 것
 
-- **거절의 종류마다 levyan 배포의 정책 표의 행을 따른다**(`dunning.kinds`). 아래는 기본값이고 Claude의 잠정값이다. 값은 대표가 아직 정하지 않았다(design 17장 3번). 시각은 모두 첫 실패에서 잰다.
+- **거절의 종류마다 levyan 배포의 정책 표의 행을 따른다**(`dunning.kinds`). 아래는 기본값이고 대표가 정했다(2026-11-01, design 17장 3번). 배포는 값을 바꿀 수 있다. 시각은 모두 첫 실패에서 잰다.
 
-  | `kind` | 다시 시도 | 유예 | 제한 |
-  | --- | --- | --- | --- |
-  | `DECLINE_KIND_TEMPORARY` 일시적(잔액 부족, 일시정지·연체인 구독) | 1, 3, 5일 뒤 | 7일 | 유예 뒤 |
-  | `DECLINE_KIND_REPLACE` 결제수단 교체 필요(만료, 구독 없음·해지, 지불자의 승인 대기) | 없음 | 7일 | 유예 뒤 |
-  | `DECLINE_KIND_FRAUD` 부정 의심 | 없음 | 없음 | 바로 |
-  | `DECLINE_KIND_UNSPECIFIED` 그 밖(이유를 말하지 않은 거절) | 일시적과 같다 | | |
+  | `kind` | 다시 시도 | 유예 | 제한 | 읽기 전용 |
+  | --- | --- | --- | --- | --- |
+  | `DECLINE_KIND_TEMPORARY` 일시적(잔액 부족, 일시정지·연체인 구독) | 1, 3, 7일 뒤 | 14일 | 유예 뒤 | 60일 뒤 |
+  | `DECLINE_KIND_REPLACE` 결제수단 교체 필요(만료, 구독 없음·해지, 지불자의 승인 대기) | 없음 | 14일 | 유예 뒤 | 60일 뒤 |
+  | `DECLINE_KIND_FRAUD` 부정 의심 | 없음 | 없음 | 바로 | 60일 뒤 |
+  | `DECLINE_KIND_UNSPECIFIED` 그 밖(이유를 말하지 않은 거절) | 일시적과 같다 | | | |
+
+  유예 동안에는 아무것도 막지 않는다.
 
   행은 마지막 실패의 종류를 따른다. 재시도가 다른 종류로 실패하면 그 종류의 행으로 옮긴다.
 - **결제 계정이 다시 수금할 수 있게 되면 일정과 상관없이 바로 다시 청구한다**(levyan이 1분마다 본다, `dunning.every`). 지불자가 새 결제창을 끝냈거나, 기다리던 결제를 승인했거나, Paddle이 밀린 결제를 받은 경우다. 교체 필요는 이것으로만 다시 청구한다.
 - **제한되는 때**(`restricted_from`)부터 그 청구서의 모든 워크스페이스에 `<제품>.restricted` ON을 준다. 그 결제 계정이 그 청구서의 기간에 낸 워크스페이스다. 지불자가 없는 워크스페이스의 제한(4장)과 같은 키다. 둘 다 제한하면 둘 다 풀릴 때까지 제한된다.
+- **읽기 전용이 되는 때**(`readonly_from`)부터 같은 워크스페이스에 `<제품>.readonly` ON도 준다. 제한의 두 번째 단계이고, 무엇을 받고 무엇을 거부하는지는 3장의 "제한의 두 단계"다.
 - **회수 불가.** 다시 시도할 것이 남지 않고 유예가 끝나면 청구서는 `INVOICE_STATE_UNCOLLECTIBLE`이 된다. 그래도 받을 돈이고 제한은 이어진다. 그 뒤라도 청구가 성공하면 결제됨이 된다.
-- **결제되면**(재시도, 다시 수금할 수 있게 되어 한 청구, 정정 청구, 무효) 1분 안에 제한 Grant가 끝난다. 앱의 사본에는 스트림으로 온다.
+- **결제되면**(재시도, 다시 수금할 수 있게 되어 한 청구, 정정 청구, 무효) 1분 안에 제한과 읽기 전용의 Grant가 함께 끝난다. 앱의 사본에는 스트림으로 온다.
 
 ### 읽는 곳
 
 - **지불자의 결제 화면**: `GetBillingAccount(id)`의 `dunning`(그 결제 계정의 이 제품 청구서 중 결제가 실패하고 아직 받을 것이 있는 것, 먼저 제한되는 것부터)과 `GetInvoice(id)`의 `dunning`.
 - **워크스페이스의 배너**: 제품 키로 부르는 `GetPayer(workspace)`의 `payer.dunning`. 그 워크스페이스를 청구한 청구서 중 결제가 실패한 것이다. 전에 내던 결제 계정의 것도 들어 있다.
-- **`Dunning`**: `kind`(마지막 거절의 종류), `failed`(첫 실패), `next_retry`(다음 청구. 지난 시각이면 곧 한다. 없으면 일정에 남은 것이 없고, 다시 수금할 수 있게 되어야 청구한다), `grace_ends`, `restricted_from`.
+- **`Dunning`**: `kind`(마지막 거절의 종류), `failed`(첫 실패), `next_retry`(다음 청구. 지난 시각이면 곧 한다. 없으면 일정에 남은 것이 없고, 다시 수금할 수 있게 되어야 청구한다), `grace_ends`, `restricted_from`, `readonly_from`(읽기 전용이 되는 때).
 
 ### 무엇을 언제 보여 주는가
 
@@ -243,9 +281,11 @@ outbox 행은 파기되는 워크스페이스의 행이 아니라 배포의 것�
 | 다시 시도가 실패할 때 | 지불자 | 같은 화면이 `next_retry`를 다음으로 옮겨 보여 준다 |
 | `restricted_from` 전 | 지불자, 워크스페이스의 소유자 | "`restricted_from`부터 제한됩니다"라는 배너. 메일을 보낸다면 며칠 전에(앱이 정한다) |
 | `restricted_from`부터 | 워크스페이스의 구성원 | "결제가 밀려 제한되었습니다". 막는 것은 `<제품>.restricted` Grant로 한다(3장). 결제하러 가는 길은 지불자와 소유자에게 보인다 |
+| `readonly_from` 전 | 지불자, 워크스페이스의 소유자 | "`readonly_from`부터 읽기 전용이 됩니다"라는 배너. 메일을 보낸다면 며칠 전에(앱이 정한다) |
+| `readonly_from`부터 | 워크스페이스의 구성원 | "결제가 밀려 읽기 전용입니다. 읽기, 내보내기, 결제, 닫기, 떠나기만 됩니다". 막는 것은 `<제품>.readonly` Grant로 한다(3장) |
 | 회수 불가 | 지불자 | levyan은 더 시도하지 않는다. 결제수단을 바꾸면(새 결제창) 바로 청구한다 |
 | `dunning`이 사라질 때 | 지불자, 소유자 | 결제되었다. 제한은 1분 안에 풀린다(Grant의 끝이 스트림으로 온다) |
 
 - **levyan은 연체를 앱에 밀어 주지 않는다.** 앱은 화면과 배너를 그릴 때 읽는다. 메일을 보내려면 결제 계정이나 워크스페이스를 돌아가며 읽어야 한다. 더 나은 길은 아직 정하지 않았다(design 17장 109번).
-- 막는 것은 **Grant가 있을 때만** 한다. `restricted_from`이 지났는데 Grant가 아직 오지 않았으면 배너만 보이고 쓰기는 막지 않는다. Grant는 levyan이 1분 안에 준다.
-- 지불자 없는 워크스페이스(4장)도 같은 표의 행(`payerless`)을 따른다. `GetPayer`의 `payerless_since`와 `restricted_from`이 그것이다.
+- 막는 것은 **Grant가 있을 때만** 한다. `restricted_from`이나 `readonly_from`이 지났는데 Grant가 아직 오지 않았으면 배너만 보이고 쓰기는 막지 않는다. Grant는 levyan이 1분 안에 준다.
+- 지불자 없는 워크스페이스(4장)도 같은 표의 행(`payerless`)을 따른다. `GetPayer`의 `payerless_since`, `restricted_from`, `readonly_from`이 그것이다.

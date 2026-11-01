@@ -86,9 +86,6 @@ func (_u *CreditUpdate) check() error {
 	if _u.mutation.TenantCleared() && len(_u.mutation.TenantIds()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Credit.tenant"`)
 	}
-	if _u.mutation.BillingAccountCleared() && len(_u.mutation.BillingAccountIds()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Credit.billing_account"`)
-	}
 	return nil
 }
 
@@ -121,6 +118,15 @@ func (_u *CreditUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DateCreatedCleared() {
 		_spec.ClearField(credit.FieldDateCreated, field.TypeTime)
+	}
+	if _u.mutation.LotCleared() {
+		_spec.ClearField(credit.FieldLot, field.TypeUuid)
+	}
+	if _u.mutation.DateExpiresCleared() {
+		_spec.ClearField(credit.FieldDateExpires, field.TypeTime)
+	}
+	if _u.mutation.ReasonCleared() {
+		_spec.ClearField(credit.FieldReason, field.TypeString)
 	}
 	_spec.AddModifiers(_u.modifiers...)
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
@@ -214,9 +220,6 @@ func (_u *CreditUpdateOne) check() error {
 	if _u.mutation.TenantCleared() && len(_u.mutation.TenantIds()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Credit.tenant"`)
 	}
-	if _u.mutation.BillingAccountCleared() && len(_u.mutation.BillingAccountIds()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Credit.billing_account"`)
-	}
 	return nil
 }
 
@@ -266,6 +269,15 @@ func (_u *CreditUpdateOne) sqlSave(ctx context.Context) (_node *Credit, err erro
 	}
 	if _u.mutation.DateCreatedCleared() {
 		_spec.ClearField(credit.FieldDateCreated, field.TypeTime)
+	}
+	if _u.mutation.LotCleared() {
+		_spec.ClearField(credit.FieldLot, field.TypeUuid)
+	}
+	if _u.mutation.DateExpiresCleared() {
+		_spec.ClearField(credit.FieldDateExpires, field.TypeTime)
+	}
+	if _u.mutation.ReasonCleared() {
+		_spec.ClearField(credit.FieldReason, field.TypeString)
 	}
 	_spec.AddModifiers(_u.modifiers...)
 	_node = &Credit{config: _u.config}

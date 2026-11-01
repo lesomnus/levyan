@@ -252,14 +252,16 @@ func add(ctx context.Context, s levyan.Server, inv *ent.Invoice, st *ent.Stateme
 //     written of it (Claude's, 2026-10-31, open question 63);
 //   - coming to nothing or less, it is finalized as settled, and what is
 //     less than nothing is the billing account's credit;
-//   - its credit balance taken off, what is left to ask for is more than
-//     nothing and less than its channel collects: it waits for the next
-//     period (the owner's, 2026-10-31) -- or, when nothing more will come to
-//     it, every link of its billing account having ended, it is written off
-//     (Claude's proposal, which the owner has not confirmed);
-//   - otherwise it is finalized: what credit paid of it taken from the
-//     balance, its bill-to kept, numbered on a channel levyan sells on, and
-//     open for what is left, or settled when nothing is.
+//   - what credit pays taken off -- what operators granted that it may be
+//     paid with, the soonest to expire first, and then its balance (#43) --
+//     what is left to ask for is more than nothing and less than its channel
+//     collects: it waits for the next period (the owner's, 2026-10-31) --
+//     or, when nothing more will come to it, every link of its billing
+//     account having ended, it is written off (Claude's proposal, which the
+//     owner has not confirmed); nothing is spent of the credit either way;
+//   - otherwise it is finalized: what credit paid of it taken from each lot
+//     and the balance, its bill-to kept, numbered on a channel levyan sells
+//     on, and open for what is left, or settled when nothing is.
 func (v Invoices) decide(ctx context.Context, s levyan.Server, db *ent.Client, drv dialect.Driver, inv *ent.Invoice, acct *ent.BillingAccount) (bool, error) {
 	closed, err := db.Period.Query().
 		Where(entperiod.TenantId(inv.TenantId), entperiod.DateEnd(inv.DateEnd), entperiod.DateClosedNotNil()).
@@ -296,12 +298,13 @@ func (v Invoices) decide(ctx context.Context, s levyan.Server, db *ent.Client, d
 	}.Build()
 
 	credited, due := int64(0), int64(0)
+	var takes []take
 	if total > 0 {
-		bal, err := Balance(ctx, db, inv.TenantId, inv.BillingAccountId)
-		if err != nil {
+		// What credit pays of it: what operators granted, the soonest to
+		// expire first, and then the balance (#43).
+		if takes, credited, err = v.spend(ctx, db, inv, total, rate, now); err != nil {
 			return false, err
 		}
-		credited = min(max(bal, 0), total)
 		due = total - credited
 
 		if least := c.Minimum(inv.Currency); due > 0 && due < least {
@@ -336,8 +339,8 @@ func (v Invoices) decide(ctx context.Context, s levyan.Server, db *ent.Client, d
 			return false, err
 		}
 	}
-	if credited > 0 {
-		if err := credit(ctx, s, inv.TenantId, inv.BillingAccountId, inv.Currency, -credited, levyan.CreditKind_CREDIT_KIND_APPLIED, inv.Id, uuid.UUID{}); err != nil {
+	for _, t := range takes {
+		if err := move(ctx, s, inv.TenantId, inv.BillingAccountId, inv.Currency, -t.amount, levyan.CreditKind_CREDIT_KIND_APPLIED, inv.Id, uuid.UUID{}, t.lot); err != nil {
 			return false, err
 		}
 	}

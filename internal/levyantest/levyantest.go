@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lesomnus/payday/frame"
 	"github.com/lesomnus/payday/pdid"
 	"github.com/lesomnus/payday/pdtest"
 	"github.com/stretchr/testify/require"
@@ -25,6 +26,8 @@ import (
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/cli"
 	"github.com/lesomnus/levyan/cmd"
+	"github.com/lesomnus/levyan/internal/ent"
+	entoperator "github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/mor/paddle/paddletest"
 	"github.com/lesomnus/levyan/server/keys"
 	"github.com/lesomnus/levyan/server/pd"
@@ -214,6 +217,30 @@ func (w *World) Terms(p *levyan.Tenant, zone string, channel levyan.Channel, cur
 // Ref is a product by its identifier.
 func Ref(p *levyan.Tenant) *levyan.TenantRef {
 	return levyan.TenantRef_builder{Id: p.GetId()}.Build()
+}
+
+// Operator is `ctx` framed as an operator -- one written as the operator's
+// entry point writes one of the names `admin.keys` gives (`server/admin`)
+// -- as that entry point frames their requests: what is given beyond a
+// price (#43) is an operator's alone.
+func (w *World) Operator(ctx context.Context, alias string) context.Context {
+	w.t.Helper()
+
+	var v *levyan.Operator
+	u, err := w.S.Ent.Operator.Query().Where(entoperator.Alias(alias), entoperator.DateErasedIsNil()).Only(w.t.Context())
+	switch {
+	case err == nil:
+		v = levyan.Operator_builder{Id: u.Id[:], Alias: u.Alias}.Build()
+	case ent.IsNotFound(err):
+		v, err = w.S.Ungated.Operator().Add(w.t.Context(), levyan.OperatorAddRequest_builder{Alias: alias}.Build())
+		w.X.NoError(err)
+	default:
+		w.X.NoError(err)
+	}
+	id, err := pdid.From(v.GetId())
+	w.X.NoError(err)
+
+	return frame.Into(ctx, frame.New(id, pdid.Nil, frame.Whole()).WithRow(v))
 }
 
 // As is a context whose calls carry a key, as a product's do.

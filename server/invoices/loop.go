@@ -31,7 +31,8 @@ const Loop = "levyan.invoices.collect"
 // asked about (`mor.Settle`).
 const DefaultEvery = 10 * time.Minute
 
-// Run is one pass of the loop: every statement on no invoice put on its
+// Run is one pass of the loop: what is left of every credit that expired
+// taken off it ([Invoices.Expired]), every statement on no invoice put on its
 // draft and every draft whose period is closed decided ([Invoices.Account]),
 // the legal documents of what was finalized issued ([Invoices.Issue]), and
 // what is due moved ([Invoices.Collect]). What fails is said in the log and
@@ -40,9 +41,13 @@ const DefaultEvery = 10 * time.Minute
 func (v Invoices) Run(ctx context.Context) error {
 	var errs []error
 
+	if err := v.Expired(ctx); err != nil {
+		errs = append(errs, err)
+	}
+
 	ps, err := v.pairs(ctx)
 	if err != nil {
-		return err
+		return errors.Join(append(errs, err)...)
 	}
 	for _, p := range ps {
 		if err := v.Account(ctx, p.product, p.account); err != nil {

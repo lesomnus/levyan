@@ -13,7 +13,9 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
+	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
+	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent/dialect/sql"
 	"github.com/protobuf-orm/ent/dialect/sql/sqlgraph"
 	"github.com/protobuf-orm/ent/schema/field"
@@ -73,6 +75,48 @@ func (_c *CreditCreate) SetNillableDateCreated(v *time.Time) *CreditCreate {
 	return _c
 }
 
+// SetLot sets the "lot" field.
+func (_c *CreditCreate) SetLot(v uuid.UUID) *CreditCreate {
+	_c.mutation.SetLot(v)
+	return _c
+}
+
+// SetNillableLot sets the "lot" field if the given value is not nil.
+func (_c *CreditCreate) SetNillableLot(v *uuid.UUID) *CreditCreate {
+	if v != nil {
+		_c.SetLot(*v)
+	}
+	return _c
+}
+
+// SetDateExpires sets the "date_expires" field.
+func (_c *CreditCreate) SetDateExpires(v time.Time) *CreditCreate {
+	_c.mutation.SetDateExpires(v)
+	return _c
+}
+
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_c *CreditCreate) SetNillableDateExpires(v *time.Time) *CreditCreate {
+	if v != nil {
+		_c.SetDateExpires(*v)
+	}
+	return _c
+}
+
+// SetReason sets the "reason" field.
+func (_c *CreditCreate) SetReason(v string) *CreditCreate {
+	_c.mutation.SetReason(v)
+	return _c
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (_c *CreditCreate) SetNillableReason(v *string) *CreditCreate {
+	if v != nil {
+		_c.SetReason(*v)
+	}
+	return _c
+}
+
 // SetTenantId sets the "tenant_id" field.
 func (_c *CreditCreate) SetTenantId(v uuid.UUID) *CreditCreate {
 	_c.mutation.SetTenantId(v)
@@ -82,6 +126,14 @@ func (_c *CreditCreate) SetTenantId(v uuid.UUID) *CreditCreate {
 // SetBillingAccountId sets the "billing_account_id" field.
 func (_c *CreditCreate) SetBillingAccountId(v uuid.UUID) *CreditCreate {
 	_c.mutation.SetBillingAccountId(v)
+	return _c
+}
+
+// SetNillableBillingAccountId sets the "billing_account_id" field if the given value is not nil.
+func (_c *CreditCreate) SetNillableBillingAccountId(v *uuid.UUID) *CreditCreate {
+	if v != nil {
+		_c.SetBillingAccountId(*v)
+	}
 	return _c
 }
 
@@ -113,6 +165,34 @@ func (_c *CreditCreate) SetNillableCreditNoteId(v *uuid.UUID) *CreditCreate {
 	return _c
 }
 
+// SetWorkspaceId sets the "workspace_id" field.
+func (_c *CreditCreate) SetWorkspaceId(v uuid.UUID) *CreditCreate {
+	_c.mutation.SetWorkspaceId(v)
+	return _c
+}
+
+// SetNillableWorkspaceId sets the "workspace_id" field if the given value is not nil.
+func (_c *CreditCreate) SetNillableWorkspaceId(v *uuid.UUID) *CreditCreate {
+	if v != nil {
+		_c.SetWorkspaceId(*v)
+	}
+	return _c
+}
+
+// SetOperatorId sets the "operator_id" field.
+func (_c *CreditCreate) SetOperatorId(v uuid.UUID) *CreditCreate {
+	_c.mutation.SetOperatorId(v)
+	return _c
+}
+
+// SetNillableOperatorId sets the "operator_id" field if the given value is not nil.
+func (_c *CreditCreate) SetNillableOperatorId(v *uuid.UUID) *CreditCreate {
+	if v != nil {
+		_c.SetOperatorId(*v)
+	}
+	return _c
+}
+
 // SetId sets the "id" field.
 func (_c *CreditCreate) SetId(v uuid.UUID) *CreditCreate {
 	_c.mutation.SetId(v)
@@ -139,6 +219,16 @@ func (_c *CreditCreate) SetCreditNote(v *CreditNote) *CreditCreate {
 	return _c.SetCreditNoteId(v.Id)
 }
 
+// SetWorkspace sets the "workspace" edge to the Workspace entity.
+func (_c *CreditCreate) SetWorkspace(v *Workspace) *CreditCreate {
+	return _c.SetWorkspaceId(v.Id)
+}
+
+// SetOperator sets the "operator" edge to the Operator entity.
+func (_c *CreditCreate) SetOperator(v *Operator) *CreditCreate {
+	return _c.SetOperatorId(v.Id)
+}
+
 // Mutation returns the CreditMutation object of the builder.
 func (_c *CreditCreate) Mutation() *CreditMutation {
 	return _c.mutation
@@ -146,6 +236,7 @@ func (_c *CreditCreate) Mutation() *CreditMutation {
 
 // Save creates the Credit in the database.
 func (_c *CreditCreate) Save(ctx context.Context) (*Credit, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -171,6 +262,14 @@ func (_c *CreditCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *CreditCreate) defaults() {
+	if _, ok := _c.mutation.Reason(); !ok {
+		v := credit.DefaultReason
+		_c.mutation.SetReason(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *CreditCreate) check() error {
 	if fs := _c.mutation.ExprFields(); len(fs) > 0 {
@@ -188,14 +287,8 @@ func (_c *CreditCreate) check() error {
 	if _, ok := _c.mutation.TenantId(); !ok {
 		return &ValidationError{Name: "tenant_id", err: errors.New(`ent: missing required field "Credit.tenant_id"`)}
 	}
-	if _, ok := _c.mutation.BillingAccountId(); !ok {
-		return &ValidationError{Name: "billing_account_id", err: errors.New(`ent: missing required field "Credit.billing_account_id"`)}
-	}
 	if len(_c.mutation.TenantIds()) == 0 {
 		return &ValidationError{Name: "tenant", err: errors.New(`ent: missing required edge "Credit.tenant"`)}
-	}
-	if len(_c.mutation.BillingAccountIds()) == 0 {
-		return &ValidationError{Name: "billing_account", err: errors.New(`ent: missing required edge "Credit.billing_account"`)}
 	}
 	return nil
 }
@@ -268,6 +361,18 @@ func (_c *CreditCreate) createSpec() (*Credit, *sqlgraph.CreateSpec) {
 		_spec.SetField(credit.FieldDateCreated, field.TypeTime, value)
 		_node.DateCreated = value
 	}
+	if value, ok := _c.mutation.Lot(); ok {
+		_spec.SetField(credit.FieldLot, field.TypeUuid, value)
+		_node.Lot = &value
+	}
+	if value, ok := _c.mutation.DateExpires(); ok {
+		_spec.SetField(credit.FieldDateExpires, field.TypeTime, value)
+		_node.DateExpires = &value
+	}
+	if value, ok := _c.mutation.Reason(); ok {
+		_spec.SetField(credit.FieldReason, field.TypeString, value)
+		_node.Reason = value
+	}
 	if nodes := _c.mutation.TenantIds(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -336,6 +441,40 @@ func (_c *CreditCreate) createSpec() (*Credit, *sqlgraph.CreateSpec) {
 		_node.CreditNoteId = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.WorkspaceIds(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   credit.WorkspaceTable,
+			Columns: []string{credit.WorkspaceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IdSpec: sqlgraph.NewFieldSpec(workspace.FieldId, field.TypeUuid),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.WorkspaceId = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OperatorIds(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   credit.OperatorTable,
+			Columns: []string{credit.OperatorColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IdSpec: sqlgraph.NewFieldSpec(operator.FieldId, field.TypeUuid),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.OperatorId = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -383,6 +522,7 @@ func (_c *CreditCreateBulk) Save(ctx context.Context) ([]*Credit, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*CreditMutation)
 				if !ok {

@@ -81,6 +81,21 @@ func DateCreated(v time.Time) predicate.Credit {
 	return predicate.Credit(sql.FieldEQ(FieldDateCreated, v))
 }
 
+// Lot applies equality check predicate on the "lot" field. It's identical to LotEQ.
+func Lot(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldLot, v))
+}
+
+// DateExpires applies equality check predicate on the "date_expires" field. It's identical to DateExpiresEQ.
+func DateExpires(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldDateExpires, v))
+}
+
+// Reason applies equality check predicate on the "reason" field. It's identical to ReasonEQ.
+func Reason(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldReason, v))
+}
+
 // TenantId applies equality check predicate on the "tenant_id" field. It's identical to TenantIdEQ.
 func TenantId(v uuid.UUID) predicate.Credit {
 	return predicate.Credit(sql.FieldEQ(FieldTenantId, v))
@@ -99,6 +114,16 @@ func InvoiceId(v uuid.UUID) predicate.Credit {
 // CreditNoteId applies equality check predicate on the "credit_note_id" field. It's identical to CreditNoteIdEQ.
 func CreditNoteId(v uuid.UUID) predicate.Credit {
 	return predicate.Credit(sql.FieldEQ(FieldCreditNoteId, v))
+}
+
+// WorkspaceId applies equality check predicate on the "workspace_id" field. It's identical to WorkspaceIdEQ.
+func WorkspaceId(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldWorkspaceId, v))
+}
+
+// OperatorId applies equality check predicate on the "operator_id" field. It's identical to OperatorIdEQ.
+func OperatorId(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldOperatorId, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -346,6 +371,181 @@ func DateCreatedNotNil() predicate.Credit {
 	return predicate.Credit(sql.FieldNotNull(FieldDateCreated))
 }
 
+// LotEQ applies the EQ predicate on the "lot" field.
+func LotEQ(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldLot, v))
+}
+
+// LotNEQ applies the NEQ predicate on the "lot" field.
+func LotNEQ(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldNEQ(FieldLot, v))
+}
+
+// LotIn applies the In predicate on the "lot" field.
+func LotIn(vs ...uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldIn(FieldLot, vs...))
+}
+
+// LotNotIn applies the NotIn predicate on the "lot" field.
+func LotNotIn(vs ...uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldNotIn(FieldLot, vs...))
+}
+
+// LotGT applies the GT predicate on the "lot" field.
+func LotGT(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldGT(FieldLot, v))
+}
+
+// LotGTE applies the GTE predicate on the "lot" field.
+func LotGTE(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldGTE(FieldLot, v))
+}
+
+// LotLT applies the LT predicate on the "lot" field.
+func LotLT(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldLT(FieldLot, v))
+}
+
+// LotLTE applies the LTE predicate on the "lot" field.
+func LotLTE(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldLTE(FieldLot, v))
+}
+
+// LotIsNil applies the IsNil predicate on the "lot" field.
+func LotIsNil() predicate.Credit {
+	return predicate.Credit(sql.FieldIsNull(FieldLot))
+}
+
+// LotNotNil applies the NotNil predicate on the "lot" field.
+func LotNotNil() predicate.Credit {
+	return predicate.Credit(sql.FieldNotNull(FieldLot))
+}
+
+// DateExpiresEQ applies the EQ predicate on the "date_expires" field.
+func DateExpiresEQ(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldDateExpires, v))
+}
+
+// DateExpiresNEQ applies the NEQ predicate on the "date_expires" field.
+func DateExpiresNEQ(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldNEQ(FieldDateExpires, v))
+}
+
+// DateExpiresIn applies the In predicate on the "date_expires" field.
+func DateExpiresIn(vs ...time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldIn(FieldDateExpires, vs...))
+}
+
+// DateExpiresNotIn applies the NotIn predicate on the "date_expires" field.
+func DateExpiresNotIn(vs ...time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldNotIn(FieldDateExpires, vs...))
+}
+
+// DateExpiresGT applies the GT predicate on the "date_expires" field.
+func DateExpiresGT(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldGT(FieldDateExpires, v))
+}
+
+// DateExpiresGTE applies the GTE predicate on the "date_expires" field.
+func DateExpiresGTE(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldGTE(FieldDateExpires, v))
+}
+
+// DateExpiresLT applies the LT predicate on the "date_expires" field.
+func DateExpiresLT(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldLT(FieldDateExpires, v))
+}
+
+// DateExpiresLTE applies the LTE predicate on the "date_expires" field.
+func DateExpiresLTE(v time.Time) predicate.Credit {
+	return predicate.Credit(sql.FieldLTE(FieldDateExpires, v))
+}
+
+// DateExpiresIsNil applies the IsNil predicate on the "date_expires" field.
+func DateExpiresIsNil() predicate.Credit {
+	return predicate.Credit(sql.FieldIsNull(FieldDateExpires))
+}
+
+// DateExpiresNotNil applies the NotNil predicate on the "date_expires" field.
+func DateExpiresNotNil() predicate.Credit {
+	return predicate.Credit(sql.FieldNotNull(FieldDateExpires))
+}
+
+// ReasonEQ applies the EQ predicate on the "reason" field.
+func ReasonEQ(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldReason, v))
+}
+
+// ReasonNEQ applies the NEQ predicate on the "reason" field.
+func ReasonNEQ(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldNEQ(FieldReason, v))
+}
+
+// ReasonIn applies the In predicate on the "reason" field.
+func ReasonIn(vs ...string) predicate.Credit {
+	return predicate.Credit(sql.FieldIn(FieldReason, vs...))
+}
+
+// ReasonNotIn applies the NotIn predicate on the "reason" field.
+func ReasonNotIn(vs ...string) predicate.Credit {
+	return predicate.Credit(sql.FieldNotIn(FieldReason, vs...))
+}
+
+// ReasonGT applies the GT predicate on the "reason" field.
+func ReasonGT(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldGT(FieldReason, v))
+}
+
+// ReasonGTE applies the GTE predicate on the "reason" field.
+func ReasonGTE(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldGTE(FieldReason, v))
+}
+
+// ReasonLT applies the LT predicate on the "reason" field.
+func ReasonLT(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldLT(FieldReason, v))
+}
+
+// ReasonLTE applies the LTE predicate on the "reason" field.
+func ReasonLTE(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldLTE(FieldReason, v))
+}
+
+// ReasonContains applies the Contains predicate on the "reason" field.
+func ReasonContains(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldContains(FieldReason, v))
+}
+
+// ReasonHasPrefix applies the HasPrefix predicate on the "reason" field.
+func ReasonHasPrefix(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldHasPrefix(FieldReason, v))
+}
+
+// ReasonHasSuffix applies the HasSuffix predicate on the "reason" field.
+func ReasonHasSuffix(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldHasSuffix(FieldReason, v))
+}
+
+// ReasonIsNil applies the IsNil predicate on the "reason" field.
+func ReasonIsNil() predicate.Credit {
+	return predicate.Credit(sql.FieldIsNull(FieldReason))
+}
+
+// ReasonNotNil applies the NotNil predicate on the "reason" field.
+func ReasonNotNil() predicate.Credit {
+	return predicate.Credit(sql.FieldNotNull(FieldReason))
+}
+
+// ReasonEqualFold applies the EqualFold predicate on the "reason" field.
+func ReasonEqualFold(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldEqualFold(FieldReason, v))
+}
+
+// ReasonContainsFold applies the ContainsFold predicate on the "reason" field.
+func ReasonContainsFold(v string) predicate.Credit {
+	return predicate.Credit(sql.FieldContainsFold(FieldReason, v))
+}
+
 // TenantIdEQ applies the EQ predicate on the "tenant_id" field.
 func TenantIdEQ(v uuid.UUID) predicate.Credit {
 	return predicate.Credit(sql.FieldEQ(FieldTenantId, v))
@@ -384,6 +584,16 @@ func BillingAccountIdIn(vs ...uuid.UUID) predicate.Credit {
 // BillingAccountIdNotIn applies the NotIn predicate on the "billing_account_id" field.
 func BillingAccountIdNotIn(vs ...uuid.UUID) predicate.Credit {
 	return predicate.Credit(sql.FieldNotIn(FieldBillingAccountId, vs...))
+}
+
+// BillingAccountIdIsNil applies the IsNil predicate on the "billing_account_id" field.
+func BillingAccountIdIsNil() predicate.Credit {
+	return predicate.Credit(sql.FieldIsNull(FieldBillingAccountId))
+}
+
+// BillingAccountIdNotNil applies the NotNil predicate on the "billing_account_id" field.
+func BillingAccountIdNotNil() predicate.Credit {
+	return predicate.Credit(sql.FieldNotNull(FieldBillingAccountId))
 }
 
 // InvoiceIdEQ applies the EQ predicate on the "invoice_id" field.
@@ -444,6 +654,66 @@ func CreditNoteIdIsNil() predicate.Credit {
 // CreditNoteIdNotNil applies the NotNil predicate on the "credit_note_id" field.
 func CreditNoteIdNotNil() predicate.Credit {
 	return predicate.Credit(sql.FieldNotNull(FieldCreditNoteId))
+}
+
+// WorkspaceIdEQ applies the EQ predicate on the "workspace_id" field.
+func WorkspaceIdEQ(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldWorkspaceId, v))
+}
+
+// WorkspaceIdNEQ applies the NEQ predicate on the "workspace_id" field.
+func WorkspaceIdNEQ(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldNEQ(FieldWorkspaceId, v))
+}
+
+// WorkspaceIdIn applies the In predicate on the "workspace_id" field.
+func WorkspaceIdIn(vs ...uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldIn(FieldWorkspaceId, vs...))
+}
+
+// WorkspaceIdNotIn applies the NotIn predicate on the "workspace_id" field.
+func WorkspaceIdNotIn(vs ...uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldNotIn(FieldWorkspaceId, vs...))
+}
+
+// WorkspaceIdIsNil applies the IsNil predicate on the "workspace_id" field.
+func WorkspaceIdIsNil() predicate.Credit {
+	return predicate.Credit(sql.FieldIsNull(FieldWorkspaceId))
+}
+
+// WorkspaceIdNotNil applies the NotNil predicate on the "workspace_id" field.
+func WorkspaceIdNotNil() predicate.Credit {
+	return predicate.Credit(sql.FieldNotNull(FieldWorkspaceId))
+}
+
+// OperatorIdEQ applies the EQ predicate on the "operator_id" field.
+func OperatorIdEQ(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldEQ(FieldOperatorId, v))
+}
+
+// OperatorIdNEQ applies the NEQ predicate on the "operator_id" field.
+func OperatorIdNEQ(v uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldNEQ(FieldOperatorId, v))
+}
+
+// OperatorIdIn applies the In predicate on the "operator_id" field.
+func OperatorIdIn(vs ...uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldIn(FieldOperatorId, vs...))
+}
+
+// OperatorIdNotIn applies the NotIn predicate on the "operator_id" field.
+func OperatorIdNotIn(vs ...uuid.UUID) predicate.Credit {
+	return predicate.Credit(sql.FieldNotIn(FieldOperatorId, vs...))
+}
+
+// OperatorIdIsNil applies the IsNil predicate on the "operator_id" field.
+func OperatorIdIsNil() predicate.Credit {
+	return predicate.Credit(sql.FieldIsNull(FieldOperatorId))
+}
+
+// OperatorIdNotNil applies the NotNil predicate on the "operator_id" field.
+func OperatorIdNotNil() predicate.Credit {
+	return predicate.Credit(sql.FieldNotNull(FieldOperatorId))
 }
 
 // HasTenant applies the HasEdge predicate on the "tenant" edge.
@@ -530,6 +800,52 @@ func HasCreditNote() predicate.Credit {
 func HasCreditNoteWith(preds ...predicate.CreditNote) predicate.Credit {
 	return predicate.Credit(func(s *sql.Selector) {
 		step := newCreditNoteStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasWorkspace applies the HasEdge predicate on the "workspace" edge.
+func HasWorkspace() predicate.Credit {
+	return predicate.Credit(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, WorkspaceTable, WorkspaceColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWorkspaceWith applies the HasEdge predicate on the "workspace" edge with a given conditions (other predicates).
+func HasWorkspaceWith(preds ...predicate.Workspace) predicate.Credit {
+	return predicate.Credit(func(s *sql.Selector) {
+		step := newWorkspaceStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOperator applies the HasEdge predicate on the "operator" edge.
+func HasOperator() predicate.Credit {
+	return predicate.Credit(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, OperatorTable, OperatorColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOperatorWith applies the HasEdge predicate on the "operator" edge with a given conditions (other predicates).
+func HasOperatorWith(preds ...predicate.Operator) predicate.Credit {
+	return predicate.Credit(func(s *sql.Selector) {
+		step := newOperatorStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

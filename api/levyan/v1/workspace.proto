@@ -233,4 +233,10 @@ message Payer {
   // says, sixty days after `payerless_since` by default, and never sooner
   // than it is restricted. Unset when `payerless_since` is.
   google.protobuf.Timestamp readonly_from = 9;
+
+  // What an operator granted the workspace itself that has not been spent
+  // nor expired: money its lines are paid with, on whichever billing
+  // account's invoice they are, the soonest to expire first. What its
+  // billing account was granted is the payer's to see (`PayerService`).
+  repeated Credit credits = 10;
 }

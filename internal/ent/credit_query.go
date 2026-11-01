@@ -12,8 +12,10 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
+	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/predicate"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
+	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent"
 	"github.com/protobuf-orm/ent/dialect/sql"
 	"github.com/protobuf-orm/ent/dialect/sql/sqlgraph"
@@ -31,6 +33,8 @@ type CreditQuery struct {
 	withBillingAccount *BillingAccountQuery
 	withInvoice        *InvoiceQuery
 	withCreditNote     *CreditNoteQuery
+	withWorkspace      *WorkspaceQuery
+	withOperator       *OperatorQuery
 	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -149,6 +153,50 @@ func (_q *CreditQuery) QueryCreditNote() *CreditNoteQuery {
 			sqlgraph.From(credit.Table, credit.FieldId, selector),
 			sqlgraph.To(creditnote.Table, creditnote.FieldId),
 			sqlgraph.Edge(sqlgraph.M2O, false, credit.CreditNoteTable, credit.CreditNoteColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWorkspace chains the current query on the "workspace" edge.
+func (_q *CreditQuery) QueryWorkspace() *WorkspaceQuery {
+	query := (&WorkspaceClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(credit.Table, credit.FieldId, selector),
+			sqlgraph.To(workspace.Table, workspace.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, credit.WorkspaceTable, credit.WorkspaceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOperator chains the current query on the "operator" edge.
+func (_q *CreditQuery) QueryOperator() *OperatorQuery {
+	query := (&OperatorClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(credit.Table, credit.FieldId, selector),
+			sqlgraph.To(operator.Table, operator.FieldId),
+			sqlgraph.Edge(sqlgraph.M2O, false, credit.OperatorTable, credit.OperatorColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -352,6 +400,8 @@ func (_q *CreditQuery) Clone() *CreditQuery {
 		withBillingAccount: _q.withBillingAccount.Clone(),
 		withInvoice:        _q.withInvoice.Clone(),
 		withCreditNote:     _q.withCreditNote.Clone(),
+		withWorkspace:      _q.withWorkspace.Clone(),
+		withOperator:       _q.withOperator.Clone(),
 		// clone intermediate query.
 		sql:       _q.sql.Clone(),
 		path:      _q.path,
@@ -400,6 +450,28 @@ func (_q *CreditQuery) WithCreditNote(opts ...func(*CreditNoteQuery)) *CreditQue
 		opt(query)
 	}
 	_q.withCreditNote = query
+	return _q
+}
+
+// WithWorkspace tells the query-builder to eager-load the nodes that are connected to
+// the "workspace" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CreditQuery) WithWorkspace(opts ...func(*WorkspaceQuery)) *CreditQuery {
+	query := (&WorkspaceClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withWorkspace = query
+	return _q
+}
+
+// WithOperator tells the query-builder to eager-load the nodes that are connected to
+// the "operator" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CreditQuery) WithOperator(opts ...func(*OperatorQuery)) *CreditQuery {
+	query := (&OperatorClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOperator = query
 	return _q
 }
 
@@ -481,11 +553,13 @@ func (_q *CreditQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Credi
 	var (
 		nodes       = []*Credit{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [6]bool{
 			_q.withTenant != nil,
 			_q.withBillingAccount != nil,
 			_q.withInvoice != nil,
 			_q.withCreditNote != nil,
+			_q.withWorkspace != nil,
+			_q.withOperator != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -530,6 +604,18 @@ func (_q *CreditQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Credi
 	if query := _q.withCreditNote; query != nil {
 		if err := _q.loadCreditNote(ctx, query, nodes, nil,
 			func(n *Credit, e *CreditNote) { n.Edges.CreditNote = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withWorkspace; query != nil {
+		if err := _q.loadWorkspace(ctx, query, nodes, nil,
+			func(n *Credit, e *Workspace) { n.Edges.Workspace = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOperator; query != nil {
+		if err := _q.loadOperator(ctx, query, nodes, nil,
+			func(n *Credit, e *Operator) { n.Edges.Operator = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -652,6 +738,64 @@ func (_q *CreditQuery) loadCreditNote(ctx context.Context, query *CreditNoteQuer
 	}
 	return nil
 }
+func (_q *CreditQuery) loadWorkspace(ctx context.Context, query *WorkspaceQuery, nodes []*Credit, init func(*Credit), assign func(*Credit, *Workspace)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Credit)
+	for i := range nodes {
+		fk := nodes[i].WorkspaceId
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(workspace.IdIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.Id]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "workspace_id" returned %v`, n.Id)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *CreditQuery) loadOperator(ctx context.Context, query *OperatorQuery, nodes []*Credit, init func(*Credit), assign func(*Credit, *Operator)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*Credit)
+	for i := range nodes {
+		fk := nodes[i].OperatorId
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(operator.IdIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.Id]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "operator_id" returned %v`, n.Id)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *CreditQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -692,6 +836,12 @@ func (_q *CreditQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withCreditNote != nil {
 			_spec.Node.AddColumnOnce(credit.FieldCreditNoteId)
+		}
+		if _q.withWorkspace != nil {
+			_spec.Node.AddColumnOnce(credit.FieldWorkspaceId)
+		}
+		if _q.withOperator != nil {
+			_spec.Node.AddColumnOnce(credit.FieldOperatorId)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -689,6 +689,7 @@ type Invoice struct {
 	xxx_hidden_Settled        *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=settled"`
 	xxx_hidden_ChannelNumber  string                 `protobuf:"bytes,20,opt,name=channel_number,json=channelNumber"`
 	xxx_hidden_Lines          *[]*InvoiceLine        `protobuf:"bytes,21,rep,name=lines"`
+	xxx_hidden_Credits        *[]*InvoiceCredit      `protobuf:"bytes,22,rep,name=credits"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -867,6 +868,15 @@ func (x *Invoice) GetLines() []*InvoiceLine {
 	return nil
 }
 
+func (x *Invoice) GetCredits() []*InvoiceCredit {
+	if x != nil {
+		if x.xxx_hidden_Credits != nil {
+			return *x.xxx_hidden_Credits
+		}
+	}
+	return nil
+}
+
 func (x *Invoice) SetId(v string) {
 	x.xxx_hidden_Id = v
 }
@@ -949,6 +959,10 @@ func (x *Invoice) SetChannelNumber(v string) {
 
 func (x *Invoice) SetLines(v []*InvoiceLine) {
 	x.xxx_hidden_Lines = &v
+}
+
+func (x *Invoice) SetCredits(v []*InvoiceCredit) {
+	x.xxx_hidden_Credits = &v
 }
 
 func (x *Invoice) HasStart() bool {
@@ -1045,6 +1059,10 @@ type Invoice_builder struct {
 	ChannelNumber string
 	// Its lines, in the order of their periods: in `GetInvoice`'s answer.
 	Lines []*InvoiceLine
+	// What paid `credited`, in `GetInvoice`'s answer: each credit an operator
+	// granted that paid some of it, the soonest to expire first, and the
+	// billing account's balance last.
+	Credits []*InvoiceCredit
 }
 
 func (b0 Invoice_builder) Build() *Invoice {
@@ -1072,6 +1090,313 @@ func (b0 Invoice_builder) Build() *Invoice {
 	x.xxx_hidden_Settled = b.Settled
 	x.xxx_hidden_ChannelNumber = b.ChannelNumber
 	x.xxx_hidden_Lines = &b.Lines
+	x.xxx_hidden_Credits = &b.Credits
+	return m0
+}
+
+// InvoiceCredit is what of an invoice's total one credit paid, before
+// anything was asked of its channel.
+type InvoiceCredit struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Credit    string                 `protobuf:"bytes,1,opt,name=credit"`
+	xxx_hidden_Amount    int64                  `protobuf:"varint,2,opt,name=amount"`
+	xxx_hidden_Workspace string                 `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Expires   *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *InvoiceCredit) Reset() {
+	*x = InvoiceCredit{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvoiceCredit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvoiceCredit) ProtoMessage() {}
+
+func (x *InvoiceCredit) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *InvoiceCredit) GetCredit() string {
+	if x != nil {
+		return x.xxx_hidden_Credit
+	}
+	return ""
+}
+
+func (x *InvoiceCredit) GetAmount() int64 {
+	if x != nil {
+		return x.xxx_hidden_Amount
+	}
+	return 0
+}
+
+func (x *InvoiceCredit) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *InvoiceCredit) GetExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Expires
+	}
+	return nil
+}
+
+func (x *InvoiceCredit) SetCredit(v string) {
+	x.xxx_hidden_Credit = v
+}
+
+func (x *InvoiceCredit) SetAmount(v int64) {
+	x.xxx_hidden_Amount = v
+}
+
+func (x *InvoiceCredit) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *InvoiceCredit) SetExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Expires = v
+}
+
+func (x *InvoiceCredit) HasExpires() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Expires != nil
+}
+
+func (x *InvoiceCredit) ClearExpires() {
+	x.xxx_hidden_Expires = nil
+}
+
+type InvoiceCredit_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit an operator granted (`Credit.id`), and empty for the billing
+	// account's balance.
+	Credit string
+	Amount int64
+	// The workspace whose lines alone it paid, for a workspace's; and when it
+	// expires.
+	Workspace string
+	Expires   *timestamppb.Timestamp
+}
+
+func (b0 InvoiceCredit_builder) Build() *InvoiceCredit {
+	m0 := &InvoiceCredit{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Credit = b.Credit
+	x.xxx_hidden_Amount = b.Amount
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_Expires = b.Expires
+	return m0
+}
+
+// Credit is money an operator granted -- of a promotion, of a contract --
+// taken off what is billed before the channel is asked for anything: to a
+// billing account, the whole of it in one product, or to one workspace,
+// whose lines alone it pays, on whichever billing account's invoice they
+// are. It always expires, a year after it is granted unless the operator
+// said, and nothing of it is spent once it has: credits that expire sooner
+// are spent first.
+type Credit struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id             string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Workspace      string                 `protobuf:"bytes,2,opt,name=workspace"`
+	xxx_hidden_BillingAccount string                 `protobuf:"bytes,3,opt,name=billing_account,json=billingAccount"`
+	xxx_hidden_Granted        int64                  `protobuf:"varint,4,opt,name=granted"`
+	xxx_hidden_Left           int64                  `protobuf:"varint,5,opt,name=left"`
+	xxx_hidden_Currency       string                 `protobuf:"bytes,6,opt,name=currency"`
+	xxx_hidden_Expires        *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires"`
+	xxx_hidden_Created        *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *Credit) Reset() {
+	*x = Credit{}
+	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Credit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Credit) ProtoMessage() {}
+
+func (x *Credit) ProtoReflect() protoreflect.Message {
+	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *Credit) GetId() string {
+	if x != nil {
+		return x.xxx_hidden_Id
+	}
+	return ""
+}
+
+func (x *Credit) GetWorkspace() string {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return ""
+}
+
+func (x *Credit) GetBillingAccount() string {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return ""
+}
+
+func (x *Credit) GetGranted() int64 {
+	if x != nil {
+		return x.xxx_hidden_Granted
+	}
+	return 0
+}
+
+func (x *Credit) GetLeft() int64 {
+	if x != nil {
+		return x.xxx_hidden_Left
+	}
+	return 0
+}
+
+func (x *Credit) GetCurrency() string {
+	if x != nil {
+		return x.xxx_hidden_Currency
+	}
+	return ""
+}
+
+func (x *Credit) GetExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Expires
+	}
+	return nil
+}
+
+func (x *Credit) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Created
+	}
+	return nil
+}
+
+func (x *Credit) SetId(v string) {
+	x.xxx_hidden_Id = v
+}
+
+func (x *Credit) SetWorkspace(v string) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *Credit) SetBillingAccount(v string) {
+	x.xxx_hidden_BillingAccount = v
+}
+
+func (x *Credit) SetGranted(v int64) {
+	x.xxx_hidden_Granted = v
+}
+
+func (x *Credit) SetLeft(v int64) {
+	x.xxx_hidden_Left = v
+}
+
+func (x *Credit) SetCurrency(v string) {
+	x.xxx_hidden_Currency = v
+}
+
+func (x *Credit) SetExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Expires = v
+}
+
+func (x *Credit) SetCreated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Created = v
+}
+
+func (x *Credit) HasExpires() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Expires != nil
+}
+
+func (x *Credit) HasCreated() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Created != nil
+}
+
+func (x *Credit) ClearExpires() {
+	x.xxx_hidden_Expires = nil
+}
+
+func (x *Credit) ClearCreated() {
+	x.xxx_hidden_Created = nil
+}
+
+type Credit_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Its identifier, as text.
+	Id string
+	// The workspace it is granted to, and empty for a billing account's; and
+	// the billing account it is granted to, and empty for a workspace's.
+	Workspace      string
+	BillingAccount string
+	// How much was granted, and how much is left, in the currency's minor
+	// unit.
+	Granted  int64
+	Left     int64
+	Currency string
+	// When it expires, and when it was granted.
+	Expires *timestamppb.Timestamp
+	Created *timestamppb.Timestamp
+}
+
+func (b0 Credit_builder) Build() *Credit {
+	m0 := &Credit{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Id = b.Id
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_BillingAccount = b.BillingAccount
+	x.xxx_hidden_Granted = b.Granted
+	x.xxx_hidden_Left = b.Left
+	x.xxx_hidden_Currency = b.Currency
+	x.xxx_hidden_Expires = b.Expires
+	x.xxx_hidden_Created = b.Created
 	return m0
 }
 
@@ -1105,7 +1430,7 @@ type Dunning struct {
 
 func (x *Dunning) Reset() {
 	*x = Dunning{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1117,7 +1442,7 @@ func (x *Dunning) String() string {
 func (*Dunning) ProtoMessage() {}
 
 func (x *Dunning) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[7]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1333,7 +1658,7 @@ type InvoiceLine struct {
 
 func (x *InvoiceLine) Reset() {
 	*x = InvoiceLine{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1345,7 +1670,7 @@ func (x *InvoiceLine) String() string {
 func (*InvoiceLine) ProtoMessage() {}
 
 func (x *InvoiceLine) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[8]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1471,7 +1796,7 @@ type CreditNote struct {
 
 func (x *CreditNote) Reset() {
 	*x = CreditNote{}
-	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1483,7 +1808,7 @@ func (x *CreditNote) String() string {
 func (*CreditNote) ProtoMessage() {}
 
 func (x *CreditNote) ProtoReflect() protoreflect.Message {
-	mi := &file_levyan_v1_invoice_proto_msgTypes[9]
+	mi := &file_levyan_v1_invoice_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1686,7 +2011,7 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x0fbilling_account\x18\x01 \x01(\tR\x0ebillingAccount\x12\x18\n" +
 	"\ainvoice\x18\x02 \x01(\tR\ainvoice\"S\n" +
 	"\x17ListCreditNotesResponse\x128\n" +
-	"\fcredit_notes\x18\x01 \x03(\v2\x15.levyan.v1.CreditNoteR\vcreditNotes\"\xed\x05\n" +
+	"\fcredit_notes\x18\x01 \x03(\v2\x15.levyan.v1.CreditNoteR\vcreditNotes\"\xa1\x06\n" +
 	"\aInvoice\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12-\n" +
@@ -1709,7 +2034,22 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\bdue_date\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\adueDate\x124\n" +
 	"\asettled\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\asettled\x12%\n" +
 	"\x0echannel_number\x18\x14 \x01(\tR\rchannelNumber\x12,\n" +
-	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\"\xa8\x03\n" +
+	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\x122\n" +
+	"\acredits\x18\x16 \x03(\v2\x18.levyan.v1.InvoiceCreditR\acredits\"\x93\x01\n" +
+	"\rInvoiceCredit\x12\x16\n" +
+	"\x06credit\x18\x01 \x01(\tR\x06credit\x12\x16\n" +
+	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x1c\n" +
+	"\tworkspace\x18\x03 \x01(\tR\tworkspace\x124\n" +
+	"\aexpires\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\"\x95\x02\n" +
+	"\x06Credit\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
+	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12'\n" +
+	"\x0fbilling_account\x18\x03 \x01(\tR\x0ebillingAccount\x12\x18\n" +
+	"\agranted\x18\x04 \x01(\x03R\agranted\x12\x12\n" +
+	"\x04left\x18\x05 \x01(\x03R\x04left\x12\x1a\n" +
+	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x124\n" +
+	"\aexpires\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\x124\n" +
+	"\acreated\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"\xa8\x03\n" +
 	"\aDunning\x12\x18\n" +
 	"\ainvoice\x18\x01 \x01(\tR\ainvoice\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12*\n" +
@@ -1762,7 +2102,7 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x1fCREDIT_NOTE_REASON_CANCELLATION\x10\x03B8Z1github.com/lesomnus/levyan/api/levyan/v1;levyanv1\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_v1_invoice_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_levyan_v1_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_levyan_v1_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_levyan_v1_invoice_proto_goTypes = []any{
 	(InvoiceState)(0),               // 0: levyan.v1.InvoiceState
 	(DeclineKind)(0),                // 1: levyan.v1.DeclineKind
@@ -1774,41 +2114,47 @@ var file_levyan_v1_invoice_proto_goTypes = []any{
 	(*ListCreditNotesRequest)(nil),  // 7: levyan.v1.ListCreditNotesRequest
 	(*ListCreditNotesResponse)(nil), // 8: levyan.v1.ListCreditNotesResponse
 	(*Invoice)(nil),                 // 9: levyan.v1.Invoice
-	(*Dunning)(nil),                 // 10: levyan.v1.Dunning
-	(*InvoiceLine)(nil),             // 11: levyan.v1.InvoiceLine
-	(*CreditNote)(nil),              // 12: levyan.v1.CreditNote
-	(*timestamppb.Timestamp)(nil),   // 13: google.protobuf.Timestamp
-	(Channel)(0),                    // 14: levyan.v1.Channel
-	(*Period)(nil),                  // 15: levyan.v1.Period
+	(*InvoiceCredit)(nil),           // 10: levyan.v1.InvoiceCredit
+	(*Credit)(nil),                  // 11: levyan.v1.Credit
+	(*Dunning)(nil),                 // 12: levyan.v1.Dunning
+	(*InvoiceLine)(nil),             // 13: levyan.v1.InvoiceLine
+	(*CreditNote)(nil),              // 14: levyan.v1.CreditNote
+	(*timestamppb.Timestamp)(nil),   // 15: google.protobuf.Timestamp
+	(Channel)(0),                    // 16: levyan.v1.Channel
+	(*Period)(nil),                  // 17: levyan.v1.Period
 }
 var file_levyan_v1_invoice_proto_depIdxs = []int32{
 	9,  // 0: levyan.v1.ListInvoicesResponse.invoices:type_name -> levyan.v1.Invoice
 	9,  // 1: levyan.v1.GetInvoiceResponse.invoice:type_name -> levyan.v1.Invoice
-	12, // 2: levyan.v1.GetInvoiceResponse.credit_notes:type_name -> levyan.v1.CreditNote
-	10, // 3: levyan.v1.GetInvoiceResponse.dunning:type_name -> levyan.v1.Dunning
-	12, // 4: levyan.v1.ListCreditNotesResponse.credit_notes:type_name -> levyan.v1.CreditNote
+	14, // 2: levyan.v1.GetInvoiceResponse.credit_notes:type_name -> levyan.v1.CreditNote
+	12, // 3: levyan.v1.GetInvoiceResponse.dunning:type_name -> levyan.v1.Dunning
+	14, // 4: levyan.v1.ListCreditNotesResponse.credit_notes:type_name -> levyan.v1.CreditNote
 	0,  // 5: levyan.v1.Invoice.state:type_name -> levyan.v1.InvoiceState
-	13, // 6: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
-	13, // 7: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
-	14, // 8: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
-	13, // 9: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
-	13, // 10: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
-	13, // 11: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
-	11, // 12: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
-	1,  // 13: levyan.v1.Dunning.kind:type_name -> levyan.v1.DeclineKind
-	13, // 14: levyan.v1.Dunning.failed:type_name -> google.protobuf.Timestamp
-	13, // 15: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
-	13, // 16: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
-	13, // 17: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
-	13, // 18: levyan.v1.Dunning.readonly_from:type_name -> google.protobuf.Timestamp
-	15, // 19: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
-	2,  // 20: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
-	13, // 21: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	15, // 6: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
+	15, // 7: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
+	16, // 8: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
+	15, // 9: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
+	15, // 10: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
+	15, // 11: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
+	13, // 12: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
+	10, // 13: levyan.v1.Invoice.credits:type_name -> levyan.v1.InvoiceCredit
+	15, // 14: levyan.v1.InvoiceCredit.expires:type_name -> google.protobuf.Timestamp
+	15, // 15: levyan.v1.Credit.expires:type_name -> google.protobuf.Timestamp
+	15, // 16: levyan.v1.Credit.created:type_name -> google.protobuf.Timestamp
+	1,  // 17: levyan.v1.Dunning.kind:type_name -> levyan.v1.DeclineKind
+	15, // 18: levyan.v1.Dunning.failed:type_name -> google.protobuf.Timestamp
+	15, // 19: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
+	15, // 20: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
+	15, // 21: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
+	15, // 22: levyan.v1.Dunning.readonly_from:type_name -> google.protobuf.Timestamp
+	17, // 23: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
+	2,  // 24: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
+	15, // 25: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_invoice_proto_init() }
@@ -1824,7 +2170,7 @@ func file_levyan_v1_invoice_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_levyan_v1_invoice_proto_rawDesc), len(file_levyan_v1_invoice_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

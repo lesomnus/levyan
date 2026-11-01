@@ -222,6 +222,18 @@ message GetBillingAccountResponse {
   // still owed, each with what is done of it: the one that restricts soonest
   // first, and none while every charge of it went through.
   repeated Dunning dunning = 4;
+
+  // What an operator granted that its next invoices of the relaying
+  // product's may be paid with, and has not been spent nor expired: its own
+  // credits, and those of the workspaces it pays for now or will from the
+  // end of the period, the soonest to expire first.
+  repeated Credit credits = 5;
+
+  // What it is owed in the relaying product beside them -- what an invoice
+  // that came to less than nothing, a credit note, or a payment of more
+  // than was due left it -- in its currency's minor unit, which never
+  // expires and is spent after them.
+  int64 balance = 6;
 }
 
 message StartCheckoutRequest {

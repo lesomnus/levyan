@@ -65,6 +65,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent"
 	entmeter "github.com/lesomnus/levyan/internal/ent/meter"
 	entperiod "github.com/lesomnus/levyan/internal/ent/period"
+	enttenant "github.com/lesomnus/levyan/internal/ent/tenant"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	entworkspaceevent "github.com/lesomnus/levyan/internal/ent/workspaceevent"
 	"github.com/lesomnus/levyan/server/pd"
@@ -302,6 +303,41 @@ func (l Ledger) workspaces(ctx context.Context, db *ent.Client, product pdid.Id,
 	}
 
 	return read()
+}
+
+// Known is the row of `product`'s workspace `key`, written through `s` when
+// levyan has none of it yet -- what an operator names a workspace by before
+// the product has said anything of it, as a grant does (`server/grants`).
+// Written on its own, before the transaction that uses it: two that both
+// find it new are both answered with the one row. A product levyan does not
+// have is NotFound.
+func Known(ctx context.Context, s levyan.Server, db *ent.Client, product, key pdid.Id) (uuid.UUID, error) {
+	if key.IsZero() || key.Domain() != pd.TenantDomain {
+		return uuid.UUID{}, status.Errorf(codes.InvalidArgument, "workspace: %s is not the identifier of a payday tenant", key)
+	}
+	get := func() (uuid.UUID, error) {
+		return db.Workspace.Query().Where(entworkspace.TenantId(product.Uuid()), entworkspace.Key(key.Bytes())).OnlyId(ctx)
+	}
+
+	id, err := get()
+	if err == nil || !ent.IsNotFound(err) {
+		return id, err
+	}
+	if ok, err := db.Tenant.Query().Where(enttenant.Id(product.Uuid())).Exist(ctx); err != nil || !ok {
+		if err == nil {
+			err = status.Errorf(codes.NotFound, "no product is %s", product)
+		}
+		return uuid.UUID{}, err
+	}
+	_, err = s.Workspace().Add(ctx, levyan.WorkspaceAddRequest_builder{
+		Tenant: levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
+		Key:    key.Bytes(),
+	}.Build())
+	if err != nil && status.Code(err) != codes.AlreadyExists {
+		return uuid.UUID{}, err
+	}
+
+	return get()
 }
 
 // tx runs `f` in one transaction: the stack and an ent client on it.

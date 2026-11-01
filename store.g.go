@@ -26,24 +26,25 @@ import (
 )
 
 type Server interface {
+	Tenant() TenantServiceServer
+	Meter() MeterServiceServer
+	Operator() OperatorServiceServer
+	Workspace() WorkspaceServiceServer
+	Allowance() AllowanceServiceServer
 	BillingAccount() BillingAccountServiceServer
 	Subscription() SubscriptionServiceServer
 	Checkout() CheckoutServiceServer
-	Tenant() TenantServiceServer
 	Period() PeriodServiceServer
 	Invoice() InvoiceServiceServer
 	CreditNote() CreditNoteServiceServer
 	Credit() CreditServiceServer
 	Departure() DepartureServiceServer
-	Operator() OperatorServiceServer
 	Finding() FindingServiceServer
-	Workspace() WorkspaceServiceServer
 	Grant() GrantServiceServer
 	Statement() StatementServiceServer
 	InvoiceLine() InvoiceLineServiceServer
 	Offer() OfferServiceServer
 	Link() LinkServiceServer
-	Meter() MeterServiceServer
 	Notice() NoticeServiceServer
 	NoticeCursor() NoticeCursorServiceServer
 	Access() AccessServiceServer
@@ -67,24 +68,25 @@ type Server interface {
 // It takes a [grpc.ServiceRegistrar] rather than a *grpc.Server so that a
 // server which is not gRPC's own can be handed the same set of services.
 func RegisterServer(g grpc.ServiceRegistrar, s Server) {
+	RegisterTenantServiceServer(g, s.Tenant())
+	RegisterMeterServiceServer(g, s.Meter())
+	RegisterOperatorServiceServer(g, s.Operator())
+	RegisterWorkspaceServiceServer(g, s.Workspace())
+	RegisterAllowanceServiceServer(g, s.Allowance())
 	RegisterBillingAccountServiceServer(g, s.BillingAccount())
 	RegisterSubscriptionServiceServer(g, s.Subscription())
 	RegisterCheckoutServiceServer(g, s.Checkout())
-	RegisterTenantServiceServer(g, s.Tenant())
 	RegisterPeriodServiceServer(g, s.Period())
 	RegisterInvoiceServiceServer(g, s.Invoice())
 	RegisterCreditNoteServiceServer(g, s.CreditNote())
 	RegisterCreditServiceServer(g, s.Credit())
 	RegisterDepartureServiceServer(g, s.Departure())
-	RegisterOperatorServiceServer(g, s.Operator())
 	RegisterFindingServiceServer(g, s.Finding())
-	RegisterWorkspaceServiceServer(g, s.Workspace())
 	RegisterGrantServiceServer(g, s.Grant())
 	RegisterStatementServiceServer(g, s.Statement())
 	RegisterInvoiceLineServiceServer(g, s.InvoiceLine())
 	RegisterOfferServiceServer(g, s.Offer())
 	RegisterLinkServiceServer(g, s.Link())
-	RegisterMeterServiceServer(g, s.Meter())
 	RegisterNoticeServiceServer(g, s.Notice())
 	RegisterNoticeCursorServiceServer(g, s.NoticeCursor())
 	RegisterAccessServiceServer(g, s.Access())
@@ -104,24 +106,25 @@ func RegisterServer(g grpc.ServiceRegistrar, s Server) {
 }
 
 type UnimplementedServer struct {
+	TenantServer         TenantServiceServer
+	MeterServer          MeterServiceServer
+	OperatorServer       OperatorServiceServer
+	WorkspaceServer      WorkspaceServiceServer
+	AllowanceServer      AllowanceServiceServer
 	BillingAccountServer BillingAccountServiceServer
 	SubscriptionServer   SubscriptionServiceServer
 	CheckoutServer       CheckoutServiceServer
-	TenantServer         TenantServiceServer
 	PeriodServer         PeriodServiceServer
 	InvoiceServer        InvoiceServiceServer
 	CreditNoteServer     CreditNoteServiceServer
 	CreditServer         CreditServiceServer
 	DepartureServer      DepartureServiceServer
-	OperatorServer       OperatorServiceServer
 	FindingServer        FindingServiceServer
-	WorkspaceServer      WorkspaceServiceServer
 	GrantServer          GrantServiceServer
 	StatementServer      StatementServiceServer
 	InvoiceLineServer    InvoiceLineServiceServer
 	OfferServer          OfferServiceServer
 	LinkServer           LinkServiceServer
-	MeterServer          MeterServiceServer
 	NoticeServer         NoticeServiceServer
 	NoticeCursorServer   NoticeCursorServiceServer
 	AccessServer         AccessServiceServer
@@ -140,6 +143,17 @@ type UnimplementedServer struct {
 	WorkspaceEventServer WorkspaceEventServiceServer
 }
 
+func (UnimplementedServer) Tenant() TenantServiceServer { return UnimplementedTenantServiceServer{} }
+func (UnimplementedServer) Meter() MeterServiceServer   { return UnimplementedMeterServiceServer{} }
+func (UnimplementedServer) Operator() OperatorServiceServer {
+	return UnimplementedOperatorServiceServer{}
+}
+func (UnimplementedServer) Workspace() WorkspaceServiceServer {
+	return UnimplementedWorkspaceServiceServer{}
+}
+func (UnimplementedServer) Allowance() AllowanceServiceServer {
+	return UnimplementedAllowanceServiceServer{}
+}
 func (UnimplementedServer) BillingAccount() BillingAccountServiceServer {
 	return UnimplementedBillingAccountServiceServer{}
 }
@@ -149,7 +163,6 @@ func (UnimplementedServer) Subscription() SubscriptionServiceServer {
 func (UnimplementedServer) Checkout() CheckoutServiceServer {
 	return UnimplementedCheckoutServiceServer{}
 }
-func (UnimplementedServer) Tenant() TenantServiceServer   { return UnimplementedTenantServiceServer{} }
 func (UnimplementedServer) Period() PeriodServiceServer   { return UnimplementedPeriodServiceServer{} }
 func (UnimplementedServer) Invoice() InvoiceServiceServer { return UnimplementedInvoiceServiceServer{} }
 func (UnimplementedServer) CreditNote() CreditNoteServiceServer {
@@ -159,14 +172,8 @@ func (UnimplementedServer) Credit() CreditServiceServer { return UnimplementedCr
 func (UnimplementedServer) Departure() DepartureServiceServer {
 	return UnimplementedDepartureServiceServer{}
 }
-func (UnimplementedServer) Operator() OperatorServiceServer {
-	return UnimplementedOperatorServiceServer{}
-}
 func (UnimplementedServer) Finding() FindingServiceServer { return UnimplementedFindingServiceServer{} }
-func (UnimplementedServer) Workspace() WorkspaceServiceServer {
-	return UnimplementedWorkspaceServiceServer{}
-}
-func (UnimplementedServer) Grant() GrantServiceServer { return UnimplementedGrantServiceServer{} }
+func (UnimplementedServer) Grant() GrantServiceServer     { return UnimplementedGrantServiceServer{} }
 func (UnimplementedServer) Statement() StatementServiceServer {
 	return UnimplementedStatementServiceServer{}
 }
@@ -175,7 +182,6 @@ func (UnimplementedServer) InvoiceLine() InvoiceLineServiceServer {
 }
 func (UnimplementedServer) Offer() OfferServiceServer   { return UnimplementedOfferServiceServer{} }
 func (UnimplementedServer) Link() LinkServiceServer     { return UnimplementedLinkServiceServer{} }
-func (UnimplementedServer) Meter() MeterServiceServer   { return UnimplementedMeterServiceServer{} }
 func (UnimplementedServer) Notice() NoticeServiceServer { return UnimplementedNoticeServiceServer{} }
 func (UnimplementedServer) NoticeCursor() NoticeCursorServiceServer {
 	return UnimplementedNoticeCursorServiceServer{}
@@ -204,24 +210,25 @@ func (UnimplementedServer) WorkspaceEvent() WorkspaceEventServiceServer {
 }
 
 type StaticServer struct {
+	TenantServer         TenantServiceServer
+	MeterServer          MeterServiceServer
+	OperatorServer       OperatorServiceServer
+	WorkspaceServer      WorkspaceServiceServer
+	AllowanceServer      AllowanceServiceServer
 	BillingAccountServer BillingAccountServiceServer
 	SubscriptionServer   SubscriptionServiceServer
 	CheckoutServer       CheckoutServiceServer
-	TenantServer         TenantServiceServer
 	PeriodServer         PeriodServiceServer
 	InvoiceServer        InvoiceServiceServer
 	CreditNoteServer     CreditNoteServiceServer
 	CreditServer         CreditServiceServer
 	DepartureServer      DepartureServiceServer
-	OperatorServer       OperatorServiceServer
 	FindingServer        FindingServiceServer
-	WorkspaceServer      WorkspaceServiceServer
 	GrantServer          GrantServiceServer
 	StatementServer      StatementServiceServer
 	InvoiceLineServer    InvoiceLineServiceServer
 	OfferServer          OfferServiceServer
 	LinkServer           LinkServiceServer
-	MeterServer          MeterServiceServer
 	NoticeServer         NoticeServiceServer
 	NoticeCursorServer   NoticeCursorServiceServer
 	AccessServer         AccessServiceServer
@@ -240,24 +247,25 @@ type StaticServer struct {
 	WorkspaceEventServer WorkspaceEventServiceServer
 }
 
+func (s StaticServer) Tenant() TenantServiceServer                 { return s.TenantServer }
+func (s StaticServer) Meter() MeterServiceServer                   { return s.MeterServer }
+func (s StaticServer) Operator() OperatorServiceServer             { return s.OperatorServer }
+func (s StaticServer) Workspace() WorkspaceServiceServer           { return s.WorkspaceServer }
+func (s StaticServer) Allowance() AllowanceServiceServer           { return s.AllowanceServer }
 func (s StaticServer) BillingAccount() BillingAccountServiceServer { return s.BillingAccountServer }
 func (s StaticServer) Subscription() SubscriptionServiceServer     { return s.SubscriptionServer }
 func (s StaticServer) Checkout() CheckoutServiceServer             { return s.CheckoutServer }
-func (s StaticServer) Tenant() TenantServiceServer                 { return s.TenantServer }
 func (s StaticServer) Period() PeriodServiceServer                 { return s.PeriodServer }
 func (s StaticServer) Invoice() InvoiceServiceServer               { return s.InvoiceServer }
 func (s StaticServer) CreditNote() CreditNoteServiceServer         { return s.CreditNoteServer }
 func (s StaticServer) Credit() CreditServiceServer                 { return s.CreditServer }
 func (s StaticServer) Departure() DepartureServiceServer           { return s.DepartureServer }
-func (s StaticServer) Operator() OperatorServiceServer             { return s.OperatorServer }
 func (s StaticServer) Finding() FindingServiceServer               { return s.FindingServer }
-func (s StaticServer) Workspace() WorkspaceServiceServer           { return s.WorkspaceServer }
 func (s StaticServer) Grant() GrantServiceServer                   { return s.GrantServer }
 func (s StaticServer) Statement() StatementServiceServer           { return s.StatementServer }
 func (s StaticServer) InvoiceLine() InvoiceLineServiceServer       { return s.InvoiceLineServer }
 func (s StaticServer) Offer() OfferServiceServer                   { return s.OfferServer }
 func (s StaticServer) Link() LinkServiceServer                     { return s.LinkServer }
-func (s StaticServer) Meter() MeterServiceServer                   { return s.MeterServer }
 func (s StaticServer) Notice() NoticeServiceServer                 { return s.NoticeServer }
 func (s StaticServer) NoticeCursor() NoticeCursorServiceServer     { return s.NoticeCursorServer }
 func (s StaticServer) Access() AccessServiceServer                 { return s.AccessServer }
@@ -276,24 +284,25 @@ func (s StaticServer) ServiceKey() ServiceKeyServiceServer         { return s.Se
 func (s StaticServer) WorkspaceEvent() WorkspaceEventServiceServer { return s.WorkspaceEventServer }
 
 type Client interface {
+	Tenant() TenantServiceClient
+	Meter() MeterServiceClient
+	Operator() OperatorServiceClient
+	Workspace() WorkspaceServiceClient
+	Allowance() AllowanceServiceClient
 	BillingAccount() BillingAccountServiceClient
 	Subscription() SubscriptionServiceClient
 	Checkout() CheckoutServiceClient
-	Tenant() TenantServiceClient
 	Period() PeriodServiceClient
 	Invoice() InvoiceServiceClient
 	CreditNote() CreditNoteServiceClient
 	Credit() CreditServiceClient
 	Departure() DepartureServiceClient
-	Operator() OperatorServiceClient
 	Finding() FindingServiceClient
-	Workspace() WorkspaceServiceClient
 	Grant() GrantServiceClient
 	Statement() StatementServiceClient
 	InvoiceLine() InvoiceLineServiceClient
 	Offer() OfferServiceClient
 	Link() LinkServiceClient
-	Meter() MeterServiceClient
 	Notice() NoticeServiceClient
 	NoticeCursor() NoticeCursorServiceClient
 	Access() AccessServiceClient
@@ -314,24 +323,25 @@ type Client interface {
 
 func NewClient(c *grpc.ClientConn) Client {
 	return &client{
+		_Tenant:         NewTenantServiceClient(c),
+		_Meter:          NewMeterServiceClient(c),
+		_Operator:       NewOperatorServiceClient(c),
+		_Workspace:      NewWorkspaceServiceClient(c),
+		_Allowance:      NewAllowanceServiceClient(c),
 		_BillingAccount: NewBillingAccountServiceClient(c),
 		_Subscription:   NewSubscriptionServiceClient(c),
 		_Checkout:       NewCheckoutServiceClient(c),
-		_Tenant:         NewTenantServiceClient(c),
 		_Period:         NewPeriodServiceClient(c),
 		_Invoice:        NewInvoiceServiceClient(c),
 		_CreditNote:     NewCreditNoteServiceClient(c),
 		_Credit:         NewCreditServiceClient(c),
 		_Departure:      NewDepartureServiceClient(c),
-		_Operator:       NewOperatorServiceClient(c),
 		_Finding:        NewFindingServiceClient(c),
-		_Workspace:      NewWorkspaceServiceClient(c),
 		_Grant:          NewGrantServiceClient(c),
 		_Statement:      NewStatementServiceClient(c),
 		_InvoiceLine:    NewInvoiceLineServiceClient(c),
 		_Offer:          NewOfferServiceClient(c),
 		_Link:           NewLinkServiceClient(c),
-		_Meter:          NewMeterServiceClient(c),
 		_Notice:         NewNoticeServiceClient(c),
 		_NoticeCursor:   NewNoticeCursorServiceClient(c),
 		_Access:         NewAccessServiceClient(c),
@@ -352,24 +362,25 @@ func NewClient(c *grpc.ClientConn) Client {
 }
 
 type client struct {
+	_Tenant         TenantServiceClient
+	_Meter          MeterServiceClient
+	_Operator       OperatorServiceClient
+	_Workspace      WorkspaceServiceClient
+	_Allowance      AllowanceServiceClient
 	_BillingAccount BillingAccountServiceClient
 	_Subscription   SubscriptionServiceClient
 	_Checkout       CheckoutServiceClient
-	_Tenant         TenantServiceClient
 	_Period         PeriodServiceClient
 	_Invoice        InvoiceServiceClient
 	_CreditNote     CreditNoteServiceClient
 	_Credit         CreditServiceClient
 	_Departure      DepartureServiceClient
-	_Operator       OperatorServiceClient
 	_Finding        FindingServiceClient
-	_Workspace      WorkspaceServiceClient
 	_Grant          GrantServiceClient
 	_Statement      StatementServiceClient
 	_InvoiceLine    InvoiceLineServiceClient
 	_Offer          OfferServiceClient
 	_Link           LinkServiceClient
-	_Meter          MeterServiceClient
 	_Notice         NoticeServiceClient
 	_NoticeCursor   NoticeCursorServiceClient
 	_Access         AccessServiceClient
@@ -388,24 +399,25 @@ type client struct {
 	_WorkspaceEvent WorkspaceEventServiceClient
 }
 
+func (c *client) Tenant() TenantServiceClient                 { return c._Tenant }
+func (c *client) Meter() MeterServiceClient                   { return c._Meter }
+func (c *client) Operator() OperatorServiceClient             { return c._Operator }
+func (c *client) Workspace() WorkspaceServiceClient           { return c._Workspace }
+func (c *client) Allowance() AllowanceServiceClient           { return c._Allowance }
 func (c *client) BillingAccount() BillingAccountServiceClient { return c._BillingAccount }
 func (c *client) Subscription() SubscriptionServiceClient     { return c._Subscription }
 func (c *client) Checkout() CheckoutServiceClient             { return c._Checkout }
-func (c *client) Tenant() TenantServiceClient                 { return c._Tenant }
 func (c *client) Period() PeriodServiceClient                 { return c._Period }
 func (c *client) Invoice() InvoiceServiceClient               { return c._Invoice }
 func (c *client) CreditNote() CreditNoteServiceClient         { return c._CreditNote }
 func (c *client) Credit() CreditServiceClient                 { return c._Credit }
 func (c *client) Departure() DepartureServiceClient           { return c._Departure }
-func (c *client) Operator() OperatorServiceClient             { return c._Operator }
 func (c *client) Finding() FindingServiceClient               { return c._Finding }
-func (c *client) Workspace() WorkspaceServiceClient           { return c._Workspace }
 func (c *client) Grant() GrantServiceClient                   { return c._Grant }
 func (c *client) Statement() StatementServiceClient           { return c._Statement }
 func (c *client) InvoiceLine() InvoiceLineServiceClient       { return c._InvoiceLine }
 func (c *client) Offer() OfferServiceClient                   { return c._Offer }
 func (c *client) Link() LinkServiceClient                     { return c._Link }
-func (c *client) Meter() MeterServiceClient                   { return c._Meter }
 func (c *client) Notice() NoticeServiceClient                 { return c._Notice }
 func (c *client) NoticeCursor() NoticeCursorServiceClient     { return c._NoticeCursor }
 func (c *client) Access() AccessServiceClient                 { return c._Access }
@@ -493,7 +505,7 @@ func SinkOf(s Server) Server {
 //		Overlay
 //	}
 //
-//	func (s Server) BillingAccount() BillingAccountServiceServer { ... }
+//	func (s Server) Tenant() TenantServiceServer { ... }
 type Overlay struct {
 	Server
 }

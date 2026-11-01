@@ -32,6 +32,11 @@ type CreditAddRequest struct {
 	xxx_hidden_Invoice        *InvoiceRef            `protobuf:"bytes,12,opt,name=invoice"`
 	xxx_hidden_CreditNote     *CreditNoteRef         `protobuf:"bytes,16,opt,name=credit_note,json=creditNote"`
 	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Workspace      *WorkspaceRef          `protobuf:"bytes,17,opt,name=workspace"`
+	xxx_hidden_Lot            []byte                 `protobuf:"bytes,18,opt,name=lot"`
+	xxx_hidden_DateExpires    *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason         *string                `protobuf:"bytes,20,opt,name=reason"`
+	xxx_hidden_Operator       *OperatorRef           `protobuf:"bytes,21,opt,name=operator"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -126,12 +131,50 @@ func (x *CreditAddRequest) GetDateCreated() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CreditAddRequest) GetWorkspace() *WorkspaceRef {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return nil
+}
+
+func (x *CreditAddRequest) GetLot() []byte {
+	if x != nil {
+		return x.xxx_hidden_Lot
+	}
+	return nil
+}
+
+func (x *CreditAddRequest) GetDateExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateExpires
+	}
+	return nil
+}
+
+func (x *CreditAddRequest) GetReason() string {
+	if x != nil {
+		if x.xxx_hidden_Reason != nil {
+			return *x.xxx_hidden_Reason
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditAddRequest) GetOperator() *OperatorRef {
+	if x != nil {
+		return x.xxx_hidden_Operator
+	}
+	return nil
+}
+
 func (x *CreditAddRequest) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
 }
 
 func (x *CreditAddRequest) SetTenant(v *TenantRef) {
@@ -164,6 +207,31 @@ func (x *CreditAddRequest) SetCreditNote(v *CreditNoteRef) {
 
 func (x *CreditAddRequest) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
+}
+
+func (x *CreditAddRequest) SetWorkspace(v *WorkspaceRef) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *CreditAddRequest) SetLot(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Lot = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 14)
+}
+
+func (x *CreditAddRequest) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
+}
+
+func (x *CreditAddRequest) SetReason(v string) {
+	x.xxx_hidden_Reason = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 14)
+}
+
+func (x *CreditAddRequest) SetOperator(v *OperatorRef) {
+	x.xxx_hidden_Operator = v
 }
 
 func (x *CreditAddRequest) HasId() bool {
@@ -208,6 +276,41 @@ func (x *CreditAddRequest) HasDateCreated() bool {
 	return x.xxx_hidden_DateCreated != nil
 }
 
+func (x *CreditAddRequest) HasWorkspace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Workspace != nil
+}
+
+func (x *CreditAddRequest) HasLot() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
+func (x *CreditAddRequest) HasDateExpires() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateExpires != nil
+}
+
+func (x *CreditAddRequest) HasReason() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
+func (x *CreditAddRequest) HasOperator() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Operator != nil
+}
+
 func (x *CreditAddRequest) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -233,6 +336,28 @@ func (x *CreditAddRequest) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
 
+func (x *CreditAddRequest) ClearWorkspace() {
+	x.xxx_hidden_Workspace = nil
+}
+
+func (x *CreditAddRequest) ClearLot() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_Lot = nil
+}
+
+func (x *CreditAddRequest) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
+}
+
+func (x *CreditAddRequest) ClearReason() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_Reason = nil
+}
+
+func (x *CreditAddRequest) ClearOperator() {
+	x.xxx_hidden_Operator = nil
+}
+
 type CreditAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -245,6 +370,11 @@ type CreditAddRequest_builder struct {
 	Invoice        *InvoiceRef
 	CreditNote     *CreditNoteRef
 	DateCreated    *timestamppb.Timestamp
+	Workspace      *WorkspaceRef
+	Lot            []byte
+	DateExpires    *timestamppb.Timestamp
+	Reason         *string
+	Operator       *OperatorRef
 }
 
 func (b0 CreditAddRequest_builder) Build() *CreditAddRequest {
@@ -252,7 +382,7 @@ func (b0 CreditAddRequest_builder) Build() *CreditAddRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_Tenant = b.Tenant
@@ -263,6 +393,17 @@ func (b0 CreditAddRequest_builder) Build() *CreditAddRequest {
 	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_CreditNote = b.CreditNote
 	x.xxx_hidden_DateCreated = b.DateCreated
+	x.xxx_hidden_Workspace = b.Workspace
+	if b.Lot != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 14)
+		x.xxx_hidden_Lot = b.Lot
+	}
+	x.xxx_hidden_DateExpires = b.DateExpires
+	if b.Reason != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 14)
+		x.xxx_hidden_Reason = b.Reason
+	}
+	x.xxx_hidden_Operator = b.Operator
 	return m0
 }
 
@@ -497,6 +638,11 @@ type CreditSelect struct {
 	xxx_hidden_CreditNote     *CreditNoteSelect      `protobuf:"bytes,16,opt,name=credit_note,json=creditNote"`
 	xxx_hidden_DateErased     bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated    bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Workspace      *WorkspaceSelect       `protobuf:"bytes,17,opt,name=workspace"`
+	xxx_hidden_Lot            bool                   `protobuf:"varint,18,opt,name=lot"`
+	xxx_hidden_DateExpires    bool                   `protobuf:"varint,19,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason         bool                   `protobuf:"varint,20,opt,name=reason"`
+	xxx_hidden_Operator       *OperatorSelect        `protobuf:"bytes,21,opt,name=operator"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -598,9 +744,44 @@ func (x *CreditSelect) GetDateCreated() bool {
 	return false
 }
 
+func (x *CreditSelect) GetWorkspace() *WorkspaceSelect {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return nil
+}
+
+func (x *CreditSelect) GetLot() bool {
+	if x != nil {
+		return x.xxx_hidden_Lot
+	}
+	return false
+}
+
+func (x *CreditSelect) GetDateExpires() bool {
+	if x != nil {
+		return x.xxx_hidden_DateExpires
+	}
+	return false
+}
+
+func (x *CreditSelect) GetReason() bool {
+	if x != nil {
+		return x.xxx_hidden_Reason
+	}
+	return false
+}
+
+func (x *CreditSelect) GetOperator() *OperatorSelect {
+	if x != nil {
+		return x.xxx_hidden_Operator
+	}
+	return nil
+}
+
 func (x *CreditSelect) SetAll(v bool) {
 	x.xxx_hidden_All = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 15)
 }
 
 func (x *CreditSelect) SetTenant(v *TenantSelect) {
@@ -613,17 +794,17 @@ func (x *CreditSelect) SetBillingAccount(v *BillingAccountSelect) {
 
 func (x *CreditSelect) SetAmount(v bool) {
 	x.xxx_hidden_Amount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 15)
 }
 
 func (x *CreditSelect) SetCurrency(v bool) {
 	x.xxx_hidden_Currency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 15)
 }
 
 func (x *CreditSelect) SetKind(v bool) {
 	x.xxx_hidden_Kind = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 15)
 }
 
 func (x *CreditSelect) SetInvoice(v *InvoiceSelect) {
@@ -636,12 +817,35 @@ func (x *CreditSelect) SetCreditNote(v *CreditNoteSelect) {
 
 func (x *CreditSelect) SetDateErased(v bool) {
 	x.xxx_hidden_DateErased = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 15)
 }
 
 func (x *CreditSelect) SetDateCreated(v bool) {
 	x.xxx_hidden_DateCreated = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 15)
+}
+
+func (x *CreditSelect) SetWorkspace(v *WorkspaceSelect) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *CreditSelect) SetLot(v bool) {
+	x.xxx_hidden_Lot = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 15)
+}
+
+func (x *CreditSelect) SetDateExpires(v bool) {
+	x.xxx_hidden_DateExpires = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 15)
+}
+
+func (x *CreditSelect) SetReason(v bool) {
+	x.xxx_hidden_Reason = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 15)
+}
+
+func (x *CreditSelect) SetOperator(v *OperatorSelect) {
+	x.xxx_hidden_Operator = v
 }
 
 func (x *CreditSelect) HasAll() bool {
@@ -714,6 +918,41 @@ func (x *CreditSelect) HasDateCreated() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
+func (x *CreditSelect) HasWorkspace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Workspace != nil
+}
+
+func (x *CreditSelect) HasLot() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *CreditSelect) HasDateExpires() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
+func (x *CreditSelect) HasReason() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
+func (x *CreditSelect) HasOperator() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Operator != nil
+}
+
 func (x *CreditSelect) ClearAll() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_All = false
@@ -760,6 +999,29 @@ func (x *CreditSelect) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = false
 }
 
+func (x *CreditSelect) ClearWorkspace() {
+	x.xxx_hidden_Workspace = nil
+}
+
+func (x *CreditSelect) ClearLot() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_Lot = false
+}
+
+func (x *CreditSelect) ClearDateExpires() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_DateExpires = false
+}
+
+func (x *CreditSelect) ClearReason() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_Reason = false
+}
+
+func (x *CreditSelect) ClearOperator() {
+	x.xxx_hidden_Operator = nil
+}
+
 type CreditSelect_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -773,6 +1035,11 @@ type CreditSelect_builder struct {
 	CreditNote     *CreditNoteSelect
 	DateErased     *bool
 	DateCreated    *bool
+	Workspace      *WorkspaceSelect
+	Lot            *bool
+	DateExpires    *bool
+	Reason         *bool
+	Operator       *OperatorSelect
 }
 
 func (b0 CreditSelect_builder) Build() *CreditSelect {
@@ -780,33 +1047,47 @@ func (b0 CreditSelect_builder) Build() *CreditSelect {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.All != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 15)
 		x.xxx_hidden_All = *b.All
 	}
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_BillingAccount = b.BillingAccount
 	if b.Amount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 15)
 		x.xxx_hidden_Amount = *b.Amount
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 15)
 		x.xxx_hidden_Currency = *b.Currency
 	}
 	if b.Kind != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 15)
 		x.xxx_hidden_Kind = *b.Kind
 	}
 	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_CreditNote = b.CreditNote
 	if b.DateErased != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 15)
 		x.xxx_hidden_DateErased = *b.DateErased
 	}
 	if b.DateCreated != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 15)
 		x.xxx_hidden_DateCreated = *b.DateCreated
 	}
+	x.xxx_hidden_Workspace = b.Workspace
+	if b.Lot != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 15)
+		x.xxx_hidden_Lot = *b.Lot
+	}
+	if b.DateExpires != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 15)
+		x.xxx_hidden_DateExpires = *b.DateExpires
+	}
+	if b.Reason != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 15)
+		x.xxx_hidden_Reason = *b.Reason
+	}
+	x.xxx_hidden_Operator = b.Operator
 	return m0
 }
 
@@ -1101,7 +1382,7 @@ var File_levyan_credit_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_credit_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x19levyan/credit_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a\x13levyan/credit.proto\x1a\x1elevyan/credit_note_svc.g.proto\x1a\x1alevyan/invoice_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\"\xa7\x03\n" +
+	"\x19levyan/credit_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a\x13levyan/credit.proto\x1a\x1elevyan/credit_note_svc.g.proto\x1a\x1alevyan/invoice_svc.g.proto\x1a\x1blevyan/operator_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xf5\x04\n" +
 	"\x10CreditAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x12B\n" +
@@ -1113,13 +1394,18 @@ const file_levyan_credit_svc_g_proto_rawDesc = "" +
 	"\ainvoice\x18\f \x01(\v2\x12.levyan.InvoiceRefR\ainvoice\x126\n" +
 	"\vcredit_note\x18\x10 \x01(\v2\x15.levyan.CreditNoteRefR\n" +
 	"creditNote\x12=\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"e\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\x122\n" +
+	"\tworkspace\x18\x11 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12\x10\n" +
+	"\x03lot\x18\x12 \x01(\fR\x03lot\x12=\n" +
+	"\fdate_expires\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\vdateExpires\x12\x16\n" +
+	"\x06reason\x18\x14 \x01(\tR\x06reason\x12/\n" +
+	"\boperator\x18\x15 \x01(\v2\x13.levyan.OperatorRefR\boperator\"e\n" +
 	"\x10CreditGetRequest\x12#\n" +
 	"\x03ref\x18\x01 \x01(\v2\x11.levyan.CreditRefR\x03ref\x12,\n" +
 	"\x06select\x18\x02 \x01(\v2\x14.levyan.CreditSelectR\x06select\"$\n" +
 	"\tCreditRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02idB\x05\n" +
-	"\x03key\"\x8d\x03\n" +
+	"\x03key\"\xc5\x04\n" +
 	"\fCreditSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x12E\n" +
@@ -1133,7 +1419,12 @@ const file_levyan_credit_svc_g_proto_rawDesc = "" +
 	"creditNote\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
 	"dateErased\x12!\n" +
-	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\"\x9c\x01\n" +
+	"\fdate_created\x18\x0f \x01(\bR\vdateCreated\x125\n" +
+	"\tworkspace\x18\x11 \x01(\v2\x17.levyan.WorkspaceSelectR\tworkspace\x12\x10\n" +
+	"\x03lot\x18\x12 \x01(\bR\x03lot\x12!\n" +
+	"\fdate_expires\x18\x13 \x01(\bR\vdateExpires\x12\x16\n" +
+	"\x06reason\x18\x14 \x01(\bR\x06reason\x122\n" +
+	"\boperator\x18\x15 \x01(\v2\x16.levyan.OperatorSelectR\boperator\"\x9c\x01\n" +
 	"\x11CreditListRequest\x12.\n" +
 	"\afilters\x18\x01 \x03(\v2\x14.levyan.CreditFilterR\afilters\x12\x19\n" +
 	"\x04size\x18\x02 \x01(\x05B\x05\xaa\x01\x02\b\x02R\x04size\x12\x1b\n" +
@@ -1165,11 +1456,15 @@ var file_levyan_credit_svc_g_proto_goTypes = []any{
 	(*InvoiceRef)(nil),            // 10: levyan.InvoiceRef
 	(*CreditNoteRef)(nil),         // 11: levyan.CreditNoteRef
 	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
-	(*TenantSelect)(nil),          // 13: levyan.TenantSelect
-	(*BillingAccountSelect)(nil),  // 14: levyan.BillingAccountSelect
-	(*InvoiceSelect)(nil),         // 15: levyan.InvoiceSelect
-	(*CreditNoteSelect)(nil),      // 16: levyan.CreditNoteSelect
-	(*Credit)(nil),                // 17: levyan.Credit
+	(*WorkspaceRef)(nil),          // 13: levyan.WorkspaceRef
+	(*OperatorRef)(nil),           // 14: levyan.OperatorRef
+	(*TenantSelect)(nil),          // 15: levyan.TenantSelect
+	(*BillingAccountSelect)(nil),  // 16: levyan.BillingAccountSelect
+	(*InvoiceSelect)(nil),         // 17: levyan.InvoiceSelect
+	(*CreditNoteSelect)(nil),      // 18: levyan.CreditNoteSelect
+	(*WorkspaceSelect)(nil),       // 19: levyan.WorkspaceSelect
+	(*OperatorSelect)(nil),        // 20: levyan.OperatorSelect
+	(*Credit)(nil),                // 21: levyan.Credit
 }
 var file_levyan_credit_svc_g_proto_depIdxs = []int32{
 	7,  // 0: levyan.CreditAddRequest.tenant:type_name -> levyan.TenantRef
@@ -1178,27 +1473,32 @@ var file_levyan_credit_svc_g_proto_depIdxs = []int32{
 	10, // 3: levyan.CreditAddRequest.invoice:type_name -> levyan.InvoiceRef
 	11, // 4: levyan.CreditAddRequest.credit_note:type_name -> levyan.CreditNoteRef
 	12, // 5: levyan.CreditAddRequest.date_created:type_name -> google.protobuf.Timestamp
-	2,  // 6: levyan.CreditGetRequest.ref:type_name -> levyan.CreditRef
-	3,  // 7: levyan.CreditGetRequest.select:type_name -> levyan.CreditSelect
-	13, // 8: levyan.CreditSelect.tenant:type_name -> levyan.TenantSelect
-	14, // 9: levyan.CreditSelect.billing_account:type_name -> levyan.BillingAccountSelect
-	15, // 10: levyan.CreditSelect.invoice:type_name -> levyan.InvoiceSelect
-	16, // 11: levyan.CreditSelect.credit_note:type_name -> levyan.CreditNoteSelect
-	6,  // 12: levyan.CreditListRequest.filters:type_name -> levyan.CreditFilter
-	17, // 13: levyan.CreditListResponse.items:type_name -> levyan.Credit
-	2,  // 14: levyan.CreditFilter.ref:type_name -> levyan.CreditRef
-	8,  // 15: levyan.CreditFilter.billing_account:type_name -> levyan.BillingAccountRef
-	0,  // 16: levyan.CreditService.Add:input_type -> levyan.CreditAddRequest
-	1,  // 17: levyan.CreditService.Get:input_type -> levyan.CreditGetRequest
-	4,  // 18: levyan.CreditService.List:input_type -> levyan.CreditListRequest
-	17, // 19: levyan.CreditService.Add:output_type -> levyan.Credit
-	17, // 20: levyan.CreditService.Get:output_type -> levyan.Credit
-	5,  // 21: levyan.CreditService.List:output_type -> levyan.CreditListResponse
-	19, // [19:22] is the sub-list for method output_type
-	16, // [16:19] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	13, // 6: levyan.CreditAddRequest.workspace:type_name -> levyan.WorkspaceRef
+	12, // 7: levyan.CreditAddRequest.date_expires:type_name -> google.protobuf.Timestamp
+	14, // 8: levyan.CreditAddRequest.operator:type_name -> levyan.OperatorRef
+	2,  // 9: levyan.CreditGetRequest.ref:type_name -> levyan.CreditRef
+	3,  // 10: levyan.CreditGetRequest.select:type_name -> levyan.CreditSelect
+	15, // 11: levyan.CreditSelect.tenant:type_name -> levyan.TenantSelect
+	16, // 12: levyan.CreditSelect.billing_account:type_name -> levyan.BillingAccountSelect
+	17, // 13: levyan.CreditSelect.invoice:type_name -> levyan.InvoiceSelect
+	18, // 14: levyan.CreditSelect.credit_note:type_name -> levyan.CreditNoteSelect
+	19, // 15: levyan.CreditSelect.workspace:type_name -> levyan.WorkspaceSelect
+	20, // 16: levyan.CreditSelect.operator:type_name -> levyan.OperatorSelect
+	6,  // 17: levyan.CreditListRequest.filters:type_name -> levyan.CreditFilter
+	21, // 18: levyan.CreditListResponse.items:type_name -> levyan.Credit
+	2,  // 19: levyan.CreditFilter.ref:type_name -> levyan.CreditRef
+	8,  // 20: levyan.CreditFilter.billing_account:type_name -> levyan.BillingAccountRef
+	0,  // 21: levyan.CreditService.Add:input_type -> levyan.CreditAddRequest
+	1,  // 22: levyan.CreditService.Get:input_type -> levyan.CreditGetRequest
+	4,  // 23: levyan.CreditService.List:input_type -> levyan.CreditListRequest
+	21, // 24: levyan.CreditService.Add:output_type -> levyan.Credit
+	21, // 25: levyan.CreditService.Get:output_type -> levyan.Credit
+	5,  // 26: levyan.CreditService.List:output_type -> levyan.CreditListResponse
+	24, // [24:27] is the sub-list for method output_type
+	21, // [21:24] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_levyan_credit_svc_g_proto_init() }
@@ -1210,7 +1510,9 @@ func file_levyan_credit_svc_g_proto_init() {
 	file_levyan_credit_proto_init()
 	file_levyan_credit_note_svc_g_proto_init()
 	file_levyan_invoice_svc_g_proto_init()
+	file_levyan_operator_svc_g_proto_init()
 	file_levyan_payday_tenant_svc_g_proto_init()
+	file_levyan_workspace_svc_g_proto_init()
 	file_levyan_credit_svc_g_proto_msgTypes[2].OneofWrappers = []any{
 		(*creditRef_Id)(nil),
 	}

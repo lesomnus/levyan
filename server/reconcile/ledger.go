@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 	"uuid"
 
 	"github.com/lesomnus/payday/pdid"
@@ -124,7 +125,8 @@ type ledgerRows struct {
 	creditNotes []*ent.CreditNote
 	byNote      map[uuid.UUID][]*ent.PaymentAttempt // refunds, by credit note
 	noteCredit  map[uuid.UUID]int64                 // credit, by credit note
-	balances    map[[2]uuid.UUID][]*ent.Credit      // by product and billing account
+	balances    map[[2]uuid.UUID][]*ent.Credit      // the balance's, by product and billing account
+	lots        map[uuid.UUID][]*ent.Credit         // what an operator granted, by lot (#43)
 }
 
 func (r *Reconciler) ledgerRows(ctx context.Context, p *pass) (*ledgerRows, error) {
@@ -139,6 +141,7 @@ func (r *Reconciler) ledgerRows(ctx context.Context, p *pass) (*ledgerRows, erro
 
 		noteCredit: map[uuid.UUID]int64{},
 		balances:   map[[2]uuid.UUID][]*ent.Credit{},
+		lots:       map[uuid.UUID][]*ent.Credit{},
 	}
 	var err error
 	if out.invoices, err = p.db.Invoice.Query().Order(ent.Asc(entinvoice.FieldDateStart), ent.Asc(entinvoice.FieldId)).All(ctx); err != nil {
@@ -159,7 +162,7 @@ func (r *Reconciler) ledgerRows(ctx context.Context, p *pass) (*ledgerRows, erro
 	}
 	cs, err := p.db.Credit.Query().
 		Select(entcredit.FieldId, entcredit.FieldTenantId, entcredit.FieldBillingAccountId, entcredit.FieldInvoiceId, entcredit.FieldCreditNoteId,
-			entcredit.FieldKind, entcredit.FieldAmount, entcredit.FieldCurrency).
+			entcredit.FieldKind, entcredit.FieldAmount, entcredit.FieldCurrency, entcredit.FieldLot, entcredit.FieldDateExpires, entcredit.FieldDateCreated).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -168,8 +171,15 @@ func (r *Reconciler) ledgerRows(ctx context.Context, p *pass) (*ledgerRows, erro
 		if c.InvoiceId != (uuid.UUID{}) {
 			out.credits[c.InvoiceId] = append(out.credits[c.InvoiceId], c)
 		}
-		if c.CreditNoteId != (uuid.UUID{}) && c.Kind == int32(levyan.CreditKind_CREDIT_KIND_CREDIT_NOTE) {
-			out.noteCredit[c.CreditNoteId] += c.Amount
+		switch levyan.CreditKind(c.Kind) {
+		case levyan.CreditKind_CREDIT_KIND_CREDIT_NOTE, levyan.CreditKind_CREDIT_KIND_RETURNED:
+			if c.CreditNoteId != (uuid.UUID{}) {
+				out.noteCredit[c.CreditNoteId] += c.Amount
+			}
+		}
+		if c.Lot != nil {
+			out.lots[*c.Lot] = append(out.lots[*c.Lot], c)
+			continue
 		}
 		k := [2]uuid.UUID{c.TenantId, c.BillingAccountId}
 		out.balances[k] = append(out.balances[k], c)
@@ -340,7 +350,10 @@ func (r *Reconciler) invoices(ctx context.Context, p *pass) ([]Found, error) {
 // credit holds each billing account's credit balance in each product to its
 // rows: never less than nothing, in its billing account's currency alone;
 // and each movement to what it comes of -- what an invoice that came to less
-// than nothing owed, what a credit note credited.
+// than nothing owed, what a credit note credited. And each lot an operator
+// granted (#43) to its own: never less than nothing left, in its currency
+// alone, nothing of it spent once it had expired, and every movement naming
+// a lot that was granted.
 func (r *Reconciler) credit(ctx context.Context, p *pass) ([]Found, error) {
 	l, err := r.ledgerRows(ctx, p)
 	if err != nil {
@@ -396,6 +409,71 @@ func (r *Reconciler) credit(ctx context.Context, p *pass) ([]Found, error) {
 			Rows:     []Row{RowOf("BillingAccount", v[1])},
 			Amount:   sum,
 			Currency: ba.Currency,
+		})
+	}
+
+	lots := []uuid.UUID{}
+	for id := range l.lots {
+		lots = append(lots, id)
+	}
+	slices.SortFunc(lots, func(a, b uuid.UUID) int { return slices.Compare(a[:], b[:]) })
+	for _, id := range lots {
+		cs := l.lots[id]
+		var grant *ent.Credit
+		for _, c := range cs {
+			if c.Id == id && c.Kind == int32(levyan.CreditKind_CREDIT_KIND_GRANTED) {
+				grant = c
+			}
+		}
+		if grant == nil {
+			out = append(out, Found{
+				Kind:     k,
+				Subject:  "Lot/" + pdid.Id(id).String(),
+				Product:  cs[0].TenantId,
+				Summary:  fmt.Sprintf("%d movements of credit name lot %s, which nothing granted", len(cs), pdid.Id(id)),
+				Facts:    fmt.Sprintf("movements=%d", len(cs)),
+				Rows:     []Row{RowOf("Credit", cs[0].Id)},
+				Currency: cs[0].Currency,
+			})
+			continue
+		}
+		// Over from when it expired, which the process that decides an
+		// invoice tells by the clock it stamps the invoice's credit with.
+		// When an operator ended it is not held against what was spent of
+		// it: that is stamped by the operator's entry point, another
+		// process, whose clock is not this one's.
+		over := time.Time{}
+		if grant.DateExpires != nil {
+			over = *grant.DateExpires
+		}
+		sum, wrong := int64(0), []string{}
+		for _, c := range cs {
+			sum += c.Amount
+			if c.Currency != grant.Currency {
+				wrong = append(wrong, fmt.Sprintf("a movement of it is in %s, and it was granted in %s", c.Currency, grant.Currency))
+			}
+			if c.Kind == int32(levyan.CreditKind_CREDIT_KIND_APPLIED) && !over.IsZero() && !c.DateCreated.Before(over) {
+				wrong = append(wrong, fmt.Sprintf("%s of it was spent at %s, once it was over at %s",
+					money.String(-c.Amount, c.Currency), c.DateCreated.UTC().Format(time.RFC3339), over.UTC().Format(time.RFC3339)))
+			}
+		}
+		if sum < 0 {
+			wrong = append(wrong, "what is left of it is "+money.String(sum, grant.Currency)+", less than nothing")
+		}
+		if len(wrong) == 0 {
+			continue
+		}
+		slices.Sort(wrong)
+		wrong = slices.Compact(wrong)
+		out = append(out, Found{
+			Kind:     k,
+			Subject:  Subject("Credit", id),
+			Product:  grant.TenantId,
+			Summary:  fmt.Sprintf("the credit granted as %s: %s", pdid.Id(id), strings.Join(wrong, "; ")),
+			Facts:    fmt.Sprintf("left=%d wrong=%s", sum, strings.Join(wrong, "|")),
+			Rows:     []Row{RowOf("Credit", id)},
+			Amount:   sum,
+			Currency: grant.Currency,
 		})
 	}
 

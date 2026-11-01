@@ -183,6 +183,14 @@ func (h Payers) GetInvoice(ctx context.Context, req *levyanv1.GetInvoiceRequest)
 		}.Build()))
 	}
 
+	// What paid what credit paid of it, of the invoice the wall answered
+	// (#43).
+	paid, err := paidWith(ctx, h.Db, product.Uuid(), id.Uuid())
+	if err != nil {
+		return nil, err
+	}
+	out.SetCredits(paid)
+
 	cns, err := h.creditNotes(ctx, levyan.CreditNoteFilter_builder{Invoice: levyan.InvoiceRef_builder{Id: id.Bytes()}.Build()}.Build())
 	if err != nil {
 		return nil, err

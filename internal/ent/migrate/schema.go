@@ -53,6 +53,73 @@ var (
 			},
 		},
 	}
+	// AllowanceColumns holds the columns for the "allowance" table.
+	AllowanceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUuid, Unique: true},
+		{Name: "quantity", Type: field.TypeInt64},
+		{Name: "valid_from", Type: field.TypeTime, Nullable: true},
+		{Name: "valid_until", Type: field.TypeTime, Nullable: true},
+		{Name: "reason", Type: field.TypeString},
+		{Name: "date_updated", Type: field.TypeTime},
+		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
+		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "end_reason", Type: field.TypeString},
+		{Name: "tenant_id", Type: field.TypeUuid},
+		{Name: "workspace_id", Type: field.TypeUuid},
+		{Name: "meter_id", Type: field.TypeUuid},
+		{Name: "granted_by_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "ended_by_id", Type: field.TypeUuid, Nullable: true},
+	}
+	// AllowanceTable holds the schema information for the "allowance" table.
+	AllowanceTable = &schema.Table{
+		Name:       "allowance",
+		Columns:    AllowanceColumns,
+		PrimaryKey: []*schema.Column{AllowanceColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "allowance_tenant_tenant",
+				Columns:    []*schema.Column{AllowanceColumns[9]},
+				RefColumns: []*schema.Column{TenantColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "allowance_workspace_workspace",
+				Columns:    []*schema.Column{AllowanceColumns[10]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "allowance_meter_meter",
+				Columns:    []*schema.Column{AllowanceColumns[11]},
+				RefColumns: []*schema.Column{MeterColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "allowance_operator_granted_by",
+				Columns:    []*schema.Column{AllowanceColumns[12]},
+				RefColumns: []*schema.Column{OperatorColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "allowance_operator_ended_by",
+				Columns:    []*schema.Column{AllowanceColumns[13]},
+				RefColumns: []*schema.Column{OperatorColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "allowance_page",
+				Unique:  false,
+				Columns: []*schema.Column{AllowanceColumns[9], AllowanceColumns[7], AllowanceColumns[0]},
+			},
+			{
+				Name:    "allowance_workspace",
+				Unique:  false,
+				Columns: []*schema.Column{AllowanceColumns[10], AllowanceColumns[11], AllowanceColumns[2]},
+			},
+		},
+	}
 	// ArchivedColumns holds the columns for the "archived" table.
 	ArchivedColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
@@ -246,10 +313,15 @@ var (
 		{Name: "kind", Type: field.TypeInt32},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
+		{Name: "lot", Type: field.TypeUuid, Nullable: true},
+		{Name: "date_expires", Type: field.TypeTime, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "tenant_id", Type: field.TypeUuid},
-		{Name: "billing_account_id", Type: field.TypeUuid},
+		{Name: "billing_account_id", Type: field.TypeUuid, Nullable: true},
 		{Name: "invoice_id", Type: field.TypeUuid, Nullable: true},
 		{Name: "credit_note_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "workspace_id", Type: field.TypeUuid, Nullable: true},
+		{Name: "operator_id", Type: field.TypeUuid, Nullable: true},
 	}
 	// CreditTable holds the schema information for the "credit" table.
 	CreditTable = &schema.Table{
@@ -259,26 +331,38 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "credit_tenant_tenant",
-				Columns:    []*schema.Column{CreditColumns[6]},
+				Columns:    []*schema.Column{CreditColumns[9]},
 				RefColumns: []*schema.Column{TenantColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "credit_billingaccount_billing_account",
-				Columns:    []*schema.Column{CreditColumns[7]},
+				Columns:    []*schema.Column{CreditColumns[10]},
 				RefColumns: []*schema.Column{BillingaccountColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "credit_invoice_invoice",
-				Columns:    []*schema.Column{CreditColumns[8]},
+				Columns:    []*schema.Column{CreditColumns[11]},
 				RefColumns: []*schema.Column{InvoiceColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "credit_creditnote_credit_note",
-				Columns:    []*schema.Column{CreditColumns[9]},
+				Columns:    []*schema.Column{CreditColumns[12]},
 				RefColumns: []*schema.Column{CreditnoteColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "credit_workspace_workspace",
+				Columns:    []*schema.Column{CreditColumns[13]},
+				RefColumns: []*schema.Column{WorkspaceColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "credit_operator_operator",
+				Columns:    []*schema.Column{CreditColumns[14]},
+				RefColumns: []*schema.Column{OperatorColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -286,12 +370,17 @@ var (
 			{
 				Name:    "credit_page",
 				Unique:  false,
-				Columns: []*schema.Column{CreditColumns[6], CreditColumns[5], CreditColumns[0]},
+				Columns: []*schema.Column{CreditColumns[9], CreditColumns[5], CreditColumns[0]},
 			},
 			{
 				Name:    "credit_billing",
 				Unique:  false,
-				Columns: []*schema.Column{CreditColumns[6], CreditColumns[7], CreditColumns[5]},
+				Columns: []*schema.Column{CreditColumns[9], CreditColumns[10], CreditColumns[5]},
+			},
+			{
+				Name:    "credit_lot",
+				Unique:  false,
+				Columns: []*schema.Column{CreditColumns[6], CreditColumns[5]},
 			},
 		},
 	}
@@ -1693,6 +1782,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AccessTable,
+		AllowanceTable,
 		ArchivedTable,
 		AuditTable,
 		BillingaccountTable,
@@ -1733,6 +1823,14 @@ func init() {
 	AccessTable.Annotation = &entsql.Annotation{
 		Table: "access",
 	}
+	AllowanceTable.ForeignKeys[0].RefTable = TenantTable
+	AllowanceTable.ForeignKeys[1].RefTable = WorkspaceTable
+	AllowanceTable.ForeignKeys[2].RefTable = MeterTable
+	AllowanceTable.ForeignKeys[3].RefTable = OperatorTable
+	AllowanceTable.ForeignKeys[4].RefTable = OperatorTable
+	AllowanceTable.Annotation = &entsql.Annotation{
+		Table: "allowance",
+	}
 	ArchivedTable.Annotation = &entsql.Annotation{
 		Table: "archived",
 	}
@@ -1751,6 +1849,8 @@ func init() {
 	CreditTable.ForeignKeys[1].RefTable = BillingaccountTable
 	CreditTable.ForeignKeys[2].RefTable = InvoiceTable
 	CreditTable.ForeignKeys[3].RefTable = CreditnoteTable
+	CreditTable.ForeignKeys[4].RefTable = WorkspaceTable
+	CreditTable.ForeignKeys[5].RefTable = OperatorTable
 	CreditTable.Annotation = &entsql.Annotation{
 		Table: "credit",
 	}

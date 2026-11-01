@@ -580,6 +580,7 @@ type StatementLine struct {
 	xxx_hidden_Billed        string                 `protobuf:"bytes,12,opt,name=billed"`
 	xxx_hidden_Parts         *[]*StatementPart      `protobuf:"bytes,13,rep,name=parts"`
 	xxx_hidden_Unpriced      *[]*StatementUnpriced  `protobuf:"bytes,14,rep,name=unpriced"`
+	xxx_hidden_Allowance     string                 `protobuf:"bytes,15,opt,name=allowance"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -711,6 +712,13 @@ func (x *StatementLine) GetUnpriced() []*StatementUnpriced {
 	return nil
 }
 
+func (x *StatementLine) GetAllowance() string {
+	if x != nil {
+		return x.xxx_hidden_Allowance
+	}
+	return ""
+}
+
 func (x *StatementLine) SetMeter(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -773,6 +781,10 @@ func (x *StatementLine) SetUnpriced(v []*StatementUnpriced) {
 	x.xxx_hidden_Unpriced = &v
 }
 
+func (x *StatementLine) SetAllowance(v string) {
+	x.xxx_hidden_Allowance = v
+}
+
 func (x *StatementLine) HasCorrectsStart() bool {
 	if x == nil {
 		return false
@@ -812,7 +824,9 @@ type StatementLine_builder struct {
 	// correction, what it comes to now.
 	Usage string
 	// What was included for nothing and what is billable past it, each part
-	// weighed by its share of the period.
+	// weighed by its share of the period. What was included is what the
+	// versions in force included and what the workspace's allowances gave
+	// (`allowance`) together.
 	Included string
 	Billable string
 	// What it comes to, in the currency's minor unit. For a correction, what
@@ -828,6 +842,11 @@ type StatementLine_builder struct {
 	// because the meter is sold for nothing (#9). A meter priced nowhere is not
 	// sold, and has none.
 	Unpriced []*StatementUnpriced
+	// What of `included` the workspace's allowances gave, on top of what its
+	// prices include, each part weighed by its share of the period (#43).
+	// Empty on a line no allowance was in force for, and on every line written
+	// before rating version 4.
+	Allowance string
 }
 
 func (b0 StatementLine_builder) Build() *StatementLine {
@@ -848,6 +867,7 @@ func (b0 StatementLine_builder) Build() *StatementLine {
 	x.xxx_hidden_Billed = b.Billed
 	x.xxx_hidden_Parts = &b.Parts
 	x.xxx_hidden_Unpriced = &b.Unpriced
+	x.xxx_hidden_Allowance = b.Allowance
 	return m0
 }
 
@@ -946,19 +966,22 @@ func (b0 StatementUnpriced_builder) Build() *StatementUnpriced {
 	return m0
 }
 
-// StatementPart is one stretch of a line's period, priced by one version.
+// StatementPart is one stretch of a line's period, priced by one version
+// with the same allowances in force through it.
 type StatementPart struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Price    []byte                 `protobuf:"bytes,1,opt,name=price"`
-	xxx_hidden_From     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from"`
-	xxx_hidden_To       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to"`
-	xxx_hidden_Share    string                 `protobuf:"bytes,4,opt,name=share"`
-	xxx_hidden_Included int64                  `protobuf:"varint,5,opt,name=included"`
-	xxx_hidden_Billable string                 `protobuf:"bytes,6,opt,name=billable"`
-	xxx_hidden_Amount   string                 `protobuf:"bytes,7,opt,name=amount"`
-	xxx_hidden_Bands    *[]*StatementBand      `protobuf:"bytes,8,rep,name=bands"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Price      []byte                 `protobuf:"bytes,1,opt,name=price"`
+	xxx_hidden_From       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from"`
+	xxx_hidden_To         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to"`
+	xxx_hidden_Share      string                 `protobuf:"bytes,4,opt,name=share"`
+	xxx_hidden_Included   int64                  `protobuf:"varint,5,opt,name=included"`
+	xxx_hidden_Billable   string                 `protobuf:"bytes,6,opt,name=billable"`
+	xxx_hidden_Amount     string                 `protobuf:"bytes,7,opt,name=amount"`
+	xxx_hidden_Bands      *[]*StatementBand      `protobuf:"bytes,8,rep,name=bands"`
+	xxx_hidden_Allowance  int64                  `protobuf:"varint,9,opt,name=allowance"`
+	xxx_hidden_Allowances [][]byte               `protobuf:"bytes,10,rep,name=allowances"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *StatementPart) Reset() {
@@ -1044,6 +1067,20 @@ func (x *StatementPart) GetBands() []*StatementBand {
 	return nil
 }
 
+func (x *StatementPart) GetAllowance() int64 {
+	if x != nil {
+		return x.xxx_hidden_Allowance
+	}
+	return 0
+}
+
+func (x *StatementPart) GetAllowances() [][]byte {
+	if x != nil {
+		return x.xxx_hidden_Allowances
+	}
+	return nil
+}
+
 func (x *StatementPart) SetPrice(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -1077,6 +1114,14 @@ func (x *StatementPart) SetAmount(v string) {
 
 func (x *StatementPart) SetBands(v []*StatementBand) {
 	x.xxx_hidden_Bands = &v
+}
+
+func (x *StatementPart) SetAllowance(v int64) {
+	x.xxx_hidden_Allowance = v
+}
+
+func (x *StatementPart) SetAllowances(v [][]byte) {
+	x.xxx_hidden_Allowances = v
 }
 
 func (x *StatementPart) HasFrom() bool {
@@ -1117,6 +1162,11 @@ type StatementPart_builder struct {
 	Amount string
 	// By bands: the time spent in each.
 	Bands []*StatementBand
+	// By the unit: what the workspace's allowances in force through the
+	// stretch gave on top of what the version includes, and which they are,
+	// by their identifiers (#43). What is billable is past the two.
+	Allowance  int64
+	Allowances [][]byte
 }
 
 func (b0 StatementPart_builder) Build() *StatementPart {
@@ -1131,6 +1181,8 @@ func (b0 StatementPart_builder) Build() *StatementPart {
 	x.xxx_hidden_Billable = b.Billable
 	x.xxx_hidden_Amount = b.Amount
 	x.xxx_hidden_Bands = &b.Bands
+	x.xxx_hidden_Allowance = b.Allowance
+	x.xxx_hidden_Allowances = b.Allowances
 	return m0
 }
 
@@ -1307,7 +1359,7 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\tworkspace \x14(d\")\n" +
 	"\x06tenant\"\x10workspace.tenant\"\rperiod.tenant\"=\n" +
 	"\x0eStatementLines\x12+\n" +
-	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xf1\x03\n" +
+	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\x8f\x04\n" +
 	"\rStatementLine\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\fR\x05meter\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
@@ -1323,10 +1375,11 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x06amount\x18\v \x01(\tR\x06amount\x12\x16\n" +
 	"\x06billed\x18\f \x01(\tR\x06billed\x12+\n" +
 	"\x05parts\x18\r \x03(\v2\x15.levyan.StatementPartR\x05parts\x125\n" +
-	"\bunpriced\x18\x0e \x03(\v2\x19.levyan.StatementUnpricedR\bunpriced\"o\n" +
+	"\bunpriced\x18\x0e \x03(\v2\x19.levyan.StatementUnpricedR\bunpriced\x12\x1c\n" +
+	"\tallowance\x18\x0f \x01(\tR\tallowance\"o\n" +
 	"\x11StatementUnpriced\x12.\n" +
 	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\x94\x02\n" +
+	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xd2\x02\n" +
 	"\rStatementPart\x12\x14\n" +
 	"\x05price\x18\x01 \x01(\fR\x05price\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
@@ -1335,7 +1388,12 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\bincluded\x18\x05 \x01(\x03R\bincluded\x12\x1a\n" +
 	"\bbillable\x18\x06 \x01(\tR\bbillable\x12\x16\n" +
 	"\x06amount\x18\a \x01(\tR\x06amount\x12+\n" +
-	"\x05bands\x18\b \x03(\v2\x15.levyan.StatementBandR\x05bands\"k\n" +
+	"\x05bands\x18\b \x03(\v2\x15.levyan.StatementBandR\x05bands\x12\x1c\n" +
+	"\tallowance\x18\t \x01(\x03R\tallowance\x12\x1e\n" +
+	"\n" +
+	"allowances\x18\n" +
+	" \x03(\fR\n" +
+	"allowances\"k\n" +
 	"\rStatementBand\x12\x1a\n" +
 	"\x05up_to\x18\x01 \x01(\x03B\x05\xaa\x01\x02\b\x01R\x04upTo\x12\x10\n" +
 	"\x03fee\x18\x02 \x01(\x03R\x03fee\x12\x14\n" +

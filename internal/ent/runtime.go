@@ -7,6 +7,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/access"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
+	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/finding"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
 	"github.com/lesomnus/levyan/internal/ent/notice"
@@ -45,6 +46,12 @@ func init() {
 	billingaccountDescCollection := billingaccountFields[11].Descriptor()
 	// billingaccount.DefaultCollection holds the default value on creation for the collection field.
 	billingaccount.DefaultCollection = billingaccountDescCollection.Default.(int32)
+	creditFields := schema.Credit{}.Fields()
+	_ = creditFields
+	// creditDescReason is the schema descriptor for reason field.
+	creditDescReason := creditFields[8].Descriptor()
+	// credit.DefaultReason holds the default value on creation for the reason field.
+	credit.DefaultReason = creditDescReason.Default.(string)
 	findingFields := schema.Finding{}.Fields()
 	_ = findingFields
 	// findingDescRows is the schema descriptor for rows field.

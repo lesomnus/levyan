@@ -22,17 +22,24 @@ func Line(l rating.Line) *levyan.StatementLine {
 		Billable: fraction(l.Billable),
 		Amount:   fraction(l.Amount),
 	}.Build()
+	if l.Allowance != nil && l.Allowance.Sign() != 0 {
+		out.SetAllowance(fraction(l.Allowance))
+	}
 
 	for _, p := range l.Parts {
 		part := levyan.StatementPart_builder{
-			Price:    p.Version.Bytes(),
-			From:     timestamppb.New(p.From),
-			To:       timestamppb.New(p.To),
-			Share:    fraction(p.Share),
-			Included: p.Included,
-			Billable: fraction(p.Billable),
-			Amount:   fraction(p.Amount),
+			Price:     p.Version.Bytes(),
+			From:      timestamppb.New(p.From),
+			To:        timestamppb.New(p.To),
+			Share:     fraction(p.Share),
+			Included:  p.Included,
+			Allowance: p.Allowance,
+			Billable:  fraction(p.Billable),
+			Amount:    fraction(p.Amount),
 		}.Build()
+		for _, a := range p.Allowances {
+			part.SetAllowances(append(part.GetAllowances(), a.Bytes()))
+		}
 		for _, b := range p.Bands {
 			band := levyan.StatementBand_builder{Fee: b.Fee, Share: fraction(b.Share), Amount: fraction(b.Amount)}.Build()
 			if b.Bounded {

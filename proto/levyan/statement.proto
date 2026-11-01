@@ -242,7 +242,9 @@ message StatementLine {
   string usage = 8;
 
   // What was included for nothing and what is billable past it, each part
-  // weighed by its share of the period.
+  // weighed by its share of the period. What was included is what the
+  // versions in force included and what the workspace's allowances gave
+  // (`allowance`) together.
   string included = 9;
   string billable = 10;
 
@@ -261,6 +263,12 @@ message StatementLine {
   // because the meter is sold for nothing (#9). A meter priced nowhere is not
   // sold, and has none.
   repeated StatementUnpriced unpriced = 14;
+
+  // What of `included` the workspace's allowances gave, on top of what its
+  // prices include, each part weighed by its share of the period (#43).
+  // Empty on a line no allowance was in force for, and on every line written
+  // before rating version 4.
+  string allowance = 15;
 }
 
 // StatementUnpriced is a stretch of a line's period its meter was priced on
@@ -281,7 +289,8 @@ enum LineKind {
   LINE_KIND_CORRECTION = 2;
 }
 
-// StatementPart is one stretch of a line's period, priced by one version.
+// StatementPart is one stretch of a line's period, priced by one version
+// with the same allowances in force through it.
 message StatementPart {
   // The version of the price, and the stretch it was in force.
   bytes price = 1;
@@ -300,6 +309,12 @@ message StatementPart {
 
   // By bands: the time spent in each.
   repeated StatementBand bands = 8;
+
+  // By the unit: what the workspace's allowances in force through the
+  // stretch gave on top of what the version includes, and which they are,
+  // by their identifiers (#43). What is billable is past the two.
+  int64 allowance = 9;
+  repeated bytes allowances = 10;
 }
 
 // StatementBand is the time a stretch's value spent in one band.

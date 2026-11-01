@@ -35,6 +35,7 @@ import (
 	"github.com/lesomnus/levyan/internal/mor"
 	"github.com/lesomnus/levyan/internal/mor/paddle"
 	"github.com/lesomnus/levyan/server/bare"
+	"github.com/lesomnus/levyan/server/benefits"
 	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/book"
 	"github.com/lesomnus/levyan/server/grants"
@@ -130,6 +131,11 @@ type Server struct {
 	// `invoices.mor.live_from` on (LiveFrom) -- or a test; its Dunning, what
 	// follows a failed charge (`dunning.kinds`, #11).
 	Invoices invoices.Invoices
+
+	// Allowances gives and ends what products' workspaces are given of their
+	// meters on top of what their prices include (#43), through the server
+	// with no wall, by an operator's hand through the operator's entry point.
+	Allowances benefits.Allowances
 
 	// Grants gives and ends what products' workspaces are granted, through
 	// the server with no wall: by the loop `levyan.grants.renew`, and by an
@@ -340,7 +346,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// already let the caller name; `pd.Gate` is outermost, so nothing behind
 	// it asks again. A key's verifier is cleared on the way out of both
 	// (`pd.Secret`), so that nothing answers with it.
-	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), reconcile.Build(), pd.GateBuild())
+	stacked, err := levyan.Build(walled.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), reconcile.Build(), benefits.Build(clock), pd.GateBuild())
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -351,7 +357,7 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// book and of grants on it, since an operator's price is held to them as
 	// a product's would be. It still keeps the trail: going around the wall
 	// is not going around the record of having done so.
-	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), reconcile.Build())
+	ungated, err := levyan.Build(sink.WithWatch(w), pd.AuditBuild(), pd.SecretBuild(), book.Build(clock), grants.Build(clock), payers.Build(channels), invoices.Build(), reconcile.Build(), benefits.Build(clock))
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -413,6 +419,10 @@ func Build(ctx context.Context, c Config) (*Server, error) {
 	// those over for long enough erased out of every list -- through the
 	// server with no wall, as the deployment.
 	s.Grants = grants.Grants{S: ungated, Drv: drv, Dialect: dialect, Now: clock, Horizon: c.Grants.HorizonOf()}
+
+	// What products' workspaces are given beyond their prices (#43): an
+	// operator's, through the server with no wall, as them.
+	s.Allowances = benefits.Allowances{S: ungated, Drv: drv, Dialect: dialect, Now: clock}
 	s.Spin = append(s.Spin, grants.Renewals(&s.Grants, c.Grants.RenewEvery()))
 
 	// Who pays (#4): through the server with no wall for the deployment's

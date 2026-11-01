@@ -68,6 +68,34 @@ message Usage {
   // What it comes to, in the currency's minor unit: every line's amount
   // added, exactly, and rounded once, down.
   int64 total = 7;
+
+  // What the workspace is given on top of what its prices include, of each
+  // allowance in force at any moment of the period, by when each begins:
+  // what each line's `allowance` is of.
+  repeated Allowance allowances = 8;
+}
+
+// Allowance is more of a meter a workspace is given for nothing each period,
+// on top of what its prices include -- "자산 무료량 +500, 2027년 4월까지" --
+// which an operator gives it. It is the workspace's whoever pays for it, a
+// workspace whose prices include nothing of their own (none of its payer's
+// first few) is given it all the same, and a price changed changes nothing
+// of it. A period's line of its meter is given its share of the period: one
+// in force for a third of the period gives a third of its quantity.
+message Allowance {
+  // Its identifier, as text: what a line's part names it by.
+  string id = 1;
+
+  // The meter it gives more of, by its key.
+  string meter = 2;
+
+  // How much more each period includes, in the meter's unit.
+  int64 quantity = 3;
+
+  // In force from `from`, and until `until` when it says one: unset is
+  // until an operator ends it.
+  google.protobuf.Timestamp from = 4;
+  google.protobuf.Timestamp until = 5;
 }
 
 // Period is one period of a product's billing: a calendar month in its zone.
@@ -150,7 +178,9 @@ message Line {
   string usage = 5;
 
   // What was included for nothing, and what is billable past it, each part
-  // weighed by its share of the period.
+  // weighed by its share of the period. What was included is what the prices
+  // include and what the workspace's allowances give (`allowance`)
+  // together.
   string included = 6;
   string billable = 7;
 
@@ -168,6 +198,11 @@ message Line {
   // currency the line is priced on while it had one on another: what came to
   // nothing for want of a price, and not because the meter is free there.
   repeated Stretch unpriced = 11;
+
+  // What of `included` the workspace's allowances gave on top of what its
+  // prices include, each part weighed by its share of the period: "프로모션
+  // 무료량 +500". Zero when none was in force.
+  string allowance = 12;
 }
 
 // Stretch is a stretch of time, from `from` to the moment before `to`.
@@ -206,6 +241,13 @@ message LinePart {
 
   // By bands: the time spent in each.
   repeated BandShare bands = 8;
+
+  // By the unit: what the workspace's allowances in force through the
+  // stretch give on top of what the version includes, and which they are
+  // (`Allowance.id`). What is billable is past the two. A stretch is cut
+  // where an allowance begins or ends, as it is where a version does.
+  int64 allowance = 9;
+  repeated string allowances = 10;
 }
 
 // BandShare is the time a stretch's value spent in one band.

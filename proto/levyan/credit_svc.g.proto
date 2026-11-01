@@ -6,7 +6,9 @@ import "levyan/billing_account_svc.g.proto";
 import "levyan/credit.proto";
 import "levyan/credit_note_svc.g.proto";
 import "levyan/invoice_svc.g.proto";
+import "levyan/operator_svc.g.proto";
 import "levyan/payday/tenant_svc.g.proto";
+import "levyan/workspace_svc.g.proto";
 
 option go_package = "github.com/lesomnus/levyan";
 
@@ -29,6 +31,11 @@ message CreditAddRequest {
   InvoiceRef invoice = 12;
   CreditNoteRef credit_note = 16;
   google.protobuf.Timestamp date_created = 15;
+  WorkspaceRef workspace = 17;
+  bytes lot = 18;
+  google.protobuf.Timestamp date_expires = 19;
+  string reason = 20;
+  OperatorRef operator = 21;
 }
 
 message CreditGetRequest {
@@ -53,6 +60,11 @@ message CreditSelect {
   CreditNoteSelect credit_note = 16;
   bool date_erased = 14;
   bool date_created = 15;
+  WorkspaceSelect workspace = 17;
+  bool lot = 18;
+  bool date_expires = 19;
+  bool reason = 20;
+  OperatorSelect operator = 21;
 }
 
 message CreditListRequest {

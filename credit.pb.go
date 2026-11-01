@@ -35,10 +35,16 @@ const (
 	CreditKind_CREDIT_KIND_CREDIT_NOTE CreditKind = 2
 	// Owed: what was paid past what was due.
 	CreditKind_CREDIT_KIND_OVERPAID CreditKind = 3
-	// Taken: what of an invoice the balance paid.
+	// Taken: what of an invoice the balance -- or a lot -- paid.
 	CreditKind_CREDIT_KIND_APPLIED CreditKind = 4
-	// Owed again: what the balance paid of an invoice that was then voided.
+	// Owed again: what the balance paid of an invoice that was then voided --
+	// or what a lot paid of one a credit note took back, back to the lot.
 	CreditKind_CREDIT_KIND_RETURNED CreditKind = 5
+	// Owed: a lot an operator granted, with its expiry (#43).
+	CreditKind_CREDIT_KIND_GRANTED CreditKind = 6
+	// Taken: what was left of a lot as it expired, or as an operator ended
+	// it, so that what it was granted is accounted for (#43).
+	CreditKind_CREDIT_KIND_EXPIRED CreditKind = 7
 )
 
 // Enum value maps for CreditKind.
@@ -50,6 +56,8 @@ var (
 		3: "CREDIT_KIND_OVERPAID",
 		4: "CREDIT_KIND_APPLIED",
 		5: "CREDIT_KIND_RETURNED",
+		6: "CREDIT_KIND_GRANTED",
+		7: "CREDIT_KIND_EXPIRED",
 	}
 	CreditKind_value = map[string]int32{
 		"CREDIT_KIND_UNSPECIFIED": 0,
@@ -58,6 +66,8 @@ var (
 		"CREDIT_KIND_OVERPAID":    3,
 		"CREDIT_KIND_APPLIED":     4,
 		"CREDIT_KIND_RETURNED":    5,
+		"CREDIT_KIND_GRANTED":     6,
+		"CREDIT_KIND_EXPIRED":     7,
 	}
 )
 
@@ -92,7 +102,21 @@ func (x CreditKind) Number() protoreflect.EnumNumber {
 // outweigh what was used), a credit note that takes back more than is due and
 // gives nothing back through the channel, or a transfer of more than was due;
 // and it goes to the invoices it pays, or back to an invoice voided. The
-// balance is what its movements add up to, never less than nothing.
+// balance is what these movements add up to, never less than nothing.
+//
+// And it comes from an operator, who grants it (#43): money taken off what
+// is billed, with a reason and an expiry, to a billing account or to one
+// workspace of the product -- what a promotion or a contract gives. That the
+// owner wants it is the owner's (2026-11-01); its shape -- an expiry always,
+// a year unless said, the workspace's or the whole billing account's, the
+// soonest to expire spent first -- is Claude's proposal, which the owner had
+// carried out ("진행해줘"). Each grant is a lot of its own (`lot`, its own
+// identifier), apart from the balance: what is spent of it, what comes back
+// to it, and what is left of it as it expires are movements naming it, and
+// what is left of it is what they add up to. A lot of a workspace's names no
+// billing account: it pays that workspace's lines on whichever billing
+// account's invoice they are, so a payer changed keeps it for the workspace.
+// The balance is the movements that name no lot.
 //
 // Written once and never changed: every field is immutable, and there is no
 // Patch and no Erase.
@@ -108,6 +132,11 @@ type Credit struct {
 	xxx_hidden_CreditNote     *CreditNote            `protobuf:"bytes,16,opt,name=credit_note,json=creditNote"`
 	xxx_hidden_DateErased     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
 	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Workspace      *Workspace             `protobuf:"bytes,17,opt,name=workspace"`
+	xxx_hidden_Lot            []byte                 `protobuf:"bytes,18,opt,name=lot"`
+	xxx_hidden_DateExpires    *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason         string                 `protobuf:"bytes,20,opt,name=reason"`
+	xxx_hidden_Operator       *Operator              `protobuf:"bytes,21,opt,name=operator"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -207,6 +236,41 @@ func (x *Credit) GetDateCreated() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Credit) GetWorkspace() *Workspace {
+	if x != nil {
+		return x.xxx_hidden_Workspace
+	}
+	return nil
+}
+
+func (x *Credit) GetLot() []byte {
+	if x != nil {
+		return x.xxx_hidden_Lot
+	}
+	return nil
+}
+
+func (x *Credit) GetDateExpires() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_DateExpires
+	}
+	return nil
+}
+
+func (x *Credit) GetReason() string {
+	if x != nil {
+		return x.xxx_hidden_Reason
+	}
+	return ""
+}
+
+func (x *Credit) GetOperator() *Operator {
+	if x != nil {
+		return x.xxx_hidden_Operator
+	}
+	return nil
+}
+
 func (x *Credit) SetId(v []byte) {
 	if v == nil {
 		v = []byte{}
@@ -248,6 +312,29 @@ func (x *Credit) SetDateErased(v *timestamppb.Timestamp) {
 
 func (x *Credit) SetDateCreated(v *timestamppb.Timestamp) {
 	x.xxx_hidden_DateCreated = v
+}
+
+func (x *Credit) SetWorkspace(v *Workspace) {
+	x.xxx_hidden_Workspace = v
+}
+
+func (x *Credit) SetLot(v []byte) {
+	if v == nil {
+		v = []byte{}
+	}
+	x.xxx_hidden_Lot = v
+}
+
+func (x *Credit) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
+}
+
+func (x *Credit) SetReason(v string) {
+	x.xxx_hidden_Reason = v
+}
+
+func (x *Credit) SetOperator(v *Operator) {
+	x.xxx_hidden_Operator = v
 }
 
 func (x *Credit) HasTenant() bool {
@@ -292,6 +379,27 @@ func (x *Credit) HasDateCreated() bool {
 	return x.xxx_hidden_DateCreated != nil
 }
 
+func (x *Credit) HasWorkspace() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Workspace != nil
+}
+
+func (x *Credit) HasDateExpires() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_DateExpires != nil
+}
+
+func (x *Credit) HasOperator() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Operator != nil
+}
+
 func (x *Credit) ClearTenant() {
 	x.xxx_hidden_Tenant = nil
 }
@@ -316,13 +424,29 @@ func (x *Credit) ClearDateCreated() {
 	x.xxx_hidden_DateCreated = nil
 }
 
+func (x *Credit) ClearWorkspace() {
+	x.xxx_hidden_Workspace = nil
+}
+
+func (x *Credit) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
+}
+
+func (x *Credit) ClearOperator() {
+	x.xxx_hidden_Operator = nil
+}
+
 type Credit_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Id []byte
 	// The product it is owed in.
 	Tenant *Tenant
-	// The billing account it is owed to.
+	// The billing account it is owed to, or whose invoice it paid or came
+	// back from. Unset on a workspace's lot as it is granted and as it
+	// expires, which is no billing account's.
+	//
+	// May be NULL since #43, so that a column which had rows could become so.
 	BillingAccount *BillingAccount
 	// How much it moves the balance, in the currency's minor unit: more than
 	// nothing owed, less than nothing taken off an invoice.
@@ -335,6 +459,23 @@ type Credit_builder struct {
 	// Never stamped: there is no Erase.
 	DateErased  *timestamppb.Timestamp
 	DateCreated *timestamppb.Timestamp
+	// For a lot granted to one workspace: the workspace, whose lines alone it
+	// pays. Unset on every other movement.
+	Workspace *Workspace
+	// The lot it is a movement of: a grant's own identifier on the grant, and
+	// that grant's on what is spent of it, comes back to it and expires of it.
+	// Unset on every movement of the balance.
+	Lot []byte
+	// When a lot expires, which every grant says: nothing of it is spent from
+	// then on, and what is left of it is taken (`CREDIT_KIND_EXPIRED`). Unset
+	// on every other movement.
+	DateExpires *timestamppb.Timestamp
+	// Why an operator granted it, or ended it before it expired, in their
+	// words; empty on what nobody wrote by hand.
+	Reason string
+	// The operator who granted it, or ended it before it expired; unset on
+	// what nobody wrote by hand.
+	Operator *Operator
 }
 
 func (b0 Credit_builder) Build() *Credit {
@@ -351,6 +492,11 @@ func (b0 Credit_builder) Build() *Credit {
 	x.xxx_hidden_CreditNote = b.CreditNote
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
+	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_Lot = b.Lot
+	x.xxx_hidden_DateExpires = b.DateExpires
+	x.xxx_hidden_Reason = b.Reason
+	x.xxx_hidden_Operator = b.Operator
 	return m0
 }
 
@@ -358,11 +504,11 @@ var File_levyan_credit_proto protoreflect.FileDescriptor
 
 const file_levyan_credit_proto_rawDesc = "" +
 	"\n" +
-	"\x13levyan/credit.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x18levyan/credit_note.proto\x1a\x14levyan/invoice.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xde\x05\n" +
+	"\x13levyan/credit.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x18levyan/credit_note.proto\x1a\x14levyan/invoice.proto\x1a\x15levyan/operator.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x8c\b\n" +
 	"\x06Credit\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
-	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12G\n" +
-	"\x0fbilling_account\x18\b \x01(\v2\x16.levyan.BillingAccountB\x06\xf2\x82\x16\x02@\x01R\x0ebillingAccount\x12\x1e\n" +
+	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12I\n" +
+	"\x0fbilling_account\x18\b \x01(\v2\x16.levyan.BillingAccountB\b\xf2\x82\x16\x048\x01@\x01R\x0ebillingAccount\x12\x1e\n" +
 	"\x06amount\x18\t \x01(\x03B\x06\xea\x82\x16\x02@\x01R\x06amount\x12(\n" +
 	"\bcurrency\x18\n" +
 	" \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x00R\bcurrency\x12.\n" +
@@ -372,7 +518,12 @@ const file_levyan_credit_proto_rawDesc = "" +
 	"creditNote\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\xbf\x01\xca\xfc\x15z\x12\f\x10\x01\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated\x129\n" +
+	"\tworkspace\x18\x11 \x01(\v2\x11.levyan.WorkspaceB\b\xf2\x82\x16\x048\x01@\x01R\tworkspace\x12\"\n" +
+	"\x03lot\x18\x12 \x01(\fB\x10\xea\x82\x16\x06\x10@8\x01@\x01\xaa\xc1\x16\x02\x18\x00R\x03lot\x12G\n" +
+	"\fdate_expires\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampB\b\xea\x82\x16\x048\x01@\x01R\vdateExpires\x12'\n" +
+	"\x06reason\x18\x14 \x01(\tB\x0f\xea\x82\x16\x05@\x01\x82\x01\x00\xaa\xc1\x16\x02\x18\x01R\x06reason\x126\n" +
+	"\boperator\x18\x15 \x01(\v2\x10.levyan.OperatorB\b\xf2\x82\x16\x048\x01@\x01R\boperator:\xe2\x01\xca\xfc\x15\x9c\x01\x12\f\x10\x01\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
@@ -380,6 +531,8 @@ const file_levyan_credit_proto_rawDesc = "" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x13\n" +
 	"\x0fbilling_account\x10\b\x1a\x10\n" +
+	"\fdate_created\x10\x0f\x1a \x12\x03lot\x1a\a\n" +
+	"\x03lot\x10\x12\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x8a\xbb\x16=\b\x1b29\n" +
 	"\x10\n" +
 	"\x0e\n" +
@@ -388,7 +541,7 @@ const file_levyan_credit_proto_rawDesc = "" +
 	"\x04\n" +
 	"\x02id\x1a\x05\n" +
 	"\x03ref\x1a\x11\n" +
-	"\x0fbilling_account 2(\xc8\x01*\xad\x01\n" +
+	"\x0fbilling_account 2(\xc8\x01*\xdf\x01\n" +
 	"\n" +
 	"CreditKind\x12\x1b\n" +
 	"\x17CREDIT_KIND_UNSPECIFIED\x10\x00\x12\x18\n" +
@@ -396,7 +549,9 @@ const file_levyan_credit_proto_rawDesc = "" +
 	"\x17CREDIT_KIND_CREDIT_NOTE\x10\x02\x12\x18\n" +
 	"\x14CREDIT_KIND_OVERPAID\x10\x03\x12\x17\n" +
 	"\x13CREDIT_KIND_APPLIED\x10\x04\x12\x18\n" +
-	"\x14CREDIT_KIND_RETURNED\x10\x05B!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
+	"\x14CREDIT_KIND_RETURNED\x10\x05\x12\x17\n" +
+	"\x13CREDIT_KIND_GRANTED\x10\x06\x12\x17\n" +
+	"\x13CREDIT_KIND_EXPIRED\x10\aB!Z\x1agithub.com/lesomnus/levyan\x92\x03\x02\b\x02b\beditionsp\xe8\a"
 
 var file_levyan_credit_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_levyan_credit_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
@@ -408,20 +563,25 @@ var file_levyan_credit_proto_goTypes = []any{
 	(*Invoice)(nil),               // 4: levyan.Invoice
 	(*CreditNote)(nil),            // 5: levyan.CreditNote
 	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
+	(*Workspace)(nil),             // 7: levyan.Workspace
+	(*Operator)(nil),              // 8: levyan.Operator
 }
 var file_levyan_credit_proto_depIdxs = []int32{
-	2, // 0: levyan.Credit.tenant:type_name -> levyan.Tenant
-	3, // 1: levyan.Credit.billing_account:type_name -> levyan.BillingAccount
-	0, // 2: levyan.Credit.kind:type_name -> levyan.CreditKind
-	4, // 3: levyan.Credit.invoice:type_name -> levyan.Invoice
-	5, // 4: levyan.Credit.credit_note:type_name -> levyan.CreditNote
-	6, // 5: levyan.Credit.date_erased:type_name -> google.protobuf.Timestamp
-	6, // 6: levyan.Credit.date_created:type_name -> google.protobuf.Timestamp
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	2,  // 0: levyan.Credit.tenant:type_name -> levyan.Tenant
+	3,  // 1: levyan.Credit.billing_account:type_name -> levyan.BillingAccount
+	0,  // 2: levyan.Credit.kind:type_name -> levyan.CreditKind
+	4,  // 3: levyan.Credit.invoice:type_name -> levyan.Invoice
+	5,  // 4: levyan.Credit.credit_note:type_name -> levyan.CreditNote
+	6,  // 5: levyan.Credit.date_erased:type_name -> google.protobuf.Timestamp
+	6,  // 6: levyan.Credit.date_created:type_name -> google.protobuf.Timestamp
+	7,  // 7: levyan.Credit.workspace:type_name -> levyan.Workspace
+	6,  // 8: levyan.Credit.date_expires:type_name -> google.protobuf.Timestamp
+	8,  // 9: levyan.Credit.operator:type_name -> levyan.Operator
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_levyan_credit_proto_init() }
@@ -432,7 +592,9 @@ func file_levyan_credit_proto_init() {
 	file_levyan_billing_account_proto_init()
 	file_levyan_credit_note_proto_init()
 	file_levyan_invoice_proto_init()
+	file_levyan_operator_proto_init()
 	file_levyan_payday_tenant_proto_init()
+	file_levyan_workspace_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -44,11 +44,32 @@
 //     all of what they include, as for a workspace that began during the
 //     period. A workspace away for the whole of a period is billed nothing
 //     for it.
+//
+// And levyan#43's -- that the owner wants a workspace given more of a meter
+// for nothing is the owner's (2026-11-01); how it is rated is Claude's
+// proposal, which the owner had carried out, and how it is prorated is the
+// implementation's:
+//
+//   - An allowance a workspace is given ([Allowance]) is added to what the
+//     version in force includes, for the stretch of the period it is in
+//     force: a part of the period priced by the unit is cut again where an
+//     allowance begins or ends, as the period is cut where a version does,
+//     and each piece is charged by its share of the time the workspace was a
+//     customer -- so one in force for a third of the period gives a third of
+//     what it gives, and one in force for all of the time a workspace that
+//     began during the period was a customer gives all of it, as what a
+//     price includes is not prorated for that workspace either. What it
+//     gives is the workspace's whatever it is rated by: a workspace rated
+//     from the first unit is given it all the same, and a version published
+//     during it changes nothing of it. It never makes what is billable less
+//     than nothing, and a price by bands, which includes nothing, is given
+//     nothing by it.
 package rating
 
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"slices"
 	"time"
@@ -72,7 +93,10 @@ import (
 // (the owner's, 2026-11-01): away is only what is closed still, or ended in a
 // destruction, and what follows a destruction. A workspace never restored
 // comes to what it came to by 2.
-const Version = 3
+//
+// 4 is a workspace's allowances added to what its prices include (#43). A
+// workspace given none comes to what it came to by 3.
+const Version = 4
 
 // Meter is a meter as it is rated.
 type Meter struct {
@@ -114,9 +138,12 @@ type Line struct {
 
 	// Included and Billable are what the parts priced by the unit included
 	// and found billable, each weighed by its share; a price by bands has
-	// neither, and its bands say what it came to.
-	Included *big.Rat
-	Billable *big.Rat
+	// neither, and its bands say what it came to. What was included is what
+	// the versions included and what the workspace's allowances gave
+	// together, and Allowance is the second of the two.
+	Included  *big.Rat
+	Billable  *big.Rat
+	Allowance *big.Rat
 
 	// Amount is what it comes to in the currency's minor unit, exactly.
 	Amount *big.Rat
@@ -138,7 +165,8 @@ type Line struct {
 // Stretch is a stretch of time, [From, To).
 type Stretch = usage.Stretch
 
-// Part is one stretch of a period priced by one version.
+// Part is one stretch of a period priced by one version, with the same
+// allowances in force through it.
 type Part struct {
 	Version pdid.Id
 	From    time.Time
@@ -147,9 +175,13 @@ type Part struct {
 	// Share is what of the period the part is charged by.
 	Share *big.Rat
 
-	// By the unit: what the version includes, and what was billable past it.
-	Included int64
-	Billable *big.Rat
+	// By the unit: what the version includes, what the workspace's
+	// allowances in force through the part gave on top of it, and which,
+	// and what was billable past the two.
+	Included   int64
+	Allowance  int64
+	Allowances []pdid.Id
+	Billable   *big.Rat
 
 	// By bands: the time spent in each.
 	Bands []Band
@@ -222,6 +254,25 @@ func shares(hs []usage.Held, from, to time.Time, p Period) pricing.Usage {
 type Customer struct {
 	Since time.Time
 	Away  []Stretch
+
+	// Allowances are what the workspace was given of the meter being rated
+	// on top of what its prices include (#43), in any order.
+	Allowances []Allowance
+}
+
+// Allowance is more of a meter a workspace was given for nothing each
+// period, on top of what its prices include (#43): Quantity, in the meter's
+// unit, from From until Until -- which is never, when it is zero.
+type Allowance struct {
+	Id       pdid.Id
+	Quantity int64
+	From     time.Time
+	Until    time.Time
+}
+
+// in says whether `a` is in force at `t`.
+func (a Allowance) in(t time.Time) bool {
+	return !t.Before(a.From) && (a.Until.IsZero() || t.Before(a.Until))
 }
 
 // Rate is what `u` of meter `m` comes to over `p`, under the line of `book` a
@@ -234,11 +285,12 @@ type Customer struct {
 // customer in.
 func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, c Customer) (Line, error) {
 	out := Line{
-		Meter:    m,
-		Quantity: Quantity(m, u, p),
-		Included: new(big.Rat),
-		Billable: new(big.Rat),
-		Amount:   new(big.Rat),
+		Meter:     m,
+		Quantity:  Quantity(m, u, p),
+		Included:  new(big.Rat),
+		Billable:  new(big.Rat),
+		Allowance: new(big.Rat),
+		Amount:    new(big.Rat),
 	}
 	if !p.Start.Before(p.End) {
 		return out, nil
@@ -275,40 +327,138 @@ func Rate(m Meter, u Usage, p Period, book pricing.Book, line pricing.Line, c Cu
 			continue
 		}
 
-		// The part's share of the time the workspace was a customer in the
-		// period: its whole usage, at this part's version, for that share.
-		w := new(big.Rat).Quo(usage.Length(usage.Open(latest(s.From, since), s.To, c.Away)), customer)
-		if w.Sign() == 0 {
+		pu, ok := v.Rate.(pricing.PerUnit)
+		if !ok {
+			// By bands, of a flow: the whole of what it counted, at the band
+			// of it, for the part's share. Nothing included, and nothing
+			// given on top.
+			w := new(big.Rat).Quo(usage.Length(usage.Open(latest(s.From, since), s.To, c.Away)), customer)
+			if w.Sign() == 0 {
+				continue
+			}
+			exact, err := v.Exact(unit)
+			if err != nil {
+				return Line{}, fmt.Errorf("rating: %s: %w", m.Key, err)
+			}
+			part := Part{Version: v.Id, From: s.From, To: s.To, Share: w, Billable: new(big.Rat), Amount: new(big.Rat).Mul(exact, w)}
+			out.Parts = append(out.Parts, part)
+			out.Amount.Add(out.Amount, part.Amount)
 			continue
 		}
-		exact, err := v.Exact(unit)
-		if err != nil {
-			return Line{}, fmt.Errorf("rating: %s: %w", m.Key, err)
-		}
 
-		part := Part{
-			Version:  v.Id,
-			From:     s.From,
-			To:       s.To,
-			Share:    w,
-			Billable: new(big.Rat),
-			Amount:   new(big.Rat).Mul(exact, w),
-		}
-		if pu, ok := v.Rate.(pricing.PerUnit); ok {
-			part.Included = pu.Included
-			part.Billable.Sub(out.Quantity, new(big.Rat).SetInt64(pu.Included))
+		// By the unit, cut again where an allowance begins or ends: each
+		// piece's share of the time the workspace was a customer in the
+		// period, its whole usage at this part's version with what the
+		// allowances in force through the piece give added to what the
+		// version includes, for that share.
+		for _, piece := range pieces(s.From, s.To, c.Allowances) {
+			w := new(big.Rat).Quo(usage.Length(usage.Open(latest(piece.From, since), piece.To, c.Away)), customer)
+			if w.Sign() == 0 {
+				continue
+			}
+			given, ids, err := allowed(c.Allowances, piece.From)
+			if err != nil {
+				return Line{}, fmt.Errorf("rating: %s: %w", m.Key, err)
+			}
+			with := v
+			if given > 0 {
+				if pu.Included > math.MaxInt64-given {
+					return Line{}, fmt.Errorf("rating: %s: %w", m.Key, ErrTooMuch)
+				}
+				r := pu
+				r.Included += given
+				with.Rate = r
+			}
+			exact, err := with.Exact(unit)
+			if err != nil {
+				return Line{}, fmt.Errorf("rating: %s: %w", m.Key, err)
+			}
+
+			part := Part{
+				Version:    v.Id,
+				From:       piece.From,
+				To:         piece.To,
+				Share:      w,
+				Included:   pu.Included,
+				Allowance:  given,
+				Allowances: ids,
+				Billable:   new(big.Rat).Sub(out.Quantity, new(big.Rat).SetInt64(pu.Included+given)),
+				Amount:     new(big.Rat).Mul(exact, w),
+			}
 			if part.Billable.Sign() < 0 {
 				part.Billable.SetInt64(0)
 			}
-			out.Included.Add(out.Included, new(big.Rat).Mul(new(big.Rat).SetInt64(pu.Included), w))
+			out.Included.Add(out.Included, new(big.Rat).Mul(new(big.Rat).SetInt64(pu.Included+given), w))
+			out.Allowance.Add(out.Allowance, new(big.Rat).Mul(new(big.Rat).SetInt64(given), w))
 			out.Billable.Add(out.Billable, new(big.Rat).Mul(part.Billable, w))
+			out.Parts = append(out.Parts, part)
+			out.Amount.Add(out.Amount, part.Amount)
 		}
-
-		out.Parts = append(out.Parts, part)
-		out.Amount.Add(out.Amount, part.Amount)
 	}
 
 	return out, nil
+}
+
+// pieces is [from, to) cut where one of `as` begins or ends inside it: the
+// stretches through which the same allowances are in force, one after
+// another. With none that begins or ends inside it, it is the one stretch.
+func pieces(from, to time.Time, as []Allowance) []Stretch {
+	cuts := []time.Time{from}
+	cut := func(t time.Time) {
+		if t.After(from) && t.Before(to) {
+			cuts = append(cuts, t)
+		}
+	}
+	for _, a := range as {
+		cut(a.From)
+		if !a.Until.IsZero() {
+			cut(a.Until)
+		}
+	}
+	slices.SortFunc(cuts, time.Time.Compare)
+	cuts = slices.CompactFunc(cuts, time.Time.Equal)
+
+	out := make([]Stretch, 0, len(cuts))
+	for i, at := range cuts {
+		end := to
+		if i+1 < len(cuts) {
+			end = cuts[i+1]
+		}
+		out = append(out, Stretch{From: at, To: end})
+	}
+
+	return out
+}
+
+// allowed is what the allowances of `as` in force at `at` give together, and
+// which they are, by when they begin and then by their identifiers.
+func allowed(as []Allowance, at time.Time) (int64, []pdid.Id, error) {
+	in := []Allowance{}
+	for _, a := range as {
+		if a.Quantity > 0 && a.in(at) {
+			in = append(in, a)
+		}
+	}
+	slices.SortFunc(in, func(a, b Allowance) int {
+		if c := a.From.Compare(b.From); c != 0 {
+			return c
+		}
+		return slices.Compare(a.Id[:], b.Id[:])
+	})
+
+	var (
+		given int64
+		ids   []pdid.Id
+	)
+	for _, a := range in {
+		if given > math.MaxInt64-a.Quantity {
+			return 0, nil, ErrTooMuch
+		}
+		given += a.Quantity
+		ids = append(ids, a.Id)
+	}
+
+	return given, ids, nil
 }
 
 // elsewhere is what of [from, to) a version of `line`'s meter was in force
@@ -407,7 +557,8 @@ func bandKey(b pricing.Band) int {
 	return int(b.UpTo)
 }
 
-// ErrTooMuch is a total past what an int64 of minor units holds.
+// ErrTooMuch is a total past what an int64 of minor units holds -- or what a
+// version includes and allowances give past what an int64 of a meter holds.
 var ErrTooMuch = errors.New("rating: the total is more than an amount holds")
 
 // Total is amounts added exactly, and that rounded once, down, to a whole

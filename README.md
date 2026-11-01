@@ -253,7 +253,7 @@ payers:
 
 결제 계정의 채널과 통화는 그 나라로, 결제 계정을 만들 때 `payers.channels`가 정한다. 국내 PG로 팔려면 `KR: {channel: PG_KR, currency: KRW}`다. 지도를 바꿔도 이미 있는 결제 계정은 그대로다. 옮기는 것은 기간 경계의 채널 전환이고, 아직 없다. 잘못 적은 지도(소문자 나라, 없는 채널, levyan이 받지 않는 통화)로는 뜨지 않는다.
 
-지불자는 자기 결제 계정의 청구서와 정정 청구를 같은 방식으로 읽는다(`ListInvoices`, `GetInvoice`, `ListCreditNotes`). 대신 부르는 제품의 청구서만 보이고, 확정한 것만 보인다. 제품은 `Arrive`의 `label`로 워크스페이스의 이름을 알려 준다. 청구서의 줄이 그 이름으로 워크스페이스를 부른다.
+지불자는 자기 결제 계정의 청구서와 정정 청구를 같은 방식으로 읽는다(`ListInvoices`, `GetInvoice`, `ListCreditNotes`). 대신 부르는 제품의 청구서만 보이고, 확정한 것만 보인다. 제품은 `Arrive`의 `label`로 워크스페이스의 이름을 알려 준다. 청구서의 줄이 그 이름으로 워크스페이스를 부른다. 줄마다의 내역(미터마다 사용량, 무료량, 사용량 크레딧, 금액)도 지불자로서 읽는다(`ListStatements`, `GetStatement`, #47). 그 결제 계정이 그 기간에 낸 워크스페이스의 내역이라서, 지불자가 바뀌기 전의 기간은 그때 내던 지불자에게만 보인다.
 
 levyan의 role에는 roster `standing.Methods`(`HolderService/Get`, `SyncService/Watch`, `EmailService/List`, `EmailService/Get`)가 있어야 한다(roster `docs/relying-app.md`). roster가 계정이 정지되거나 지워졌다고 하면 그 계정이 내던 워크스페이스는 기간 끝부터 지불자가 없다. 지워진 계정은 roster에 그 사람이 더 없을 때 결제 계정의 개인정보를 지운다. 사업자 정보 중 세금계산서에 필요한 것은 남긴다.
 

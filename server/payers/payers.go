@@ -85,7 +85,9 @@ type Payers struct {
 	// Payerless is the policy table's row of a workspace with no payer
 	// (`dunning.kinds.payerless`, #11): how long it may go with none before
 	// it is restricted -- thirty days by default, as `payers.grace` was
-	// (Claude's, #4) -- or that it is restricted at once.
+	// (Claude's, #4; the owner's default since 2026-11-01) -- or that it is
+	// restricted at once, and how long before it is read-only: sixty days by
+	// default.
 	Payerless dunning.Row
 }
 
@@ -245,9 +247,11 @@ type State struct {
 
 	// Since is when the workspace last had a payer, when it has none now and
 	// none from the end of the period; zero otherwise, and for a workspace
-	// that never had one. Restricted is when it is restricted for that.
+	// that never had one. Restricted is when it is restricted for that, and
+	// Readonly when it is read-only for it, the second stage.
 	Since      time.Time
 	Restricted time.Time
+	Readonly   time.Time
 }
 
 // Payerless is whether the workspace has no payer, now or next.
@@ -297,6 +301,7 @@ func (p Payers) state(ctx context.Context, db *ent.Client, product uuid.UUID, ke
 		}
 		if !out.Since.IsZero() {
 			out.Restricted = p.Payerless.Restricts(out.Since)
+			out.Readonly = p.Payerless.Readonly(out.Since)
 		}
 	}
 

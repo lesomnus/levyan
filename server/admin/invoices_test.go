@@ -213,9 +213,9 @@ func TestAnOperatorSeesAShadow(t *testing.T) {
 }
 
 // An operator sees what is done of an invoice whose charge failed (#11): the
-// kind of its decline, when it failed, when it is charged next and when its
-// grace ends and what it bills is restricted -- and, given up on, the
-// invoice uncollectible with no retry left.
+// kind of its decline, when it failed, when it is charged next, when its
+// grace ends and what it bills is restricted, and when that is read-only --
+// and, given up on, the invoice uncollectible with no retry left.
 func TestAnOperatorSeesWhatIsDoneOfAnInvoiceWhoseChargeFailed(t *testing.T) {
 	d := open(t, map[string]string{"alice": aliceKey})
 	x := d.w.X
@@ -258,10 +258,11 @@ func TestAnOperatorSeesWhatIsDoneOfAnInvoiceWhoseChargeFailed(t *testing.T) {
 	x.True(failed.Equal(got.Dunning.Failed))
 	x.NotNil(got.Dunning.NextRetry)
 	x.True(failed.AddDate(0, 0, 1).Equal(*got.Dunning.NextRetry), "a day after")
-	x.True(failed.AddDate(0, 0, 7).Equal(got.Dunning.GraceEnds))
-	x.True(failed.AddDate(0, 0, 7).Equal(got.Dunning.RestrictedFrom))
+	x.True(failed.AddDate(0, 0, 14).Equal(got.Dunning.GraceEnds))
+	x.True(failed.AddDate(0, 0, 14).Equal(got.Dunning.RestrictedFrom))
+	x.True(failed.AddDate(0, 0, 60).Equal(got.Dunning.ReadonlyFrom))
 
-	for _, days := range []int{1, 3, 5, 7} {
+	for _, days := range []int{1, 3, 7, 14} {
 		ch.Then(invoicestest.Decline)
 		d.w.At(failed.AddDate(0, 0, days))
 		x.NoError(d.w.S.Invoices.Dun(context.Background(), &d.w.S.Grants))

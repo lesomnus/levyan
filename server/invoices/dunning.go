@@ -43,6 +43,10 @@ const (
 	// RestrictionRule is the name of the grants' rule an invoice still owed
 	// restricts what it bills by ([Restriction]).
 	RestrictionRule = "dunning"
+
+	// ReadonlyRule is the name of the grants' rule an invoice still owed long
+	// enough makes what it bills read-only by ([Readonly]): the second stage.
+	ReadonlyRule = "dunning.readonly"
 )
 
 // owed is the states of an invoice finalized and still owed: what dunning
@@ -248,23 +252,65 @@ var _ grants.Rule = Restriction{}
 func (Restriction) Name() string { return RestrictionRule }
 
 func (r Restriction) Want(ctx context.Context, db *ent.Client, product uuid.UUID, now time.Time) ([]grants.Want, error) {
+	return wants(ctx, db, r.Policy, product, now, grants.Restricted,
+		func(d Dunned) time.Time { return d.Restricted },
+		func(d Dunned) string {
+			return fmt.Sprintf("청구서 %s의 결제가 %s부터 실패했다", pdid.Id(d.Invoice.Id), d.Failed.UTC().Format(time.RFC3339))
+		})
+}
+
+// Readonly is the grants' rule `dunning.readonly`, the second stage of
+// [Restriction] (#11, the owner's, 2026-11-01; that it is a rule of its own
+// is Claude's): what an invoice still owed bills is read-only from when the
+// policy table says -- sixty days after its first failure, by default, and
+// never sooner than it is restricted -- for as long as it is owed:
+// `<product>.readonly` ON ([grants.Readonly]), the key a workspace nobody has
+// paid for long enough is made read-only by too. Paid, voided, or taken back
+// whole, it is owed no more, and its grants end with the restriction's. A
+// workspace destroyed is made read-only by nothing.
+//
+// It is followed as [Restriction] is: by the grants' loop, and by [DunLoop]
+// each pass, so that a payment lets go of both stages at once.
+type Readonly struct {
+	// Policy is the table.
+	Policy dunning.Policy
+}
+
+var _ grants.Rule = Readonly{}
+
+func (Readonly) Name() string { return ReadonlyRule }
+
+func (r Readonly) Want(ctx context.Context, db *ent.Client, product uuid.UUID, now time.Time) ([]grants.Want, error) {
+	return wants(ctx, db, r.Policy, product, now, grants.Readonly,
+		func(d Dunned) time.Time { return d.Readonly },
+		func(d Dunned) string {
+			return fmt.Sprintf("청구서 %s의 결제가 %s부터 실패했고, %s이 지났다", pdid.Id(d.Invoice.Id), d.Failed.UTC().Format(time.RFC3339), dunning.Korean(d.Readonly.Sub(d.Failed)))
+		})
+}
+
+// wants is the grant of `product`'s key `keyOf` that what each invoice in
+// dunning at `now` bills is wanted to have, from `from` of it on, `desc`
+// saying why: of every workspace of its lines but those destroyed, once, by
+// the invoice that came to want it first.
+func wants(ctx context.Context, db *ent.Client, p dunning.Policy, product uuid.UUID, now time.Time, keyOf func(string) (string, error), from func(Dunned) time.Time, desc func(Dunned) string) ([]grants.Want, error) {
 	t, err := db.Tenant.Get(ctx, product)
 	if err != nil {
 		return nil, err
 	}
-	key, err := grants.Restricted(t.Alias)
+	key, err := keyOf(t.Alias)
 	if err != nil {
 		return nil, err
 	}
 
-	ds, err := productDunning(ctx, db, r.Policy, product, now)
+	ds, err := productDunning(ctx, db, p, product, now)
 	if err != nil {
 		return nil, err
 	}
-	ds = slices.DeleteFunc(ds, func(d Dunned) bool { return now.Before(d.Restricted) })
+	ds = slices.DeleteFunc(ds, func(d Dunned) bool { return now.Before(from(d)) })
 	if len(ds) == 0 {
 		return nil, nil
 	}
+	slices.SortStableFunc(ds, func(a, b Dunned) int { return from(a).Compare(from(b)) })
 	ids := make([]uuid.UUID, len(ds))
 	for i, d := range ds {
 		ids[i] = d.Invoice.Id
@@ -299,7 +345,7 @@ func (r Restriction) Want(ctx context.Context, db *ent.Client, product uuid.UUID
 				Workspace: ws,
 				Key:       key,
 				Value:     entitle.On,
-				Desc:      fmt.Sprintf("청구서 %s의 결제가 %s부터 실패했다", pdid.Id(d.Invoice.Id), d.Failed.UTC().Format(time.RFC3339)),
+				Desc:      desc(d),
 			})
 		}
 	}
@@ -314,8 +360,8 @@ func (r Restriction) Want(ctx context.Context, db *ent.Client, product uuid.UUID
 // whose time has come, or a charge as its billing account is collectable
 // again -- and what has spent its retries and its grace is given up on,
 // uncollectible. Then, when `g` is given, what the table restricts is
-// restricted and what it no longer does is let go ([Restriction], through
-// `g`).
+// restricted, what it makes read-only is, and what it no longer does either
+// of is let go ([Restriction] and [Readonly], through `g`).
 //
 // Each invoice is decided again in a transaction of its own that holds its
 // billing account's row, as every write of its attempts does, so two passes
@@ -352,7 +398,7 @@ func (v Invoices) Dun(ctx context.Context, g *grants.Grants) error {
 	}
 
 	if g != nil {
-		if err := g.Follow(ctx, Restriction{Policy: v.Dunning}); err != nil {
+		if err := g.Follow(ctx, Restriction{Policy: v.Dunning}, Readonly{Policy: v.Dunning}); err != nil {
 			errs = append(errs, fmt.Errorf("restriction: %w", err))
 		}
 	}

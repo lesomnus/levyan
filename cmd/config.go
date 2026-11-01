@@ -662,25 +662,25 @@ type DunningConfig struct {
 
 	// Kinds is the table: a row for each kind of decline, and one for a
 	// workspace nobody pays for. What a row leaves out is its default
-	// (`internal/dunning.Defaults`, Claude's, provisional: the values are
-	// the owner's open question 3).
+	// (`internal/dunning.Defaults`, the owner's, 2026-11-01).
 	Kinds DunningKinds `yaml:"kinds"`
 }
 
 // DunningKinds is the policy table, by kind.
 type DunningKinds struct {
 	// Temporary is a decline that may go through later on the same method:
-	// tried again 1, 3 and 5 days after the first failure, with 7 days of
-	// grace, restricted after it.
+	// tried again 1, 3 and 7 days after the first failure, with 14 days of
+	// grace, restricted after it, and read-only 60 days after the failure.
 	Temporary DunningKind `yaml:"temporary"`
 
 	// Replace is a method that will not be charged as it is, or none: never
-	// tried again -- its payer is told at once, by the product -- with 7 days
-	// of grace, restricted after it.
+	// tried again -- its payer is told at once, by the product -- with 14
+	// days of grace, restricted after it, and read-only 60 days after the
+	// failure.
 	Replace DunningKind `yaml:"replace"`
 
 	// Fraud is a charge refused as suspected fraud: never tried again, no
-	// grace, restricted at once.
+	// grace, restricted at once, and read-only 60 days after the failure.
 	Fraud DunningKind `yaml:"fraud"`
 
 	// Other is a refusal that says no more, and a failure that is no
@@ -689,12 +689,31 @@ type DunningKinds struct {
 
 	// Payerless is a workspace nobody pays for: 30 days of grace from when it
 	// last had a payer, restricted after it -- what `payers.grace` said, and
-	// still the default. Nothing is charged of it, so it has no retries.
+	// still the default -- and read-only 60 days after it last had one.
+	// Nothing is charged of it, so it has no retries.
 	Payerless PayerlessKind `yaml:"payerless"`
 }
 
-// DunningKind is a row of the table: its retries, its grace and when it
-// restricts.
+// Validate refuses a row whose second stage comes sooner than its first,
+// once each row is what it comes to -- its defaults with what it says in
+// their place: what a row's own leaves are, they say themselves.
+func (k DunningKinds) Validate() error {
+	p, err := (DunningConfig{Kinds: k}).policy()
+	if err != nil {
+		// A leaf of it says what is wrong, where it is written.
+		return nil
+	}
+	for _, r := range p.Rows() {
+		if err := r.Row.Stages(); err != nil {
+			return fmt.Errorf("%s: %w", r.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// DunningKind is a row of the table: its retries, its grace, when it
+// restricts, and when it is read-only.
 type DunningKind struct {
 	// Retries are when an invoice is charged again, each a span from its
 	// first failed charge and each later than the one before: `[24h, 72h]`.
@@ -703,12 +722,19 @@ type DunningKind struct {
 
 	// Grace is how long after its first failure an invoice may go unpaid
 	// before it is restricted -- unless `restrict` says at once -- and given
-	// up on once no retry is left: `168h`. Unset is the row's default.
+	// up on once no retry is left: `336h`. Unset is the row's default.
 	Grace *Span `yaml:"grace"`
 
 	// Restrict is when what an unpaid invoice bills is restricted:
 	// `after_grace` or `at_once`. Unset is the row's default.
 	Restrict Restrict `yaml:"restrict"`
+
+	// ReadonlyAfter is how long after its first failure an invoice may go
+	// unpaid before what it bills is read-only, the second stage of its
+	// restriction (`<product>.readonly`): `1440h`, sixty days, when unset.
+	// Never sooner than the restriction: no shorter than the grace, unless
+	// `restrict` says at once.
+	ReadonlyAfter *Span `yaml:"readonly_after"`
 }
 
 // PayerlessKind is the table's row of a workspace nobody pays for.
@@ -719,6 +745,11 @@ type PayerlessKind struct {
 
 	// Restrict is `after_grace`, as when unset, or `at_once`.
 	Restrict Restrict `yaml:"restrict"`
+
+	// ReadonlyAfter is how long after it last had a payer a workspace may go
+	// with none before it is read-only: 1440h, sixty days, when unset. Never
+	// sooner than the restriction.
+	ReadonlyAfter *Span `yaml:"readonly_after"`
 }
 
 // Span is a stretch of time as a duration writes it, `72h`, and no less than
@@ -801,6 +832,9 @@ func (k DunningKind) over(row dunning.Row) (dunning.Row, error) {
 	if said {
 		row.AtOnce = atOnce
 	}
+	if k.ReadonlyAfter != nil {
+		row.ReadonlyAfter = time.Duration(*k.ReadonlyAfter)
+	}
 
 	return row, nil
 }
@@ -809,6 +843,20 @@ func (k DunningKind) over(row dunning.Row) (dunning.Row, error) {
 // it says in their place -- `other` over what `temporary` came to, being as
 // it is -- and refused when it says no schedule.
 func (c DunningConfig) Policy() (dunning.Policy, error) {
+	out, err := c.policy()
+	if err != nil {
+		return out, err
+	}
+	if err := out.Check(); err != nil {
+		return out, fmt.Errorf("kinds.%w", err)
+	}
+
+	return out, nil
+}
+
+// policy is the table this configuration says, each row's defaults with
+// what it says in their place, unchecked.
+func (c DunningConfig) policy() (dunning.Policy, error) {
 	out := dunning.Defaults()
 	var err error
 	for _, r := range []struct {
@@ -827,11 +875,8 @@ func (c DunningConfig) Policy() (dunning.Policy, error) {
 	if out.Other, err = c.Kinds.Other.over(out.Temporary); err != nil {
 		return out, fmt.Errorf("kinds.other: %w", err)
 	}
-	if out.Payerless, err = (DunningKind{Grace: c.Kinds.Payerless.Grace, Restrict: c.Kinds.Payerless.Restrict}).over(out.Payerless); err != nil {
+	if out.Payerless, err = (DunningKind{Grace: c.Kinds.Payerless.Grace, Restrict: c.Kinds.Payerless.Restrict, ReadonlyAfter: c.Kinds.Payerless.ReadonlyAfter}).over(out.Payerless); err != nil {
 		return out, fmt.Errorf("kinds.payerless: %w", err)
-	}
-	if err := out.Check(); err != nil {
-		return out, fmt.Errorf("kinds.%w", err)
 	}
 
 	return out, nil

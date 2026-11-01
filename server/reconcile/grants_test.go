@@ -1,6 +1,7 @@
 package reconcile_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -8,9 +9,11 @@ import (
 	"github.com/lesomnus/payday/pdid"
 
 	levyan "github.com/lesomnus/levyan"
+	"github.com/lesomnus/levyan/internal/ent"
 	entgrant "github.com/lesomnus/levyan/internal/ent/grant"
 	"github.com/lesomnus/levyan/internal/levyantest"
 	"github.com/lesomnus/levyan/server/grants"
+	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/payers"
 	"github.com/lesomnus/levyan/server/reconcile"
 )
@@ -133,8 +136,8 @@ func TestTheDunningRuleIsHeldToToo(t *testing.T) {
 	a := w.charges(inv)[0]
 	x.Equal(failed, a.State, "no subscription to charge: a method to give anew")
 
-	// The grace of a method to replace is a week, and no retry.
-	w.to(w.srv.Now().Add(7*24*time.Hour + time.Hour))
+	// The grace of a method to replace is a fortnight, and no retry.
+	w.to(w.srv.Now().Add(14*24*time.Hour + time.Hour))
 	x.NoError(w.S.Invoices.Dun(w.ctx, &w.S.Grants))
 	g, err := w.S.Ent.Grant.Query().Where(entgrant.Rule("dunning")).Only(w.ctx)
 	x.NoError(err)
@@ -178,4 +181,95 @@ func TestAGrantARuleDoesNotWantIsFound(t *testing.T) {
 	x.NoError(w.S.Reconciler.Rule(w.op, w.product, payers.RuleName))
 	w.reconcile()
 	w.nothing()
+}
+
+// The second stage of each restriction is held to as the first is (#11):
+// `dunning.readonly` makes what an unpaid invoice bills read-only sixty days
+// after its first failure, and `payers.readonly` a workspace nobody has paid
+// for sixty days after its last payer. A grant of either ended by somebody is
+// found missing once the rule has wanted it longer than the loops take to
+// give it, and one given past the rule is found left over; the operator
+// follows the rule again, by its name, and nothing is found.
+func TestTheReadonlyRulesAreHeldToToo(t *testing.T) {
+	w := setup(t)
+	x := w.X
+	day := 24 * time.Hour
+
+	owed, left := levyantest.Tenant(), levyantest.Tenant()
+	_, ba := w.payer(owed)
+	account, _ := w.payer(left)
+	w.month(on(1, 1), owed)
+	w.run()
+	inv := w.only(ba)
+	t0 := w.charges(inv)[0].DateResolved.UTC()
+	_, err := w.S.Payers.Leave(w.ctx, w.product, left, account)
+	x.NoError(err)
+	since := w.srv.Now()
+
+	// Sixty days on: each read-only, by its own rule, as the loops keep it.
+	w.to(latest(t0, since).Add(60*day + time.Hour))
+	x.NoError(w.S.Grants.Pass(w.ctx))
+	x.NoError(w.S.Invoices.Dun(w.ctx, &w.S.Grants))
+	by := map[string]*ent.Grant{}
+	vs, err := w.S.Ent.Grant.Query().Where(entgrant.Key("loft.readonly")).All(w.ctx)
+	x.NoError(err)
+	for _, v := range vs {
+		by[v.Rule] = v
+	}
+	x.Len(by, 2)
+	x.Contains(by, invoices.ReadonlyRule)
+	x.Contains(by, payers.ReadonlyRule)
+	w.reconcile()
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING))
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT))
+
+	// Ended by hand, past the servers: found missing, each of its rule.
+	for _, g := range by {
+		x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetValidUntil(w.srv.Now()).SetRenews(false).Exec(w.ctx))
+	}
+	w.to(w.srv.Now().Add(reconcile.Lag(time.Hour)))
+	w.reconcile()
+	fs := w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING)
+	x.Len(fs, 2)
+	rules := []string{}
+	for _, f := range fs {
+		x.Contains(f.Summary, "loft.readonly")
+		x.Equal(int32(levyan.FindingCorrection_FINDING_CORRECTION_RULE), f.Correction)
+		for _, r := range []string{invoices.ReadonlyRule, payers.ReadonlyRule} {
+			if strings.Contains(f.Subject, "/"+r+"/") {
+				rules = append(rules, r)
+			}
+		}
+	}
+	x.ElementsMatch([]string{invoices.ReadonlyRule, payers.ReadonlyRule}, rules)
+
+	for _, r := range []string{invoices.ReadonlyRule, payers.ReadonlyRule} {
+		x.NoError(w.S.Reconciler.Rule(w.op, w.product, r))
+	}
+	w.reconcile()
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING))
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT))
+
+	// Given past the rule, of a workspace somebody pays for: left over.
+	paid := levyantest.Tenant()
+	w.payer(paid)
+	_, err = w.S.Grants.Give(w.ctx, grants.Give{
+		Product: w.product, Workspace: paid, Key: "loft.readonly", Value: entitle.On,
+		Source: levyan.GrantSource_GRANT_SOURCE_RULE, Rule: payers.ReadonlyRule, Desc: "given past the rule",
+	})
+	x.NoError(err)
+	w.reconcile()
+	fs = w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT)
+	x.Len(fs, 1)
+	x.Contains(fs[0].Summary, "is of rule payers.readonly, which has wanted it neither now nor a while ago")
+	x.NoError(w.S.Reconciler.Rule(w.op, w.product, payers.ReadonlyRule))
+	w.reconcile()
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT))
+}
+
+func latest(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
 }

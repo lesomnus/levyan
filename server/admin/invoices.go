@@ -62,14 +62,15 @@ type Invoice struct {
 // Dunning is what the policy table says now of an invoice still owed whose
 // charge failed (#11): the kind of its latest decline, whose row it is held
 // to; when its first charge failed, which every other time is measured from;
-// when it is charged next, if it is; and when its grace ends and what it
-// bills is restricted.
+// when it is charged next, if it is; when its grace ends and what it bills
+// is restricted; and when that is read-only, the second stage.
 type Dunning struct {
 	Kind           string     `json:"kind"`
 	Failed         time.Time  `json:"failed"`
 	NextRetry      *time.Time `json:"next_retry,omitempty"`
 	GraceEnds      time.Time  `json:"grace_ends"`
 	RestrictedFrom time.Time  `json:"restricted_from"`
+	ReadonlyFrom   time.Time  `json:"readonly_from"`
 }
 
 // InvoiceLine is one statement on an invoice.
@@ -304,7 +305,7 @@ func (a *Routes) showInvoice(w http.ResponseWriter, r *http.Request, id pdid.Id,
 	}
 	if len(ds) > 0 {
 		d := ds[0]
-		out.Dunning = &Dunning{Kind: d.Kind.String(), Failed: d.Failed.UTC(), GraceEnds: d.GraceEnds.UTC(), RestrictedFrom: d.Restricted.UTC()}
+		out.Dunning = &Dunning{Kind: d.Kind.String(), Failed: d.Failed.UTC(), GraceEnds: d.GraceEnds.UTC(), RestrictedFrom: d.Restricted.UTC(), ReadonlyFrom: d.Readonly.UTC()}
 		if !d.Retry.IsZero() {
 			at := d.Retry.UTC()
 			out.Dunning.NextRetry = &at

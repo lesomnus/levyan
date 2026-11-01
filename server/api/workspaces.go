@@ -303,6 +303,7 @@ func payerOf(st payers.State) *levyanv1.Payer {
 	if st.Payerless() {
 		out.SetPayerlessSince(timestamppb.New(st.Since))
 		out.SetRestrictedFrom(timestamppb.New(st.Restricted))
+		out.SetReadonlyFrom(timestamppb.New(st.Readonly))
 	}
 
 	return out

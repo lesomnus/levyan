@@ -197,9 +197,10 @@ message Payer {
   // Since when it has had nobody paying for it, and from when it is
   // restricted for that: as the deployment's policy table says of a
   // workspace with no payer (`dunning.kinds.payerless`) -- thirty days after,
-  // by default, or at once. Unset while it has a payer, for a workspace that
-  // never had one, and for one destroyed, which nobody pays for and nothing
-  // restricts.
+  // by default, or at once -- and from when it is read-only for it, the
+  // second stage (`readonly_from`, below): sixty days after, by default.
+  // Unset while it has a payer, for a workspace that never had one, and for
+  // one destroyed, which nobody pays for and nothing restricts.
   google.protobuf.Timestamp payerless_since = 5;
   google.protobuf.Timestamp restricted_from = 6;
 
@@ -216,6 +217,13 @@ message Payer {
   // next, and from when it restricts the workspace, the one that restricts
   // soonest first. Empty while there is none. Restricted by either -- an
   // invoice, or having no payer -- the workspace is restricted, by one key
-  // (`<product>.restricted`), until neither restricts it.
+  // (`<product>.restricted`), until neither restricts it; and read-only, by
+  // another (`<product>.readonly`), until neither makes it so.
   repeated Dunning dunning = 8;
+
+  // From when it is read-only for having had nobody paying for it, beside
+  // `restricted_from`: as the policy table's row of a workspace with no payer
+  // says, sixty days after `payerless_since` by default, and never sooner
+  // than it is restricted. Unset when `payerless_since` is.
+  google.protobuf.Timestamp readonly_from = 9;
 }

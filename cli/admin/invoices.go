@@ -63,7 +63,7 @@ func newCmdInvoice() *xli.Command {
 
 	return &xli.Command{
 		Name:  "invoice",
-		Brief: "what billing accounts are asked to pay: list them, look at one, void one, credit one, record a transfer",
+		Brief: "what billing accounts are asked to pay: list them, look at one, invoice what was closed now, void one, credit one, record a transfer",
 		Commands: xli.Commands{
 			{
 				Name:  "ls",
@@ -109,6 +109,26 @@ func newCmdInvoice() *xli.Command {
 						return err
 					}
 					printShown(self, v)
+					return next(ctx)
+				}),
+			},
+			{
+				Name:  "collect",
+				Brief: "make the loop's pass now, as you: what the close wrote put on drafts, the drafts decided, documents issued, and what is due sent and asked about",
+				Flags: flg.Flags{&flg.Switch{Name: "yes", Brief: "do it"}},
+				Handler: xli.OnRun(func(ctx context.Context, self *xli.Command, next xli.Next) error {
+					if err := yes(self, "invoice collect"); err != nil {
+						return err
+					}
+					c, err := clientOf(self)
+					if err != nil {
+						return err
+					}
+					var v admin.InvoicePass
+					if err := c.do(ctx, http.MethodPost, "/admin/invoices/collect", map[string]any{}, &v); err != nil {
+						return err
+					}
+					self.Printf("a pass made at %s: `invoice ls` says what it invoiced\n", when(v.At))
 					return next(ctx)
 				}),
 			},

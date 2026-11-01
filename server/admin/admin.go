@@ -4,11 +4,12 @@
 // force when and which are missing -- what it asks of the ledger -- which
 // workspaces have stopped sending readings -- what it grants a workspace by
 // hand, what it gives them beyond their prices -- allowances, pools and
-// credit (#43) -- what it does to invoices -- voids one, writes a credit note
-// against one, records a transfer for one -- and what it does of what reconciliation
-// found (#13) -- makes a pass now, accepts a finding, gives back what a key
-// was charged twice, settles an attempt from what its channel answers,
-// follows a product's rules again -- over HTTP, on a listener of its own.
+// credit (#43) -- what it does to invoices -- makes the loop's pass of them
+// now, voids one, writes a credit note against one, records a transfer for
+// one -- and what it does of what reconciliation found (#13) -- makes a pass
+// now, accepts a finding, gives back what a key was charged twice, settles an
+// attempt from what its channel answers, follows a product's rules again --
+// over HTTP, on a listener of its own.
 //
 // It is served by `levyan-admin serve`, and `levyan serve` links none of it:
 // the public binary has no path that writes as the deployment. Every request
@@ -195,6 +196,7 @@ func (a *Routes) Handler() http.Handler {
 	api.HandleFunc("POST /admin/products/{product}/credits", a.grantCredit)
 	api.HandleFunc("POST /admin/credits/{id}/expire", a.expireCredit)
 	api.HandleFunc("GET /admin/products/{product}/invoices", a.invoices)
+	api.HandleFunc("POST /admin/invoices/collect", a.collectInvoices)
 	api.HandleFunc("GET /admin/invoices/{id}", a.invoice)
 	api.HandleFunc("POST /admin/invoices/{id}/void", a.voidInvoice)
 	api.HandleFunc("POST /admin/invoices/{id}/credit", a.creditInvoice)

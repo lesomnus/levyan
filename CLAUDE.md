@@ -876,7 +876,10 @@ levyan's own:
 - `levyan.invoices.collect` (`invoices.Collects`, every `invoices.every`, ten
   minutes, which is `mor.Settle`) invoices what the close wrote, decides
   drafts, issues a seller's documents and sends and asks about attempts,
-  through `Ungated` as the deployment.
+  through `Ungated` as the deployment. An operator's `levyan-admin invoice
+  collect` is the same pass through their frame, done when it answers (the
+  implementation's): what a script that closes a period by hand drives,
+  rather than waiting on the loop's clock.
 - `levyan.invoices.dunning` (`invoices.Duns`, every `dunning.every`, a
   minute) makes and sends the charges the dunning table says are due, marks
   what is spent `UNCOLLECTIBLE`, and follows the rules `dunning` and

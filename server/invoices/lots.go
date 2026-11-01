@@ -23,11 +23,15 @@ import (
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
 	entcredit "github.com/lesomnus/levyan/internal/ent/credit"
+	entinvoice "github.com/lesomnus/levyan/internal/ent/invoice"
 	entinvoiceline "github.com/lesomnus/levyan/internal/ent/invoiceline"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
+	entperiod "github.com/lesomnus/levyan/internal/ent/period"
 	"github.com/lesomnus/levyan/internal/ent/predicate"
+	entstatement "github.com/lesomnus/levyan/internal/ent/statement"
 	"github.com/lesomnus/levyan/internal/money"
 	"github.com/lesomnus/levyan/server/benefits"
+	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/pd"
 )
@@ -47,12 +51,22 @@ import (
 // tax is on what it is asked for, it is a discount; on a channel levyan sells
 // on, it pays the total as the balance does, its tax invoice for the supply
 // in full -- whether a promotion's credit is rather an 에누리, off the supply,
-// is open (docs/design.md §17, 128). Nothing of a lot is spent once it has
-// expired, a shadow's draft spends none of it, and what a credit note takes
-// back of what it paid comes back to it ([Invoices.Credit], [Invoices.Void]).
-// What is left of it as it expires is taken off by a movement of its own
-// ([Invoices.Expired]), so that every lot comes to nothing in the end and
-// says where all of it went.
+// is open (docs/design.md §17, 128). A shadow's draft spends none of it, and
+// what a credit note takes back of what it paid comes back to it
+// ([Invoices.Credit], [Invoices.Void]).
+//
+// A lot pays an invoice whose period began before it expired -- the earliest
+// of them, for a draft that waited and covers several -- however long after
+// the invoice is decided: what it was granted for was the usage of the time
+// it was in force, and a period is decided only once it has closed (Claude's,
+// 2026-11-02, docs/design.md §17, 129). What is left of it is taken off by a
+// movement of its own once nothing may spend it any more ([Invoices.Expired])
+// -- no period of its product that began before it expired is still to
+// close, nor any statement of its scope of one still to be invoiced, nor any
+// draft or open invoice of its scope begun before -- so that every lot comes
+// to nothing in the end and says where all of it went. An operator who ends
+// one ends it at once ([Invoices.Expire]): nothing more of it is spent, for
+// any period.
 
 // Lot is a lot of credit an operator granted, and what is left of it.
 type Lot struct {
@@ -66,9 +80,11 @@ type Lot struct {
 	Ended time.Time
 }
 
-// Over says whether nothing more of the lot is spent at `now`: it expired,
-// or somebody ended it.
-func (l Lot) Over(now time.Time) bool { return !l.Expires().After(now) || !l.Ended.IsZero() }
+// Pays says whether the lot may pay an invoice whose first period began at
+// `start`: one that began before it expired, of a lot nobody ended.
+func (l Lot) Pays(start time.Time) bool {
+	return l.Ended.IsZero() && l.Expires().After(ledger.Moment(start))
+}
 
 // Workspace is the workspace the lot is of, and none for a billing
 // account's.
@@ -157,16 +173,133 @@ func lotOf(c *ent.Credit, h held) Lot {
 	return l
 }
 
-// Live is what of `ls` is left to spend at `now`: not over, and not spent.
-func Live(ls []Lot, now time.Time) []Lot {
+// Live is what of `ls` is left to spend at `now`: not spent, nor ended, and
+// in force -- or expired, and still owed to a period that began before it
+// did, and that is not invoiced yet ([pending]).
+func Live(ctx context.Context, db *ent.Client, ls []Lot, now time.Time) ([]Lot, error) {
 	out := []Lot{}
 	for _, l := range ls {
-		if l.Left > 0 && !l.Over(now) {
-			out = append(out, l)
+		if l.Left <= 0 || !l.Ended.IsZero() {
+			continue
 		}
+		if !l.Expires().After(now) {
+			ok, err := pending(ctx, db, l.Row, false)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				continue
+			}
+		}
+		out = append(out, l)
 	}
 
-	return out
+	return out, nil
+}
+
+// pending says whether something may still spend lot `c`: a period of its
+// product that began before the lot expired and is not closed yet, a
+// statement of the lot's scope of such a period that is on no invoice yet,
+// or a draft of its scope whose first period began before the lot expired --
+// and, with `open`, an open invoice of its scope whose first period did,
+// which spends no credit itself but may give some back (Claude's,
+// 2026-11-02). The scope of a billing account's lot is that billing
+// account's statements and invoices in the product; of a workspace's, that
+// workspace's statements and the invoices that bill it, whoever's.
+func pending(ctx context.Context, db *ent.Client, c *ent.Credit, open bool) (bool, error) {
+	if c.DateExpires == nil {
+		return false, nil
+	}
+	expires := ledger.Moment(*c.DateExpires)
+
+	// A period that began before it expired, not closed yet: its statements
+	// are still to come.
+	next, ok, err := unclosed(ctx, db, c.TenantId)
+	if err != nil {
+		return false, err
+	}
+	if ok && next.Before(expires) {
+		return true, nil
+	}
+
+	states := []int32{int32(levyan.InvoiceState_INVOICE_STATE_DRAFT)}
+	if open {
+		states = append(states, int32(levyan.InvoiceState_INVOICE_STATE_OPEN))
+	}
+	if c.WorkspaceId != (uuid.UUID{}) {
+		ok, err := db.Statement.Query().
+			Where(
+				entstatement.TenantId(c.TenantId),
+				entstatement.WorkspaceId(c.WorkspaceId),
+				entstatement.BillingAccountIdNotNil(),
+				entstatement.DateStartLT(expires),
+				Unlined(),
+			).
+			Exist(ctx)
+		if err != nil || ok {
+			return ok, err
+		}
+		return db.InvoiceLine.Query().
+			Where(
+				entinvoiceline.TenantId(c.TenantId),
+				entinvoiceline.WorkspaceId(c.WorkspaceId),
+				entinvoiceline.HasInvoiceWith(entinvoice.StateIn(states...), entinvoice.DateStartLT(expires)),
+			).
+			Exist(ctx)
+	}
+
+	ok, err = db.Statement.Query().
+		Where(
+			entstatement.TenantId(c.TenantId),
+			entstatement.BillingAccountId(c.BillingAccountId),
+			entstatement.DateStartLT(expires),
+			Unlined(),
+		).
+		Exist(ctx)
+	if err != nil || ok {
+		return ok, err
+	}
+	return db.Invoice.Query().
+		Where(
+			entinvoice.TenantId(c.TenantId),
+			entinvoice.BillingAccountId(c.BillingAccountId),
+			entinvoice.StateIn(states...),
+			entinvoice.DateStartLT(expires),
+		).
+		Exist(ctx)
+}
+
+// unclosed is when the first of `product`'s periods not closed yet begins --
+// one whose close began and did not end, or the one after the last closed,
+// or the month its ledger begins in -- and false when no period of it will
+// close: it is priced nothing, or its ledger says nothing yet.
+func unclosed(ctx context.Context, db *ent.Client, product uuid.UUID) (time.Time, bool, error) {
+	t, err := db.Tenant.Get(ctx, product)
+	if err != nil {
+		return time.Time{}, false, err
+	}
+	terms, err := billing.TermsOf(t)
+	if err != nil || !terms.Priced() {
+		return time.Time{}, false, err
+	}
+
+	last, err := db.Period.Query().Where(entperiod.TenantId(product)).Order(ent.Desc(entperiod.FieldDateStart)).First(ctx)
+	switch {
+	case err == nil:
+		if last.DateClosed == nil {
+			return ledger.Moment(last.DateStart), true, nil
+		}
+		return ledger.Moment(last.DateEnd), true, nil
+	case !ent.IsNotFound(err):
+		return time.Time{}, false, err
+	}
+
+	first, ok, err := billing.Begins(ctx, db, product)
+	if err != nil || !ok {
+		return time.Time{}, false, err
+	}
+
+	return billing.MonthOf(first, terms.Zone).Start, true, nil
 }
 
 // Spendable is what billing account `ba` may spend of what was granted in
@@ -199,7 +332,7 @@ func Spendable(ctx context.Context, db *ent.Client, product, ba uuid.UUID, now t
 		return nil, err
 	}
 
-	return Live(vs, now), nil
+	return Live(ctx, db, vs, now)
 }
 
 // take is what of an invoice one lot -- or the balance, for none -- paid.
@@ -208,12 +341,13 @@ type take struct {
 	amount int64
 }
 
-// spend is what credit pays of invoice `inv`'s total, `total`, decided at
-// `now`, and of which: of the lots granted in its product and its currency
-// to its billing account or to a workspace of its lines, and not expired by
-// `now`, the soonest to expire first -- a workspace's no more than what that
-// workspace's lines come to with their tax at `rate` -- and then the
-// balance, which never expires. On PostgreSQL each lot spent of is held
+// spend is what credit pays of invoice `inv`'s total, `total`, and of
+// which: of the lots granted in its product and its currency to its billing
+// account or to a workspace of its lines, that pay it -- nobody ended them,
+// and they expire after its first period began ([Lot.Pays]) -- the soonest
+// to expire first, a workspace's no more than what that workspace's lines
+// come to with their tax at `rate`; and then the balance, which never
+// expires. On PostgreSQL each lot spent of is held
 // until the transaction ends, so that two billing accounts' invoices of one
 // workspace never both spend the same of its lot; the billing account's row
 // is held already.
@@ -223,7 +357,7 @@ type take struct {
 // lot or the balance paid is the invoice's as a whole, and is taken to have
 // paid the rest of it first -- which keeps every workspace's lot to its own
 // lines, and spends it as far as they go.
-func (v Invoices) spend(ctx context.Context, db *ent.Client, inv *ent.Invoice, total int64, rate *big.Rat, now time.Time) ([]take, int64, error) {
+func (v Invoices) spend(ctx context.Context, db *ent.Client, inv *ent.Invoice, total int64, rate *big.Rat) ([]take, int64, error) {
 	if total <= 0 {
 		return nil, 0, nil
 	}
@@ -250,7 +384,7 @@ func (v Invoices) spend(ctx context.Context, db *ent.Client, inv *ent.Invoice, t
 			entcredit.TenantId(inv.TenantId),
 			entcredit.Kind(int32(levyan.CreditKind_CREDIT_KIND_GRANTED)),
 			entcredit.Currency(inv.Currency),
-			entcredit.DateExpiresGT(now),
+			entcredit.DateExpiresGT(inv.DateStart),
 			entcredit.Or(
 				entcredit.And(entcredit.BillingAccountId(inv.BillingAccountId), entcredit.WorkspaceIdIsNil()),
 				entcredit.WorkspaceIdIn(wss...),
@@ -290,7 +424,7 @@ func (v Invoices) spend(ctx context.Context, db *ent.Client, inv *ent.Invoice, t
 		if rest == 0 {
 			break
 		}
-		if lotOf(c, left[c.Id]).Over(now) {
+		if !lotOf(c, left[c.Id]).Pays(inv.DateStart) {
 			continue
 		}
 		n := min(left[c.Id].left, rest)
@@ -570,7 +704,9 @@ var errSpent = status.Error(codes.FailedPrecondition, "nothing is left of it: it
 
 // expire takes what is left of lot `c` off it, in a transaction that holds
 // its billing account's row -- for a billing account's -- and its own: as
-// an operator `who` ends it for `reason`, or as it expired, for neither.
+// an operator `who` ends it for `reason`, or as it expired, for neither --
+// and then only once nothing may still spend it ([pending]), which is asked
+// on the same transaction, unless it was ended.
 func (v Invoices) expire(ctx context.Context, c *ent.Credit, who pdid.Id, reason string) error {
 	f := func(s levyan.Server, db *ent.Client, _ dialect.Driver) error {
 		if v.postgres() {
@@ -583,6 +719,15 @@ func (v Invoices) expire(ctx context.Context, c *ent.Credit, who pdid.Id, reason
 		left, err := lefts(ctx, db, c.Id)
 		if err != nil {
 			return err
+		}
+		if who.IsZero() && lotOf(c, left[c.Id]).Ended.IsZero() {
+			wait, err := pending(ctx, db, c, true)
+			if err != nil {
+				return err
+			}
+			if wait {
+				return errSkip
+			}
 		}
 		n := left[c.Id].left
 		if n <= 0 {
@@ -617,10 +762,13 @@ func (v Invoices) expire(ctx context.Context, c *ent.Credit, who pdid.Id, reason
 	return v.tx(ctx, f)
 }
 
-// Expired takes what is left of every lot that is over -- expired, or
-// ended by an operator, with something come back to it since -- off it, by
-// a movement of its own: what the loop does each pass, so that what a lot
-// was granted is accounted for once it can be spent no longer.
+// Expired takes what is left of every lot that can be spent no longer off
+// it, by a movement of its own: what the loop does each pass, so that what a
+// lot was granted is accounted for. That is a lot that expired, once nothing
+// may still spend it ([pending]) -- a lot that expires on December's last
+// day is spent on December's invoice, decided after the period closes, and
+// taken off after -- and a lot an operator ended, with something come back
+// to it since, at once.
 func (v Invoices) Expired(ctx context.Context) error {
 	now := v.now()
 	ended, err := v.db().Credit.Query().

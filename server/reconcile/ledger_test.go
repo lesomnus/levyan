@@ -4,7 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lesomnus/payday/frame"
 	"github.com/lesomnus/payday/pdid"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	levyan "github.com/lesomnus/levyan"
 	entinvoiceline "github.com/lesomnus/levyan/internal/ent/invoiceline"
@@ -231,6 +234,27 @@ func TestALotIsHeldToItsRows(t *testing.T) {
 	w.reconcile()
 	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_CREDIT_DIFFERS), "as it was granted")
 
+	// A lot that expired as the invoice's first period began, written past
+	// the paths that grant one: no invoice of a period from then is paid by
+	// it, however it is decided.
+	gone := pdid.New(pd.CreditDomain)
+	f, ok := frame.From(w.op)
+	x.True(ok)
+	op := f.Actor
+	_, err = w.S.Ungated.Credit().Add(w.ctx, levyan.CreditAddRequest_builder{
+		Id:             gone.Bytes(),
+		Tenant:         levyan.TenantRef_builder{Id: inv.TenantId[:]}.Build(),
+		BillingAccount: levyan.BillingAccountRef_builder{Id: inv.BillingAccountId[:]}.Build(),
+		Amount:         500,
+		Currency:       "KRW",
+		Kind:           levyan.CreditKind_CREDIT_KIND_GRANTED,
+		Lot:            gone.Bytes(),
+		DateExpires:    timestamppb.New(inv.DateStart),
+		Reason:         proto.String("지난 프로모션"),
+		Operator:       levyan.OperatorRef_builder{Id: op.Bytes()}.Build(),
+	}.Build())
+	x.NoError(err)
+
 	spend := func(lot []byte, amount int64, currency string) {
 		_, err := w.S.Ungated.Credit().Add(w.ctx, levyan.CreditAddRequest_builder{
 			Tenant:         levyan.TenantRef_builder{Id: inv.TenantId[:]}.Build(),
@@ -244,16 +268,22 @@ func TestALotIsHeldToItsRows(t *testing.T) {
 		x.NoError(err)
 	}
 
-	// Spent once it had expired, and more of it than it was.
+	// Spent once it had expired, on an invoice of a period begun after:
+	// and, of the other, more of it than it was -- which an invoice whose
+	// period began before it expired may pay, decided after it expired.
 	w.to(w.S.Clock().Add(2 * time.Hour))
+	spend(gone.Bytes(), -500, "KRW")
 	spend(l.Row.Id[:], -1500, "KRW")
 	w.reconcile()
 	got := w.findings()
-	f := got["credit_differs "+reconcile.Subject("Credit", l.Row.Id)]
-	x.NotNil(f)
-	x.Contains(f.Summary, "once it was over")
-	x.Contains(f.Summary, "less than nothing")
-	x.Equal(int64(-500), f.Amount)
+	g := got["credit_differs "+reconcile.Subject("Credit", gone.Uuid())]
+	x.NotNil(g)
+	x.Contains(g.Summary, "once it had expired")
+	d := got["credit_differs "+reconcile.Subject("Credit", l.Row.Id)]
+	x.NotNil(d)
+	x.NotContains(d.Summary, "expired", "its invoice's period began before it expired")
+	x.Contains(d.Summary, "less than nothing")
+	x.Equal(int64(-500), d.Amount)
 	x.Nil(got["credit_differs Balance/"+w.product.String()+"/"+pdid.Id(inv.BillingAccountId).String()], "a lot is none of the balance")
 
 	// In another currency, and of a lot nothing granted.

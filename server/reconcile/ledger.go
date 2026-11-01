@@ -352,8 +352,8 @@ func (r *Reconciler) invoices(ctx context.Context, p *pass) ([]Found, error) {
 // and each movement to what it comes of -- what an invoice that came to less
 // than nothing owed, what a credit note credited. And each lot an operator
 // granted (#43) to its own: never less than nothing left, in its currency
-// alone, nothing of it spent once it had expired, and every movement naming
-// a lot that was granted.
+// alone, nothing of it paying an invoice whose first period began once it
+// had expired, and every movement naming a lot that was granted.
 func (r *Reconciler) credit(ctx context.Context, p *pass) ([]Found, error) {
 	l, err := r.ledgerRows(ctx, p)
 	if err != nil {
@@ -412,6 +412,10 @@ func (r *Reconciler) credit(ctx context.Context, p *pass) ([]Found, error) {
 		})
 	}
 
+	began := map[uuid.UUID]time.Time{}
+	for _, inv := range l.invoices {
+		began[inv.Id] = inv.DateStart
+	}
 	lots := []uuid.UUID{}
 	for id := range l.lots {
 		lots = append(lots, id)
@@ -437,14 +441,14 @@ func (r *Reconciler) credit(ctx context.Context, p *pass) ([]Found, error) {
 			})
 			continue
 		}
-		// Over from when it expired, which the process that decides an
-		// invoice tells by the clock it stamps the invoice's credit with.
-		// When an operator ended it is not held against what was spent of
-		// it: that is stamped by the operator's entry point, another
-		// process, whose clock is not this one's.
-		over := time.Time{}
+		// A lot pays an invoice whose first period began before it expired,
+		// however long after that the invoice is decided. When an operator
+		// ended it is not held against what was spent of it: that is
+		// stamped by the operator's entry point, another process, whose
+		// clock is not the one that decides invoices.
+		expires := time.Time{}
 		if grant.DateExpires != nil {
-			over = *grant.DateExpires
+			expires = *grant.DateExpires
 		}
 		sum, wrong := int64(0), []string{}
 		for _, c := range cs {
@@ -452,9 +456,12 @@ func (r *Reconciler) credit(ctx context.Context, p *pass) ([]Found, error) {
 			if c.Currency != grant.Currency {
 				wrong = append(wrong, fmt.Sprintf("a movement of it is in %s, and it was granted in %s", c.Currency, grant.Currency))
 			}
-			if c.Kind == int32(levyan.CreditKind_CREDIT_KIND_APPLIED) && !over.IsZero() && !c.DateCreated.Before(over) {
-				wrong = append(wrong, fmt.Sprintf("%s of it was spent at %s, once it was over at %s",
-					money.String(-c.Amount, c.Currency), c.DateCreated.UTC().Format(time.RFC3339), over.UTC().Format(time.RFC3339)))
+			if c.Kind != int32(levyan.CreditKind_CREDIT_KIND_APPLIED) || expires.IsZero() {
+				continue
+			}
+			if start, ok := began[c.InvoiceId]; ok && !start.Before(expires) {
+				wrong = append(wrong, fmt.Sprintf("%s of it paid invoice %s, whose first period began at %s, once it had expired at %s",
+					money.String(-c.Amount, c.Currency), pdid.Id(c.InvoiceId), start.UTC().Format(time.RFC3339), expires.UTC().Format(time.RFC3339)))
 			}
 		}
 		if sum < 0 {

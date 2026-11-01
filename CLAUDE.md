@@ -772,8 +772,9 @@ carried out: write it as Claude's, never as the owner's.
   name no lot** (`invoices.Balance`): never add a lot's rows to it.
 - **Spent as a draft is decided** (`Invoices.spend`): the lots of the
   invoice's product and currency -- its billing account's, and those of the
-  workspaces of its lines -- not over (expired by the deciding moment, or
-  ended by an operator: `Lot.Over`), the soonest to expire first, a
+  workspaces of its lines -- that pay it (`Lot.Pays`: nobody ended them, and
+  they expire after the invoice's first period began, however late it is
+  decided -- Claude's, 2026-11-02), the soonest to expire first, a
   workspace's no further than its lines and their tax; then the balance. A
   draft that waits, a shadow, and a written-off draft spend nothing. On
   PostgreSQL the lots spent of are held (`FOR UPDATE`, by id) after the
@@ -781,9 +782,15 @@ carried out: write it as Claude's, never as the owner's.
 - **What a credit note credits goes back to the lots that paid the invoice
   first** (`returns`, the latest to expire first), and only the rest to the
   balance: a lot's credit never becomes the balance's, nor money.
-- **Expiring leaves a row**: `Invoices.Expired`, the first step of every pass
-  of `levyan.invoices.collect`, takes what is left of every lot that is over
-  off it. An operator ends one with `levyan-admin credit expire`.
+- **Expiring leaves a row, once nothing may spend the lot**:
+  `Invoices.Expired`, the first step of every pass of
+  `levyan.invoices.collect`, takes what is left of an expired lot off it only
+  when nothing of its scope began before its expiry and is still to be
+  decided (`pending`: a period of its product not closed yet, a statement on
+  no invoice, a draft -- and an open invoice, which may give back). Never
+  expire a lot by the clock alone: December's lot pays December's invoice,
+  decided in January. An operator ends one at once with `levyan-admin credit
+  expire`.
 - Operators alone give any of them (`benefits.Operator`: a frame whose row
   is an `Operator`), through `Ungated` as themselves, with a reason. No RPC
   is added: what products and payers read is fields of `GetUsage`,

@@ -253,7 +253,8 @@ func add(ctx context.Context, s levyan.Server, inv *ent.Invoice, st *ent.Stateme
 //   - coming to nothing or less, it is finalized as settled, and what is
 //     less than nothing is the billing account's credit;
 //   - what credit pays taken off -- what operators granted that it may be
-//     paid with, the soonest to expire first, and then its balance (#43) --
+//     paid with, which expires after its first period began, the soonest to
+//     expire first, and then its balance (#43) --
 //     what is left to ask for is more than nothing and less than its channel
 //     collects: it waits for the next period (the owner's, 2026-10-31) --
 //     or, when nothing more will come to it, every link of its billing
@@ -302,7 +303,7 @@ func (v Invoices) decide(ctx context.Context, s levyan.Server, db *ent.Client, d
 	if total > 0 {
 		// What credit pays of it: what operators granted, the soonest to
 		// expire first, and then the balance (#43).
-		if takes, credited, err = v.spend(ctx, db, inv, total, rate, now); err != nil {
+		if takes, credited, err = v.spend(ctx, db, inv, total, rate); err != nil {
 			return false, err
 		}
 		due = total - credited

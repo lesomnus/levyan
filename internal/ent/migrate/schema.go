@@ -1673,6 +1673,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{StatementColumns[14], StatementColumns[1], StatementColumns[0]},
 			},
+			{
+				Name:    "statement_billing",
+				Unique:  false,
+				Columns: []*schema.Column{StatementColumns[13], StatementColumns[16], StatementColumns[1], StatementColumns[0]},
+			},
 		},
 	}
 	// SubscriptionColumns holds the columns for the "subscription" table.

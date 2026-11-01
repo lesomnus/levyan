@@ -129,4 +129,5 @@ message StatementListResponse {
 message StatementFilter {
   StatementRef ref = 1;
   WorkspaceRef workspace = 2;
+  BillingAccountRef billing_account = 3;
 }

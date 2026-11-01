@@ -26,7 +26,7 @@ var File_levyan_payer_proto protoreflect.FileDescriptor
 
 const file_levyan_payer_proto_rawDesc = "" +
 	"\n" +
-	"\x12levyan/payer.proto\x12\x06levyan\x1a\x1bgoogle/protobuf/empty.proto\x1a\fpayday.proto2\xc7\b\n" +
+	"\x12levyan/payer.proto\x12\x06levyan\x1a\x1bgoogle/protobuf/empty.proto\x1a\fpayday.proto2\xd9\t\n" +
 	"\fPayerService\x12M\n" +
 	"\x13ListBillingAccounts\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x06\xea\xcd\x16\x02\n" +
 	"\x00\x12N\n" +
@@ -53,6 +53,10 @@ const file_levyan_payer_proto_rawDesc = "" +
 	"GetInvoice\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x06\xea\xcd\x16\x02\n" +
 	"\x00\x12I\n" +
 	"\x0fListCreditNotes\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x06\xea\xcd\x16\x02\n" +
+	"\x00\x12H\n" +
+	"\x0eListStatements\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x06\xea\xcd\x16\x02\n" +
+	"\x00\x12F\n" +
+	"\fGetStatement\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x06\xea\xcd\x16\x02\n" +
 	"\x00\x12K\n" +
 	"\x11GetBillingAccount\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x06\xea\xcd\x16\x02\n" +
 	"\x00\x12G\n" +
@@ -79,26 +83,30 @@ var file_levyan_payer_proto_depIdxs = []int32{
 	0,  // 9: levyan.PayerService.ListInvoices:input_type -> google.protobuf.Empty
 	0,  // 10: levyan.PayerService.GetInvoice:input_type -> google.protobuf.Empty
 	0,  // 11: levyan.PayerService.ListCreditNotes:input_type -> google.protobuf.Empty
-	0,  // 12: levyan.PayerService.GetBillingAccount:input_type -> google.protobuf.Empty
-	0,  // 13: levyan.PayerService.StartCheckout:input_type -> google.protobuf.Empty
-	0,  // 14: levyan.PayerService.CompleteCheckout:input_type -> google.protobuf.Empty
-	0,  // 15: levyan.PayerService.ListBillingAccounts:output_type -> google.protobuf.Empty
-	0,  // 16: levyan.PayerService.CreateBillingAccount:output_type -> google.protobuf.Empty
-	0,  // 17: levyan.PayerService.UpdateBillingAccount:output_type -> google.protobuf.Empty
-	0,  // 18: levyan.PayerService.ListOffers:output_type -> google.protobuf.Empty
-	0,  // 19: levyan.PayerService.Accept:output_type -> google.protobuf.Empty
-	0,  // 20: levyan.PayerService.Decline:output_type -> google.protobuf.Empty
-	0,  // 21: levyan.PayerService.ListLinks:output_type -> google.protobuf.Empty
-	0,  // 22: levyan.PayerService.Use:output_type -> google.protobuf.Empty
-	0,  // 23: levyan.PayerService.Stop:output_type -> google.protobuf.Empty
-	0,  // 24: levyan.PayerService.ListInvoices:output_type -> google.protobuf.Empty
-	0,  // 25: levyan.PayerService.GetInvoice:output_type -> google.protobuf.Empty
-	0,  // 26: levyan.PayerService.ListCreditNotes:output_type -> google.protobuf.Empty
-	0,  // 27: levyan.PayerService.GetBillingAccount:output_type -> google.protobuf.Empty
-	0,  // 28: levyan.PayerService.StartCheckout:output_type -> google.protobuf.Empty
-	0,  // 29: levyan.PayerService.CompleteCheckout:output_type -> google.protobuf.Empty
-	15, // [15:30] is the sub-list for method output_type
-	0,  // [0:15] is the sub-list for method input_type
+	0,  // 12: levyan.PayerService.ListStatements:input_type -> google.protobuf.Empty
+	0,  // 13: levyan.PayerService.GetStatement:input_type -> google.protobuf.Empty
+	0,  // 14: levyan.PayerService.GetBillingAccount:input_type -> google.protobuf.Empty
+	0,  // 15: levyan.PayerService.StartCheckout:input_type -> google.protobuf.Empty
+	0,  // 16: levyan.PayerService.CompleteCheckout:input_type -> google.protobuf.Empty
+	0,  // 17: levyan.PayerService.ListBillingAccounts:output_type -> google.protobuf.Empty
+	0,  // 18: levyan.PayerService.CreateBillingAccount:output_type -> google.protobuf.Empty
+	0,  // 19: levyan.PayerService.UpdateBillingAccount:output_type -> google.protobuf.Empty
+	0,  // 20: levyan.PayerService.ListOffers:output_type -> google.protobuf.Empty
+	0,  // 21: levyan.PayerService.Accept:output_type -> google.protobuf.Empty
+	0,  // 22: levyan.PayerService.Decline:output_type -> google.protobuf.Empty
+	0,  // 23: levyan.PayerService.ListLinks:output_type -> google.protobuf.Empty
+	0,  // 24: levyan.PayerService.Use:output_type -> google.protobuf.Empty
+	0,  // 25: levyan.PayerService.Stop:output_type -> google.protobuf.Empty
+	0,  // 26: levyan.PayerService.ListInvoices:output_type -> google.protobuf.Empty
+	0,  // 27: levyan.PayerService.GetInvoice:output_type -> google.protobuf.Empty
+	0,  // 28: levyan.PayerService.ListCreditNotes:output_type -> google.protobuf.Empty
+	0,  // 29: levyan.PayerService.ListStatements:output_type -> google.protobuf.Empty
+	0,  // 30: levyan.PayerService.GetStatement:output_type -> google.protobuf.Empty
+	0,  // 31: levyan.PayerService.GetBillingAccount:output_type -> google.protobuf.Empty
+	0,  // 32: levyan.PayerService.StartCheckout:output_type -> google.protobuf.Empty
+	0,  // 33: levyan.PayerService.CompleteCheckout:output_type -> google.protobuf.Empty
+	17, // [17:34] is the sub-list for method output_type
+	0,  // [0:17] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

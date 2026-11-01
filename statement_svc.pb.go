@@ -1705,11 +1705,12 @@ func (b0 StatementListResponse_builder) Build() *StatementListResponse {
 }
 
 type StatementFilter struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ref       *StatementRef          `protobuf:"bytes,1,opt,name=ref"`
-	xxx_hidden_Workspace *WorkspaceRef          `protobuf:"bytes,2,opt,name=workspace"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ref            *StatementRef          `protobuf:"bytes,1,opt,name=ref"`
+	xxx_hidden_Workspace      *WorkspaceRef          `protobuf:"bytes,2,opt,name=workspace"`
+	xxx_hidden_BillingAccount *BillingAccountRef     `protobuf:"bytes,3,opt,name=billing_account,json=billingAccount"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *StatementFilter) Reset() {
@@ -1751,12 +1752,23 @@ func (x *StatementFilter) GetWorkspace() *WorkspaceRef {
 	return nil
 }
 
+func (x *StatementFilter) GetBillingAccount() *BillingAccountRef {
+	if x != nil {
+		return x.xxx_hidden_BillingAccount
+	}
+	return nil
+}
+
 func (x *StatementFilter) SetRef(v *StatementRef) {
 	x.xxx_hidden_Ref = v
 }
 
 func (x *StatementFilter) SetWorkspace(v *WorkspaceRef) {
 	x.xxx_hidden_Workspace = v
+}
+
+func (x *StatementFilter) SetBillingAccount(v *BillingAccountRef) {
+	x.xxx_hidden_BillingAccount = v
 }
 
 func (x *StatementFilter) HasRef() bool {
@@ -1773,6 +1785,13 @@ func (x *StatementFilter) HasWorkspace() bool {
 	return x.xxx_hidden_Workspace != nil
 }
 
+func (x *StatementFilter) HasBillingAccount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BillingAccount != nil
+}
+
 func (x *StatementFilter) ClearRef() {
 	x.xxx_hidden_Ref = nil
 }
@@ -1781,11 +1800,16 @@ func (x *StatementFilter) ClearWorkspace() {
 	x.xxx_hidden_Workspace = nil
 }
 
+func (x *StatementFilter) ClearBillingAccount() {
+	x.xxx_hidden_BillingAccount = nil
+}
+
 type StatementFilter_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ref       *StatementRef
-	Workspace *WorkspaceRef
+	Ref            *StatementRef
+	Workspace      *WorkspaceRef
+	BillingAccount *BillingAccountRef
 }
 
 func (b0 StatementFilter_builder) Build() *StatementFilter {
@@ -1794,6 +1818,7 @@ func (b0 StatementFilter_builder) Build() *StatementFilter {
 	_, _ = b, x
 	x.xxx_hidden_Ref = b.Ref
 	x.xxx_hidden_Workspace = b.Workspace
+	x.xxx_hidden_BillingAccount = b.BillingAccount
 	return m0
 }
 
@@ -1867,10 +1892,11 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\areverse\x18\x04 \x01(\bB\x05\xaa\x01\x02\b\x02R\areverse\"[\n" +
 	"\x15StatementListResponse\x12'\n" +
 	"\x05items\x18\x01 \x03(\v2\x11.levyan.StatementR\x05items\x12\x19\n" +
-	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"m\n" +
+	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"\xb1\x01\n" +
 	"\x0fStatementFilter\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.StatementRefR\x03ref\x122\n" +
-	"\tworkspace\x18\x02 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace2\xbb\x02\n" +
+	"\tworkspace\x18\x02 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12B\n" +
+	"\x0fbilling_account\x18\x03 \x01(\v2\x19.levyan.BillingAccountRefR\x0ebillingAccount2\xbb\x02\n" +
 	"\x10StatementService\x125\n" +
 	"\x03Add\x12\x1b.levyan.StatementAddRequest\x1a\x11.levyan.Statement\x125\n" +
 	"\x03Get\x12\x1b.levyan.StatementGetRequest\x1a\x11.levyan.Statement\x129\n" +
@@ -1929,21 +1955,22 @@ var file_levyan_statement_svc_g_proto_depIdxs = []int32{
 	21, // 22: levyan.StatementListResponse.items:type_name -> levyan.Statement
 	2,  // 23: levyan.StatementFilter.ref:type_name -> levyan.StatementRef
 	11, // 24: levyan.StatementFilter.workspace:type_name -> levyan.WorkspaceRef
-	0,  // 25: levyan.StatementService.Add:input_type -> levyan.StatementAddRequest
-	1,  // 26: levyan.StatementService.Get:input_type -> levyan.StatementGetRequest
-	5,  // 27: levyan.StatementService.Patch:input_type -> levyan.StatementPatchRequest
-	6,  // 28: levyan.StatementService.Apply:input_type -> levyan.StatementApplyRequest
-	7,  // 29: levyan.StatementService.List:input_type -> levyan.StatementListRequest
-	21, // 30: levyan.StatementService.Add:output_type -> levyan.Statement
-	21, // 31: levyan.StatementService.Get:output_type -> levyan.Statement
-	21, // 32: levyan.StatementService.Patch:output_type -> levyan.Statement
-	21, // 33: levyan.StatementService.Apply:output_type -> levyan.Statement
-	8,  // 34: levyan.StatementService.List:output_type -> levyan.StatementListResponse
-	30, // [30:35] is the sub-list for method output_type
-	25, // [25:30] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	15, // 25: levyan.StatementFilter.billing_account:type_name -> levyan.BillingAccountRef
+	0,  // 26: levyan.StatementService.Add:input_type -> levyan.StatementAddRequest
+	1,  // 27: levyan.StatementService.Get:input_type -> levyan.StatementGetRequest
+	5,  // 28: levyan.StatementService.Patch:input_type -> levyan.StatementPatchRequest
+	6,  // 29: levyan.StatementService.Apply:input_type -> levyan.StatementApplyRequest
+	7,  // 30: levyan.StatementService.List:input_type -> levyan.StatementListRequest
+	21, // 31: levyan.StatementService.Add:output_type -> levyan.Statement
+	21, // 32: levyan.StatementService.Get:output_type -> levyan.Statement
+	21, // 33: levyan.StatementService.Patch:output_type -> levyan.Statement
+	21, // 34: levyan.StatementService.Apply:output_type -> levyan.Statement
+	8,  // 35: levyan.StatementService.List:output_type -> levyan.StatementListResponse
+	31, // [31:36] is the sub-list for method output_type
+	26, // [26:31] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_levyan_statement_svc_g_proto_init() }

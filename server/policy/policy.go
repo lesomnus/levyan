@@ -102,6 +102,11 @@ func init() {
 	// (#9).
 	allow(Payer, "levyan.v1.PayerService", "ListInvoices", "GetInvoice", "ListCreditNotes")
 
+	// And what they paid for, of the product that relays the call: the
+	// statements of its workspaces, each of a period one of the account's
+	// billing accounts paid for, line by line (#47).
+	allow(Payer, "levyan.v1.PayerService", "ListStatements", "GetStatement")
+
 	// And a billing account's subscription with the merchant of record: the
 	// billing account with whether it can be collected from, and the
 	// checkout that subscribes it (#12).

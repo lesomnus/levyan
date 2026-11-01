@@ -186,6 +186,29 @@ message Statement {
             number: 1
           }
         ]
+      },
+      {
+        // What a billing account paid for in a product, in the order of the
+        // periods: what its payer reads (#47).
+        name: "billing"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "billing_account"
+            number: 21
+          },
+          {
+            name: "date_start"
+            number: 9
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
       }
     ]
   };
@@ -205,7 +228,8 @@ message Statement {
       ]
       by: [
         {name: "ref"},
-        {name: "workspace"}
+        {name: "workspace"},
+        {name: "billing_account"}
       ]
       size: 20
       max: 100

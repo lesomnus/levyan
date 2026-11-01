@@ -155,11 +155,22 @@ payers := levyanv1.NewPayerServiceClient(conn)
 bas, err := payers.ListBillingAccounts(ctx, &levyanv1.ListBillingAccountsRequest{})
 ```
 
-- 부를 수 있는 것: 결제 계정 목록·만들기·고치기·읽기(`GetBillingAccount`), 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`), 결제창(`StartCheckout`, `CompleteCheckout`, 아래). 그 밖의 메서드는 거부된다.
+- 부를 수 있는 것: 결제 계정 목록·만들기·고치기·읽기(`GetBillingAccount`), 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`), 결제창(`StartCheckout`, `CompleteCheckout`, 아래), 청구서와 정정 청구(`ListInvoices`, `GetInvoice`, `ListCreditNotes`), 청구서의 줄인 내역(`ListStatements`, `GetStatement`, 아래). 그 밖의 메서드는 거부된다.
 - 받아들이기, `Use`, `Stop`은 지금 기간의 끝에서 바뀐다.
 - **결제 계정의 채널과 통화는 levyan이 정한다.** 앱은 나라만 보낸다. 그 나라를 어느 채널과 통화로 파는지는 levyan 배포의 설정이고(`payers.channels`, 국내는 기본이 MoR과 원이다), 만든 뒤에는 바뀌지 않는다. 화면에는 `CreateBillingAccount`와 `ListBillingAccounts`가 답한 `channel`과 `currency`를 그대로 보여 준다. 나라에서 통화를 짐작하지 않는다.
 - **믿음.** 앱이 계정을 보증한다. levyan은 그 계정의 지금 상태를 roster에 묻고, 정지되거나 지워진 계정은 거부한다(PermissionDenied). roster에 물을 수 없으면 Unavailable이니 다시 보낸다. levyan에 roster가 설정되지 않았으면 FailedPrecondition이다.
 - 제안과 연결은 그 호출을 보낸 제품의 것만 보인다. 결제 계정은 제품과 상관없이 그 계정의 것이다.
+
+### 청구서의 줄: 내역 (`ListStatements`, `GetStatement`)
+
+청구서(`GetInvoice`)의 줄(`lines[]`)은 내역 하나씩이고, 그 합계(`total`)만 말한다. 줄의 미터마다의 사용량과 무료량, 사용량 크레딧, 금액은 그 줄의 내역을 지불자로서 읽는다(`GetStatement(line.statement)`, levyan#47). 제품 키로 `BillingService.GetStatement`를 대신 불러 붙이지 않는다. 그것은 levyan이 지불자에게 주지 않은 것을 앱이 주는 것이다.
+
+- **무엇이 보이나.** 그 계정의 결제 계정이 그 기간에 낸 워크스페이스의 내역이고, 대신 부르는 제품의 것뿐이다(Claude, levyan#47). 누가 냈는지는 내역이 말하는 결제 계정이다. 그 기간 내내 효력이 있던 연결의 것이고, 기간마다 많아야 하나다. 그래서 지불자가 바뀌기 전의 기간은 그때 내던 지불자에게만, 바뀐 뒤의 기간은 새 지불자에게만 보인다. 떠난 지불자는 떠난 기간의 내역을 읽는다. 앞 기간을 정정하는 줄은 그것이 오른 내역의 것이라, 그 내역의 지불자(그것을 청구받는 사람)에게 보인다. 결제 계정 없이 낸 기간(결제 계정을 만들기 전)은 아무 지불자에게도 보이지 않는다. 그 내역은 청구서에도 오르지 않는다(구현에서 정한 것).
+- **`ListStatements(billing_account, page_size, page_token)`**: 최근 기간부터, 기본 20개, 많아야 100개다. `billing_account`를 비우면 그 계정의 모든 결제 계정의 것이다. 남의 결제 계정이면 NotFound다. 다른 제품을 거쳐 부르면 자기 결제 계정이라도 그 제품의 내역만 있으므로 빈 목록이다(구현에서 정한 것).
+- **`GetStatement(id)`**: 하나. 남의 것과 다른 제품의 것은 NotFound다.
+- **청구서가 어떻게 되었든 보인다**(구현에서 정한 것). 내역은 그 기간이 얼마였고 누가 냈는지를 말하고, 무엇을 누구에게 청구했는지는 청구서가 말한다. 그래서 최소 금액에 못 미쳐 다음 기간으로 넘어간 초안의 내역도 보인다. 청구서는 전처럼 확정된 것만 보인다.
+- 답은 `BillingService`가 제품에게 답하는 `Statement`와 같다. 줄(`lines[]`)마다 `usage`, `included`(가격의 무료량과 추가 무료량 `allowance`의 합), `billable`, `pooled`와 `pools[]`(사용량 크레딧이 뺀 것), `amount`가 있고, 7장의 "읽는 곳"처럼 읽는다. 단가를 곱하는 양은 `billable` − `pooled`다.
+- 요청과 답의 메시지는 `PayerServiceListStatementsRequest`처럼 서비스 이름으로 시작한다. `BillingService`에 같은 이름의 메서드가 있어서, buf가 이름 짓는 규칙을 따랐다(구현에서 정한 것).
 
 ### 결제수단: MoR(Paddle)의 구독
 
@@ -309,6 +320,7 @@ outbox 행은 파기되는 워크스페이스의 행이 아니라 배포의 것�
   - `usage.pools`: 이 기간이 쓸 수 있는 사용량 크레딧이다. 미터, 준 양(`granted`), 닫힌 기간들이 쓰고 남은 양(`left`), 시작(`from`)과 만료(`expires`)가 있다.
   - 줄의 `pooled`와 `pools[]`(`pool`, `taken`): 이 기간의 청구량에서 사용량 크레딧이 빼는 양이다. 단가를 곱하는 것은 `billable` − `pooled`다. 이번 기간이 끝나면 남을 양은 `left` − (이 기간의 `taken`)이다.
   - 닫은 기간의 내역(`ListStatements`, `GetStatement`)의 줄도 같다.
+- **지불자가 읽는 내역**: 대신 부르는 `PayerService.ListStatements`, `GetStatement`(4장의 "청구서의 줄"). 그 결제 계정이 낸 기간의 내역이고, 줄은 위와 같다.
 - **워크스페이스의 크레딧**: 제품 키로 `WorkspaceService.GetPayer(workspace)`의 `payer.credits`. 그 워크스페이스에 준 크레딧 중 남은 것이다. 남은 금액(`left`), 준 금액(`granted`), 통화, 만료(`expires`)가 있다.
 - **지불자의 결제 화면**: 대신 부르는 `PayerService.GetBillingAccount(id)`.
   - `credits`: 그 결제 계정의 다음 청구서가 쓸 수 있는 크레딧이다. 그 결제 계정의 것과, 그 결제 계정이 지금(또는 다음 기간부터) 내는 워크스페이스의 것이고, 만료가 빠른 것부터다. 만료일이 지났어도 아직 청구되지 않은 그 전 기간이 있으면 남아 있다("12월 청구서에 쓰입니다"). 워크스페이스의 것은 `workspace`가, 결제 계정의 것은 `billing_account`가 있다.
@@ -325,6 +337,7 @@ outbox 행은 파기되는 워크스페이스의 행이 아니라 배포의 것�
 | 금액 크레딧이 있을 때 | 결제 화면 | 지불자 | "크레딧 70,000원 남음 (2027년 11월 1일 만료)". 워크스페이스의 것은 그 워크스페이스의 라벨과 함께. 잔액은 "만료 없음" |
 | 만료가 가까울 때(앱이 정한다, 예: 30일 전) | 결제 화면, 배너 | 지불자 | "크레딧 30,000원이 곧 만료됩니다". levyan은 알리지 않는다. 앱이 `credits[].expires`로 판단한다 |
 | 청구서를 볼 때 | 청구서 | 지불자 | 합계, "크레딧 −50,000원"(`credits[]`마다, 잔액은 따로), 청구 금액(`due`) |
+| 청구서의 줄을 볼 때 | 청구서 | 지불자 | 그 줄의 내역(`PayerService.GetStatement(line.statement)`): 미터마다 사용량, 무료(가격의 무료량 + 프로모션), 사용량 크레딧이 뺀 것, 유료(`billable` − `pooled`), 금액 |
 | 워크스페이스 관리 화면 | 워크스페이스 | 소유자 | 그 워크스페이스에 준 크레딧(`GetPayer`의 `payer.credits`) |
 
 - **levyan은 혜택을 앱에 밀어 주지 않는다.** 화면을 그릴 때 읽는다. 연체(6장)와 같다.

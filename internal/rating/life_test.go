@@ -29,8 +29,10 @@ func forever(from int) rating.Stretch { return rating.Stretch{From: day(from), T
 
 // What became of a workspace is read in the order of its moments, never of
 // its coming: the same said again changes nothing, one said late takes its
-// place, and an older one never undoes what a newer one says. A destruction
-// is for good.
+// place, and an older one never undoes what a newer one says. A stretch
+// closed and then restored is no stretch away, so only what is closed still,
+// or ended in a destruction, is -- to [rating.Forever]: the owner's
+// (2026-11-01). A destruction is for good.
 func TestALifeIsReadInTheOrderOfItsMoments(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -38,17 +40,19 @@ func TestALifeIsReadInTheOrderOfItsMoments(t *testing.T) {
 		want rating.Life
 	}{
 		{"nothing said, never away", nil, rating.Life{}},
-		{"closed and restored", []rating.Event{ev(closed, 11), ev(restored, 21)}, rating.Life{Away: []rating.Stretch{away(11, 21)}}},
-		{"the restore came first", []rating.Event{ev(restored, 21), ev(closed, 11)}, rating.Life{Away: []rating.Stretch{away(11, 21)}}},
-		{"each said twice", []rating.Event{ev(closed, 11), ev(restored, 21), ev(closed, 11), ev(restored, 21)}, rating.Life{Away: []rating.Stretch{away(11, 21)}}},
+		{"closed and restored, billed as if open", []rating.Event{ev(closed, 11), ev(restored, 21)}, rating.Life{}},
+		{"the restore came first", []rating.Event{ev(restored, 21), ev(closed, 11)}, rating.Life{}},
+		{"each said twice", []rating.Event{ev(closed, 11), ev(restored, 21), ev(closed, 11), ev(restored, 21)}, rating.Life{}},
 		{"closed, and not restored yet", []rating.Event{ev(closed, 11)}, rating.Life{Away: []rating.Stretch{forever(11)}, Closed: day(11)}},
-		{"a close of what is closed changes nothing", []rating.Event{ev(closed, 11), ev(closed, 15), ev(restored, 21)}, rating.Life{Away: []rating.Stretch{away(11, 21)}}},
-		{"a restore of what is open changes nothing", []rating.Event{ev(restored, 5), ev(closed, 11), ev(restored, 21), ev(restored, 25)}, rating.Life{Away: []rating.Stretch{away(11, 21)}}},
-		{"an older close takes its place, and the newer restore stands", []rating.Event{ev(closed, 11), ev(restored, 21), ev(closed, 5)}, rating.Life{Away: []rating.Stretch{away(5, 21)}}},
-		{"closed twice", []rating.Event{ev(closed, 3), ev(restored, 6), ev(closed, 11), ev(restored, 21)}, rating.Life{Away: []rating.Stretch{away(3, 6), away(11, 21)}}},
-		{"closed and restored at once was never away", []rating.Event{ev(restored, 11), ev(closed, 11)}, rating.Life{}},
+		{"a close of what is closed changes nothing", []rating.Event{ev(closed, 11), ev(closed, 15)}, rating.Life{Away: []rating.Stretch{forever(11)}, Closed: day(11)}},
+		{"a restore of what is open changes nothing", []rating.Event{ev(restored, 5), ev(closed, 11)}, rating.Life{Away: []rating.Stretch{forever(11)}, Closed: day(11)}},
+		{"an older close takes its place, and the newer restore stands", []rating.Event{ev(closed, 11), ev(restored, 21), ev(closed, 5)}, rating.Life{}},
+		{"closed twice, the second time still", []rating.Event{ev(closed, 3), ev(restored, 6), ev(closed, 11)}, rating.Life{Away: []rating.Stretch{forever(11)}, Closed: day(11)}},
+		{"closed and restored at once was never closed", []rating.Event{ev(restored, 11), ev(closed, 11)}, rating.Life{}},
 		{"destroyed, for good", []rating.Event{ev(destroyed, 15), ev(closed, 20), ev(restored, 25)}, rating.Life{Away: []rating.Stretch{forever(15)}, Destroyed: day(15)}},
 		{"destroyed closed, from its close", []rating.Event{ev(closed, 11), ev(destroyed, 15)}, rating.Life{Away: []rating.Stretch{forever(11)}, Closed: day(11), Destroyed: day(15)}},
+		{"restored, and destroyed after", []rating.Event{ev(closed, 5), ev(restored, 10), ev(destroyed, 15)}, rating.Life{Away: []rating.Stretch{forever(15)}, Destroyed: day(15)}},
+		{"destroyed before the restore said first", []rating.Event{ev(closed, 11), ev(restored, 21), ev(destroyed, 15)}, rating.Life{Away: []rating.Stretch{forever(11)}, Closed: day(11), Destroyed: day(15)}},
 		{"destroyed twice is the first", []rating.Event{ev(destroyed, 20), ev(destroyed, 15)}, rating.Life{Away: []rating.Stretch{forever(15)}, Destroyed: day(15)}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -57,10 +61,42 @@ func TestALifeIsReadInTheOrderOfItsMoments(t *testing.T) {
 	}
 
 	l := rating.Lived([]rating.Event{ev(closed, 11), ev(restored, 21)})
-	require.False(t, l.Through(jan), "a customer of some of it")
-	require.True(t, l.Through(rating.Period{Start: day(12), End: day(20)}))
+	require.False(t, l.Through(jan), "a customer of all of it")
+	require.False(t, l.Through(rating.Period{Start: day(12), End: day(20)}), "closed then, and restored since: billed as if open")
+	still := rating.Lived([]rating.Event{ev(closed, 11)})
+	require.False(t, still.Through(jan), "a customer of some of it")
+	require.True(t, still.Through(rating.Period{Start: day(12), End: day(20)}))
 	require.True(t, rating.Lived([]rating.Event{{Kind: closed, At: day(1).Add(-time.Hour)}}).Through(jan))
 	require.False(t, rating.Lived(nil).Through(jan))
+}
+
+// What an event can move of what a workspace is billed for reaches back to
+// the close of the stretch it ends, when it ends one: a restore makes the
+// stretch billed, and a destruction makes one a restore would have billed
+// not billed; anything else moves what is from its own moment on.
+func TestAnEventReachesBackToTheCloseOfTheStretchItEnds(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		es   []rating.Event
+		e    rating.Event
+		want time.Time
+	}{
+		{"a close, from its moment", []rating.Event{ev(closed, 11)}, ev(closed, 11), day(11)},
+		{"a close of what is closed, from its moment", []rating.Event{ev(closed, 5)}, ev(closed, 11), day(11)},
+		{"a restore, from the close it ends", []rating.Event{ev(closed, 11)}, ev(restored, 21), day(11)},
+		{"the same, among the events", []rating.Event{ev(closed, 11), ev(restored, 21)}, ev(restored, 21), day(11)},
+		{"from the first close of the stretch", []rating.Event{ev(closed, 5), ev(closed, 11)}, ev(restored, 21), day(5)},
+		{"from the close after the restore before it", []rating.Event{ev(closed, 3), ev(restored, 6), ev(closed, 11)}, ev(restored, 21), day(11)},
+		{"a restore of what is open, from its moment", []rating.Event{ev(closed, 3), ev(restored, 6)}, ev(restored, 21), day(21)},
+		{"a destruction of what is open, from its moment", nil, ev(destroyed, 15), day(15)},
+		{"a destruction of what was closed still, from its moment", []rating.Event{ev(closed, 11)}, ev(destroyed, 15), day(15)},
+		{"a destruction before a restore, from the close it takes back", []rating.Event{ev(closed, 11), ev(restored, 21)}, ev(destroyed, 15), day(11)},
+		{"after a destruction, from its moment", []rating.Event{ev(closed, 5), ev(destroyed, 10)}, ev(restored, 21), day(21)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, rating.Reach(tc.es, tc.e))
+		})
+	}
 }
 
 // cut is what `rs` held and were while a customer, as the ledger hands it to
@@ -91,7 +127,7 @@ func TestAWorkspaceAwayIsNoCustomer(t *testing.T) {
 	x := require.New(t)
 	rs := daily(1, 32, 200)
 
-	// Closed from the 11th to the 21st: 21 days of 200.
+	// Away from the 11th to the 21st: 21 days of 200.
 	l := rateAway(t, meter(stock, twa), cut(rs, away(11, 21)), plain, day(1), away(11, 21))
 	x.Equal(rat("4200/31"), l.Quantity)
 	x.Equal(rat("100"), l.Included, "all of it")

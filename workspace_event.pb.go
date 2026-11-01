@@ -28,12 +28,15 @@ type WorkspaceEventKind int32
 
 const (
 	WorkspaceEventKind_WORKSPACE_EVENT_KIND_UNSPECIFIED WorkspaceEventKind = 0
-	// Closed: no customer from then until it is restored. What it holds is
-	// still measured, and kept, and billed for none of that stretch.
+	// Closed: no customer from then while nothing restores it. What it holds
+	// is still measured, and kept, and billed for none of that stretch unless
+	// it is restored.
 	WorkspaceEventKind_WORKSPACE_EVENT_KIND_CLOSED WorkspaceEventKind = 1
-	// Opened again: billed from then as it was before it was closed.
+	// Opened again: billed for the stretch it was closed for, as for any open
+	// time, and from then on as it was before it was closed.
 	WorkspaceEventKind_WORKSPACE_EVENT_KIND_RESTORED WorkspaceEventKind = 2
-	// Destroyed, for good: billed for nothing from then on, nothing measured
+	// Destroyed, for good: billed for nothing from then on -- nor for the
+	// stretch it was closed for, if it was destroyed closed -- nothing measured
 	// of it from then is kept, and nothing said of it after changes anything.
 	WorkspaceEventKind_WORKSPACE_EVENT_KIND_DESTROYED WorkspaceEventKind = 3
 )
@@ -79,8 +82,10 @@ func (x WorkspaceEventKind) Number() protoreflect.EnumNumber {
 // WorkspaceEvent is what a product said became of one of its workspaces at a
 // moment -- closed, restored, destroyed (`levyan.v1.WorkspaceService`, #14)
 // -- which is when the workspace is billed and when it is not: from a close
-// until the restore after it, and from its destruction on, for good, it is no
-// customer, and what it holds then is billed to nobody.
+// nothing has restored -- still closed, or destroyed closed -- and from its
+// destruction on, for good, it is no customer, and what it holds then is
+// billed to nobody. A stretch closed and then restored is billed as any open
+// time is (the owner's, 2026-11-01).
 //
 // A product's word on a workspace is kept once of each moment, and never
 // changed: every field is immutable and there is no Patch and no Erase. The
@@ -305,10 +310,13 @@ type WorkspaceEvent_builder struct {
 	// ahead of when it came, nor before the workspace arrived.
 	HappenedAt *timestamppb.Timestamp
 	// The end of the last of the product's periods whose close had begun when
-	// it came, for one that happened before that end: what was billed for the
-	// periods from its moment through there is corrected on a later statement
-	// (#6), as a late reading's is. Unset for one that came before any close
-	// it reaches. Said as it is written, under the workspace's lock, so that a
+	// it came, for one whose reach is before that end: what was billed for the
+	// periods from its reach through there is corrected on a later statement
+	// (#6), as a late reading's is. Its reach is its moment, but for a restore
+	// or a destruction of a workspace closed just before it, whose reach is the
+	// close that began that stretch (`rating.Reach`): whether the stretch is
+	// billed is its end's to say. Unset for one that came before any close it
+	// reaches. Said as it is written, under the workspace's lock, so that a
 	// close and an event never both take the other to have come first.
 	LateThrough *timestamppb.Timestamp
 	// Never stamped: there is no Erase.

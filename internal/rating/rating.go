@@ -28,18 +28,22 @@
 //     every step would be a different bill for the same usage depending on how
 //     the steps were cut.
 //
-// And levyan#14's (Claude's, the lead's, which the owner may overturn; they
-// set what is charged, which is the owner's to decide otherwise):
+// And levyan#14's -- when a workspace is no customer, which is the owner's
+// (2026-11-01, levyan#1 open question 102); how it is taken out of what is
+// rated is Claude's, the lead's:
 //
-//   - A workspace is no customer while it is closed -- from a close until the
-//     restore after it -- nor from its destruction on, for good ([Lived]).
-//     What it held and did then is taken out of its usage, as the time before
-//     it began is: its average counts that time as nothing, its most and its
-//     last are of the readings measured outside it, a flow counts nothing in
-//     it, and the time a price by bands charges is the time outside it. What
-//     its prices include is all of what they include, as for a workspace
-//     that began during the period. A workspace away for the whole of a
-//     period is billed nothing for it.
+//   - A workspace is no customer while it is closed and nothing has restored
+//     it -- from a close it is still in when it is rated, or one it was
+//     destroyed in -- nor from its destruction on, for good ([Lived]). A
+//     stretch it was closed for and then restored from is billed as any
+//     open time is. What it held and did while it was no customer is taken
+//     out of its usage, as the time before it began is: its average counts
+//     that time as nothing, its most and its last are of the readings
+//     measured outside it, a flow counts nothing in it, and the time a price
+//     by bands charges is the time outside it. What its prices include is
+//     all of what they include, as for a workspace that began during the
+//     period. A workspace away for the whole of a period is billed nothing
+//     for it.
 package rating
 
 import (
@@ -63,7 +67,12 @@ import (
 // 2 is a workspace away -- closed, or destroyed -- being no customer, and its
 // last reading holding no further than its destruction (#14). A workspace
 // nothing was said of comes to what it came to by 1.
-const Version = 2
+//
+// 3 is a stretch closed and then restored being billed as any open time is
+// (the owner's, 2026-11-01): away is only what is closed still, or ended in a
+// destruction, and what follows a destruction. A workspace never restored
+// comes to what it came to by 2.
+const Version = 3
 
 // Meter is a meter as it is rated.
 type Meter struct {
@@ -205,8 +214,8 @@ func shares(hs []usage.Held, from, to time.Time, p Period) pricing.Usage {
 
 // Customer is when a workspace was a customer: from Since -- when its first
 // payer began to pay for it, or the ledger first said anything of it -- but
-// for the stretches it was Away: closed, and from its destruction on (#14,
-// [Lived]). Since says which of a price's dates it is priced by, a customer
+// for the stretches it was Away: closed and not restored, and from its
+// destruction on (#14, [Lived]). Since says which of a price's dates it is priced by, a customer
 // new or existing; what it held and did while away is taken out of its usage
 // before it is rated ([usage.Cut]), and a version in force is charged by its
 // share of the time the workspace was a customer.

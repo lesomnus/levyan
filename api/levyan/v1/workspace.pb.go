@@ -768,7 +768,10 @@ type CloseResponse_builder struct {
 	Lifecycle *Lifecycle
 	// Whether what was said came late: it reaches into a period whose close
 	// had begun, so that what the period was billed is corrected on a later
-	// statement. False for what was said before, and changed nothing.
+	// statement. A restore, or a destruction, of a workspace closed reaches
+	// back to the close of the stretch it ends, and is late, however soon it
+	// is said, when that close is in a period whose close had begun. False
+	// for what was said before, and changed nothing.
 	Late bool
 }
 
@@ -1333,9 +1336,9 @@ type Lifecycle_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Workspace string
-	// Since when it has been closed, and is billed for nothing; unset while it
-	// is open. A workspace destroyed while closed says the closure it was
-	// destroyed in.
+	// Since when it has been closed, and is billed for nothing while it is;
+	// unset while it is open. A workspace destroyed while closed says the
+	// closure it was destroyed in.
 	ClosedSince *timestamppb.Timestamp
 	// When it was destroyed, for good; unset for one that was not.
 	Destroyed *timestamppb.Timestamp

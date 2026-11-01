@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Access is the client for interacting with the Access builders.
 	Access *AccessClient
+	// Allowance is the client for interacting with the Allowance builders.
+	Allowance *AllowanceClient
 	// Archived is the client for interacting with the Archived builders.
 	Archived *ArchivedClient
 	// Audit is the client for interacting with the Audit builders.
@@ -212,6 +214,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Access = NewAccessClient(tx.config)
+	tx.Allowance = NewAllowanceClient(tx.config)
 	tx.Archived = NewArchivedClient(tx.config)
 	tx.Audit = NewAuditClient(tx.config)
 	tx.BillingAccount = NewBillingAccountClient(tx.config)

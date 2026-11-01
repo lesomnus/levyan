@@ -1659,6 +1659,8 @@ type GetBillingAccountResponse struct {
 	xxx_hidden_Collection     *Collection            `protobuf:"bytes,2,opt,name=collection"`
 	xxx_hidden_Subscription   *Subscription          `protobuf:"bytes,3,opt,name=subscription"`
 	xxx_hidden_Dunning        *[]*Dunning            `protobuf:"bytes,4,rep,name=dunning"`
+	xxx_hidden_Credits        *[]*Credit             `protobuf:"bytes,5,rep,name=credits"`
+	xxx_hidden_Balance        int64                  `protobuf:"varint,6,opt,name=balance"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1718,6 +1720,22 @@ func (x *GetBillingAccountResponse) GetDunning() []*Dunning {
 	return nil
 }
 
+func (x *GetBillingAccountResponse) GetCredits() []*Credit {
+	if x != nil {
+		if x.xxx_hidden_Credits != nil {
+			return *x.xxx_hidden_Credits
+		}
+	}
+	return nil
+}
+
+func (x *GetBillingAccountResponse) GetBalance() int64 {
+	if x != nil {
+		return x.xxx_hidden_Balance
+	}
+	return 0
+}
+
 func (x *GetBillingAccountResponse) SetBillingAccount(v *BillingAccount) {
 	x.xxx_hidden_BillingAccount = v
 }
@@ -1732,6 +1750,14 @@ func (x *GetBillingAccountResponse) SetSubscription(v *Subscription) {
 
 func (x *GetBillingAccountResponse) SetDunning(v []*Dunning) {
 	x.xxx_hidden_Dunning = &v
+}
+
+func (x *GetBillingAccountResponse) SetCredits(v []*Credit) {
+	x.xxx_hidden_Credits = &v
+}
+
+func (x *GetBillingAccountResponse) SetBalance(v int64) {
+	x.xxx_hidden_Balance = v
 }
 
 func (x *GetBillingAccountResponse) HasBillingAccount() bool {
@@ -1780,6 +1806,16 @@ type GetBillingAccountResponse_builder struct {
 	// still owed, each with what is done of it: the one that restricts soonest
 	// first, and none while every charge of it went through.
 	Dunning []*Dunning
+	// What an operator granted that its next invoices of the relaying
+	// product's may be paid with, and has not been spent nor expired: its own
+	// credits, and those of the workspaces it pays for now or will from the
+	// end of the period, the soonest to expire first.
+	Credits []*Credit
+	// What it is owed in the relaying product beside them -- what an invoice
+	// that came to less than nothing, a credit note, or a payment of more
+	// than was due left it -- in its currency's minor unit, which never
+	// expires and is spent after them.
+	Balance int64
 }
 
 func (b0 GetBillingAccountResponse_builder) Build() *GetBillingAccountResponse {
@@ -1790,6 +1826,8 @@ func (b0 GetBillingAccountResponse_builder) Build() *GetBillingAccountResponse {
 	x.xxx_hidden_Collection = b.Collection
 	x.xxx_hidden_Subscription = b.Subscription
 	x.xxx_hidden_Dunning = &b.Dunning
+	x.xxx_hidden_Credits = &b.Credits
+	x.xxx_hidden_Balance = b.Balance
 	return m0
 }
 
@@ -3737,14 +3775,16 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\fStopResponse\x12#\n" +
 	"\x04link\x18\x01 \x01(\v2\x0f.levyan.v1.LinkR\x04link\"*\n" +
 	"\x18GetBillingAccountRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x81\x02\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xc8\x02\n" +
 	"\x19GetBillingAccountResponse\x12B\n" +
 	"\x0fbilling_account\x18\x01 \x01(\v2\x19.levyan.v1.BillingAccountR\x0ebillingAccount\x125\n" +
 	"\n" +
 	"collection\x18\x02 \x01(\v2\x15.levyan.v1.CollectionR\n" +
 	"collection\x12;\n" +
 	"\fsubscription\x18\x03 \x01(\v2\x17.levyan.v1.SubscriptionR\fsubscription\x12,\n" +
-	"\adunning\x18\x04 \x03(\v2\x12.levyan.v1.DunningR\adunning\"`\n" +
+	"\adunning\x18\x04 \x03(\v2\x12.levyan.v1.DunningR\adunning\x12+\n" +
+	"\acredits\x18\x05 \x03(\v2\x11.levyan.v1.CreditR\acredits\x12\x18\n" +
+	"\abalance\x18\x06 \x01(\x03R\abalance\"`\n" +
 	"\x14StartCheckoutRequest\x12'\n" +
 	"\x0fbilling_account\x18\x01 \x01(\tR\x0ebillingAccount\x12\x1f\n" +
 	"\vsuccess_url\x18\x02 \x01(\tR\n" +
@@ -3937,14 +3977,15 @@ var file_levyan_v1_payer_proto_goTypes = []any{
 	(*Offer)(nil),                        // 38: levyan.v1.Offer
 	(*Link)(nil),                         // 39: levyan.v1.Link
 	(*Dunning)(nil),                      // 40: levyan.v1.Dunning
-	(*timestamppb.Timestamp)(nil),        // 41: google.protobuf.Timestamp
-	(Channel)(0),                         // 42: levyan.v1.Channel
-	(*ListInvoicesRequest)(nil),          // 43: levyan.v1.ListInvoicesRequest
-	(*GetInvoiceRequest)(nil),            // 44: levyan.v1.GetInvoiceRequest
-	(*ListCreditNotesRequest)(nil),       // 45: levyan.v1.ListCreditNotesRequest
-	(*ListInvoicesResponse)(nil),         // 46: levyan.v1.ListInvoicesResponse
-	(*GetInvoiceResponse)(nil),           // 47: levyan.v1.GetInvoiceResponse
-	(*ListCreditNotesResponse)(nil),      // 48: levyan.v1.ListCreditNotesResponse
+	(*Credit)(nil),                       // 41: levyan.v1.Credit
+	(*timestamppb.Timestamp)(nil),        // 42: google.protobuf.Timestamp
+	(Channel)(0),                         // 43: levyan.v1.Channel
+	(*ListInvoicesRequest)(nil),          // 44: levyan.v1.ListInvoicesRequest
+	(*GetInvoiceRequest)(nil),            // 45: levyan.v1.GetInvoiceRequest
+	(*ListCreditNotesRequest)(nil),       // 46: levyan.v1.ListCreditNotesRequest
+	(*ListInvoicesResponse)(nil),         // 47: levyan.v1.ListInvoicesResponse
+	(*GetInvoiceResponse)(nil),           // 48: levyan.v1.GetInvoiceResponse
+	(*ListCreditNotesResponse)(nil),      // 49: levyan.v1.ListCreditNotesResponse
 }
 var file_levyan_v1_payer_proto_depIdxs = []int32{
 	35, // 0: levyan.v1.ListBillingAccountsResponse.billing_accounts:type_name -> levyan.v1.BillingAccount
@@ -3963,71 +4004,72 @@ var file_levyan_v1_payer_proto_depIdxs = []int32{
 	32, // 13: levyan.v1.GetBillingAccountResponse.collection:type_name -> levyan.v1.Collection
 	33, // 14: levyan.v1.GetBillingAccountResponse.subscription:type_name -> levyan.v1.Subscription
 	40, // 15: levyan.v1.GetBillingAccountResponse.dunning:type_name -> levyan.v1.Dunning
-	30, // 16: levyan.v1.StartCheckoutResponse.checkout:type_name -> levyan.v1.Checkout
-	30, // 17: levyan.v1.CompleteCheckoutResponse.checkout:type_name -> levyan.v1.Checkout
-	33, // 18: levyan.v1.CompleteCheckoutResponse.subscription:type_name -> levyan.v1.Subscription
-	32, // 19: levyan.v1.CompleteCheckoutResponse.collection:type_name -> levyan.v1.Collection
-	0,  // 20: levyan.v1.Checkout.state:type_name -> levyan.v1.CheckoutState
-	41, // 21: levyan.v1.Checkout.started:type_name -> google.protobuf.Timestamp
-	41, // 22: levyan.v1.Checkout.done:type_name -> google.protobuf.Timestamp
-	31, // 23: levyan.v1.Checkout.window:type_name -> levyan.v1.CheckoutWindow
-	1,  // 24: levyan.v1.Collection.state:type_name -> levyan.v1.CollectionState
-	41, // 25: levyan.v1.Collection.since:type_name -> google.protobuf.Timestamp
-	41, // 26: levyan.v1.Collection.ends:type_name -> google.protobuf.Timestamp
-	2,  // 27: levyan.v1.Subscription.status:type_name -> levyan.v1.SubscriptionStatus
-	41, // 28: levyan.v1.Subscription.period_start:type_name -> google.protobuf.Timestamp
-	41, // 29: levyan.v1.Subscription.period_end:type_name -> google.protobuf.Timestamp
-	41, // 30: levyan.v1.Subscription.next_billed:type_name -> google.protobuf.Timestamp
-	3,  // 31: levyan.v1.Subscription.change:type_name -> levyan.v1.SubscriptionChange
-	41, // 32: levyan.v1.Subscription.change_at:type_name -> google.protobuf.Timestamp
-	41, // 33: levyan.v1.Subscription.canceled:type_name -> google.protobuf.Timestamp
-	34, // 34: levyan.v1.Subscription.method:type_name -> levyan.v1.PaymentMethod
-	41, // 35: levyan.v1.Subscription.updated:type_name -> google.protobuf.Timestamp
-	41, // 36: levyan.v1.Subscription.checked:type_name -> google.protobuf.Timestamp
-	42, // 37: levyan.v1.BillingAccount.channel:type_name -> levyan.v1.Channel
-	36, // 38: levyan.v1.BillingAccount.recipient:type_name -> levyan.v1.Recipient
-	37, // 39: levyan.v1.BillingAccount.business:type_name -> levyan.v1.Business
-	41, // 40: levyan.v1.BillingAccount.created:type_name -> google.protobuf.Timestamp
-	41, // 41: levyan.v1.Offer.offered:type_name -> google.protobuf.Timestamp
-	41, // 42: levyan.v1.Link.start:type_name -> google.protobuf.Timestamp
-	41, // 43: levyan.v1.Link.end:type_name -> google.protobuf.Timestamp
-	4,  // 44: levyan.v1.Link.began:type_name -> levyan.v1.LinkBegan
-	5,  // 45: levyan.v1.Link.ended:type_name -> levyan.v1.LinkEnded
-	6,  // 46: levyan.v1.PayerService.ListBillingAccounts:input_type -> levyan.v1.ListBillingAccountsRequest
-	8,  // 47: levyan.v1.PayerService.CreateBillingAccount:input_type -> levyan.v1.CreateBillingAccountRequest
-	10, // 48: levyan.v1.PayerService.UpdateBillingAccount:input_type -> levyan.v1.UpdateBillingAccountRequest
-	12, // 49: levyan.v1.PayerService.ListOffers:input_type -> levyan.v1.ListOffersRequest
-	14, // 50: levyan.v1.PayerService.Accept:input_type -> levyan.v1.AcceptRequest
-	16, // 51: levyan.v1.PayerService.Decline:input_type -> levyan.v1.DeclineRequest
-	18, // 52: levyan.v1.PayerService.ListLinks:input_type -> levyan.v1.ListLinksRequest
-	20, // 53: levyan.v1.PayerService.Use:input_type -> levyan.v1.UseRequest
-	22, // 54: levyan.v1.PayerService.Stop:input_type -> levyan.v1.StopRequest
-	43, // 55: levyan.v1.PayerService.ListInvoices:input_type -> levyan.v1.ListInvoicesRequest
-	44, // 56: levyan.v1.PayerService.GetInvoice:input_type -> levyan.v1.GetInvoiceRequest
-	45, // 57: levyan.v1.PayerService.ListCreditNotes:input_type -> levyan.v1.ListCreditNotesRequest
-	24, // 58: levyan.v1.PayerService.GetBillingAccount:input_type -> levyan.v1.GetBillingAccountRequest
-	26, // 59: levyan.v1.PayerService.StartCheckout:input_type -> levyan.v1.StartCheckoutRequest
-	28, // 60: levyan.v1.PayerService.CompleteCheckout:input_type -> levyan.v1.CompleteCheckoutRequest
-	7,  // 61: levyan.v1.PayerService.ListBillingAccounts:output_type -> levyan.v1.ListBillingAccountsResponse
-	9,  // 62: levyan.v1.PayerService.CreateBillingAccount:output_type -> levyan.v1.CreateBillingAccountResponse
-	11, // 63: levyan.v1.PayerService.UpdateBillingAccount:output_type -> levyan.v1.UpdateBillingAccountResponse
-	13, // 64: levyan.v1.PayerService.ListOffers:output_type -> levyan.v1.ListOffersResponse
-	15, // 65: levyan.v1.PayerService.Accept:output_type -> levyan.v1.AcceptResponse
-	17, // 66: levyan.v1.PayerService.Decline:output_type -> levyan.v1.DeclineResponse
-	19, // 67: levyan.v1.PayerService.ListLinks:output_type -> levyan.v1.ListLinksResponse
-	21, // 68: levyan.v1.PayerService.Use:output_type -> levyan.v1.UseResponse
-	23, // 69: levyan.v1.PayerService.Stop:output_type -> levyan.v1.StopResponse
-	46, // 70: levyan.v1.PayerService.ListInvoices:output_type -> levyan.v1.ListInvoicesResponse
-	47, // 71: levyan.v1.PayerService.GetInvoice:output_type -> levyan.v1.GetInvoiceResponse
-	48, // 72: levyan.v1.PayerService.ListCreditNotes:output_type -> levyan.v1.ListCreditNotesResponse
-	25, // 73: levyan.v1.PayerService.GetBillingAccount:output_type -> levyan.v1.GetBillingAccountResponse
-	27, // 74: levyan.v1.PayerService.StartCheckout:output_type -> levyan.v1.StartCheckoutResponse
-	29, // 75: levyan.v1.PayerService.CompleteCheckout:output_type -> levyan.v1.CompleteCheckoutResponse
-	61, // [61:76] is the sub-list for method output_type
-	46, // [46:61] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	41, // 16: levyan.v1.GetBillingAccountResponse.credits:type_name -> levyan.v1.Credit
+	30, // 17: levyan.v1.StartCheckoutResponse.checkout:type_name -> levyan.v1.Checkout
+	30, // 18: levyan.v1.CompleteCheckoutResponse.checkout:type_name -> levyan.v1.Checkout
+	33, // 19: levyan.v1.CompleteCheckoutResponse.subscription:type_name -> levyan.v1.Subscription
+	32, // 20: levyan.v1.CompleteCheckoutResponse.collection:type_name -> levyan.v1.Collection
+	0,  // 21: levyan.v1.Checkout.state:type_name -> levyan.v1.CheckoutState
+	42, // 22: levyan.v1.Checkout.started:type_name -> google.protobuf.Timestamp
+	42, // 23: levyan.v1.Checkout.done:type_name -> google.protobuf.Timestamp
+	31, // 24: levyan.v1.Checkout.window:type_name -> levyan.v1.CheckoutWindow
+	1,  // 25: levyan.v1.Collection.state:type_name -> levyan.v1.CollectionState
+	42, // 26: levyan.v1.Collection.since:type_name -> google.protobuf.Timestamp
+	42, // 27: levyan.v1.Collection.ends:type_name -> google.protobuf.Timestamp
+	2,  // 28: levyan.v1.Subscription.status:type_name -> levyan.v1.SubscriptionStatus
+	42, // 29: levyan.v1.Subscription.period_start:type_name -> google.protobuf.Timestamp
+	42, // 30: levyan.v1.Subscription.period_end:type_name -> google.protobuf.Timestamp
+	42, // 31: levyan.v1.Subscription.next_billed:type_name -> google.protobuf.Timestamp
+	3,  // 32: levyan.v1.Subscription.change:type_name -> levyan.v1.SubscriptionChange
+	42, // 33: levyan.v1.Subscription.change_at:type_name -> google.protobuf.Timestamp
+	42, // 34: levyan.v1.Subscription.canceled:type_name -> google.protobuf.Timestamp
+	34, // 35: levyan.v1.Subscription.method:type_name -> levyan.v1.PaymentMethod
+	42, // 36: levyan.v1.Subscription.updated:type_name -> google.protobuf.Timestamp
+	42, // 37: levyan.v1.Subscription.checked:type_name -> google.protobuf.Timestamp
+	43, // 38: levyan.v1.BillingAccount.channel:type_name -> levyan.v1.Channel
+	36, // 39: levyan.v1.BillingAccount.recipient:type_name -> levyan.v1.Recipient
+	37, // 40: levyan.v1.BillingAccount.business:type_name -> levyan.v1.Business
+	42, // 41: levyan.v1.BillingAccount.created:type_name -> google.protobuf.Timestamp
+	42, // 42: levyan.v1.Offer.offered:type_name -> google.protobuf.Timestamp
+	42, // 43: levyan.v1.Link.start:type_name -> google.protobuf.Timestamp
+	42, // 44: levyan.v1.Link.end:type_name -> google.protobuf.Timestamp
+	4,  // 45: levyan.v1.Link.began:type_name -> levyan.v1.LinkBegan
+	5,  // 46: levyan.v1.Link.ended:type_name -> levyan.v1.LinkEnded
+	6,  // 47: levyan.v1.PayerService.ListBillingAccounts:input_type -> levyan.v1.ListBillingAccountsRequest
+	8,  // 48: levyan.v1.PayerService.CreateBillingAccount:input_type -> levyan.v1.CreateBillingAccountRequest
+	10, // 49: levyan.v1.PayerService.UpdateBillingAccount:input_type -> levyan.v1.UpdateBillingAccountRequest
+	12, // 50: levyan.v1.PayerService.ListOffers:input_type -> levyan.v1.ListOffersRequest
+	14, // 51: levyan.v1.PayerService.Accept:input_type -> levyan.v1.AcceptRequest
+	16, // 52: levyan.v1.PayerService.Decline:input_type -> levyan.v1.DeclineRequest
+	18, // 53: levyan.v1.PayerService.ListLinks:input_type -> levyan.v1.ListLinksRequest
+	20, // 54: levyan.v1.PayerService.Use:input_type -> levyan.v1.UseRequest
+	22, // 55: levyan.v1.PayerService.Stop:input_type -> levyan.v1.StopRequest
+	44, // 56: levyan.v1.PayerService.ListInvoices:input_type -> levyan.v1.ListInvoicesRequest
+	45, // 57: levyan.v1.PayerService.GetInvoice:input_type -> levyan.v1.GetInvoiceRequest
+	46, // 58: levyan.v1.PayerService.ListCreditNotes:input_type -> levyan.v1.ListCreditNotesRequest
+	24, // 59: levyan.v1.PayerService.GetBillingAccount:input_type -> levyan.v1.GetBillingAccountRequest
+	26, // 60: levyan.v1.PayerService.StartCheckout:input_type -> levyan.v1.StartCheckoutRequest
+	28, // 61: levyan.v1.PayerService.CompleteCheckout:input_type -> levyan.v1.CompleteCheckoutRequest
+	7,  // 62: levyan.v1.PayerService.ListBillingAccounts:output_type -> levyan.v1.ListBillingAccountsResponse
+	9,  // 63: levyan.v1.PayerService.CreateBillingAccount:output_type -> levyan.v1.CreateBillingAccountResponse
+	11, // 64: levyan.v1.PayerService.UpdateBillingAccount:output_type -> levyan.v1.UpdateBillingAccountResponse
+	13, // 65: levyan.v1.PayerService.ListOffers:output_type -> levyan.v1.ListOffersResponse
+	15, // 66: levyan.v1.PayerService.Accept:output_type -> levyan.v1.AcceptResponse
+	17, // 67: levyan.v1.PayerService.Decline:output_type -> levyan.v1.DeclineResponse
+	19, // 68: levyan.v1.PayerService.ListLinks:output_type -> levyan.v1.ListLinksResponse
+	21, // 69: levyan.v1.PayerService.Use:output_type -> levyan.v1.UseResponse
+	23, // 70: levyan.v1.PayerService.Stop:output_type -> levyan.v1.StopResponse
+	47, // 71: levyan.v1.PayerService.ListInvoices:output_type -> levyan.v1.ListInvoicesResponse
+	48, // 72: levyan.v1.PayerService.GetInvoice:output_type -> levyan.v1.GetInvoiceResponse
+	49, // 73: levyan.v1.PayerService.ListCreditNotes:output_type -> levyan.v1.ListCreditNotesResponse
+	25, // 74: levyan.v1.PayerService.GetBillingAccount:output_type -> levyan.v1.GetBillingAccountResponse
+	27, // 75: levyan.v1.PayerService.StartCheckout:output_type -> levyan.v1.StartCheckoutResponse
+	29, // 76: levyan.v1.PayerService.CompleteCheckout:output_type -> levyan.v1.CompleteCheckoutResponse
+	62, // [62:77] is the sub-list for method output_type
+	47, // [47:62] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_payer_proto_init() }

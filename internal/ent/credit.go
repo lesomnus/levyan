@@ -12,7 +12,9 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/ent/creditnote"
 	"github.com/lesomnus/levyan/internal/ent/invoice"
+	"github.com/lesomnus/levyan/internal/ent/operator"
 	"github.com/lesomnus/levyan/internal/ent/tenant"
+	"github.com/lesomnus/levyan/internal/ent/workspace"
 	"github.com/protobuf-orm/ent"
 	"github.com/protobuf-orm/ent/dialect/sql"
 )
@@ -32,6 +34,12 @@ type Credit struct {
 	DateErased *time.Time `json:"date_erased,omitempty"`
 	// DateCreated holds the value of the "date_created" field.
 	DateCreated time.Time `json:"date_created,omitempty"`
+	// Lot holds the value of the "lot" field.
+	Lot *uuid.UUID `json:"lot,omitempty"`
+	// DateExpires holds the value of the "date_expires" field.
+	DateExpires *time.Time `json:"date_expires,omitempty"`
+	// Reason holds the value of the "reason" field.
+	Reason string `json:"reason,omitempty"`
 	// TenantId holds the value of the "tenant_id" field.
 	TenantId uuid.UUID `json:"tenant_id,omitempty"`
 	// BillingAccountId holds the value of the "billing_account_id" field.
@@ -40,6 +48,10 @@ type Credit struct {
 	InvoiceId uuid.UUID `json:"invoice_id,omitempty"`
 	// CreditNoteId holds the value of the "credit_note_id" field.
 	CreditNoteId uuid.UUID `json:"credit_note_id,omitempty"`
+	// WorkspaceId holds the value of the "workspace_id" field.
+	WorkspaceId uuid.UUID `json:"workspace_id,omitempty"`
+	// OperatorId holds the value of the "operator_id" field.
+	OperatorId uuid.UUID `json:"operator_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CreditQuery when eager-loading is set.
 	Edges        CreditEdges `json:"edges"`
@@ -56,9 +68,13 @@ type CreditEdges struct {
 	Invoice *Invoice `json:"invoice,omitempty"`
 	// CreditNote holds the value of the credit_note edge.
 	CreditNote *CreditNote `json:"credit_note,omitempty"`
+	// Workspace holds the value of the workspace edge.
+	Workspace *Workspace `json:"workspace,omitempty"`
+	// Operator holds the value of the operator edge.
+	Operator *Operator `json:"operator,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [6]bool
 }
 
 // TenantOrErr returns the Tenant value or an error if the edge
@@ -105,6 +121,28 @@ func (e CreditEdges) CreditNoteOrErr() (*CreditNote, error) {
 	return nil, &NotLoadedError{edge: "credit_note"}
 }
 
+// WorkspaceOrErr returns the Workspace value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CreditEdges) WorkspaceOrErr() (*Workspace, error) {
+	if e.Workspace != nil {
+		return e.Workspace, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: workspace.Label}
+	}
+	return nil, &NotLoadedError{edge: "workspace"}
+}
+
+// OperatorOrErr returns the Operator value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CreditEdges) OperatorOrErr() (*Operator, error) {
+	if e.Operator != nil {
+		return e.Operator, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: operator.Label}
+	}
+	return nil, &NotLoadedError{edge: "operator"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Credit) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -112,13 +150,13 @@ func (*Credit) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case credit.FieldAmount, credit.FieldKind:
 			values[i] = new(sql.NullInt64)
-		case credit.FieldCurrency:
+		case credit.FieldCurrency, credit.FieldReason:
 			values[i] = new(sql.NullString)
-		case credit.FieldDateErased, credit.FieldDateCreated:
+		case credit.FieldDateErased, credit.FieldDateCreated, credit.FieldDateExpires:
 			values[i] = new(sql.NullTime)
-		case credit.FieldInvoiceId, credit.FieldCreditNoteId:
+		case credit.FieldLot, credit.FieldBillingAccountId, credit.FieldInvoiceId, credit.FieldCreditNoteId, credit.FieldWorkspaceId, credit.FieldOperatorId:
 			values[i] = new(sql.Null[uuid.UUID])
-		case credit.FieldId, credit.FieldTenantId, credit.FieldBillingAccountId:
+		case credit.FieldId, credit.FieldTenantId:
 			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -172,6 +210,26 @@ func (_m *Credit) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DateCreated = value.Time
 			}
+		case credit.FieldLot:
+			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
+				return fmt.Errorf("unexpected type %T for field lot", values[i])
+			} else if value.Valid {
+				_m.Lot = new(uuid.UUID)
+				*_m.Lot = value.V
+			}
+		case credit.FieldDateExpires:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field date_expires", values[i])
+			} else if value.Valid {
+				_m.DateExpires = new(time.Time)
+				*_m.DateExpires = value.Time
+			}
+		case credit.FieldReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reason", values[i])
+			} else if value.Valid {
+				_m.Reason = value.String
+			}
 		case credit.FieldTenantId:
 			if value, ok := values[i].(*uuid.UUID); !ok {
 				return fmt.Errorf("unexpected type %T for field tenant_id", values[i])
@@ -179,10 +237,10 @@ func (_m *Credit) assignValues(columns []string, values []any) error {
 				_m.TenantId = *value
 			}
 		case credit.FieldBillingAccountId:
-			if value, ok := values[i].(*uuid.UUID); !ok {
+			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_account_id", values[i])
-			} else if value != nil {
-				_m.BillingAccountId = *value
+			} else if value.Valid {
+				_m.BillingAccountId = value.V
 			}
 		case credit.FieldInvoiceId:
 			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
@@ -195,6 +253,18 @@ func (_m *Credit) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field credit_note_id", values[i])
 			} else if value.Valid {
 				_m.CreditNoteId = value.V
+			}
+		case credit.FieldWorkspaceId:
+			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
+				return fmt.Errorf("unexpected type %T for field workspace_id", values[i])
+			} else if value.Valid {
+				_m.WorkspaceId = value.V
+			}
+		case credit.FieldOperatorId:
+			if value, ok := values[i].(*sql.Null[uuid.UUID]); !ok {
+				return fmt.Errorf("unexpected type %T for field operator_id", values[i])
+			} else if value.Valid {
+				_m.OperatorId = value.V
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -227,6 +297,16 @@ func (_m *Credit) QueryInvoice() *InvoiceQuery {
 // QueryCreditNote queries the "credit_note" edge of the Credit entity.
 func (_m *Credit) QueryCreditNote() *CreditNoteQuery {
 	return NewCreditClient(_m.config).QueryCreditNote(_m)
+}
+
+// QueryWorkspace queries the "workspace" edge of the Credit entity.
+func (_m *Credit) QueryWorkspace() *WorkspaceQuery {
+	return NewCreditClient(_m.config).QueryWorkspace(_m)
+}
+
+// QueryOperator queries the "operator" edge of the Credit entity.
+func (_m *Credit) QueryOperator() *OperatorQuery {
+	return NewCreditClient(_m.config).QueryOperator(_m)
 }
 
 // Update returns a builder for updating this Credit.
@@ -269,6 +349,19 @@ func (_m *Credit) String() string {
 	builder.WriteString("date_created=")
 	builder.WriteString(_m.DateCreated.Format(time.ANSIC))
 	builder.WriteString(", ")
+	if v := _m.Lot; v != nil {
+		builder.WriteString("lot=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.DateExpires; v != nil {
+		builder.WriteString("date_expires=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("reason=")
+	builder.WriteString(_m.Reason)
+	builder.WriteString(", ")
 	builder.WriteString("tenant_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TenantId))
 	builder.WriteString(", ")
@@ -280,6 +373,12 @@ func (_m *Credit) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("credit_note_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CreditNoteId))
+	builder.WriteString(", ")
+	builder.WriteString("workspace_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.WorkspaceId))
+	builder.WriteString(", ")
+	builder.WriteString("operator_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OperatorId))
 	builder.WriteByte(')')
 	return builder.String()
 }

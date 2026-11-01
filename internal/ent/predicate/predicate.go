@@ -9,6 +9,9 @@ import (
 // Access is the predicate function for access builders.
 type Access func(*sql.Selector)
 
+// Allowance is the predicate function for allowance builders.
+type Allowance func(*sql.Selector)
+
 // Archived is the predicate function for archived builders.
 type Archived func(*sql.Selector)
 

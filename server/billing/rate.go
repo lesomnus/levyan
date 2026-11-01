@@ -13,6 +13,7 @@ import (
 
 	levyan "github.com/lesomnus/levyan"
 	"github.com/lesomnus/levyan/internal/ent"
+	entallowance "github.com/lesomnus/levyan/internal/ent/allowance"
 	entlink "github.com/lesomnus/levyan/internal/ent/link"
 	entmeter "github.com/lesomnus/levyan/internal/ent/meter"
 	entperiod "github.com/lesomnus/levyan/internal/ent/period"
@@ -265,6 +266,11 @@ func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p ratin
 		return nil, err
 	}
 
+	given, err := r.Allowances(ctx, product, ws, p)
+	if err != nil {
+		return nil, err
+	}
+
 	out := []rating.Line{}
 	for _, m := range b.Meters {
 		u, err := r.Usage(ctx, product, ws, m, p, until, life.Away)
@@ -282,11 +288,40 @@ func (r Rater) Lines(ctx context.Context, b Book, product, ws uuid.UUID, p ratin
 		case t.FirstUnit:
 			book = fromFirst(book)
 		}
-		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, rating.Customer{Since: since, Away: life.Away})
+		l, err := rating.Rate(meterOf(m), u, p, book, pricing.Line{Meter: pdid.Id(m.Id), Channel: t.Channel, Currency: t.Currency}, rating.Customer{Since: since, Away: life.Away, Allowances: given[m.Id]})
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", m.Key, err)
 		}
 		out = append(out, l)
+	}
+
+	return out, nil
+}
+
+// Allowances is what workspace `ws` was given of each meter on top of what
+// its prices include, of what was in force at any moment of `p` (#43): by
+// its meter.
+func (r Rater) Allowances(ctx context.Context, product, ws uuid.UUID, p rating.Period) (map[uuid.UUID][]rating.Allowance, error) {
+	vs, err := r.Db.Allowance.Query().
+		Where(
+			entallowance.TenantId(product),
+			entallowance.WorkspaceId(ws),
+			entallowance.ValidFromLT(p.End),
+			entallowance.Or(entallowance.ValidUntilIsNil(), entallowance.ValidUntilGT(p.Start)),
+		).
+		Order(ent.Asc(entallowance.FieldValidFrom), ent.Asc(entallowance.FieldId)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := map[uuid.UUID][]rating.Allowance{}
+	for _, v := range vs {
+		a := rating.Allowance{Id: pdid.Id(v.Id), Quantity: v.Quantity, From: ledger.Moment(v.ValidFrom)}
+		if v.ValidUntil != nil {
+			a.Until = ledger.Moment(*v.ValidUntil)
+		}
+		out[v.MeterId] = append(out[v.MeterId], a)
 	}
 
 	return out, nil
@@ -418,7 +453,7 @@ func (r Rater) Corrections(ctx context.Context, b Book, product, ws uuid.UUID, b
 				if m == nil {
 					return nil, nil, fmt.Errorf("billing: a statement names meter %s, which the product has not got", pdid.Id(id))
 				}
-				l = rating.Line{Meter: meterOf(m), Quantity: new(big.Rat), Included: new(big.Rat), Billable: new(big.Rat), Amount: new(big.Rat)}
+				l = rating.Line{Meter: meterOf(m), Quantity: new(big.Rat), Included: new(big.Rat), Billable: new(big.Rat), Allowance: new(big.Rat), Amount: new(big.Rat)}
 			}
 			was := billed[id]
 			if was == nil {

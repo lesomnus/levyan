@@ -21,6 +21,18 @@ func (f AccessFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccessMutation", m)
 }
 
+// The AllowanceFunc type is an adapter to allow the use of ordinary
+// function as Allowance mutator.
+type AllowanceFunc func(context.Context, *ent.AllowanceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AllowanceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AllowanceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AllowanceMutation", m)
+}
+
 // The ArchivedFunc type is an adapter to allow the use of ordinary
 // function as Archived mutator.
 type ArchivedFunc func(context.Context, *ent.ArchivedMutation) (ent.Value, error)

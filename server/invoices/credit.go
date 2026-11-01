@@ -306,7 +306,22 @@ func (v Invoices) note(ctx context.Context, s levyan.Server, db *ent.Client, drv
 
 	now := v.now()
 	if credited > 0 {
-		if err := credit(ctx, s, inv.TenantId, inv.BillingAccountId, inv.Currency, credited, levyan.CreditKind_CREDIT_KIND_CREDIT_NOTE, inv.Id, id.Uuid()); err != nil {
+		// What it credits goes back first to the lots that paid the invoice,
+		// as far as each paid it, and the rest to the balance: credit an
+		// operator granted never becomes the balance's, which never expires
+		// (#43).
+		back, err := returns(ctx, db, inv.Id, credited)
+		if err != nil {
+			return nil, err
+		}
+		rest := credited
+		for _, t := range back {
+			if err := move(ctx, s, inv.TenantId, inv.BillingAccountId, inv.Currency, t.amount, levyan.CreditKind_CREDIT_KIND_RETURNED, inv.Id, id.Uuid(), t.lot); err != nil {
+				return nil, err
+			}
+			rest -= t.amount
+		}
+		if err := credit(ctx, s, inv.TenantId, inv.BillingAccountId, inv.Currency, rest, levyan.CreditKind_CREDIT_KIND_CREDIT_NOTE, inv.Id, id.Uuid()); err != nil {
 			return nil, err
 		}
 	}

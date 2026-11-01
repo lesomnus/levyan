@@ -214,3 +214,54 @@ func TestAnInvoiceCollectedTwiceIsFound(t *testing.T) {
 	x.Contains(fs[0].Summary, "collected by 2 charges")
 	x.Len(w.findings(), 1, "and the ledger agrees with itself otherwise")
 }
+
+// A lot an operator granted (#43) is held to its own rows: nothing of it
+// spent once it was over, nothing left of it less than nothing, every
+// movement of it in its currency, and none naming a lot nothing granted --
+// each written past the servers' paths, as no correction would write it.
+func TestALotIsHeldToItsRows(t *testing.T) {
+	w := setup(t)
+	x := w.X
+
+	inv, _, _ := w.charged()
+	l, err := w.S.Invoices.Grant(w.op, invoices.Grant{
+		Product: w.product, BillingAccount: pdid.Id(inv.BillingAccountId), Amount: 1000, Expires: w.S.Clock().Add(time.Hour), Reason: "프로모션",
+	})
+	x.NoError(err)
+	w.reconcile()
+	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_CREDIT_DIFFERS), "as it was granted")
+
+	spend := func(lot []byte, amount int64, currency string) {
+		_, err := w.S.Ungated.Credit().Add(w.ctx, levyan.CreditAddRequest_builder{
+			Tenant:         levyan.TenantRef_builder{Id: inv.TenantId[:]}.Build(),
+			BillingAccount: levyan.BillingAccountRef_builder{Id: inv.BillingAccountId[:]}.Build(),
+			Invoice:        levyan.InvoiceRef_builder{Id: inv.Id[:]}.Build(),
+			Amount:         amount,
+			Currency:       currency,
+			Kind:           levyan.CreditKind_CREDIT_KIND_APPLIED,
+			Lot:            lot,
+		}.Build())
+		x.NoError(err)
+	}
+
+	// Spent once it had expired, and more of it than it was.
+	w.to(w.S.Clock().Add(2 * time.Hour))
+	spend(l.Row.Id[:], -1500, "KRW")
+	w.reconcile()
+	got := w.findings()
+	f := got["credit_differs "+reconcile.Subject("Credit", l.Row.Id)]
+	x.NotNil(f)
+	x.Contains(f.Summary, "once it was over")
+	x.Contains(f.Summary, "less than nothing")
+	x.Equal(int64(-500), f.Amount)
+	x.Nil(got["credit_differs Balance/"+w.product.String()+"/"+pdid.Id(inv.BillingAccountId).String()], "a lot is none of the balance")
+
+	// In another currency, and of a lot nothing granted.
+	spend(l.Row.Id[:], -1, "USD")
+	nobody := pdid.New(pd.CreditDomain)
+	spend(nobody.Bytes(), -100, "KRW")
+	w.reconcile()
+	got = w.findings()
+	x.Contains(got["credit_differs "+reconcile.Subject("Credit", l.Row.Id)].Summary, "in USD")
+	x.NotNil(got["credit_differs Lot/"+nobody.String()])
+}

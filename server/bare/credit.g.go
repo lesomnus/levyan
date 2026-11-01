@@ -11,7 +11,9 @@ import (
 	credit "github.com/lesomnus/levyan/internal/ent/credit"
 	creditnote "github.com/lesomnus/levyan/internal/ent/creditnote"
 	invoice "github.com/lesomnus/levyan/internal/ent/invoice"
+	operator "github.com/lesomnus/levyan/internal/ent/operator"
 	predicate "github.com/lesomnus/levyan/internal/ent/predicate"
+	workspace "github.com/lesomnus/levyan/internal/ent/workspace"
 	ent1 "github.com/protobuf-orm/ent"
 	dialect "github.com/protobuf-orm/ent/dialect"
 	sql "github.com/protobuf-orm/ent/dialect/sql"
@@ -154,6 +156,34 @@ func (s CreditServiceServer) image(v *levyan.Credit) *levyan.Credit {
 			trim(m.Get(f).Message())
 		}
 	}
+	{
+		f := m.Descriptor().Fields().ByNumber(17)
+		if m.Has(f) {
+			trim := func(r protoreflect.Message) {
+				r.Range(func(f protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+					if f.Number() != 1 {
+						r.Clear(f)
+					}
+					return true
+				})
+			}
+			trim(m.Get(f).Message())
+		}
+	}
+	{
+		f := m.Descriptor().Fields().ByNumber(21)
+		if m.Has(f) {
+			trim := func(r protoreflect.Message) {
+				r.Range(func(f protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+					if f.Number() != 1 {
+						r.Clear(f)
+					}
+					return true
+				})
+			}
+			trim(m.Get(f).Message())
+		}
+	}
 	return out
 }
 
@@ -161,7 +191,7 @@ func (s CreditServiceServer) image(v *levyan.Credit) *levyan.Credit {
 // and what the answer says about its edges. Add and AddMany both write
 // with it, so that an item of an AddMany is the row an Add of it would be.
 func (st CreditServiceServer) create(ctx context.Context, req *levyan.CreditAddRequest) (*ent.CreditCreate, []func(v *levyan.Credit), error) {
-	ds := make([]func(v *levyan.Credit), 0, 4)
+	ds := make([]func(v *levyan.Credit), 0, 6)
 	q := st.Db.Credit.Create()
 	var k uuid.UUID
 	if req.HasId() {
@@ -184,13 +214,15 @@ func (st CreditServiceServer) create(ctx context.Context, req *levyan.CreditAddR
 			v.SetTenant(levyan.Tenant_builder{Id: k[:]}.Build())
 		})
 	}
-	if k, err := BillingAccountGetKey(ctx, st.Db, req.GetBillingAccount()); err != nil {
-		return nil, nil, err
-	} else {
-		q.SetBillingAccountId(k)
-		ds = append(ds, func(v *levyan.Credit) {
-			v.SetBillingAccount(levyan.BillingAccount_builder{Id: k[:]}.Build())
-		})
+	if req.HasBillingAccount() {
+		if k, err := BillingAccountGetKey(ctx, st.Db, req.GetBillingAccount()); err != nil {
+			return nil, nil, err
+		} else {
+			q.SetBillingAccountId(k)
+			ds = append(ds, func(v *levyan.Credit) {
+				v.SetBillingAccount(levyan.BillingAccount_builder{Id: k[:]}.Build())
+			})
+		}
 	}
 	q.SetAmount(req.GetAmount())
 	q.SetCurrency(req.GetCurrency())
@@ -219,6 +251,41 @@ func (st CreditServiceServer) create(ctx context.Context, req *levyan.CreditAddR
 		q.SetDateCreated(req.GetDateCreated().AsTime())
 	} else {
 		q.SetDateCreated(st.now())
+	}
+	if req.HasWorkspace() {
+		if k, err := WorkspaceGetKey(ctx, st.Db, req.GetWorkspace()); err != nil {
+			return nil, nil, err
+		} else {
+			q.SetWorkspaceId(k)
+			ds = append(ds, func(v *levyan.Credit) {
+				v.SetWorkspace(levyan.Workspace_builder{Id: k[:]}.Build())
+			})
+		}
+	}
+	if req.HasLot() {
+		if v, err := entuuid.FromBytes(req.GetLot()); err != nil {
+			return nil, nil, status.Errorf(codes.InvalidArgument, "lot: %s", err)
+		} else {
+			q.SetLot(v)
+		}
+	}
+	if req.HasDateExpires() {
+		q.SetDateExpires(req.GetDateExpires().AsTime())
+	}
+	if req.HasReason() {
+		q.SetReason(req.GetReason())
+	} else {
+		q.SetReason("")
+	}
+	if req.HasOperator() {
+		if k, err := OperatorGetKey(ctx, st.Db, req.GetOperator()); err != nil {
+			return nil, nil, err
+		} else {
+			q.SetOperatorId(k)
+			ds = append(ds, func(v *levyan.Credit) {
+				v.SetOperator(levyan.Operator_builder{Id: k[:]}.Build())
+			})
+		}
 	}
 	return q, ds, nil
 }
@@ -362,6 +429,15 @@ func CreditSelectedFields(m *levyan.CreditSelect) []string {
 	if m.GetDateCreated() {
 		vs = append(vs, credit.FieldDateCreated)
 	}
+	if m.GetLot() {
+		vs = append(vs, credit.FieldLot)
+	}
+	if m.GetDateExpires() {
+		vs = append(vs, credit.FieldDateExpires)
+	}
+	if m.GetReason() {
+		vs = append(vs, credit.FieldReason)
+	}
 
 	return vs
 }
@@ -392,6 +468,18 @@ func CreditSelect(q *ent.CreditQuery, m *levyan.CreditSelect) {
 		q.WithCreditNote(func(q *ent.CreditNoteQuery) {
 			q.Where(creditnote.DateErasedIsNil())
 			CreditNoteSelect(q, m.GetCreditNote())
+		})
+	}
+	if m.HasWorkspace() {
+		q.WithWorkspace(func(q *ent.WorkspaceQuery) {
+			q.Where(workspace.DateErasedIsNil())
+			WorkspaceSelect(q, m.GetWorkspace())
+		})
+	}
+	if m.HasOperator() {
+		q.WithOperator(func(q *ent.OperatorQuery) {
+			q.Where(operator.DateErasedIsNil())
+			OperatorSelect(q, m.GetOperator())
 		})
 	}
 }

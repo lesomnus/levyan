@@ -22,6 +22,12 @@ const (
 	FieldDateErased = "date_erased"
 	// FieldDateCreated holds the string denoting the date_created field in the database.
 	FieldDateCreated = "date_created"
+	// FieldLot holds the string denoting the lot field in the database.
+	FieldLot = "lot"
+	// FieldDateExpires holds the string denoting the date_expires field in the database.
+	FieldDateExpires = "date_expires"
+	// FieldReason holds the string denoting the reason field in the database.
+	FieldReason = "reason"
 	// FieldTenantId holds the string denoting the tenant_id field in the database.
 	FieldTenantId = "tenant_id"
 	// FieldBillingAccountId holds the string denoting the billing_account_id field in the database.
@@ -30,6 +36,10 @@ const (
 	FieldInvoiceId = "invoice_id"
 	// FieldCreditNoteId holds the string denoting the credit_note_id field in the database.
 	FieldCreditNoteId = "credit_note_id"
+	// FieldWorkspaceId holds the string denoting the workspace_id field in the database.
+	FieldWorkspaceId = "workspace_id"
+	// FieldOperatorId holds the string denoting the operator_id field in the database.
+	FieldOperatorId = "operator_id"
 	// EdgeTenant holds the string denoting the tenant edge name in mutations.
 	EdgeTenant = "tenant"
 	// EdgeBillingAccount holds the string denoting the billing_account edge name in mutations.
@@ -38,6 +48,10 @@ const (
 	EdgeInvoice = "invoice"
 	// EdgeCreditNote holds the string denoting the credit_note edge name in mutations.
 	EdgeCreditNote = "credit_note"
+	// EdgeWorkspace holds the string denoting the workspace edge name in mutations.
+	EdgeWorkspace = "workspace"
+	// EdgeOperator holds the string denoting the operator edge name in mutations.
+	EdgeOperator = "operator"
 	// Table holds the table name of the credit in the database.
 	Table = "credit"
 	// TenantTable is the table that holds the tenant relation/edge.
@@ -68,6 +82,20 @@ const (
 	CreditNoteInverseTable = "creditnote"
 	// CreditNoteColumn is the table column denoting the credit_note relation/edge.
 	CreditNoteColumn = "credit_note_id"
+	// WorkspaceTable is the table that holds the workspace relation/edge.
+	WorkspaceTable = "credit"
+	// WorkspaceInverseTable is the table name for the Workspace entity.
+	// It exists in this package in order to avoid circular dependency with the "workspace" package.
+	WorkspaceInverseTable = "workspace"
+	// WorkspaceColumn is the table column denoting the workspace relation/edge.
+	WorkspaceColumn = "workspace_id"
+	// OperatorTable is the table that holds the operator relation/edge.
+	OperatorTable = "credit"
+	// OperatorInverseTable is the table name for the Operator entity.
+	// It exists in this package in order to avoid circular dependency with the "operator" package.
+	OperatorInverseTable = "operator"
+	// OperatorColumn is the table column denoting the operator relation/edge.
+	OperatorColumn = "operator_id"
 )
 
 // Columns holds all SQL columns for credit fields.
@@ -78,10 +106,15 @@ var Columns = []string{
 	FieldKind,
 	FieldDateErased,
 	FieldDateCreated,
+	FieldLot,
+	FieldDateExpires,
+	FieldReason,
 	FieldTenantId,
 	FieldBillingAccountId,
 	FieldInvoiceId,
 	FieldCreditNoteId,
+	FieldWorkspaceId,
+	FieldOperatorId,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -93,6 +126,11 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultReason holds the default value on creation for the "reason" field.
+	DefaultReason string
+)
 
 // OrderOption defines the ordering options for the Credit queries.
 type OrderOption func(*sql.Selector)
@@ -127,6 +165,21 @@ func ByDateCreated(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDateCreated, opts...).ToFunc()
 }
 
+// ByLot orders the results by the lot field.
+func ByLot(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLot, opts...).ToFunc()
+}
+
+// ByDateExpires orders the results by the date_expires field.
+func ByDateExpires(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateExpires, opts...).ToFunc()
+}
+
+// ByReason orders the results by the reason field.
+func ByReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReason, opts...).ToFunc()
+}
+
 // ByTenantId orders the results by the tenant_id field.
 func ByTenantId(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTenantId, opts...).ToFunc()
@@ -145,6 +198,16 @@ func ByInvoiceId(opts ...sql.OrderTermOption) OrderOption {
 // ByCreditNoteId orders the results by the credit_note_id field.
 func ByCreditNoteId(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreditNoteId, opts...).ToFunc()
+}
+
+// ByWorkspaceId orders the results by the workspace_id field.
+func ByWorkspaceId(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWorkspaceId, opts...).ToFunc()
+}
+
+// ByOperatorId orders the results by the operator_id field.
+func ByOperatorId(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOperatorId, opts...).ToFunc()
 }
 
 // ByTenantField orders the results by tenant field.
@@ -174,6 +237,20 @@ func ByCreditNoteField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCreditNoteStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByWorkspaceField orders the results by workspace field.
+func ByWorkspaceField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWorkspaceStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByOperatorField orders the results by operator field.
+func ByOperatorField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOperatorStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newTenantStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldId),
@@ -200,5 +277,19 @@ func newCreditNoteStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldId),
 		sqlgraph.To(CreditNoteInverseTable, FieldId),
 		sqlgraph.Edge(sqlgraph.M2O, false, CreditNoteTable, CreditNoteColumn),
+	)
+}
+func newWorkspaceStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldId),
+		sqlgraph.To(WorkspaceInverseTable, FieldId),
+		sqlgraph.Edge(sqlgraph.M2O, false, WorkspaceTable, WorkspaceColumn),
+	)
+}
+func newOperatorStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldId),
+		sqlgraph.To(OperatorInverseTable, FieldId),
+		sqlgraph.Edge(sqlgraph.M2O, false, OperatorTable, OperatorColumn),
 	)
 }

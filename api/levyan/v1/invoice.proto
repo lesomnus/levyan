@@ -115,6 +115,53 @@ message Invoice {
 
   // Its lines, in the order of their periods: in `GetInvoice`'s answer.
   repeated InvoiceLine lines = 21;
+
+  // What paid `credited`, in `GetInvoice`'s answer: each credit an operator
+  // granted that paid some of it, the soonest to expire first, and the
+  // billing account's balance last.
+  repeated InvoiceCredit credits = 22;
+}
+
+// InvoiceCredit is what of an invoice's total one credit paid, before
+// anything was asked of its channel.
+message InvoiceCredit {
+  // The credit an operator granted (`Credit.id`), and empty for the billing
+  // account's balance.
+  string credit = 1;
+
+  int64 amount = 2;
+
+  // The workspace whose lines alone it paid, for a workspace's; and when it
+  // expires.
+  string workspace = 3;
+  google.protobuf.Timestamp expires = 4;
+}
+
+// Credit is money an operator granted -- of a promotion, of a contract --
+// taken off what is billed before the channel is asked for anything: to a
+// billing account, the whole of it in one product, or to one workspace,
+// whose lines alone it pays, on whichever billing account's invoice they
+// are. It always expires, a year after it is granted unless the operator
+// said, and nothing of it is spent once it has: credits that expire sooner
+// are spent first.
+message Credit {
+  // Its identifier, as text.
+  string id = 1;
+
+  // The workspace it is granted to, and empty for a billing account's; and
+  // the billing account it is granted to, and empty for a workspace's.
+  string workspace = 2;
+  string billing_account = 3;
+
+  // How much was granted, and how much is left, in the currency's minor
+  // unit.
+  int64 granted = 4;
+  int64 left = 5;
+  string currency = 6;
+
+  // When it expires, and when it was granted.
+  google.protobuf.Timestamp expires = 7;
+  google.protobuf.Timestamp created = 8;
 }
 
 // InvoiceState is where an invoice is, value for value levyan's own.

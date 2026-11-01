@@ -1,7 +1,9 @@
 package invoices
 
 import (
+	"bytes"
 	"context"
+	"strings"
 
 	"github.com/lesomnus/payday/pderr"
 	"github.com/protobuf-orm/ent/dialect"
@@ -35,7 +37,10 @@ import (
 //     back what a credit note says, or -- an operator's correction of
 //     reconciliation's -- what a key was charged twice, of the payment that
 //     was.
-//   - A movement of credit moves it one way, as its kind says.
+//   - A movement of credit moves it one way, as its kind says. A grant
+//     (#43) is a lot of its own: of a billing account or of a workspace, one
+//     of the two, with its expiry and why; what is spent of it, comes back to
+//     it and expires of it names it, and the balance's movements name none.
 //
 // Apply is refused for all of them: a document is held to none of this.
 type Layer struct {
@@ -351,7 +356,10 @@ func (s Layer) Credit() levyan.CreditServiceServer {
 }
 
 func admitCredit(ctx context.Context, req *levyan.CreditAddRequest) (*levyan.CreditAddRequest, error) {
-	switch req.GetKind() {
+	kind := req.GetKind()
+	lot := req.HasLot()
+	granted := kind == levyan.CreditKind_CREDIT_KIND_GRANTED
+	switch kind {
 	case levyan.CreditKind_CREDIT_KIND_APPLIED:
 		if req.GetAmount() >= 0 {
 			return nil, pderr.Invalidf("amount", "what the balance pays of an invoice is taken from it: less than nothing")
@@ -360,8 +368,36 @@ func admitCredit(ctx context.Context, req *levyan.CreditAddRequest) (*levyan.Cre
 		if req.GetAmount() <= 0 {
 			return nil, pderr.Invalidf("amount", "what is owed is more than nothing")
 		}
+		if lot && kind != levyan.CreditKind_CREDIT_KIND_RETURNED {
+			return nil, pderr.Invalidf("lot", "what the balance is owed is of no lot: what comes back to a lot is RETURNED")
+		}
+	case levyan.CreditKind_CREDIT_KIND_GRANTED:
+		switch {
+		case req.GetAmount() <= 0:
+			return nil, pderr.Invalidf("amount", "what is granted is more than nothing")
+		case !lot || !bytes.Equal(req.GetLot(), req.GetId()):
+			return nil, pderr.Invalidf("lot", "a grant is a lot of its own, by its own identifier")
+		case (req.GetBillingAccount() == nil) == (req.GetWorkspace() == nil):
+			return nil, pderr.Invalidf("billing_account", "a grant is a billing account's or a workspace's: one of the two")
+		case !req.HasDateExpires():
+			return nil, pderr.Invalidf("date_expires", "every grant expires")
+		case strings.TrimSpace(req.GetReason()) == "" || req.GetOperator() == nil:
+			return nil, pderr.Invalidf("reason", "a grant is an operator's, with why")
+		}
+	case levyan.CreditKind_CREDIT_KIND_EXPIRED:
+		if req.GetAmount() >= 0 || !lot {
+			return nil, pderr.Invalidf("amount", "what is left of a lot as it expires is taken from it: less than nothing, of the lot")
+		}
 	default:
 		return nil, pderr.Invalidf("kind", "a movement of credit says where it comes from or goes")
+	}
+	switch {
+	case !granted && (req.GetWorkspace() != nil || req.HasDateExpires()):
+		return nil, pderr.Invalidf("workspace", "only a grant says whose it is and when it expires")
+	case !granted && kind != levyan.CreditKind_CREDIT_KIND_EXPIRED && req.GetBillingAccount() == nil:
+		return nil, pderr.Invalidf("billing_account", "a movement of the balance, or of what an invoice was paid with, is a billing account's")
+	case req.GetOperator() != nil && !granted && kind != levyan.CreditKind_CREDIT_KIND_EXPIRED:
+		return nil, pderr.Invalidf("operator", "an operator writes a grant, and its end, by hand; the rest follows from what is billed")
 	}
 
 	return req, nil

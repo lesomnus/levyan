@@ -1,0 +1,171 @@
+edition = "2023";
+
+package levyan;
+
+import "levyan/meter.proto";
+import "levyan/operator.proto";
+import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
+import "google/protobuf/timestamp.proto";
+import "orm.proto";
+import "payday.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/levyan";
+
+// Allowance is more of a meter a workspace is given for nothing each period,
+// on top of what its prices include: "자산 무료량 +500, 2027년 4월까지" (#43).
+// The owner wanted it (2026-11-01); its shape -- given to a workspace, by an
+// operator, with a reason, on the trail -- is Claude's proposal, which the
+// owner had carried out ("진행해줘") and may overturn.
+//
+// It is the workspace's, whoever pays for it: a payer changed keeps it, and
+// so does a workspace rated from the first unit, none of its payer's first
+// `payers.free` (#4) -- what its prices include is not its, and what it is
+// given is. A version of the price published after it changes nothing of it:
+// it is a quantity of the meter, not of a price.
+//
+// A period's line of the meter is rated with what it gives added to what the
+// version in force includes, for the share of the period it was in force --
+// the period cut where an allowance begins and ends as it is where a version
+// does (`rating.Rate`) -- and never below nothing billable. A meter priced by
+// bands is given none: a band's fee includes nothing to add to, and a
+// monetary credit (`Credit`) is what is given there instead.
+//
+// It never reaches into a period whose close has begun (`server/benefits`):
+// what a closed period was billed is what it was given then, so that a
+// correction of it, rated again, is given the same.
+//
+// Written through the servers by an operator (`levyan-admin allowance`), so
+// the trail says who gave it and who ended it; and ended, never deleted:
+// there is no Erase.
+message Allowance {
+  bytes id = 1 [(orm.field) = {
+    type: TYPE_UUID
+    key: true
+    default: ""
+  }];
+
+  // The product it is given in.
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+
+  // The workspace it is given to: the set it is in.
+  Workspace workspace = 3 [(orm.edge) = {immutable: true}];
+
+  // The meter it gives more of: one of the product's, priced by the unit.
+  Meter meter = 8 [(orm.edge) = {immutable: true}];
+
+  // How much more of the meter each period includes, in its unit, as its
+  // aggregation counts it: more than nothing.
+  int64 quantity = 9 [(orm.field) = {immutable: true}];
+
+  // When it begins: unset is the moment it is given. Never in a period whose
+  // close has begun.
+  google.protobuf.Timestamp valid_from = 10 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // When it ends, the moment it is in force no longer; unset is never, until
+  // it is ended. Ending it moves it to now -- or to when it begins, for one
+  // that has not -- and never later, nor into a period whose close has begun.
+  google.protobuf.Timestamp valid_until = 11 [(orm.field) = {nullable: true}];
+
+  // Why it was given, in the operator's words: "2027 봄 프로모션".
+  string reason = 12 [
+    (orm.field) = {immutable: true},
+    (payday.field) = {personal: true}
+  ];
+
+  // Stamped with every change.
+  google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
+
+  // Never stamped: there is no Erase.
+  google.protobuf.Timestamp date_erased = 14 [(orm.field) = {erased: {}}];
+
+  // When it was given.
+  google.protobuf.Timestamp date_created = 15 [(orm.field) = {
+    immutable: true
+    default: ""
+  }];
+
+  // The operator who gave it.
+  Operator granted_by = 16 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // The operator who ended it, and why, in their words; unset while nobody
+  // has.
+  Operator ended_by = 17 [(orm.edge) = {nullable: true}];
+  string end_reason = 18 [(payday.field) = {personal: true}];
+
+  option (orm.message) = {
+    // Patch is how it is ended (`server/benefits`), and nothing else of it
+    // changes.
+    rpc: {
+      crud: true
+      erase: {disabled: true}
+    }
+    indexes: [
+      {
+        name: "page"
+        refs: [
+          {
+            name: "tenant"
+            number: 2
+          },
+          {
+            name: "date_created"
+            number: 15
+          },
+          {
+            name: "id"
+            number: 1
+          }
+        ]
+      },
+      {
+        // A workspace's allowances of a meter, which a period of it is rated
+        // with.
+        name: "workspace"
+        refs: [
+          {
+            name: "workspace"
+            number: 3
+          },
+          {
+            name: "meter"
+            number: 8
+          },
+          {
+            name: "valid_from"
+            number: 10
+          }
+        ]
+      }
+    ]
+  };
+  option (payday.entity) = {
+    domain: 46
+    tenanted: {
+      via: "tenant"
+      agrees: [
+        "workspace.tenant",
+        "meter.tenant"
+      ]
+    }
+    list: {
+      order: [
+        {field: {name: "date_created"}},
+        {field: {name: "id"}}
+      ]
+      by: [
+        {name: "ref"},
+        {name: "workspace"}
+      ]
+      size: 50
+      max: 200
+    }
+  };
+}

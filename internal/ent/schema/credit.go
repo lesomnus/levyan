@@ -33,14 +33,33 @@ func (Credit) Fields() []ent.Field {
 		field.Time("date_created").
 			Immutable().
 			Optional(),
+		field.Uuid("lot").
+			Nillable().
+			Immutable().
+			Optional(),
+		field.Time("date_expires").
+			Nillable().
+			Immutable().
+			Optional(),
+		field.String("reason").
+			Immutable().
+			Optional().
+			Default(""),
 		field.Uuid("tenant_id").
 			Immutable(),
 		field.Uuid("billing_account_id").
+			Optional().
 			Immutable(),
 		field.Uuid("invoice_id").
 			Optional().
 			Immutable(),
 		field.Uuid("credit_note_id").
+			Optional().
+			Immutable(),
+		field.Uuid("workspace_id").
+			Optional().
+			Immutable(),
+		field.Uuid("operator_id").
 			Optional().
 			Immutable(),
 	}
@@ -56,7 +75,6 @@ func (Credit) Edges() []ent.Edge {
 		edge.To("billing_account", BillingAccount.Type).
 			Unique().
 			Field("billing_account_id").
-			Required().
 			Immutable(),
 		edge.To("invoice", Invoice.Type).
 			Unique().
@@ -65,6 +83,14 @@ func (Credit) Edges() []ent.Edge {
 		edge.To("credit_note", CreditNote.Type).
 			Unique().
 			Field("credit_note_id").
+			Immutable(),
+		edge.To("workspace", Workspace.Type).
+			Unique().
+			Field("workspace_id").
+			Immutable(),
+		edge.To("operator", Operator.Type).
+			Unique().
+			Field("operator_id").
 			Immutable(),
 	}
 }
@@ -75,6 +101,8 @@ func (Credit) Indexes() []ent.Index {
 			StorageKey("credit_page"),
 		index.Fields("tenant_id", "billing_account_id", "date_created").
 			StorageKey("credit_billing"),
+		index.Fields("lot", "date_created").
+			StorageKey("credit_lot"),
 	}
 }
 

@@ -5,7 +5,9 @@ package levyan;
 import "levyan/billing_account.proto";
 import "levyan/credit_note.proto";
 import "levyan/invoice.proto";
+import "levyan/operator.proto";
 import "levyan/payday/tenant.proto";
+import "levyan/workspace.proto";
 import "google/protobuf/timestamp.proto";
 import "orm.proto";
 import "payday.proto";
@@ -22,7 +24,21 @@ option go_package = "github.com/lesomnus/levyan";
 // outweigh what was used), a credit note that takes back more than is due and
 // gives nothing back through the channel, or a transfer of more than was due;
 // and it goes to the invoices it pays, or back to an invoice voided. The
-// balance is what its movements add up to, never less than nothing.
+// balance is what these movements add up to, never less than nothing.
+//
+// And it comes from an operator, who grants it (#43): money taken off what
+// is billed, with a reason and an expiry, to a billing account or to one
+// workspace of the product -- what a promotion or a contract gives. That the
+// owner wants it is the owner's (2026-11-01); its shape -- an expiry always,
+// a year unless said, the workspace's or the whole billing account's, the
+// soonest to expire spent first -- is Claude's proposal, which the owner had
+// carried out ("진행해줘"). Each grant is a lot of its own (`lot`, its own
+// identifier), apart from the balance: what is spent of it, what comes back
+// to it, and what is left of it as it expires are movements naming it, and
+// what is left of it is what they add up to. A lot of a workspace's names no
+// billing account: it pays that workspace's lines on whichever billing
+// account's invoice they are, so a payer changed keeps it for the workspace.
+// The balance is the movements that name no lot.
 //
 // Written once and never changed: every field is immutable, and there is no
 // Patch and no Erase.
@@ -36,8 +52,15 @@ message Credit {
   // The product it is owed in.
   Tenant tenant = 2 [(orm.edge) = {immutable: true}];
 
-  // The billing account it is owed to.
-  BillingAccount billing_account = 8 [(orm.edge) = {immutable: true}];
+  // The billing account it is owed to, or whose invoice it paid or came
+  // back from. Unset on a workspace's lot as it is granted and as it
+  // expires, which is no billing account's.
+  //
+  // May be NULL since #43, so that a column which had rows could become so.
+  BillingAccount billing_account = 8 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
 
   // How much it moves the balance, in the currency's minor unit: more than
   // nothing owed, less than nothing taken off an invoice.
@@ -65,6 +88,50 @@ message Credit {
   google.protobuf.Timestamp date_created = 15 [(orm.field) = {
     immutable: true
     default: ""
+  }];
+
+  // For a lot granted to one workspace: the workspace, whose lines alone it
+  // pays. Unset on every other movement.
+  Workspace workspace = 17 [(orm.edge) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // The lot it is a movement of: a grant's own identifier on the grant, and
+  // that grant's on what is spent of it, comes back to it and expires of it.
+  // Unset on every movement of the balance.
+  bytes lot = 18 [
+    (orm.field) = {
+      type: TYPE_UUID
+      nullable: true
+      immutable: true
+    },
+    (payday.field) = {personal: false}
+  ];
+
+  // When a lot expires, which every grant says: nothing of it is spent from
+  // then on, and what is left of it is taken (`CREDIT_KIND_EXPIRED`). Unset
+  // on every other movement.
+  google.protobuf.Timestamp date_expires = 19 [(orm.field) = {
+    nullable: true
+    immutable: true
+  }];
+
+  // Why an operator granted it, or ended it before it expired, in their
+  // words; empty on what nobody wrote by hand.
+  string reason = 20 [
+    (orm.field) = {
+      immutable: true
+      default: ""
+    },
+    (payday.field) = {personal: true}
+  ];
+
+  // The operator who granted it, or ended it before it expired; unset on
+  // what nobody wrote by hand.
+  Operator operator = 21 [(orm.edge) = {
+    nullable: true
+    immutable: true
   }];
 
   option (orm.message) = {
@@ -108,6 +175,20 @@ message Credit {
             number: 15
           }
         ]
+      },
+      {
+        // What is left of a lot, added up.
+        name: "lot"
+        refs: [
+          {
+            name: "lot"
+            number: 18
+          },
+          {
+            name: "date_created"
+            number: 15
+          }
+        ]
       }
     ]
   };
@@ -142,9 +223,17 @@ enum CreditKind {
   // Owed: what was paid past what was due.
   CREDIT_KIND_OVERPAID = 3;
 
-  // Taken: what of an invoice the balance paid.
+  // Taken: what of an invoice the balance -- or a lot -- paid.
   CREDIT_KIND_APPLIED = 4;
 
-  // Owed again: what the balance paid of an invoice that was then voided.
+  // Owed again: what the balance paid of an invoice that was then voided --
+  // or what a lot paid of one a credit note took back, back to the lot.
   CREDIT_KIND_RETURNED = 5;
+
+  // Owed: a lot an operator granted, with its expiry (#43).
+  CREDIT_KIND_GRANTED = 6;
+
+  // Taken: what was left of a lot as it expired, or as an operator ended
+  // it, so that what it was granted is accounted for (#43).
+  CREDIT_KIND_EXPIRED = 7;
 }

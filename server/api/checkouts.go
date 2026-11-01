@@ -17,6 +17,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent/predicate"
 	entsubscription "github.com/lesomnus/levyan/internal/ent/subscription"
 	"github.com/lesomnus/levyan/server/invoices"
+	"github.com/lesomnus/levyan/server/ledger"
 	"github.com/lesomnus/levyan/server/pd"
 	"github.com/lesomnus/levyan/server/subscriptions"
 )
@@ -84,11 +85,32 @@ func (h Payers) GetBillingAccount(ctx context.Context, req *levyanv1.GetBillingA
 		return nil, err
 	}
 
+	// What it may be paid with that it is owed, of the relaying product's:
+	// what an operator granted it and the workspaces it pays for, left to
+	// spend, and its balance (#43).
+	now := ledger.Moment(clock(h.Now))
+	lots, err := invoices.Spendable(ctx, h.Db, product.Uuid(), b.Id, now)
+	if err != nil {
+		return nil, err
+	}
+	keys, err := workspaceKeys(ctx, h.Db, product.Uuid(), lots)
+	if err != nil {
+		return nil, err
+	}
+	bal, err := invoices.Balance(ctx, h.Db, product.Uuid(), b.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	out := levyanv1.GetBillingAccountResponse_builder{
 		BillingAccount: billingAccount(v),
 		Collection:     collectionOf(col),
 		Dunning:        dunningsOf(ds),
+		Balance:        max(bal, 0),
 	}.Build()
+	for _, l := range lots {
+		out.SetCredits(append(out.GetCredits(), creditOf(l, keys)))
+	}
 	if col.Mirror != nil {
 		m, err := h.mirror(ctx, col.Mirror.Id[:])
 		if err != nil {

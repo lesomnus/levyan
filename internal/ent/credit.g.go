@@ -47,5 +47,26 @@ func (e *Credit) Proto() *levyan.Credit {
 		x.SetDateErased(timestamppb.New(*e.DateErased))
 	}
 	x.SetDateCreated(timestamppb.New(e.DateCreated))
+	if v := e.Edges.Workspace; v != nil {
+		x.SetWorkspace(v.Proto())
+	} else if v := e.WorkspaceId; v != *new(uuid.UUID) {
+		r := &levyan.Workspace{}
+		r.SetId(v[:])
+		x.SetWorkspace(r)
+	}
+	if e.Lot != nil {
+		x.SetLot(e.Lot[:])
+	}
+	if e.DateExpires != nil {
+		x.SetDateExpires(timestamppb.New(*e.DateExpires))
+	}
+	x.SetReason(e.Reason)
+	if v := e.Edges.Operator; v != nil {
+		x.SetOperator(v.Proto())
+	} else if v := e.OperatorId; v != *new(uuid.UUID) {
+		r := &levyan.Operator{}
+		r.SetId(v[:])
+		x.SetOperator(r)
+	}
 	return x
 }

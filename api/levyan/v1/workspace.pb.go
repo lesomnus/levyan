@@ -1366,6 +1366,7 @@ type Payer struct {
 	xxx_hidden_Collection     *Collection            `protobuf:"bytes,7,opt,name=collection"`
 	xxx_hidden_Dunning        *[]*Dunning            `protobuf:"bytes,8,rep,name=dunning"`
 	xxx_hidden_ReadonlyFrom   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=readonly_from,json=readonlyFrom"`
+	xxx_hidden_Credits        *[]*Credit             `protobuf:"bytes,10,rep,name=credits"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1460,6 +1461,15 @@ func (x *Payer) GetReadonlyFrom() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Payer) GetCredits() []*Credit {
+	if x != nil {
+		if x.xxx_hidden_Credits != nil {
+			return *x.xxx_hidden_Credits
+		}
+	}
+	return nil
+}
+
 func (x *Payer) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
@@ -1494,6 +1504,10 @@ func (x *Payer) SetDunning(v []*Dunning) {
 
 func (x *Payer) SetReadonlyFrom(v *timestamppb.Timestamp) {
 	x.xxx_hidden_ReadonlyFrom = v
+}
+
+func (x *Payer) SetCredits(v []*Credit) {
+	x.xxx_hidden_Credits = &v
 }
 
 func (x *Payer) HasCurrent() bool {
@@ -1612,6 +1626,11 @@ type Payer_builder struct {
 	// says, sixty days after `payerless_since` by default, and never sooner
 	// than it is restricted. Unset when `payerless_since` is.
 	ReadonlyFrom *timestamppb.Timestamp
+	// What an operator granted the workspace itself that has not been spent
+	// nor expired: money its lines are paid with, on whichever billing
+	// account's invoice they are, the soonest to expire first. What its
+	// billing account was granted is the payer's to see (`PayerService`).
+	Credits []*Credit
 }
 
 func (b0 Payer_builder) Build() *Payer {
@@ -1627,6 +1646,7 @@ func (b0 Payer_builder) Build() *Payer {
 	x.xxx_hidden_Collection = b.Collection
 	x.xxx_hidden_Dunning = &b.Dunning
 	x.xxx_hidden_ReadonlyFrom = b.ReadonlyFrom
+	x.xxx_hidden_Credits = &b.Credits
 	return m0
 }
 
@@ -1681,7 +1701,7 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\tLifecycle\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12=\n" +
 	"\fclosed_since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vclosedSince\x128\n" +
-	"\tdestroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tdestroyed\"\xcd\x03\n" +
+	"\tdestroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tdestroyed\"\xfa\x03\n" +
 	"\x05Payer\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12)\n" +
 	"\acurrent\x18\x02 \x01(\v2\x0f.levyan.v1.LinkR\acurrent\x12#\n" +
@@ -1693,7 +1713,9 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"collection\x18\a \x01(\v2\x15.levyan.v1.CollectionR\n" +
 	"collection\x12,\n" +
 	"\adunning\x18\b \x03(\v2\x12.levyan.v1.DunningR\adunning\x12?\n" +
-	"\rreadonly_from\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\freadonlyFrom2\x9f\x04\n" +
+	"\rreadonly_from\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\freadonlyFrom\x12+\n" +
+	"\acredits\x18\n" +
+	" \x03(\v2\x11.levyan.v1.CreditR\acredits2\x9f\x04\n" +
 	"\x10WorkspaceService\x12=\n" +
 	"\x06Arrive\x12\x18.levyan.v1.ArriveRequest\x1a\x19.levyan.v1.ArriveResponse\x12:\n" +
 	"\x05Leave\x12\x17.levyan.v1.LeaveRequest\x1a\x18.levyan.v1.LeaveResponse\x12:\n" +
@@ -1729,6 +1751,7 @@ var file_levyan_v1_workspace_proto_goTypes = []any{
 	(*Link)(nil),                  // 20: levyan.v1.Link
 	(*Collection)(nil),            // 21: levyan.v1.Collection
 	(*Dunning)(nil),               // 22: levyan.v1.Dunning
+	(*Credit)(nil),                // 23: levyan.v1.Credit
 }
 var file_levyan_v1_workspace_proto_depIdxs = []int32{
 	18, // 0: levyan.v1.ArriveRequest.created:type_name -> google.protobuf.Timestamp
@@ -1753,27 +1776,28 @@ var file_levyan_v1_workspace_proto_depIdxs = []int32{
 	21, // 19: levyan.v1.Payer.collection:type_name -> levyan.v1.Collection
 	22, // 20: levyan.v1.Payer.dunning:type_name -> levyan.v1.Dunning
 	18, // 21: levyan.v1.Payer.readonly_from:type_name -> google.protobuf.Timestamp
-	0,  // 22: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
-	2,  // 23: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest
-	4,  // 24: levyan.v1.WorkspaceService.Offer:input_type -> levyan.v1.OfferRequest
-	6,  // 25: levyan.v1.WorkspaceService.GetPayer:input_type -> levyan.v1.GetPayerRequest
-	8,  // 26: levyan.v1.WorkspaceService.Close:input_type -> levyan.v1.CloseRequest
-	10, // 27: levyan.v1.WorkspaceService.Restore:input_type -> levyan.v1.RestoreRequest
-	12, // 28: levyan.v1.WorkspaceService.Destroy:input_type -> levyan.v1.DestroyRequest
-	14, // 29: levyan.v1.WorkspaceService.GetLifecycle:input_type -> levyan.v1.GetLifecycleRequest
-	1,  // 30: levyan.v1.WorkspaceService.Arrive:output_type -> levyan.v1.ArriveResponse
-	3,  // 31: levyan.v1.WorkspaceService.Leave:output_type -> levyan.v1.LeaveResponse
-	5,  // 32: levyan.v1.WorkspaceService.Offer:output_type -> levyan.v1.OfferResponse
-	7,  // 33: levyan.v1.WorkspaceService.GetPayer:output_type -> levyan.v1.GetPayerResponse
-	9,  // 34: levyan.v1.WorkspaceService.Close:output_type -> levyan.v1.CloseResponse
-	11, // 35: levyan.v1.WorkspaceService.Restore:output_type -> levyan.v1.RestoreResponse
-	13, // 36: levyan.v1.WorkspaceService.Destroy:output_type -> levyan.v1.DestroyResponse
-	15, // 37: levyan.v1.WorkspaceService.GetLifecycle:output_type -> levyan.v1.GetLifecycleResponse
-	30, // [30:38] is the sub-list for method output_type
-	22, // [22:30] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	23, // 22: levyan.v1.Payer.credits:type_name -> levyan.v1.Credit
+	0,  // 23: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
+	2,  // 24: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest
+	4,  // 25: levyan.v1.WorkspaceService.Offer:input_type -> levyan.v1.OfferRequest
+	6,  // 26: levyan.v1.WorkspaceService.GetPayer:input_type -> levyan.v1.GetPayerRequest
+	8,  // 27: levyan.v1.WorkspaceService.Close:input_type -> levyan.v1.CloseRequest
+	10, // 28: levyan.v1.WorkspaceService.Restore:input_type -> levyan.v1.RestoreRequest
+	12, // 29: levyan.v1.WorkspaceService.Destroy:input_type -> levyan.v1.DestroyRequest
+	14, // 30: levyan.v1.WorkspaceService.GetLifecycle:input_type -> levyan.v1.GetLifecycleRequest
+	1,  // 31: levyan.v1.WorkspaceService.Arrive:output_type -> levyan.v1.ArriveResponse
+	3,  // 32: levyan.v1.WorkspaceService.Leave:output_type -> levyan.v1.LeaveResponse
+	5,  // 33: levyan.v1.WorkspaceService.Offer:output_type -> levyan.v1.OfferResponse
+	7,  // 34: levyan.v1.WorkspaceService.GetPayer:output_type -> levyan.v1.GetPayerResponse
+	9,  // 35: levyan.v1.WorkspaceService.Close:output_type -> levyan.v1.CloseResponse
+	11, // 36: levyan.v1.WorkspaceService.Restore:output_type -> levyan.v1.RestoreResponse
+	13, // 37: levyan.v1.WorkspaceService.Destroy:output_type -> levyan.v1.DestroyResponse
+	15, // 38: levyan.v1.WorkspaceService.GetLifecycle:output_type -> levyan.v1.GetLifecycleResponse
+	31, // [31:39] is the sub-list for method output_type
+	23, // [23:31] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_levyan_v1_workspace_proto_init() }

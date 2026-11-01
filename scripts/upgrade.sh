@@ -19,7 +19,8 @@
 #
 # What BEFORE writes, each through its door and as its caller: through
 # `levyan-admin`, a product and its terms, a stock meter and a flow, a price of
-# each, a key, a billing account paid by transfer, and grants; through the API
+# each, a key, a billing account paid by transfer, grants, and what is given
+# beyond a price -- an allowance, and credit (#43); through the API
 # with the key, two workspaces arrived, readings and a flow's points in the two
 # months before this one and in this one, and an offer; the two months closed
 # (`period close`) into statements, and those of the billing account gathered
@@ -35,7 +36,9 @@
 # shape, and once more with nothing left to do; it serves on it; and what
 # BEFORE wrote reads as BEFORE read it -- the product, its key, meters and
 # prices, its periods, statements and invoices, the grants (as an operator
-# lists them and as payday's `GrantService` answers the product), each
+# lists them and as payday's `GrantService` answers the product), the
+# allowance and the credit (as an operator lists them and the product reads
+# them), each
 # workspace's payer and what became of it, and what this month's readings come
 # to so far -- nothing, of the workspace closed -- and what the build before's
 # reconciliation found. And if it has `levyan trail rows`, every row is what
@@ -394,6 +397,31 @@ seed() {
 			'[.items[] | {id, tenantId, key, version, on, limit, unlimited, validFrom, validUntil}] | sort_by(.id)'
 	else
 		say "the build before has no \`grant add\`: no grants"
+	fi
+
+	# What an operator gives a workspace beyond its prices (#43): more of a
+	# meter each period, from now, and credit -- of the workspace, and of the
+	# billing account paid by transfer -- read back as an operator lists them
+	# and as the product reads them.
+	if has "${b}" allowance add; then
+		out="$(admin "${b}" allowance add --workspace "${ws1}" --quantity 50 --reason pilot --yes loft loft.assets.active)"
+		expect "$(cut -f1 <<<"${out}")" allowance ls loft
+		ask "allowances-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
+			'[.usage.allowances[] | {id, meter, quantity, from}]'
+	else
+		say "the build before has no \`allowance add\`: no allowance"
+	fi
+	if has "${b}" credit grant; then
+		out="$(admin "${b}" credit grant --workspace "${ws1}" --amount 1000 --currency KRW --reason pilot --yes loft)"
+		expect "$(cut -f1 <<<"${out}")" credit ls loft
+		if [ -n "${billing}" ]; then
+			out="$(admin "${b}" credit grant --billing-account "${billing}" --amount 2000 --reason contract --yes loft)"
+			expect "$(cut -f1 <<<"${out}")" credit ls loft
+		fi
+		ask "credits-${ws1}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws1}\"}" \
+			'[.payer.credits[] | {id, workspace, granted, left, currency, expires}]'
+	else
+		say "the build before has no \`credit grant\`: no credit granted"
 	fi
 
 	# What its reconciliation found of all that, by a build that has it --

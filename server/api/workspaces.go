@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"time"
+	"uuid"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,6 +16,7 @@ import (
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
 	"github.com/lesomnus/levyan/internal/dunning"
 	"github.com/lesomnus/levyan/internal/ent"
+	entcredit "github.com/lesomnus/levyan/internal/ent/credit"
 	"github.com/lesomnus/levyan/internal/rating"
 	"github.com/lesomnus/levyan/server/invoices"
 	"github.com/lesomnus/levyan/server/ledger"
@@ -279,6 +281,16 @@ func (h Workspaces) payer(ctx context.Context, product pdid.Id, st payers.State)
 		return nil, err
 	}
 	out.SetDunning(dunningsOf(ds))
+
+	// What an operator granted the workspace itself, left to spend (#43).
+	ls, err := invoices.Lots(ctx, h.Db, product.Uuid(), entcredit.WorkspaceId(ws))
+	if err != nil {
+		return nil, err
+	}
+	keys := map[uuid.UUID]string{ws: st.Workspace.String()}
+	for _, l := range invoices.Live(ls, ledger.Moment(clock(h.Now))) {
+		out.SetCredits(append(out.GetCredits(), creditOf(l, keys)))
+	}
 
 	return out, nil
 }

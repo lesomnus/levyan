@@ -221,13 +221,15 @@ func Lock(ctx context.Context, db *ent.Client, postgres bool, id uuid.UUID) erro
 }
 
 // Balance is what billing account `ba` is owed in `product`, in its
-// currency's minor unit: what its credit's movements add up to.
+// currency's minor unit: what the movements of its credit that name no lot
+// add up to. What an operator granted is a lot of its own ([Lots]), and none
+// of it.
 func Balance(ctx context.Context, db *ent.Client, product, ba uuid.UUID) (int64, error) {
 	var vs []struct {
 		Sum sql.NullInt64 `json:"sum"`
 	}
 	err := db.Credit.Query().
-		Where(entcredit.TenantId(product), entcredit.BillingAccountId(ba)).
+		Where(entcredit.TenantId(product), entcredit.BillingAccountId(ba), entcredit.LotIsNil()).
 		Aggregate(ent.As(ent.Sum(entcredit.FieldAmount), "sum")).
 		Scan(ctx, &vs)
 	if err != nil {
@@ -244,6 +246,12 @@ func Balance(ctx context.Context, db *ent.Client, product, ba uuid.UUID) (int64,
 // `kind`, through `s`: of `invoice` and of credit note `cn` when either is
 // set.
 func credit(ctx context.Context, s levyan.Server, product, ba uuid.UUID, currency string, amount int64, kind levyan.CreditKind, invoice, cn uuid.UUID) error {
+	return move(ctx, s, product, ba, currency, amount, kind, invoice, cn, uuid.UUID{})
+}
+
+// move is [credit] of lot `lot` when it is set: what is spent of it on
+// billing account `ba`'s invoice, or comes back to it from one.
+func move(ctx context.Context, s levyan.Server, product, ba uuid.UUID, currency string, amount int64, kind levyan.CreditKind, invoice, cn, lot uuid.UUID) error {
 	if amount == 0 {
 		return nil
 	}
@@ -259,6 +267,9 @@ func credit(ctx context.Context, s levyan.Server, product, ba uuid.UUID, currenc
 	}
 	if cn != (uuid.UUID{}) {
 		req.SetCreditNote(levyan.CreditNoteRef_builder{Id: cn[:]}.Build())
+	}
+	if lot != (uuid.UUID{}) {
+		req.SetLot(lot[:])
 	}
 	if _, err := s.Credit().Add(ctx, req); err != nil {
 		return fmt.Errorf("credit: %w", err)

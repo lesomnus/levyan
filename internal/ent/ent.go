@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/lesomnus/levyan/internal/ent/access"
+	"github.com/lesomnus/levyan/internal/ent/allowance"
 	"github.com/lesomnus/levyan/internal/ent/archived"
 	"github.com/lesomnus/levyan/internal/ent/audit"
 	"github.com/lesomnus/levyan/internal/ent/billingaccount"
@@ -107,6 +108,7 @@ func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			access.Table:         access.ValidColumn,
+			allowance.Table:      allowance.ValidColumn,
 			archived.Table:       archived.ValidColumn,
 			audit.Table:          audit.ValidColumn,
 			billingaccount.Table: billingaccount.ValidColumn,

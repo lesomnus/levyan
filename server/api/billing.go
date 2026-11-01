@@ -20,6 +20,7 @@ import (
 	"github.com/lesomnus/levyan/internal/ent"
 	entperiod "github.com/lesomnus/levyan/internal/ent/period"
 	entworkspace "github.com/lesomnus/levyan/internal/ent/workspace"
+	"github.com/lesomnus/levyan/server/benefits"
 	"github.com/lesomnus/levyan/server/billing"
 	"github.com/lesomnus/levyan/server/ledger"
 )
@@ -103,6 +104,16 @@ func (b Billing) GetUsage(ctx context.Context, req *levyanv1.GetUsageRequest) (*
 	}
 	for _, l := range st.Lines {
 		u.SetLines(append(u.GetLines(), line(l, terms.Zone.String())))
+	}
+
+	// What it is given of its meters on top of what its prices include, in
+	// force at any moment of the period (#43).
+	as, err := benefits.InForce(ctx, b.Db, product.Id, w.Id, p.Start, p.End)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range as {
+		u.SetAllowances(append(u.GetAllowances(), allowanceOf(a)))
 	}
 
 	return levyanv1.GetUsageResponse_builder{Usage: u}.Build(), nil
@@ -238,6 +249,11 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 		Billable: decimal(l.GetBillable()),
 		Amount:   decimal(l.GetAmount()),
 	}.Build()
+	if v := l.GetAllowance(); v != "" {
+		out.SetAllowance(decimal(v))
+	} else {
+		out.SetAllowance("0")
+	}
 	if l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION {
 		out.SetCorrects(period(l.GetCorrectsStart().AsTime(), l.GetCorrectsEnd().AsTime(), zone))
 		out.SetBilled(decimal(l.GetBilled()))
@@ -245,14 +261,18 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 
 	for _, p := range l.GetParts() {
 		part := levyanv1.LinePart_builder{
-			Price:    text(p.GetPrice()),
-			From:     stamp(p.GetFrom()),
-			To:       stamp(p.GetTo()),
-			Share:    decimal(p.GetShare()),
-			Included: p.GetIncluded(),
-			Billable: decimal(p.GetBillable()),
-			Amount:   decimal(p.GetAmount()),
+			Price:     text(p.GetPrice()),
+			From:      stamp(p.GetFrom()),
+			To:        stamp(p.GetTo()),
+			Share:     decimal(p.GetShare()),
+			Included:  p.GetIncluded(),
+			Allowance: p.GetAllowance(),
+			Billable:  decimal(p.GetBillable()),
+			Amount:    decimal(p.GetAmount()),
 		}.Build()
+		for _, a := range p.GetAllowances() {
+			part.SetAllowances(append(part.GetAllowances(), text(a)))
+		}
 		for _, b := range p.GetBands() {
 			band := levyanv1.BandShare_builder{Fee: b.GetFee(), Share: decimal(b.GetShare()), Amount: decimal(b.GetAmount())}.Build()
 			if b.HasUpTo() {

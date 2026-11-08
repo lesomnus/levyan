@@ -168,9 +168,9 @@ jobs:
       - name: this build, the one it comes after, and the oldest a deployment runs
         env:
           BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          # The build staging runs, e2d66bf (#37). It moves when staging
+          # The build staging runs, 3242dcf (#56, #57). It moves when staging
           # moves: to what staging runs once it runs it.
-          OLDEST: e2d66bf616921d4e19a5b1079310126bfe3e6898
+          OLDEST: 3242dcf35600fecff6c964b2eb7738bee8741447
         run: |
           go build -o "${RUNNER_TEMP}/now/" ./cmd/levyan ./cmd/levyan-admin
           # old NAME COMMIT: the build at COMMIT, its binaries in $RUNNER_TEMP/NAME.

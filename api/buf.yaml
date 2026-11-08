@@ -10,22 +10,3 @@ lint:
 breaking:
   use:
     - FILE
-  # Every time the API keeps is a `date_*`, at the number it had: the one
-  # exception to never renaming a field (2026-11-08, 대표: "비슷한거 전부 다").
-  # The binary wire is the one it was, and the JSON names moved. Remove once
-  # main has it.
-  ignore_only:
-    FIELD_SAME_NAME:
-      - levyan/v1/billing.proto
-      - levyan/v1/invoice.proto
-      - levyan/v1/metering.proto
-      - levyan/v1/payer.proto
-      - levyan/v1/price_book.proto
-      - levyan/v1/workspace.proto
-    FIELD_SAME_JSON_NAME:
-      - levyan/v1/billing.proto
-      - levyan/v1/invoice.proto
-      - levyan/v1/metering.proto
-      - levyan/v1/payer.proto
-      - levyan/v1/price_book.proto
-      - levyan/v1/workspace.proto

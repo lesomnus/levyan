@@ -94,11 +94,11 @@ func verb(kind levyan.WorkspaceEventKind) string {
 
 func (p Payers) say(ctx context.Context, product, key pdid.Id, kind levyan.WorkspaceEventKind, at time.Time) (Said, error) {
 	if at.IsZero() || at.Unix() <= 0 {
-		return Said{}, status.Errorf(codes.InvalidArgument, "at: when the workspace was %s", verb(kind))
+		return Said{}, status.Errorf(codes.InvalidArgument, "date_occurred: when the workspace was %s", verb(kind))
 	}
 	at = ledger.Moment(at)
 	if at.After(p.now().Add(ledger.Skew)) {
-		return Said{}, status.Errorf(codes.InvalidArgument, "at: %s is ahead of now", at.Format(time.RFC3339Nano))
+		return Said{}, status.Errorf(codes.InvalidArgument, "date_occurred: %s is ahead of now", at.Format(time.RFC3339Nano))
 	}
 	ws, ok, err := Workspace(ctx, p.db(), product.Uuid(), key)
 	if err != nil {
@@ -118,7 +118,7 @@ func (p Payers) say(ctx context.Context, product, key pdid.Id, kind levyan.Works
 			return notArrived(key)
 		}
 		if at.Before(since) {
-			return status.Errorf(codes.InvalidArgument, "at: %s is before workspace %s arrived, at %s", at.Format(time.RFC3339Nano), key, since.Format(time.RFC3339Nano))
+			return status.Errorf(codes.InvalidArgument, "date_occurred: %s is before workspace %s arrived, at %s", at.Format(time.RFC3339Nano), key, since.Format(time.RFC3339Nano))
 		}
 
 		life, err := billing.Life(ctx, db, product.Uuid(), ws)
@@ -135,7 +135,7 @@ func (p Payers) say(ctx context.Context, product, key pdid.Id, kind levyan.Works
 		}
 
 		kept, err := db.WorkspaceEvent.Query().
-			Where(entworkspaceevent.TenantId(product.Uuid()), entworkspaceevent.WorkspaceId(ws), entworkspaceevent.HappenedAt(at)).
+			Where(entworkspaceevent.TenantId(product.Uuid()), entworkspaceevent.WorkspaceId(ws), entworkspaceevent.DateOccurred(at)).
 			Only(ctx)
 		switch {
 		case err == nil:
@@ -158,10 +158,10 @@ func (p Payers) say(ctx context.Context, product, key pdid.Id, kind levyan.Works
 		}
 
 		req := levyan.WorkspaceEventAddRequest_builder{
-			Tenant:     levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
-			Workspace:  levyan.WorkspaceRef_builder{Id: ws[:]}.Build(),
-			Kind:       kind,
-			HappenedAt: tsOf(at),
+			Tenant:       levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
+			Workspace:    levyan.WorkspaceRef_builder{Id: ws[:]}.Build(),
+			Kind:         kind,
+			DateOccurred: tsOf(at),
 		}.Build()
 		// Late from what it moves on: of a restore, or a destruction, of a
 		// workspace closed just before it, from that close -- whether what
@@ -175,7 +175,7 @@ func (p Payers) say(ctx context.Context, product, key pdid.Id, kind levyan.Works
 			return err
 		}
 		if late {
-			req.SetLateThrough(tsOf(through))
+			req.SetDateLateThrough(tsOf(through))
 		}
 		if _, err := s.WorkspaceEvent().Add(ctx, req); err != nil {
 			return err

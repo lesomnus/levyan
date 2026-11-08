@@ -20,7 +20,7 @@ func (x *Reading) Ref() *ReadingRef {
 		v1 := x.GetTenant()
 		v2 := x.GetWorkspace()
 		v3 := x.GetMeter()
-		v4 := x.GetMeasuredAt()
+		v4 := x.GetDateMeasured()
 		if v1 != nil && v2 != nil && v3 != nil && v4 != nil {
 			return ReadingByMeasured(v1.Ref(), v2.Ref(), v3.Ref(), v4)
 		}
@@ -42,7 +42,7 @@ func (x *ReadingRef) Picks(v *Reading) bool {
 		return (x.GetTenant().Picks(v.GetTenant())) &&
 			(x.GetWorkspace().Picks(v.GetWorkspace())) &&
 			(x.GetMeter().Picks(v.GetMeter())) &&
-			(proto.Equal(x.GetMeasuredAt(), v.GetMeasuredAt()))
+			(proto.Equal(x.GetDateMeasured(), v.GetDateMeasured()))
 	default:
 		return false
 	}
@@ -66,15 +66,15 @@ func ReadingGetById(v []byte) *ReadingGetRequest {
 	return ReadingGetRequest_builder{Ref: ReadingById(v)}.Build()
 }
 
-func ReadingByMeasured(tenant *TenantRef, workspace *WorkspaceRef, meter *MeterRef, measured_at *timestamppb.Timestamp) *ReadingRef {
+func ReadingByMeasured(tenant *TenantRef, workspace *WorkspaceRef, meter *MeterRef, date_measured *timestamppb.Timestamp) *ReadingRef {
 	x := &ReadingRefByMeasured{}
 	x.SetTenant(tenant)
 	x.SetWorkspace(workspace)
 	x.SetMeter(meter)
-	x.SetMeasuredAt(measured_at)
+	x.SetDateMeasured(date_measured)
 	return ReadingRef_builder{Measured: x}.Build()
 }
 
-func ReadingGetByMeasured(tenant *TenantRef, workspace *WorkspaceRef, meter *MeterRef, measured_at *timestamppb.Timestamp) *ReadingGetRequest {
-	return ReadingGetRequest_builder{Ref: ReadingByMeasured(tenant, workspace, meter, measured_at)}.Build()
+func ReadingGetByMeasured(tenant *TenantRef, workspace *WorkspaceRef, meter *MeterRef, date_measured *timestamppb.Timestamp) *ReadingGetRequest {
+	return ReadingGetRequest_builder{Ref: ReadingByMeasured(tenant, workspace, meter, date_measured)}.Build()
 }

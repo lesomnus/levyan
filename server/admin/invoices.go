@@ -25,8 +25,8 @@ type Invoice struct {
 	Product        string     `json:"product"`
 	BillingAccount string     `json:"billing_account"`
 	State          string     `json:"state"`
-	Start          time.Time  `json:"start"`
-	End            time.Time  `json:"end"`
+	DateStart      time.Time  `json:"date_start"`
+	DateEnd        time.Time  `json:"date_end"`
 	Channel        string     `json:"channel"`
 	Currency       string     `json:"currency"`
 	Subtotal       int64      `json:"subtotal"`
@@ -40,11 +40,11 @@ type Invoice struct {
 	Remaining      int64      `json:"remaining"`
 	Number         int64      `json:"number,omitempty"`
 	Carried        uint32     `json:"carried,omitempty"`
-	Finalized      *time.Time `json:"finalized,omitempty"`
-	Issued         *time.Time `json:"issued,omitempty"`
+	DateFinalized  *time.Time `json:"date_finalized,omitempty"`
+	DateIssued     *time.Time `json:"date_issued,omitempty"`
 	Document       string     `json:"document,omitempty"`
-	DueDate        *time.Time `json:"due_date,omitempty"`
-	Settled        *time.Time `json:"settled,omitempty"`
+	DateDue        *time.Time `json:"date_due,omitempty"`
+	DateSettled    *time.Time `json:"date_settled,omitempty"`
 	ChannelRef     string     `json:"channel_ref,omitempty"`
 	ChannelNumber  string     `json:"channel_number,omitempty"`
 	Reason         string     `json:"reason,omitempty"`
@@ -66,11 +66,11 @@ type Invoice struct {
 // is restricted; and when that is read-only, the second stage.
 type Dunning struct {
 	Kind           string     `json:"kind"`
-	Failed         time.Time  `json:"failed"`
-	NextRetry      *time.Time `json:"next_retry,omitempty"`
-	GraceEnds      time.Time  `json:"grace_ends"`
-	RestrictedFrom time.Time  `json:"restricted_from"`
-	ReadonlyFrom   time.Time  `json:"readonly_from"`
+	DateFailed     time.Time  `json:"date_failed"`
+	DateNextRetry  *time.Time `json:"date_next_retry,omitempty"`
+	DateGraceEnds  time.Time  `json:"date_grace_ends"`
+	DateRestricted time.Time  `json:"date_restricted"`
+	DateReadonly   time.Time  `json:"date_readonly"`
 }
 
 // InvoiceLine is one statement on an invoice.
@@ -78,61 +78,61 @@ type InvoiceLine struct {
 	Statement string    `json:"statement"`
 	Workspace string    `json:"workspace"`
 	Label     string    `json:"label,omitempty"`
-	Start     time.Time `json:"start"`
-	End       time.Time `json:"end"`
+	DateStart time.Time `json:"date_start"`
+	DateEnd   time.Time `json:"date_end"`
 	Total     int64     `json:"total"`
 }
 
 // CreditNote takes some of an invoice back.
 type CreditNote struct {
-	Id       string     `json:"id"`
-	Invoice  string     `json:"invoice"`
-	Reason   string     `json:"reason"`
-	Amount   int64      `json:"amount"`
-	Tax      int64      `json:"tax"`
-	Total    int64      `json:"total"`
-	Reduced  int64      `json:"reduced"`
-	Refunded int64      `json:"refunded"`
-	Credited int64      `json:"credited"`
-	Number   int64      `json:"number,omitempty"`
-	Issued   *time.Time `json:"issued,omitempty"`
-	Document string     `json:"document,omitempty"`
-	Words    string     `json:"words,omitempty"`
-	Created  time.Time  `json:"created"`
+	Id          string     `json:"id"`
+	Invoice     string     `json:"invoice"`
+	Reason      string     `json:"reason"`
+	Amount      int64      `json:"amount"`
+	Tax         int64      `json:"tax"`
+	Total       int64      `json:"total"`
+	Reduced     int64      `json:"reduced"`
+	Refunded    int64      `json:"refunded"`
+	Credited    int64      `json:"credited"`
+	Number      int64      `json:"number,omitempty"`
+	DateIssued  *time.Time `json:"date_issued,omitempty"`
+	Document    string     `json:"document,omitempty"`
+	Words       string     `json:"words,omitempty"`
+	DateCreated time.Time  `json:"date_created"`
 }
 
 // Attempt is one attempt to move an invoice's money.
 type Attempt struct {
-	Id         string     `json:"id"`
-	Kind       string     `json:"kind"`
-	Key        string     `json:"key"`
-	Amount     int64      `json:"amount"`
-	Currency   string     `json:"currency"`
-	State      string     `json:"state"`
-	Sends      uint32     `json:"sends"`
-	Sent       *time.Time `json:"sent,omitempty"`
-	Failure    string     `json:"failure,omitempty"`
-	ChannelRef string     `json:"channel_ref,omitempty"`
-	Paid       *time.Time `json:"paid,omitempty"`
-	Recorded   bool       `json:"recorded,omitempty"`
-	Reference  string     `json:"reference,omitempty"`
-	Created    time.Time  `json:"created"`
+	Id          string     `json:"id"`
+	Kind        string     `json:"kind"`
+	Key         string     `json:"key"`
+	Amount      int64      `json:"amount"`
+	Currency    string     `json:"currency"`
+	State       string     `json:"state"`
+	Sends       uint32     `json:"sends"`
+	DateSent    *time.Time `json:"date_sent,omitempty"`
+	Failure     string     `json:"failure,omitempty"`
+	ChannelRef  string     `json:"channel_ref,omitempty"`
+	DatePaid    *time.Time `json:"date_paid,omitempty"`
+	Recorded    bool       `json:"recorded,omitempty"`
+	Reference   string     `json:"reference,omitempty"`
+	DateCreated time.Time  `json:"date_created"`
 
-	// Twice is when the channel was found to hold more payments of its key
+	// DateTwice is when the channel was found to hold more payments of its key
 	// than the ledger accounts for: what reconciliation (#13) gives back.
-	Twice *time.Time `json:"twice,omitempty"`
+	DateTwice *time.Time `json:"date_twice,omitempty"`
 }
 
 func invoiceOf(v *ent.Invoice, product string) Invoice {
 	out := Invoice{
 		Id: pdid.Id(v.Id).String(), Product: product, BillingAccount: pdid.Id(v.BillingAccountId).String(),
-		State: named(levyan.InvoiceState(v.State).String(), "INVOICE_STATE_"),
-		Start: v.DateStart.UTC(), End: v.DateEnd.UTC(),
+		State:     named(levyan.InvoiceState(v.State).String(), "INVOICE_STATE_"),
+		DateStart: v.DateStart.UTC(), DateEnd: v.DateEnd.UTC(),
 		Channel: named(v.Channel, "CHANNEL_"), Currency: v.Currency,
 		Subtotal: v.Subtotal, Tax: v.Tax, TaxRate: v.TaxRate, Total: v.Total,
 		Credited: v.Credited, Due: v.Due, Paid: v.Paid, Reduced: v.Reduced, Remaining: invoices.Remaining(v),
-		Carried: v.Carried, Finalized: v.DateFinalized, Issued: v.DateIssued, Document: v.Document,
-		DueDate: v.DateDue, Settled: v.DateSettled, ChannelRef: v.ChannelRef, ChannelNumber: v.ChannelNumber,
+		Carried: v.Carried, DateFinalized: v.DateFinalized, DateIssued: v.DateIssued, Document: v.Document,
+		DateDue: v.DateDue, DateSettled: v.DateSettled, ChannelRef: v.ChannelRef, ChannelNumber: v.ChannelNumber,
 		Reason: v.Reason,
 	}
 	if v.Number != nil {
@@ -150,7 +150,7 @@ func creditNoteOf(v *ent.CreditNote) CreditNote {
 		Id: pdid.Id(v.Id).String(), Invoice: pdid.Id(v.InvoiceId).String(),
 		Reason: named(levyan.CreditNoteReason(v.Reason).String(), "CREDIT_NOTE_REASON_"),
 		Amount: v.Amount, Tax: v.Tax, Total: v.Total, Reduced: v.Reduced, Refunded: v.Refunded, Credited: v.Credited,
-		Issued: v.DateIssued, Document: v.Document, Words: v.Words, Created: v.DateCreated,
+		DateIssued: v.DateIssued, Document: v.Document, Words: v.Words, DateCreated: v.DateCreated,
 	}
 	if v.Number != nil {
 		out.Number = *v.Number
@@ -163,8 +163,8 @@ func attemptOf(v *ent.PaymentAttempt) Attempt {
 	out := Attempt{
 		Id: pdid.Id(v.Id).String(), Kind: named(levyan.AttemptKind(v.Kind).String(), "ATTEMPT_KIND_"), Key: v.AttemptKey,
 		Amount: v.Amount, Currency: v.Currency, State: named(levyan.AttemptState(v.State).String(), "ATTEMPT_STATE_"),
-		Sends: v.Sends, Sent: v.DateSent, ChannelRef: v.ChannelRef, Paid: v.DatePaid,
-		Recorded: v.Recorded, Reference: v.Reference, Created: v.DateCreated, Twice: v.DateTwice,
+		Sends: v.Sends, DateSent: v.DateSent, ChannelRef: v.ChannelRef, DatePaid: v.DatePaid,
+		Recorded: v.Recorded, Reference: v.Reference, DateCreated: v.DateCreated, DateTwice: v.DateTwice,
 	}
 	if f := v.Failure; f != nil {
 		out.Failure = named(f.GetKind().String(), "FAILURE_KIND_")
@@ -266,7 +266,7 @@ func (a *Routes) showInvoice(w http.ResponseWriter, r *http.Request, id pdid.Id,
 		return
 	}
 	for _, l := range ls {
-		line := InvoiceLine{Statement: pdid.Id(l.StatementId).String(), Label: l.Label, Start: l.DateStart.UTC(), End: l.DateEnd.UTC(), Total: l.Total}
+		line := InvoiceLine{Statement: pdid.Id(l.StatementId).String(), Label: l.Label, DateStart: l.DateStart.UTC(), DateEnd: l.DateEnd.UTC(), Total: l.Total}
 		if ws := l.Edges.Workspace; ws != nil {
 			line.Workspace = text(ws.Key)
 		}
@@ -305,10 +305,10 @@ func (a *Routes) showInvoice(w http.ResponseWriter, r *http.Request, id pdid.Id,
 	}
 	if len(ds) > 0 {
 		d := ds[0]
-		out.Dunning = &Dunning{Kind: d.Kind.String(), Failed: d.Failed.UTC(), GraceEnds: d.GraceEnds.UTC(), RestrictedFrom: d.Restricted.UTC(), ReadonlyFrom: d.Readonly.UTC()}
+		out.Dunning = &Dunning{Kind: d.Kind.String(), DateFailed: d.Failed.UTC(), DateGraceEnds: d.GraceEnds.UTC(), DateRestricted: d.Restricted.UTC(), DateReadonly: d.Readonly.UTC()}
 		if !d.Retry.IsZero() {
 			at := d.Retry.UTC()
-			out.Dunning.NextRetry = &at
+			out.Dunning.DateNextRetry = &at
 		}
 	}
 
@@ -405,7 +405,7 @@ func (a *Routes) paidInvoice(w http.ResponseWriter, r *http.Request) {
 // InvoicePass is a pass of the loop that keeps invoices, made by an
 // operator's hand: when it was made, by the deployment's clock.
 type InvoicePass struct {
-	At time.Time `json:"at"`
+	DateOccurred time.Time `json:"date_occurred"`
 }
 
 // collectInvoices makes a pass of the loop that keeps invoices
@@ -424,7 +424,7 @@ func (a *Routes) collectInvoices(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	answer(w, http.StatusOK, InvoicePass{At: at})
+	answer(w, http.StatusOK, InvoicePass{DateOccurred: at})
 }
 
 // Unpriced is a meter with no price on a channel and currency a statement of

@@ -79,8 +79,8 @@ func TestEveryChangeOfAGrantIsAGreaterVersion(t *testing.T) {
 	x.NoError(err)
 	x.Equal(uint64(1), v.GetVersion())
 	x.True(v.GetRenews(), "a grant with no end of its own renews")
-	x.Equal(t0, v.GetValidFrom().AsTime())
-	x.Equal(t0.Add(week), v.GetValidUntil().AsTime(), "and reaches a horizon")
+	x.Equal(t0, v.GetDateEffective().AsTime())
+	x.Equal(t0.Add(week), v.GetDateExpires().AsTime(), "and reaches a horizon")
 
 	// Half a horizon on, it is renewed: its end a horizon from then.
 	w.At(t0.Add(week/2 + time.Hour))
@@ -89,13 +89,13 @@ func TestEveryChangeOfAGrantIsAGreaterVersion(t *testing.T) {
 	x.Equal(1, n)
 	r := row(t, w, v.GetId())
 	x.Equal(uint64(2), r.Version)
-	x.Equal(t0.Add(week/2+time.Hour+week), r.ValidUntil.UTC())
+	x.Equal(t0.Add(week/2+time.Hour+week), r.DateExpires.UTC())
 
 	ended, err := w.S.Grants.End(ctx, pdid.Id(r.Id))
 	x.NoError(err)
 	x.Equal(uint64(3), ended.GetVersion())
 	x.False(ended.GetRenews())
-	x.Equal(t0.Add(week/2+time.Hour), ended.GetValidUntil().AsTime(), "ended now")
+	x.Equal(t0.Add(week/2+time.Hour), ended.GetDateExpires().AsTime(), "ended now")
 
 	again, err := w.S.Grants.End(ctx, pdid.Id(r.Id))
 	x.NoError(err)
@@ -109,7 +109,7 @@ func TestEveryChangeOfAGrantIsAGreaterVersion(t *testing.T) {
 
 	_, err = w.S.Ungated.Grant().Patch(ctx, levyan.GrantPatchRequest_builder{
 		Ref:              levyan.GrantRef_builder{Id: v.GetId()}.Build(),
-		ValidUntil:       timestamppb.New(t0.Add(4 * week)),
+		DateExpires:      timestamppb.New(t0.Add(4 * week)),
 		DateUpdatedForce: proto.Bool(true),
 	}.Build())
 	x.Equal(codes.FailedPrecondition, status.Code(err), "and stays ended")
@@ -132,20 +132,20 @@ func TestTheVersionIsTheServers(t *testing.T) {
 	r := row(t, w, v.GetId())
 
 	added, err := w.S.Ungated.Grant().Add(ctx, levyan.GrantAddRequest_builder{
-		Tenant:     levyantest.Ref(p),
-		Workspace:  levyan.WorkspaceRef_builder{Id: r.WorkspaceId[:]}.Build(),
-		Key:        "loft.robots",
-		Value:      levyan.GrantValue_GRANT_VALUE_UNLIMITED,
-		ValidUntil: timestamppb.New(t0.Add(day)),
-		Source:     levyan.GrantSource_GRANT_SOURCE_TRIAL,
-		Version:    41,
+		Tenant:      levyantest.Ref(p),
+		Workspace:   levyan.WorkspaceRef_builder{Id: r.WorkspaceId[:]}.Build(),
+		Key:         "loft.robots",
+		Value:       levyan.GrantValue_GRANT_VALUE_UNLIMITED,
+		DateExpires: timestamppb.New(t0.Add(day)),
+		Source:      levyan.GrantSource_GRANT_SOURCE_TRIAL,
+		Version:     41,
 	}.Build())
 	x.NoError(err)
 	x.Equal(uint64(1), added.GetVersion())
 
 	patched, err := w.S.Ungated.Grant().Patch(ctx, levyan.GrantPatchRequest_builder{
 		Ref:              levyan.GrantRef_builder{Id: added.GetId()}.Build(),
-		ValidUntil:       timestamppb.New(t0.Add(2 * day)),
+		DateExpires:      timestamppb.New(t0.Add(2 * day)),
 		Version:          proto.Uint64(1),
 		DateUpdatedForce: proto.Bool(true),
 	}.Build())
@@ -196,28 +196,28 @@ func TestAGrantIsHeldToWhatAGrantMayBe(t *testing.T) {
 
 	_, err = w.S.Ungated.Grant().Add(ctx, levyan.GrantAddRequest_builder{
 		Tenant: levyantest.Ref(p), Workspace: ref, Key: "loft.robots",
-		Value: levyan.GrantValue_GRANT_VALUE_ON, Limit: 3, ValidUntil: timestamppb.New(t0.Add(day)),
+		Value: levyan.GrantValue_GRANT_VALUE_ON, Limit: 3, DateExpires: timestamppb.New(t0.Add(day)),
 		Source: levyan.GrantSource_GRANT_SOURCE_OPERATOR,
 	}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "a switch is no amount")
 
 	_, err = w.S.Ungated.Grant().Add(ctx, levyan.GrantAddRequest_builder{
 		Tenant: levyantest.Ref(p), Workspace: ref, Key: "loft.robots",
-		Value: levyan.GrantValue_GRANT_VALUE_LIMIT, Limit: -1, ValidUntil: timestamppb.New(t0.Add(day)),
+		Value: levyan.GrantValue_GRANT_VALUE_LIMIT, Limit: -1, DateExpires: timestamppb.New(t0.Add(day)),
 		Source: levyan.GrantSource_GRANT_SOURCE_OPERATOR,
 	}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "a limit is zero or more")
 
 	_, err = w.S.Ungated.Grant().Add(ctx, levyan.GrantAddRequest_builder{
 		Tenant: levyantest.Ref(p), Workspace: ref, Key: "loft.robots",
-		Value: levyan.GrantValue_GRANT_VALUE_ON, ValidUntil: timestamppb.New(t0.Add(day)),
+		Value: levyan.GrantValue_GRANT_VALUE_ON, DateExpires: timestamppb.New(t0.Add(day)),
 		Source: levyan.GrantSource_GRANT_SOURCE_RULE,
 	}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "a rule's grant names its rule")
 
 	_, err = w.S.Ungated.Grant().Patch(ctx, levyan.GrantPatchRequest_builder{
 		Ref:              levyan.GrantRef_builder{Id: v.GetId()}.Build(),
-		ValidUntil:       timestamppb.New(t0.Add(-time.Hour)),
+		DateExpires:      timestamppb.New(t0.Add(-time.Hour)),
 		DateUpdatedForce: proto.Bool(true),
 	}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "a grant is ended now, never before")
@@ -232,7 +232,7 @@ func TestAGrantIsHeldToWhatAGrantMayBe(t *testing.T) {
 	other := w.Product("other")
 	_, err = w.S.Ungated.Grant().Add(ctx, levyan.GrantAddRequest_builder{
 		Tenant: levyantest.Ref(other), Workspace: ref, Key: "other.robots",
-		Value: levyan.GrantValue_GRANT_VALUE_ON, ValidUntil: timestamppb.New(t0.Add(day)),
+		Value: levyan.GrantValue_GRANT_VALUE_ON, DateExpires: timestamppb.New(t0.Add(day)),
 		Source: levyan.GrantSource_GRANT_SOURCE_OPERATOR,
 	}.Build())
 	x.Error(err, "a grant of one product's to another's workspace")
@@ -252,10 +252,10 @@ func TestAGrantThatRenewsIsRenewedBeforeItEnds(t *testing.T) {
 	fixed, err := give(w, p, ws, "loft.seats", entitle.Limited(3), func(g *grants.Give) { g.Until = t0.Add(30 * day) })
 	x.NoError(err)
 	x.False(fixed.GetRenews())
-	x.Equal(t0.Add(30*day), fixed.GetValidUntil().AsTime(), "an end of its own, past the horizon")
+	x.Equal(t0.Add(30*day), fixed.GetDateExpires().AsTime(), "an end of its own, past the horizon")
 	later, err := give(w, p, ws, "loft.robots", entitle.Unlimited, func(g *grants.Give) { g.From = t0.Add(20 * day) })
 	x.NoError(err)
-	x.Equal(t0.Add(20*day+week), later.GetValidUntil().AsTime(), "one to come reaches a horizon from when it begins")
+	x.Equal(t0.Add(20*day+week), later.GetDateExpires().AsTime(), "one to come reaches a horizon from when it begins")
 
 	w.At(t0.Add(week/2 - time.Hour))
 	n, err := w.S.Grants.Renew(ctx)
@@ -267,7 +267,7 @@ func TestAGrantThatRenewsIsRenewedBeforeItEnds(t *testing.T) {
 	n, err = w.S.Grants.Renew(ctx)
 	x.NoError(err)
 	x.Equal(1, n)
-	x.Equal(t0.Add(week/2+time.Hour+week), row(t, w, open.GetId()).ValidUntil.UTC())
+	x.Equal(t0.Add(week/2+time.Hour+week), row(t, w, open.GetId()).DateExpires.UTC())
 	x.Equal(uint64(1), row(t, w, fixed.GetId()).Version, "an end of its own is never moved")
 	x.Equal(uint64(1), row(t, w, later.GetId()).Version)
 
@@ -277,8 +277,8 @@ func TestAGrantThatRenewsIsRenewedBeforeItEnds(t *testing.T) {
 	n, err = w.S.Grants.Renew(ctx)
 	x.NoError(err)
 	x.Equal(2, n, "what lapsed, and what was to come")
-	x.Equal(back.Add(week), row(t, w, open.GetId()).ValidUntil.UTC())
-	x.Equal(back.Add(week), row(t, w, later.GetId()).ValidUntil.UTC())
+	x.Equal(back.Add(week), row(t, w, open.GetId()).DateExpires.UTC())
+	x.Equal(back.Add(week), row(t, w, later.GetId()).DateExpires.UTC())
 	x.Equal(uint64(1), row(t, w, fixed.GetId()).Version, "and what ended stays ended")
 }
 
@@ -332,10 +332,10 @@ func TestAnOperatorsGrantOfAKeyIsOneAtATime(t *testing.T) {
 	})
 	x.NoError(err)
 	r := row(t, w, first.GetId())
-	x.Equal(at, r.ValidUntil.UTC(), "the first ends where the second begins")
+	x.Equal(at, r.DateExpires.UTC(), "the first ends where the second begins")
 	x.False(r.Renews)
 	x.Equal(uint64(2), r.Version)
-	x.Equal(at, second.GetValidFrom().AsTime())
+	x.Equal(at, second.GetDateEffective().AsTime())
 
 	// One to come after the last ends is no overlap, and needs no replacing.
 	fixed, err := give(w, p, ws, "loft.robots", entitle.Limited(1), func(g *grants.Give) { g.Until = t0.Add(10 * day) })
@@ -437,7 +437,7 @@ func TestARulesGrantsAreWhatItWants(t *testing.T) {
 	x.Len(vs, 2)
 	x.Equal(wsOf(a), vs[0].WorkspaceId)
 	x.False(vs[0].Renews, "a's is ended")
-	x.Equal(t0.Add(2*time.Hour), vs[0].ValidUntil.UTC())
+	x.Equal(t0.Add(2*time.Hour), vs[0].DateExpires.UTC())
 	x.Equal(uint64(2), vs[0].Version)
 	x.Equal(wsOf(b), vs[1].WorkspaceId)
 	x.True(vs[1].Renews)
@@ -499,7 +499,7 @@ func TestChangesAtOnceAreOneAfterTheOther(t *testing.T) {
 			Count(ctx)
 		x.NoError(err)
 		x.Equal(uint64(1+n), v.Version, "grant %s: a version for every change", pdid.Id(v.Id))
-		if v.ValidUntil.After(w.S.Clock()) {
+		if v.DateExpires.After(w.S.Clock()) {
 			live++
 		}
 	}
@@ -571,7 +571,7 @@ func TestAGrantOfADestroyedWorkspaceIsNotRenewed(t *testing.T) {
 	x.Zero(n, "nothing renewed")
 	r := row(t, w, renews.GetId())
 	x.False(r.Renews)
-	x.Equal(due, r.ValidUntil.UTC(), "ended when it came due")
+	x.Equal(due, r.DateExpires.UTC(), "ended when it came due")
 	x.Equal(uint64(2), r.Version)
 	x.Equal(uint64(1), row(t, w, fixed.GetId()).Version, "an end of its own, which it keeps")
 }

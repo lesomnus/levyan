@@ -33,7 +33,7 @@ func TestAnOperatorClosesAProductsPeriodsAndReadsItsStatements(t *testing.T) {
 	d.w.At(jan.AddDate(0, 1, 0))
 	ws := pdid.New(pd.TenantDomain)
 	res, err := m.Record(levyantest.As(context.Background(), key), levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 130, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 130, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	x.Equal(levyanv1.Outcome_OUTCOME_KEPT, res.GetResults()[0].GetOutcome())
@@ -53,14 +53,14 @@ func TestAnOperatorClosesAProductsPeriodsAndReadsItsStatements(t *testing.T) {
 	x.Equal("UTC", p.Zone)
 
 	// A period that has not ended does not close, however it is asked.
-	code, _ = d.ask(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{"through": jan.AddDate(1, 0, 0)})
+	code, _ = d.ask(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{"date_through": jan.AddDate(1, 0, 0)})
 	x.Equal(http.StatusBadRequest, code)
 
 	var ps []admin.Period
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, &ps)
 	x.Len(ps, 1, "January, before its grace: by hand")
-	x.True(ps[0].Start.Equal(jan))
-	x.NotNil(ps[0].Closed)
+	x.True(ps[0].DateStart.Equal(jan))
+	x.NotNil(ps[0].DateClosed)
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, &ps)
 	x.Empty(ps, "and once")
 

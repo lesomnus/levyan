@@ -14,10 +14,10 @@ const (
 	FieldId = "id"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
-	// FieldHappenedAt holds the string denoting the happened_at field in the database.
-	FieldHappenedAt = "happened_at"
-	// FieldLateThrough holds the string denoting the late_through field in the database.
-	FieldLateThrough = "late_through"
+	// FieldDateOccurred holds the string denoting the date_occurred field in the database.
+	FieldDateOccurred = "date_occurred"
+	// FieldDateLateThrough holds the string denoting the date_late_through field in the database.
+	FieldDateLateThrough = "date_late_through"
 	// FieldDateErased holds the string denoting the date_erased field in the database.
 	FieldDateErased = "date_erased"
 	// FieldDateCreated holds the string denoting the date_created field in the database.
@@ -52,8 +52,8 @@ const (
 var Columns = []string{
 	FieldId,
 	FieldKind,
-	FieldHappenedAt,
-	FieldLateThrough,
+	FieldDateOccurred,
+	FieldDateLateThrough,
 	FieldDateErased,
 	FieldDateCreated,
 	FieldTenantId,
@@ -83,14 +83,14 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
-// ByHappenedAt orders the results by the happened_at field.
-func ByHappenedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldHappenedAt, opts...).ToFunc()
+// ByDateOccurred orders the results by the date_occurred field.
+func ByDateOccurred(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateOccurred, opts...).ToFunc()
 }
 
-// ByLateThrough orders the results by the late_through field.
-func ByLateThrough(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLateThrough, opts...).ToFunc()
+// ByDateLateThrough orders the results by the date_late_through field.
+func ByDateLateThrough(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateLateThrough, opts...).ToFunc()
 }
 
 // ByDateErased orders the results by the date_erased field.

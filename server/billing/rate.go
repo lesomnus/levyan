@@ -116,26 +116,26 @@ func (r Rater) Since(ctx context.Context, product, ws uuid.UUID) (time.Time, boo
 
 	rs, err := r.Db.Reading.Query().
 		Where(entreading.TenantId(product), entreading.WorkspaceId(ws)).
-		Order(ent.Asc(entreading.FieldMeasuredAt)).
+		Order(ent.Asc(entreading.FieldDateMeasured)).
 		Limit(1).
 		All(ctx)
 	if err != nil {
 		return time.Time{}, false, err
 	}
 	for _, v := range rs {
-		keep(v.MeasuredAt)
+		keep(v.DateMeasured)
 	}
 
 	ps, err := r.Db.Point.Query().
 		Where(entpoint.WorkspaceId(ws)).
-		Order(ent.Asc(entpoint.FieldCountedAt)).
+		Order(ent.Asc(entpoint.FieldDateCounted)).
 		Limit(1).
 		All(ctx)
 	if err != nil {
 		return time.Time{}, false, err
 	}
 	for _, v := range ps {
-		keep(v.CountedAt)
+		keep(v.DateCounted)
 	}
 
 	return at, ok, nil
@@ -162,10 +162,10 @@ func (r Rater) Usage(ctx context.Context, product, ws uuid.UUID, m *ent.Meter, p
 			entreading.TenantId(product),
 			entreading.WorkspaceId(ws),
 			entreading.MeterId(m.Id),
-			entreading.MeasuredAtGTE(p.Start.Add(-usage.Hold)),
-			entreading.MeasuredAtLT(p.End),
+			entreading.DateMeasuredGTE(p.Start.Add(-usage.Hold)),
+			entreading.DateMeasuredLT(p.End),
 		).
-		Order(ent.Asc(entreading.FieldMeasuredAt)).
+		Order(ent.Asc(entreading.FieldDateMeasured)).
 		All(ctx)
 	if err != nil {
 		return rating.Usage{}, err
@@ -174,7 +174,7 @@ func (r Rater) Usage(ctx context.Context, product, ws uuid.UUID, m *ent.Meter, p
 	all := make([]usage.Reading, 0, len(vs))
 	in := []usage.Reading{}
 	for _, v := range vs {
-		u := usage.Reading{At: ledger.Moment(v.MeasuredAt), Value: v.Value}
+		u := usage.Reading{At: ledger.Moment(v.DateMeasured), Value: v.Value}
 		all = append(all, u)
 		if !u.At.Before(p.Start) && !usage.In(u.At, away) {
 			in = append(in, u)
@@ -199,8 +199,8 @@ func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating
 		Where(
 			entpoint.WorkspaceId(ws),
 			entpoint.SeriesIdIn(ss...),
-			entpoint.CountedAtGTE(p.Start),
-			entpoint.CountedAtLT(p.End),
+			entpoint.DateCountedGTE(p.Start),
+			entpoint.DateCountedLT(p.End),
 		).
 		All(ctx)
 	if err != nil {
@@ -214,8 +214,8 @@ func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating
 	}
 	runs := map[run]time.Time{}
 	for _, v := range pts {
-		start := ledger.Moment(v.StartedAt)
-		by[v.SeriesId] = append(by[v.SeriesId], usage.Point{Start: start, At: ledger.Moment(v.CountedAt), Value: v.Value})
+		start := ledger.Moment(v.DateStarted)
+		by[v.SeriesId] = append(by[v.SeriesId], usage.Point{Start: start, At: ledger.Moment(v.DateCounted), Value: v.Value})
 		runs[run{v.SeriesId, start.UnixMicro()}] = start
 	}
 
@@ -224,7 +224,7 @@ func (r Rater) counted(ctx context.Context, ws uuid.UUID, m *ent.Meter, p rating
 			Most sql.NullInt64 `json:"most"`
 		}
 		err := r.Db.Point.Query().
-			Where(entpoint.SeriesId(k.series), entpoint.StartedAt(start), entpoint.CountedAtLT(p.Start)).
+			Where(entpoint.SeriesId(k.series), entpoint.DateStarted(start), entpoint.DateCountedLT(p.Start)).
 			Aggregate(ent.As(ent.Max(entpoint.FieldValue), "most")).
 			Scan(ctx, &vs)
 		if err != nil {
@@ -309,10 +309,10 @@ func (r Rater) Allowances(ctx context.Context, product, ws uuid.UUID, p rating.P
 		Where(
 			entallowance.TenantId(product),
 			entallowance.WorkspaceId(ws),
-			entallowance.ValidFromLT(p.End),
-			entallowance.Or(entallowance.ValidUntilIsNil(), entallowance.ValidUntilGT(p.Start)),
+			entallowance.DateEffectiveLT(p.End),
+			entallowance.Or(entallowance.DateExpiresIsNil(), entallowance.DateExpiresGT(p.Start)),
 		).
-		Order(ent.Asc(entallowance.FieldValidFrom), ent.Asc(entallowance.FieldId)).
+		Order(ent.Asc(entallowance.FieldDateEffective), ent.Asc(entallowance.FieldId)).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -320,9 +320,9 @@ func (r Rater) Allowances(ctx context.Context, product, ws uuid.UUID, p rating.P
 
 	out := map[uuid.UUID][]rating.Allowance{}
 	for _, v := range vs {
-		a := rating.Allowance{Id: pdid.Id(v.Id), Quantity: v.Quantity, From: ledger.Moment(v.ValidFrom)}
-		if v.ValidUntil != nil {
-			a.Until = ledger.Moment(*v.ValidUntil)
+		a := rating.Allowance{Id: pdid.Id(v.Id), Quantity: v.Quantity, From: ledger.Moment(v.DateEffective)}
+		if v.DateExpires != nil {
+			a.Until = ledger.Moment(*v.DateExpires)
 		}
 		out[v.MeterId] = append(out[v.MeterId], a)
 	}
@@ -498,7 +498,7 @@ func (r Rater) marked(ctx context.Context, product, ws uuid.UUID, periods []*ent
 		return nil, err
 	}
 	for _, v := range rs {
-		at := ledger.Moment(v.MeasuredAt)
+		at := ledger.Moment(v.DateMeasured)
 		reach(at, at.Add(usage.Hold))
 	}
 
@@ -507,16 +507,16 @@ func (r Rater) marked(ctx context.Context, product, ws uuid.UUID, periods []*ent
 		return nil, err
 	}
 	for _, v := range ps {
-		at := ledger.Moment(v.CountedAt)
+		at := ledger.Moment(v.DateCounted)
 		reach(at, at.Add(time.Microsecond))
 
 		next, err := r.Db.Point.Query().
-			Where(entpoint.SeriesId(v.SeriesId), entpoint.StartedAt(v.StartedAt), entpoint.CountedAtGT(v.CountedAt)).
-			Order(ent.Asc(entpoint.FieldCountedAt)).
+			Where(entpoint.SeriesId(v.SeriesId), entpoint.DateStarted(v.DateStarted), entpoint.DateCountedGT(v.DateCounted)).
+			Order(ent.Asc(entpoint.FieldDateCounted)).
 			First(ctx)
 		switch {
 		case err == nil:
-			t := ledger.Moment(next.CountedAt)
+			t := ledger.Moment(next.DateCounted)
 			reach(t, t.Add(time.Microsecond))
 		case !ent.IsNotFound(err):
 			return nil, err
@@ -557,7 +557,7 @@ func billedFor(sts []*ent.Statement, p *ent.Period) (map[uuid.UUID]*big.Rat, err
 		for _, l := range s.Lines.GetLines() {
 			switch {
 			case s.PeriodId == p.Id && l.GetKind() == levyan.LineKind_LINE_KIND_USAGE:
-			case l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION && l.GetCorrectsStart().AsTime().Equal(p.DateStart):
+			case l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION && l.GetDateCorrectsStart().AsTime().Equal(p.DateStart):
 			default:
 				continue
 			}

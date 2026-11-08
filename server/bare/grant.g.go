@@ -170,15 +170,15 @@ func (st GrantServiceServer) create(ctx context.Context, req *levyan.GrantAddReq
 	q.SetKey(req.GetKey())
 	q.SetValue(int32(req.GetValue()))
 	q.SetLimit(req.GetLimit())
-	if req.HasValidFrom() {
-		q.SetValidFrom(req.GetValidFrom().AsTime())
+	if req.HasDateEffective() {
+		q.SetDateEffective(req.GetDateEffective().AsTime())
 	} else {
-		q.SetValidFrom(st.now())
+		q.SetDateEffective(st.now())
 	}
-	if req.HasValidUntil() {
-		q.SetValidUntil(req.GetValidUntil().AsTime())
+	if req.HasDateExpires() {
+		q.SetDateExpires(req.GetDateExpires().AsTime())
 	} else {
-		q.SetValidUntil(st.now())
+		q.SetDateExpires(st.now())
 	}
 	q.SetDateUpdated(st.now())
 	if req.HasDateCreated() {
@@ -329,11 +329,11 @@ func GrantSelectedFields(m *levyan.GrantSelect) []string {
 	if m.GetLimit() {
 		vs = append(vs, grant.FieldLimit)
 	}
-	if m.GetValidFrom() {
-		vs = append(vs, grant.FieldValidFrom)
+	if m.GetDateEffective() {
+		vs = append(vs, grant.FieldDateEffective)
 	}
-	if m.GetValidUntil() {
-		vs = append(vs, grant.FieldValidUntil)
+	if m.GetDateExpires() {
+		vs = append(vs, grant.FieldDateExpires)
 	}
 	if m.GetDateUpdated() {
 		vs = append(vs, grant.FieldDateUpdated)
@@ -431,7 +431,7 @@ func GrantGetKey(ctx context.Context, db *ent.Client, ref *levyan.GrantRef) (uui
 var grantOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_grant_proto, "Grant")
 
 var grantPatchColumns = entpatch.Columns{
-	1: grant.FieldId, 2: grant.TenantColumn, 3: grant.WorkspaceColumn, 6: grant.FieldDesc, 8: grant.FieldKey, 9: grant.FieldValue, 10: grant.FieldLimit, 11: grant.FieldValidFrom, 12: grant.FieldValidUntil, 13: grant.FieldDateUpdated, 14: grant.FieldDateErased, 15: grant.FieldDateCreated, 16: grant.FieldVersion, 17: grant.FieldSource, 18: grant.FieldRule, 19: grant.FieldRenews}
+	1: grant.FieldId, 2: grant.TenantColumn, 3: grant.WorkspaceColumn, 6: grant.FieldDesc, 8: grant.FieldKey, 9: grant.FieldValue, 10: grant.FieldLimit, 11: grant.FieldDateEffective, 12: grant.FieldDateExpires, 13: grant.FieldDateUpdated, 14: grant.FieldDateErased, 15: grant.FieldDateCreated, 16: grant.FieldVersion, 17: grant.FieldSource, 18: grant.FieldRule, 19: grant.FieldRenews}
 
 func (s GrantServiceServer) Apply(ctx context.Context, req *levyan.GrantApplyRequest) (*levyan.Grant, error) {
 	if !req.HasPatch() {

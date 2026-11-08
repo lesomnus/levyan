@@ -176,18 +176,18 @@ func Begins(ctx context.Context, db *ent.Client, product uuid.UUID) (time.Time, 
 		at time.Time
 		ok bool
 	)
-	r, err := db.Reading.Query().Where(entreading.TenantId(product)).Order(ent.Asc(entreading.FieldMeasuredAt)).First(ctx)
+	r, err := db.Reading.Query().Where(entreading.TenantId(product)).Order(ent.Asc(entreading.FieldDateMeasured)).First(ctx)
 	switch {
 	case err == nil:
-		at, ok = ledger.Moment(r.MeasuredAt), true
+		at, ok = ledger.Moment(r.DateMeasured), true
 	case !ent.IsNotFound(err):
 		return time.Time{}, false, err
 	}
 
-	p, err := db.Point.Query().Where(entpoint.TenantId(product)).Order(ent.Asc(entpoint.FieldCountedAt)).First(ctx)
+	p, err := db.Point.Query().Where(entpoint.TenantId(product)).Order(ent.Asc(entpoint.FieldDateCounted)).First(ctx)
 	switch {
 	case err == nil:
-		if v := ledger.Moment(p.CountedAt); !ok || v.Before(at) {
+		if v := ledger.Moment(p.DateCounted); !ok || v.Before(at) {
 			at, ok = v, true
 		}
 	case !ent.IsNotFound(err):

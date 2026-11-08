@@ -105,7 +105,7 @@ func (w world) daily(ws pdid.Id, meter, unit string, from, to time.Time, v int64
 	rs := []*levyanv1.Reading{}
 	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
 		rs = append(rs, levyanv1.Reading_builder{
-			Workspace: ws.String(), Meter: meter, MeasuredAt: timestamppb.New(d), Value: v, Unit: unit,
+			Workspace: ws.String(), Meter: meter, DateMeasured: timestamppb.New(d), Value: v, Unit: unit,
 		}.Build())
 	}
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(w.ctx, levyanv1.RecordRequest_builder{Readings: rs}.Build())
@@ -167,7 +167,7 @@ func (w world) statement(ws pdid.Id, start time.Time) *levyanv1.Statement {
 	res, err := levyanv1.NewBillingServiceClient(w.conn).ListStatements(w.ctx, levyanv1.ListStatementsRequest_builder{Workspace: ws.String()}.Build())
 	w.X.NoError(err)
 	for _, s := range res.GetStatements() {
-		if s.GetPeriod().GetStart().AsTime().Equal(start) {
+		if s.GetPeriod().GetDateStart().AsTime().Equal(start) {
 			return s
 		}
 	}
@@ -179,7 +179,7 @@ func amounts(s *levyanv1.Statement) map[string]string {
 	for _, l := range s.GetLines() {
 		k := l.GetMeter()
 		if l.GetKind() == levyanv1.LineKind_LINE_KIND_CORRECTION {
-			k += " corrects " + l.GetCorrects().GetStart().AsTime().Format("2006-01")
+			k += " corrects " + l.GetCorrects().GetDateStart().AsTime().Format("2006-01")
 		}
 		out[k] = l.GetAmount()
 	}
@@ -275,7 +275,7 @@ func TestALateReadingIsCorrectedOnTheNextStatement(t *testing.T) {
 	// Half a day of 400 that should have been in January, sent in February.
 	w.At(on(2, 12))
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(w.ctx, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: a.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(on(1, 15).Add(12 * time.Hour)), Value: 400, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: a.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(on(1, 15).Add(12 * time.Hour)), Value: 400, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	x.True(res.GetResults()[0].GetLate())
@@ -286,7 +286,7 @@ func TestALateReadingIsCorrectedOnTheNextStatement(t *testing.T) {
 	w.daily(a, "loft.assets.active", "{asset}", on(2, 10), on(2, 21), 200)
 	u, err := levyanv1.NewBillingServiceClient(w.conn).GetUsage(w.ctx, levyanv1.GetUsageRequest_builder{Workspace: a.String()}.Build())
 	x.NoError(err)
-	x.True(u.GetUsage().GetPeriod().GetStart().AsTime().Equal(on(2, 1)))
+	x.True(u.GetUsage().GetPeriod().GetDateStart().AsTime().Equal(on(2, 1)))
 	x.Equal(map[string]string{"loft.assets.active": "5000", "loft.assets.active corrects 2027-01": "161.290322"}, amountsOf(u.GetUsage().GetLines()))
 	x.Equal(int64(5161), u.GetUsage().GetTotal())
 
@@ -305,8 +305,8 @@ func TestALateReadingIsCorrectedOnTheNextStatement(t *testing.T) {
 		}
 	}
 	x.NotNil(fix)
-	x.True(fix.GetCorrects().GetStart().AsTime().Equal(on(1, 1)))
-	x.True(fix.GetCorrects().GetEnd().AsTime().Equal(on(2, 1)))
+	x.True(fix.GetCorrects().GetDateStart().AsTime().Equal(on(1, 1)))
+	x.True(fix.GetCorrects().GetDateEnd().AsTime().Equal(on(2, 1)))
 	x.Equal("5000", fix.GetBilled())
 	x.Equal("203.225806", fix.GetUsage(), "what January held, as it is known now")
 
@@ -369,9 +369,9 @@ func TestUsageIsWhatThePeriodWouldComeToNow(t *testing.T) {
 
 	u, err := levyanv1.NewBillingServiceClient(w.conn).GetUsage(w.ctx, levyanv1.GetUsageRequest_builder{Workspace: a.String()}.Build())
 	x.NoError(err)
-	x.True(u.GetUsage().GetAsOf().AsTime().Equal(on(1, 10).Add(12 * time.Hour)))
-	x.True(u.GetUsage().GetPeriod().GetStart().AsTime().Equal(on(1, 1)))
-	x.True(u.GetUsage().GetPeriod().GetEnd().AsTime().Equal(on(2, 1)))
+	x.True(u.GetUsage().GetDateAsOf().AsTime().Equal(on(1, 10).Add(12 * time.Hour)))
+	x.True(u.GetUsage().GetPeriod().GetDateStart().AsTime().Equal(on(1, 1)))
+	x.True(u.GetUsage().GetPeriod().GetDateEnd().AsTime().Equal(on(2, 1)))
 	x.Equal("UTC", u.GetUsage().GetPeriod().GetZone())
 	x.Equal(map[string]string{"loft.assets.active": "10000", "loft.transfer.bytes": "10"}, amountsOf(u.GetUsage().GetLines()))
 	x.Equal("300", u.GetUsage().GetLines()[0].GetUsage(), "held at 300 to the end")

@@ -206,14 +206,14 @@ func (b0 RecordRequest_builder) Build() *RecordRequest {
 // Reading is what one workspace held of one stock meter at one moment:
 // payday's `meter.Reading`.
 type Reading struct {
-	state                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Workspace  string                 `protobuf:"bytes,1,opt,name=workspace"`
-	xxx_hidden_Meter      string                 `protobuf:"bytes,2,opt,name=meter"`
-	xxx_hidden_MeasuredAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=measured_at,json=measuredAt"`
-	xxx_hidden_Value      int64                  `protobuf:"varint,4,opt,name=value"`
-	xxx_hidden_Unit       string                 `protobuf:"bytes,5,opt,name=unit"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace    string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_Meter        string                 `protobuf:"bytes,2,opt,name=meter"`
+	xxx_hidden_DateMeasured *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_measured,json=dateMeasured"`
+	xxx_hidden_Value        int64                  `protobuf:"varint,4,opt,name=value"`
+	xxx_hidden_Unit         string                 `protobuf:"bytes,5,opt,name=unit"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Reading) Reset() {
@@ -255,9 +255,9 @@ func (x *Reading) GetMeter() string {
 	return ""
 }
 
-func (x *Reading) GetMeasuredAt() *timestamppb.Timestamp {
+func (x *Reading) GetDateMeasured() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_MeasuredAt
+		return x.xxx_hidden_DateMeasured
 	}
 	return nil
 }
@@ -284,8 +284,8 @@ func (x *Reading) SetMeter(v string) {
 	x.xxx_hidden_Meter = v
 }
 
-func (x *Reading) SetMeasuredAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_MeasuredAt = v
+func (x *Reading) SetDateMeasured(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateMeasured = v
 }
 
 func (x *Reading) SetValue(v int64) {
@@ -296,15 +296,15 @@ func (x *Reading) SetUnit(v string) {
 	x.xxx_hidden_Unit = v
 }
 
-func (x *Reading) HasMeasuredAt() bool {
+func (x *Reading) HasDateMeasured() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_MeasuredAt != nil
+	return x.xxx_hidden_DateMeasured != nil
 }
 
-func (x *Reading) ClearMeasuredAt() {
-	x.xxx_hidden_MeasuredAt = nil
+func (x *Reading) ClearDateMeasured() {
+	x.xxx_hidden_DateMeasured = nil
 }
 
 type Reading_builder struct {
@@ -316,7 +316,7 @@ type Reading_builder struct {
 	// The meter, by its key: `loft.assets.active`.
 	Meter string
 	// When it was measured. Kept to the microsecond, in UTC.
-	MeasuredAt *timestamppb.Timestamp
+	DateMeasured *timestamppb.Timestamp
 	// How much the workspace held, in the meter's unit.
 	Value int64
 	// The meter's unit, which a reading in another is refused for not being.
@@ -329,7 +329,7 @@ func (b0 Reading_builder) Build() *Reading {
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
-	x.xxx_hidden_MeasuredAt = b.MeasuredAt
+	x.xxx_hidden_DateMeasured = b.DateMeasured
 	x.xxx_hidden_Value = b.Value
 	x.xxx_hidden_Unit = b.Unit
 	return m0
@@ -506,12 +506,11 @@ const file_levyan_v1_metering_proto_rawDesc = "" +
 	"\n" +
 	"\x18levyan/v1/metering.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
 	"\rRecordRequest\x12.\n" +
-	"\breadings\x18\x01 \x03(\v2\x12.levyan.v1.ReadingR\breadings\"\xa4\x01\n" +
+	"\breadings\x18\x01 \x03(\v2\x12.levyan.v1.ReadingR\breadings\"\xa8\x01\n" +
 	"\aReading\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12\x14\n" +
-	"\x05meter\x18\x02 \x01(\tR\x05meter\x12;\n" +
-	"\vmeasured_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"measuredAt\x12\x14\n" +
+	"\x05meter\x18\x02 \x01(\tR\x05meter\x12?\n" +
+	"\rdate_measured\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\fdateMeasured\x12\x14\n" +
 	"\x05value\x18\x04 \x01(\x03R\x05value\x12\x12\n" +
 	"\x04unit\x18\x05 \x01(\tR\x04unit\"?\n" +
 	"\x0eRecordResponse\x12-\n" +
@@ -550,7 +549,7 @@ var file_levyan_v1_metering_proto_goTypes = []any{
 }
 var file_levyan_v1_metering_proto_depIdxs = []int32{
 	3, // 0: levyan.v1.RecordRequest.readings:type_name -> levyan.v1.Reading
-	6, // 1: levyan.v1.Reading.measured_at:type_name -> google.protobuf.Timestamp
+	6, // 1: levyan.v1.Reading.date_measured:type_name -> google.protobuf.Timestamp
 	5, // 2: levyan.v1.RecordResponse.results:type_name -> levyan.v1.Recorded
 	0, // 3: levyan.v1.Recorded.outcome:type_name -> levyan.v1.Outcome
 	1, // 4: levyan.v1.Recorded.refusal:type_name -> levyan.v1.Refusal

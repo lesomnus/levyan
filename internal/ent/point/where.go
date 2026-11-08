@@ -56,14 +56,14 @@ func IdLTE(id uuid.UUID) predicate.Point {
 	return predicate.Point(sql.FieldLTE(FieldId, id))
 }
 
-// StartedAt applies equality check predicate on the "started_at" field. It's identical to StartedAtEQ.
-func StartedAt(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldEQ(FieldStartedAt, v))
+// DateStarted applies equality check predicate on the "date_started" field. It's identical to DateStartedEQ.
+func DateStarted(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldEQ(FieldDateStarted, v))
 }
 
-// CountedAt applies equality check predicate on the "counted_at" field. It's identical to CountedAtEQ.
-func CountedAt(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldEQ(FieldCountedAt, v))
+// DateCounted applies equality check predicate on the "date_counted" field. It's identical to DateCountedEQ.
+func DateCounted(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldEQ(FieldDateCounted, v))
 }
 
 // Value applies equality check predicate on the "value" field. It's identical to ValueEQ.
@@ -101,104 +101,104 @@ func SeriesId(v uuid.UUID) predicate.Point {
 	return predicate.Point(sql.FieldEQ(FieldSeriesId, v))
 }
 
-// StartedAtEQ applies the EQ predicate on the "started_at" field.
-func StartedAtEQ(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldEQ(FieldStartedAt, v))
+// DateStartedEQ applies the EQ predicate on the "date_started" field.
+func DateStartedEQ(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldEQ(FieldDateStarted, v))
 }
 
-// StartedAtNEQ applies the NEQ predicate on the "started_at" field.
-func StartedAtNEQ(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldNEQ(FieldStartedAt, v))
+// DateStartedNEQ applies the NEQ predicate on the "date_started" field.
+func DateStartedNEQ(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldNEQ(FieldDateStarted, v))
 }
 
-// StartedAtIn applies the In predicate on the "started_at" field.
-func StartedAtIn(vs ...time.Time) predicate.Point {
-	return predicate.Point(sql.FieldIn(FieldStartedAt, vs...))
+// DateStartedIn applies the In predicate on the "date_started" field.
+func DateStartedIn(vs ...time.Time) predicate.Point {
+	return predicate.Point(sql.FieldIn(FieldDateStarted, vs...))
 }
 
-// StartedAtNotIn applies the NotIn predicate on the "started_at" field.
-func StartedAtNotIn(vs ...time.Time) predicate.Point {
-	return predicate.Point(sql.FieldNotIn(FieldStartedAt, vs...))
+// DateStartedNotIn applies the NotIn predicate on the "date_started" field.
+func DateStartedNotIn(vs ...time.Time) predicate.Point {
+	return predicate.Point(sql.FieldNotIn(FieldDateStarted, vs...))
 }
 
-// StartedAtGT applies the GT predicate on the "started_at" field.
-func StartedAtGT(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldGT(FieldStartedAt, v))
+// DateStartedGT applies the GT predicate on the "date_started" field.
+func DateStartedGT(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldGT(FieldDateStarted, v))
 }
 
-// StartedAtGTE applies the GTE predicate on the "started_at" field.
-func StartedAtGTE(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldGTE(FieldStartedAt, v))
+// DateStartedGTE applies the GTE predicate on the "date_started" field.
+func DateStartedGTE(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldGTE(FieldDateStarted, v))
 }
 
-// StartedAtLT applies the LT predicate on the "started_at" field.
-func StartedAtLT(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldLT(FieldStartedAt, v))
+// DateStartedLT applies the LT predicate on the "date_started" field.
+func DateStartedLT(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldLT(FieldDateStarted, v))
 }
 
-// StartedAtLTE applies the LTE predicate on the "started_at" field.
-func StartedAtLTE(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldLTE(FieldStartedAt, v))
+// DateStartedLTE applies the LTE predicate on the "date_started" field.
+func DateStartedLTE(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldLTE(FieldDateStarted, v))
 }
 
-// StartedAtIsNil applies the IsNil predicate on the "started_at" field.
-func StartedAtIsNil() predicate.Point {
-	return predicate.Point(sql.FieldIsNull(FieldStartedAt))
+// DateStartedIsNil applies the IsNil predicate on the "date_started" field.
+func DateStartedIsNil() predicate.Point {
+	return predicate.Point(sql.FieldIsNull(FieldDateStarted))
 }
 
-// StartedAtNotNil applies the NotNil predicate on the "started_at" field.
-func StartedAtNotNil() predicate.Point {
-	return predicate.Point(sql.FieldNotNull(FieldStartedAt))
+// DateStartedNotNil applies the NotNil predicate on the "date_started" field.
+func DateStartedNotNil() predicate.Point {
+	return predicate.Point(sql.FieldNotNull(FieldDateStarted))
 }
 
-// CountedAtEQ applies the EQ predicate on the "counted_at" field.
-func CountedAtEQ(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldEQ(FieldCountedAt, v))
+// DateCountedEQ applies the EQ predicate on the "date_counted" field.
+func DateCountedEQ(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldEQ(FieldDateCounted, v))
 }
 
-// CountedAtNEQ applies the NEQ predicate on the "counted_at" field.
-func CountedAtNEQ(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldNEQ(FieldCountedAt, v))
+// DateCountedNEQ applies the NEQ predicate on the "date_counted" field.
+func DateCountedNEQ(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldNEQ(FieldDateCounted, v))
 }
 
-// CountedAtIn applies the In predicate on the "counted_at" field.
-func CountedAtIn(vs ...time.Time) predicate.Point {
-	return predicate.Point(sql.FieldIn(FieldCountedAt, vs...))
+// DateCountedIn applies the In predicate on the "date_counted" field.
+func DateCountedIn(vs ...time.Time) predicate.Point {
+	return predicate.Point(sql.FieldIn(FieldDateCounted, vs...))
 }
 
-// CountedAtNotIn applies the NotIn predicate on the "counted_at" field.
-func CountedAtNotIn(vs ...time.Time) predicate.Point {
-	return predicate.Point(sql.FieldNotIn(FieldCountedAt, vs...))
+// DateCountedNotIn applies the NotIn predicate on the "date_counted" field.
+func DateCountedNotIn(vs ...time.Time) predicate.Point {
+	return predicate.Point(sql.FieldNotIn(FieldDateCounted, vs...))
 }
 
-// CountedAtGT applies the GT predicate on the "counted_at" field.
-func CountedAtGT(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldGT(FieldCountedAt, v))
+// DateCountedGT applies the GT predicate on the "date_counted" field.
+func DateCountedGT(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldGT(FieldDateCounted, v))
 }
 
-// CountedAtGTE applies the GTE predicate on the "counted_at" field.
-func CountedAtGTE(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldGTE(FieldCountedAt, v))
+// DateCountedGTE applies the GTE predicate on the "date_counted" field.
+func DateCountedGTE(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldGTE(FieldDateCounted, v))
 }
 
-// CountedAtLT applies the LT predicate on the "counted_at" field.
-func CountedAtLT(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldLT(FieldCountedAt, v))
+// DateCountedLT applies the LT predicate on the "date_counted" field.
+func DateCountedLT(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldLT(FieldDateCounted, v))
 }
 
-// CountedAtLTE applies the LTE predicate on the "counted_at" field.
-func CountedAtLTE(v time.Time) predicate.Point {
-	return predicate.Point(sql.FieldLTE(FieldCountedAt, v))
+// DateCountedLTE applies the LTE predicate on the "date_counted" field.
+func DateCountedLTE(v time.Time) predicate.Point {
+	return predicate.Point(sql.FieldLTE(FieldDateCounted, v))
 }
 
-// CountedAtIsNil applies the IsNil predicate on the "counted_at" field.
-func CountedAtIsNil() predicate.Point {
-	return predicate.Point(sql.FieldIsNull(FieldCountedAt))
+// DateCountedIsNil applies the IsNil predicate on the "date_counted" field.
+func DateCountedIsNil() predicate.Point {
+	return predicate.Point(sql.FieldIsNull(FieldDateCounted))
 }
 
-// CountedAtNotNil applies the NotNil predicate on the "counted_at" field.
-func CountedAtNotNil() predicate.Point {
-	return predicate.Point(sql.FieldNotNull(FieldCountedAt))
+// DateCountedNotNil applies the NotNil predicate on the "date_counted" field.
+func DateCountedNotNil() predicate.Point {
+	return predicate.Point(sql.FieldNotNull(FieldDateCounted))
 }
 
 // ValueEQ applies the EQ predicate on the "value" field.

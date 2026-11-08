@@ -80,7 +80,7 @@ func (w world) increase(t *testing.T, ws pdid.Id, key string, from, to time.Time
 		w.X.NoError(err)
 		ps := []usage.Point{}
 		for _, v := range vs {
-			ps = append(ps, usage.Point{Start: v.StartedAt, At: v.CountedAt, Value: v.Value})
+			ps = append(ps, usage.Point{Start: v.DateStarted, At: v.DateCounted, Value: v.Value})
 		}
 		n, err := usage.Increase(ps, from, to)
 		w.X.NoError(err)
@@ -92,7 +92,7 @@ func (w world) increase(t *testing.T, ws pdid.Id, key string, from, to time.Time
 
 func (w world) points(t *testing.T) []*ent.Point {
 	t.Helper()
-	vs, err := w.S.Ent.Point.Query().Order(ent.Asc(entpoint.FieldCountedAt)).All(context.Background())
+	vs, err := w.S.Ent.Point.Query().Order(ent.Asc(entpoint.FieldDateCounted)).All(context.Background())
 	w.X.NoError(err)
 	return vs
 }

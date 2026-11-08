@@ -185,15 +185,15 @@ func (st PointServiceServer) create(ctx context.Context, req *levyan.PointAddReq
 			v.SetSeries(levyan.Series_builder{Id: k[:]}.Build())
 		})
 	}
-	if req.HasStartedAt() {
-		q.SetStartedAt(req.GetStartedAt().AsTime())
+	if req.HasDateStarted() {
+		q.SetDateStarted(req.GetDateStarted().AsTime())
 	} else {
-		q.SetStartedAt(st.now())
+		q.SetDateStarted(st.now())
 	}
-	if req.HasCountedAt() {
-		q.SetCountedAt(req.GetCountedAt().AsTime())
+	if req.HasDateCounted() {
+		q.SetDateCounted(req.GetDateCounted().AsTime())
 	} else {
-		q.SetCountedAt(st.now())
+		q.SetDateCounted(st.now())
 	}
 	q.SetValue(req.GetValue())
 	q.SetLate(req.GetLate())
@@ -453,11 +453,11 @@ func PointSelectedFields(m *levyan.PointSelect) []string {
 	{
 		vs = append(vs, point.FieldId)
 	}
-	if m.GetStartedAt() {
-		vs = append(vs, point.FieldStartedAt)
+	if m.GetDateStarted() {
+		vs = append(vs, point.FieldDateStarted)
 	}
-	if m.GetCountedAt() {
-		vs = append(vs, point.FieldCountedAt)
+	if m.GetDateCounted() {
+		vs = append(vs, point.FieldDateCounted)
 	}
 	if m.GetValue() {
 		vs = append(vs, point.FieldValue)
@@ -539,8 +539,8 @@ func pickPoint(req *levyan.PointRef) (predicate.Point, error) {
 		} else {
 			ps = append(ps, point.HasSeriesWith(p))
 		}
-		ps = append(ps, point.StartedAtEQ(k.GetStartedAt().AsTime()))
-		ps = append(ps, point.CountedAtEQ(k.GetCountedAt().AsTime()))
+		ps = append(ps, point.DateStartedEQ(k.GetDateStarted().AsTime()))
+		ps = append(ps, point.DateCountedEQ(k.GetDateCounted().AsTime()))
 		return point.And(ps...), nil
 	case levyan.PointRef_Key_not_set_case:
 		return nil, status.Errorf(codes.InvalidArgument, "key not set: Point")

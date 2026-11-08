@@ -23,7 +23,7 @@ func (Pool) Fields() []ent.Field {
 			Immutable(),
 		field.Int64("quantity").
 			Immutable(),
-		field.Time("valid_from").
+		field.Time("date_effective").
 			Immutable().
 			Optional(),
 		field.Time("date_expires").

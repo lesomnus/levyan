@@ -26,13 +26,13 @@ const (
 )
 
 type ArriveRequest struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
-	xxx_hidden_Creator   string                 `protobuf:"bytes,2,opt,name=creator"`
-	xxx_hidden_Created   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created"`
-	xxx_hidden_Label     string                 `protobuf:"bytes,4,opt,name=label"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace   string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_Creator     string                 `protobuf:"bytes,2,opt,name=creator"`
+	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Label       string                 `protobuf:"bytes,4,opt,name=label"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ArriveRequest) Reset() {
@@ -74,9 +74,9 @@ func (x *ArriveRequest) GetCreator() string {
 	return ""
 }
 
-func (x *ArriveRequest) GetCreated() *timestamppb.Timestamp {
+func (x *ArriveRequest) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Created
+		return x.xxx_hidden_DateCreated
 	}
 	return nil
 }
@@ -96,23 +96,23 @@ func (x *ArriveRequest) SetCreator(v string) {
 	x.xxx_hidden_Creator = v
 }
 
-func (x *ArriveRequest) SetCreated(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Created = v
+func (x *ArriveRequest) SetDateCreated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCreated = v
 }
 
 func (x *ArriveRequest) SetLabel(v string) {
 	x.xxx_hidden_Label = v
 }
 
-func (x *ArriveRequest) HasCreated() bool {
+func (x *ArriveRequest) HasDateCreated() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Created != nil
+	return x.xxx_hidden_DateCreated != nil
 }
 
-func (x *ArriveRequest) ClearCreated() {
-	x.xxx_hidden_Created = nil
+func (x *ArriveRequest) ClearDateCreated() {
+	x.xxx_hidden_DateCreated = nil
 }
 
 type ArriveRequest_builder struct {
@@ -123,7 +123,7 @@ type ArriveRequest_builder struct {
 	Creator string
 	// When it was made; unset is now. Never after now, and what a workspace
 	// made before levyan heard of it is billed from.
-	Created *timestamppb.Timestamp
+	DateCreated *timestamppb.Timestamp
 	// What the product calls it, for an invoice to name it by: its name
 	// there, at most 100 characters. Said again, it is what the workspace is
 	// called from then on; an invoice keeps what each of its lines was written
@@ -137,7 +137,7 @@ func (b0 ArriveRequest_builder) Build() *ArriveRequest {
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Creator = b.Creator
-	x.xxx_hidden_Created = b.Created
+	x.xxx_hidden_DateCreated = b.DateCreated
 	x.xxx_hidden_Label = b.Label
 	return m0
 }
@@ -614,11 +614,11 @@ func (b0 GetPayerResponse_builder) Build() *GetPayerResponse {
 }
 
 type CloseRequest struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
-	xxx_hidden_At        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=at"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace    string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_DateOccurred *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_occurred,json=dateOccurred"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *CloseRequest) Reset() {
@@ -653,9 +653,9 @@ func (x *CloseRequest) GetWorkspace() string {
 	return ""
 }
 
-func (x *CloseRequest) GetAt() *timestamppb.Timestamp {
+func (x *CloseRequest) GetDateOccurred() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_At
+		return x.xxx_hidden_DateOccurred
 	}
 	return nil
 }
@@ -664,19 +664,19 @@ func (x *CloseRequest) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
 
-func (x *CloseRequest) SetAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_At = v
+func (x *CloseRequest) SetDateOccurred(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateOccurred = v
 }
 
-func (x *CloseRequest) HasAt() bool {
+func (x *CloseRequest) HasDateOccurred() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_At != nil
+	return x.xxx_hidden_DateOccurred != nil
 }
 
-func (x *CloseRequest) ClearAt() {
-	x.xxx_hidden_At = nil
+func (x *CloseRequest) ClearDateOccurred() {
+	x.xxx_hidden_DateOccurred = nil
 }
 
 type CloseRequest_builder struct {
@@ -684,7 +684,7 @@ type CloseRequest_builder struct {
 
 	Workspace string
 	// When it was closed, as the product's own record of it says: required.
-	At *timestamppb.Timestamp
+	DateOccurred *timestamppb.Timestamp
 }
 
 func (b0 CloseRequest_builder) Build() *CloseRequest {
@@ -692,7 +692,7 @@ func (b0 CloseRequest_builder) Build() *CloseRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
-	x.xxx_hidden_At = b.At
+	x.xxx_hidden_DateOccurred = b.DateOccurred
 	return m0
 }
 
@@ -785,11 +785,11 @@ func (b0 CloseResponse_builder) Build() *CloseResponse {
 }
 
 type RestoreRequest struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
-	xxx_hidden_At        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=at"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace    string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_DateOccurred *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_occurred,json=dateOccurred"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *RestoreRequest) Reset() {
@@ -824,9 +824,9 @@ func (x *RestoreRequest) GetWorkspace() string {
 	return ""
 }
 
-func (x *RestoreRequest) GetAt() *timestamppb.Timestamp {
+func (x *RestoreRequest) GetDateOccurred() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_At
+		return x.xxx_hidden_DateOccurred
 	}
 	return nil
 }
@@ -835,19 +835,19 @@ func (x *RestoreRequest) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
 
-func (x *RestoreRequest) SetAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_At = v
+func (x *RestoreRequest) SetDateOccurred(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateOccurred = v
 }
 
-func (x *RestoreRequest) HasAt() bool {
+func (x *RestoreRequest) HasDateOccurred() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_At != nil
+	return x.xxx_hidden_DateOccurred != nil
 }
 
-func (x *RestoreRequest) ClearAt() {
-	x.xxx_hidden_At = nil
+func (x *RestoreRequest) ClearDateOccurred() {
+	x.xxx_hidden_DateOccurred = nil
 }
 
 type RestoreRequest_builder struct {
@@ -855,7 +855,7 @@ type RestoreRequest_builder struct {
 
 	Workspace string
 	// When it was opened again: required.
-	At *timestamppb.Timestamp
+	DateOccurred *timestamppb.Timestamp
 }
 
 func (b0 RestoreRequest_builder) Build() *RestoreRequest {
@@ -863,7 +863,7 @@ func (b0 RestoreRequest_builder) Build() *RestoreRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
-	x.xxx_hidden_At = b.At
+	x.xxx_hidden_DateOccurred = b.DateOccurred
 	return m0
 }
 
@@ -951,11 +951,11 @@ func (b0 RestoreResponse_builder) Build() *RestoreResponse {
 }
 
 type DestroyRequest struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,1,opt,name=workspace"`
-	xxx_hidden_At        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=at"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace    string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_DateOccurred *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_occurred,json=dateOccurred"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *DestroyRequest) Reset() {
@@ -990,9 +990,9 @@ func (x *DestroyRequest) GetWorkspace() string {
 	return ""
 }
 
-func (x *DestroyRequest) GetAt() *timestamppb.Timestamp {
+func (x *DestroyRequest) GetDateOccurred() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_At
+		return x.xxx_hidden_DateOccurred
 	}
 	return nil
 }
@@ -1001,19 +1001,19 @@ func (x *DestroyRequest) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
 
-func (x *DestroyRequest) SetAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_At = v
+func (x *DestroyRequest) SetDateOccurred(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateOccurred = v
 }
 
-func (x *DestroyRequest) HasAt() bool {
+func (x *DestroyRequest) HasDateOccurred() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_At != nil
+	return x.xxx_hidden_DateOccurred != nil
 }
 
-func (x *DestroyRequest) ClearAt() {
-	x.xxx_hidden_At = nil
+func (x *DestroyRequest) ClearDateOccurred() {
+	x.xxx_hidden_DateOccurred = nil
 }
 
 type DestroyRequest_builder struct {
@@ -1021,7 +1021,7 @@ type DestroyRequest_builder struct {
 
 	Workspace string
 	// When it was destroyed -- after its final reading was measured: required.
-	At *timestamppb.Timestamp
+	DateOccurred *timestamppb.Timestamp
 }
 
 func (b0 DestroyRequest_builder) Build() *DestroyRequest {
@@ -1029,7 +1029,7 @@ func (b0 DestroyRequest_builder) Build() *DestroyRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
-	x.xxx_hidden_At = b.At
+	x.xxx_hidden_DateOccurred = b.DateOccurred
 	return m0
 }
 
@@ -1244,12 +1244,12 @@ func (b0 GetLifecycleResponse_builder) Build() *GetLifecycleResponse {
 // Lifecycle is what levyan has been told became of a workspace, all of it
 // read in the order of its moments. A workspace nothing was said of is open.
 type Lifecycle struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Workspace   string                 `protobuf:"bytes,1,opt,name=workspace"`
-	xxx_hidden_ClosedSince *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=closed_since,json=closedSince"`
-	xxx_hidden_Destroyed   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=destroyed"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Workspace     string                 `protobuf:"bytes,1,opt,name=workspace"`
+	xxx_hidden_DateClosed    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_closed,json=dateClosed"`
+	xxx_hidden_DateDestroyed *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_destroyed,json=dateDestroyed"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Lifecycle) Reset() {
@@ -1284,16 +1284,16 @@ func (x *Lifecycle) GetWorkspace() string {
 	return ""
 }
 
-func (x *Lifecycle) GetClosedSince() *timestamppb.Timestamp {
+func (x *Lifecycle) GetDateClosed() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ClosedSince
+		return x.xxx_hidden_DateClosed
 	}
 	return nil
 }
 
-func (x *Lifecycle) GetDestroyed() *timestamppb.Timestamp {
+func (x *Lifecycle) GetDateDestroyed() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Destroyed
+		return x.xxx_hidden_DateDestroyed
 	}
 	return nil
 }
@@ -1302,34 +1302,34 @@ func (x *Lifecycle) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
 
-func (x *Lifecycle) SetClosedSince(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ClosedSince = v
+func (x *Lifecycle) SetDateClosed(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateClosed = v
 }
 
-func (x *Lifecycle) SetDestroyed(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Destroyed = v
+func (x *Lifecycle) SetDateDestroyed(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateDestroyed = v
 }
 
-func (x *Lifecycle) HasClosedSince() bool {
+func (x *Lifecycle) HasDateClosed() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ClosedSince != nil
+	return x.xxx_hidden_DateClosed != nil
 }
 
-func (x *Lifecycle) HasDestroyed() bool {
+func (x *Lifecycle) HasDateDestroyed() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Destroyed != nil
+	return x.xxx_hidden_DateDestroyed != nil
 }
 
-func (x *Lifecycle) ClearClosedSince() {
-	x.xxx_hidden_ClosedSince = nil
+func (x *Lifecycle) ClearDateClosed() {
+	x.xxx_hidden_DateClosed = nil
 }
 
-func (x *Lifecycle) ClearDestroyed() {
-	x.xxx_hidden_Destroyed = nil
+func (x *Lifecycle) ClearDateDestroyed() {
+	x.xxx_hidden_DateDestroyed = nil
 }
 
 type Lifecycle_builder struct {
@@ -1339,9 +1339,9 @@ type Lifecycle_builder struct {
 	// Since when it has been closed, and is billed for nothing while it is;
 	// unset while it is open. A workspace destroyed while closed says the
 	// closure it was destroyed in.
-	ClosedSince *timestamppb.Timestamp
+	DateClosed *timestamppb.Timestamp
 	// When it was destroyed, for good; unset for one that was not.
-	Destroyed *timestamppb.Timestamp
+	DateDestroyed *timestamppb.Timestamp
 }
 
 func (b0 Lifecycle_builder) Build() *Lifecycle {
@@ -1349,8 +1349,8 @@ func (b0 Lifecycle_builder) Build() *Lifecycle {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
-	x.xxx_hidden_ClosedSince = b.ClosedSince
-	x.xxx_hidden_Destroyed = b.Destroyed
+	x.xxx_hidden_DateClosed = b.DateClosed
+	x.xxx_hidden_DateDestroyed = b.DateDestroyed
 	return m0
 }
 
@@ -1361,11 +1361,11 @@ type Payer struct {
 	xxx_hidden_Current        *Link                  `protobuf:"bytes,2,opt,name=current"`
 	xxx_hidden_Next           *Link                  `protobuf:"bytes,3,opt,name=next"`
 	xxx_hidden_Offer          *Offer                 `protobuf:"bytes,4,opt,name=offer"`
-	xxx_hidden_PayerlessSince *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=payerless_since,json=payerlessSince"`
-	xxx_hidden_RestrictedFrom *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=restricted_from,json=restrictedFrom"`
+	xxx_hidden_DatePayerless  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_payerless,json=datePayerless"`
+	xxx_hidden_DateRestricted *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_restricted,json=dateRestricted"`
 	xxx_hidden_Collection     *Collection            `protobuf:"bytes,7,opt,name=collection"`
 	xxx_hidden_Dunning        *[]*Dunning            `protobuf:"bytes,8,rep,name=dunning"`
-	xxx_hidden_ReadonlyFrom   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=readonly_from,json=readonlyFrom"`
+	xxx_hidden_DateReadonly   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_readonly,json=dateReadonly"`
 	xxx_hidden_Credits        *[]*Credit             `protobuf:"bytes,10,rep,name=credits"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
@@ -1424,16 +1424,16 @@ func (x *Payer) GetOffer() *Offer {
 	return nil
 }
 
-func (x *Payer) GetPayerlessSince() *timestamppb.Timestamp {
+func (x *Payer) GetDatePayerless() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_PayerlessSince
+		return x.xxx_hidden_DatePayerless
 	}
 	return nil
 }
 
-func (x *Payer) GetRestrictedFrom() *timestamppb.Timestamp {
+func (x *Payer) GetDateRestricted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_RestrictedFrom
+		return x.xxx_hidden_DateRestricted
 	}
 	return nil
 }
@@ -1454,9 +1454,9 @@ func (x *Payer) GetDunning() []*Dunning {
 	return nil
 }
 
-func (x *Payer) GetReadonlyFrom() *timestamppb.Timestamp {
+func (x *Payer) GetDateReadonly() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ReadonlyFrom
+		return x.xxx_hidden_DateReadonly
 	}
 	return nil
 }
@@ -1486,12 +1486,12 @@ func (x *Payer) SetOffer(v *Offer) {
 	x.xxx_hidden_Offer = v
 }
 
-func (x *Payer) SetPayerlessSince(v *timestamppb.Timestamp) {
-	x.xxx_hidden_PayerlessSince = v
+func (x *Payer) SetDatePayerless(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DatePayerless = v
 }
 
-func (x *Payer) SetRestrictedFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_RestrictedFrom = v
+func (x *Payer) SetDateRestricted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateRestricted = v
 }
 
 func (x *Payer) SetCollection(v *Collection) {
@@ -1502,8 +1502,8 @@ func (x *Payer) SetDunning(v []*Dunning) {
 	x.xxx_hidden_Dunning = &v
 }
 
-func (x *Payer) SetReadonlyFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ReadonlyFrom = v
+func (x *Payer) SetDateReadonly(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateReadonly = v
 }
 
 func (x *Payer) SetCredits(v []*Credit) {
@@ -1531,18 +1531,18 @@ func (x *Payer) HasOffer() bool {
 	return x.xxx_hidden_Offer != nil
 }
 
-func (x *Payer) HasPayerlessSince() bool {
+func (x *Payer) HasDatePayerless() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_PayerlessSince != nil
+	return x.xxx_hidden_DatePayerless != nil
 }
 
-func (x *Payer) HasRestrictedFrom() bool {
+func (x *Payer) HasDateRestricted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_RestrictedFrom != nil
+	return x.xxx_hidden_DateRestricted != nil
 }
 
 func (x *Payer) HasCollection() bool {
@@ -1552,11 +1552,11 @@ func (x *Payer) HasCollection() bool {
 	return x.xxx_hidden_Collection != nil
 }
 
-func (x *Payer) HasReadonlyFrom() bool {
+func (x *Payer) HasDateReadonly() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ReadonlyFrom != nil
+	return x.xxx_hidden_DateReadonly != nil
 }
 
 func (x *Payer) ClearCurrent() {
@@ -1571,20 +1571,20 @@ func (x *Payer) ClearOffer() {
 	x.xxx_hidden_Offer = nil
 }
 
-func (x *Payer) ClearPayerlessSince() {
-	x.xxx_hidden_PayerlessSince = nil
+func (x *Payer) ClearDatePayerless() {
+	x.xxx_hidden_DatePayerless = nil
 }
 
-func (x *Payer) ClearRestrictedFrom() {
-	x.xxx_hidden_RestrictedFrom = nil
+func (x *Payer) ClearDateRestricted() {
+	x.xxx_hidden_DateRestricted = nil
 }
 
 func (x *Payer) ClearCollection() {
 	x.xxx_hidden_Collection = nil
 }
 
-func (x *Payer) ClearReadonlyFrom() {
-	x.xxx_hidden_ReadonlyFrom = nil
+func (x *Payer) ClearDateReadonly() {
+	x.xxx_hidden_DateReadonly = nil
 }
 
 type Payer_builder struct {
@@ -1601,11 +1601,11 @@ type Payer_builder struct {
 	// restricted for that: as the deployment's policy table says of a
 	// workspace with no payer (`dunning.kinds.payerless`) -- thirty days after,
 	// by default, or at once -- and from when it is read-only for it, the
-	// second stage (`readonly_from`, below): sixty days after, by default.
+	// second stage (`date_readonly`, below): sixty days after, by default.
 	// Unset while it has a payer, for a workspace that never had one, and for
 	// one destroyed, which nobody pays for and nothing restricts.
-	PayerlessSince *timestamppb.Timestamp
-	RestrictedFrom *timestamppb.Timestamp
+	DatePayerless  *timestamppb.Timestamp
+	DateRestricted *timestamppb.Timestamp
 	// Whether what the billing account it is paid for with now is billed can
 	// be collected, and why not: what a product warns its owners of. Unset
 	// while nobody pays for it, or its payer has set up no billing account
@@ -1622,10 +1622,10 @@ type Payer_builder struct {
 	// another (`<product>.readonly`), until neither makes it so.
 	Dunning []*Dunning
 	// From when it is read-only for having had nobody paying for it, beside
-	// `restricted_from`: as the policy table's row of a workspace with no payer
-	// says, sixty days after `payerless_since` by default, and never sooner
-	// than it is restricted. Unset when `payerless_since` is.
-	ReadonlyFrom *timestamppb.Timestamp
+	// `date_restricted`: as the policy table's row of a workspace with no payer
+	// says, sixty days after `date_payerless` by default, and never sooner
+	// than it is restricted. Unset when `date_payerless` is.
+	DateReadonly *timestamppb.Timestamp
 	// What an operator granted the workspace itself that has not been spent
 	// nor expired: money its lines are paid with, on whichever billing
 	// account's invoice they are, the soonest to expire first. What its
@@ -1641,11 +1641,11 @@ func (b0 Payer_builder) Build() *Payer {
 	x.xxx_hidden_Current = b.Current
 	x.xxx_hidden_Next = b.Next
 	x.xxx_hidden_Offer = b.Offer
-	x.xxx_hidden_PayerlessSince = b.PayerlessSince
-	x.xxx_hidden_RestrictedFrom = b.RestrictedFrom
+	x.xxx_hidden_DatePayerless = b.DatePayerless
+	x.xxx_hidden_DateRestricted = b.DateRestricted
 	x.xxx_hidden_Collection = b.Collection
 	x.xxx_hidden_Dunning = &b.Dunning
-	x.xxx_hidden_ReadonlyFrom = b.ReadonlyFrom
+	x.xxx_hidden_DateReadonly = b.DateReadonly
 	x.xxx_hidden_Credits = &b.Credits
 	return m0
 }
@@ -1654,11 +1654,11 @@ var File_levyan_v1_workspace_proto protoreflect.FileDescriptor
 
 const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\n" +
-	"\x19levyan/v1/workspace.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17levyan/v1/invoice.proto\x1a\x15levyan/v1/payer.proto\"\x93\x01\n" +
+	"\x19levyan/v1/workspace.proto\x12\tlevyan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17levyan/v1/invoice.proto\x1a\x15levyan/v1/payer.proto\"\x9c\x01\n" +
 	"\rArriveRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12\x18\n" +
-	"\acreator\x18\x02 \x01(\tR\acreator\x124\n" +
-	"\acreated\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x12\x14\n" +
+	"\acreator\x18\x02 \x01(\tR\acreator\x12=\n" +
+	"\fdate_created\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\x12\x14\n" +
 	"\x05label\x18\x04 \x01(\tR\x05label\"8\n" +
 	"\x0eArriveResponse\x12&\n" +
 	"\x05payer\x18\x01 \x01(\v2\x10.levyan.v1.PayerR\x05payer\"F\n" +
@@ -1675,45 +1675,46 @@ const file_levyan_v1_workspace_proto_rawDesc = "" +
 	"\x0fGetPayerRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\":\n" +
 	"\x10GetPayerResponse\x12&\n" +
-	"\x05payer\x18\x01 \x01(\v2\x10.levyan.v1.PayerR\x05payer\"X\n" +
+	"\x05payer\x18\x01 \x01(\v2\x10.levyan.v1.PayerR\x05payer\"m\n" +
 	"\fCloseRequest\x12\x1c\n" +
-	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12*\n" +
-	"\x02at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"W\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12?\n" +
+	"\rdate_occurred\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fdateOccurred\"W\n" +
 	"\rCloseResponse\x122\n" +
 	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\x12\x12\n" +
-	"\x04late\x18\x02 \x01(\bR\x04late\"Z\n" +
+	"\x04late\x18\x02 \x01(\bR\x04late\"o\n" +
 	"\x0eRestoreRequest\x12\x1c\n" +
-	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12*\n" +
-	"\x02at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"Y\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12?\n" +
+	"\rdate_occurred\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fdateOccurred\"Y\n" +
 	"\x0fRestoreResponse\x122\n" +
 	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\x12\x12\n" +
-	"\x04late\x18\x02 \x01(\bR\x04late\"Z\n" +
+	"\x04late\x18\x02 \x01(\bR\x04late\"o\n" +
 	"\x0eDestroyRequest\x12\x1c\n" +
-	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12*\n" +
-	"\x02at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"Y\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12?\n" +
+	"\rdate_occurred\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fdateOccurred\"Y\n" +
 	"\x0fDestroyResponse\x122\n" +
 	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\x12\x12\n" +
 	"\x04late\x18\x02 \x01(\bR\x04late\"3\n" +
 	"\x13GetLifecycleRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\"J\n" +
 	"\x14GetLifecycleResponse\x122\n" +
-	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\"\xa2\x01\n" +
+	"\tlifecycle\x18\x01 \x01(\v2\x14.levyan.v1.LifecycleR\tlifecycle\"\xa9\x01\n" +
 	"\tLifecycle\x12\x1c\n" +
-	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12=\n" +
-	"\fclosed_since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vclosedSince\x128\n" +
-	"\tdestroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tdestroyed\"\xfa\x03\n" +
+	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12;\n" +
+	"\vdate_closed\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"dateClosed\x12A\n" +
+	"\x0edate_destroyed\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\rdateDestroyed\"\xf8\x03\n" +
 	"\x05Payer\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12)\n" +
 	"\acurrent\x18\x02 \x01(\v2\x0f.levyan.v1.LinkR\acurrent\x12#\n" +
 	"\x04next\x18\x03 \x01(\v2\x0f.levyan.v1.LinkR\x04next\x12&\n" +
-	"\x05offer\x18\x04 \x01(\v2\x10.levyan.v1.OfferR\x05offer\x12C\n" +
-	"\x0fpayerless_since\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0epayerlessSince\x12C\n" +
-	"\x0frestricted_from\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\x125\n" +
+	"\x05offer\x18\x04 \x01(\v2\x10.levyan.v1.OfferR\x05offer\x12A\n" +
+	"\x0edate_payerless\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rdatePayerless\x12C\n" +
+	"\x0fdate_restricted\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0edateRestricted\x125\n" +
 	"\n" +
 	"collection\x18\a \x01(\v2\x15.levyan.v1.CollectionR\n" +
 	"collection\x12,\n" +
 	"\adunning\x18\b \x03(\v2\x12.levyan.v1.DunningR\adunning\x12?\n" +
-	"\rreadonly_from\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\freadonlyFrom\x12+\n" +
+	"\rdate_readonly\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\fdateReadonly\x12+\n" +
 	"\acredits\x18\n" +
 	" \x03(\v2\x11.levyan.v1.CreditR\acredits2\x9f\x04\n" +
 	"\x10WorkspaceService\x12=\n" +
@@ -1754,28 +1755,28 @@ var file_levyan_v1_workspace_proto_goTypes = []any{
 	(*Credit)(nil),                // 23: levyan.v1.Credit
 }
 var file_levyan_v1_workspace_proto_depIdxs = []int32{
-	18, // 0: levyan.v1.ArriveRequest.created:type_name -> google.protobuf.Timestamp
+	18, // 0: levyan.v1.ArriveRequest.date_created:type_name -> google.protobuf.Timestamp
 	17, // 1: levyan.v1.ArriveResponse.payer:type_name -> levyan.v1.Payer
 	17, // 2: levyan.v1.LeaveResponse.payer:type_name -> levyan.v1.Payer
 	19, // 3: levyan.v1.OfferResponse.offer:type_name -> levyan.v1.Offer
 	17, // 4: levyan.v1.GetPayerResponse.payer:type_name -> levyan.v1.Payer
-	18, // 5: levyan.v1.CloseRequest.at:type_name -> google.protobuf.Timestamp
+	18, // 5: levyan.v1.CloseRequest.date_occurred:type_name -> google.protobuf.Timestamp
 	16, // 6: levyan.v1.CloseResponse.lifecycle:type_name -> levyan.v1.Lifecycle
-	18, // 7: levyan.v1.RestoreRequest.at:type_name -> google.protobuf.Timestamp
+	18, // 7: levyan.v1.RestoreRequest.date_occurred:type_name -> google.protobuf.Timestamp
 	16, // 8: levyan.v1.RestoreResponse.lifecycle:type_name -> levyan.v1.Lifecycle
-	18, // 9: levyan.v1.DestroyRequest.at:type_name -> google.protobuf.Timestamp
+	18, // 9: levyan.v1.DestroyRequest.date_occurred:type_name -> google.protobuf.Timestamp
 	16, // 10: levyan.v1.DestroyResponse.lifecycle:type_name -> levyan.v1.Lifecycle
 	16, // 11: levyan.v1.GetLifecycleResponse.lifecycle:type_name -> levyan.v1.Lifecycle
-	18, // 12: levyan.v1.Lifecycle.closed_since:type_name -> google.protobuf.Timestamp
-	18, // 13: levyan.v1.Lifecycle.destroyed:type_name -> google.protobuf.Timestamp
+	18, // 12: levyan.v1.Lifecycle.date_closed:type_name -> google.protobuf.Timestamp
+	18, // 13: levyan.v1.Lifecycle.date_destroyed:type_name -> google.protobuf.Timestamp
 	20, // 14: levyan.v1.Payer.current:type_name -> levyan.v1.Link
 	20, // 15: levyan.v1.Payer.next:type_name -> levyan.v1.Link
 	19, // 16: levyan.v1.Payer.offer:type_name -> levyan.v1.Offer
-	18, // 17: levyan.v1.Payer.payerless_since:type_name -> google.protobuf.Timestamp
-	18, // 18: levyan.v1.Payer.restricted_from:type_name -> google.protobuf.Timestamp
+	18, // 17: levyan.v1.Payer.date_payerless:type_name -> google.protobuf.Timestamp
+	18, // 18: levyan.v1.Payer.date_restricted:type_name -> google.protobuf.Timestamp
 	21, // 19: levyan.v1.Payer.collection:type_name -> levyan.v1.Collection
 	22, // 20: levyan.v1.Payer.dunning:type_name -> levyan.v1.Dunning
-	18, // 21: levyan.v1.Payer.readonly_from:type_name -> google.protobuf.Timestamp
+	18, // 21: levyan.v1.Payer.date_readonly:type_name -> google.protobuf.Timestamp
 	23, // 22: levyan.v1.Payer.credits:type_name -> levyan.v1.Credit
 	0,  // 23: levyan.v1.WorkspaceService.Arrive:input_type -> levyan.v1.ArriveRequest
 	2,  // 24: levyan.v1.WorkspaceService.Leave:input_type -> levyan.v1.LeaveRequest

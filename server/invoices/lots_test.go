@@ -359,7 +359,7 @@ func TestCreditIsTheProductsItWasGrantedIn(t *testing.T) {
 	w.At(on(2, 10))
 	w.daily(a, on(1, 1), on(2, 1), 200)
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(levyantest.As(w.ctx, okey), levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: ows.String(), Meter: "other.things", MeasuredAt: timestamppb.New(on(1, 1)), Value: 300, Unit: "{thing}"}.Build(),
+		levyanv1.Reading_builder{Workspace: ows.String(), Meter: "other.things", DateMeasured: timestamppb.New(on(1, 1)), Value: 300, Unit: "{thing}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	x.Equal(levyanv1.Outcome_OUTCOME_KEPT, res.GetResults()[0].GetOutcome())
@@ -434,7 +434,7 @@ func TestAWorkspacesCreditFollowsItToAnotherPayer(t *testing.T) {
 	x.Equal(more.String(), c.GetId())
 	x.Equal(a.String(), c.GetWorkspace())
 	x.Equal(int64(3000), c.GetLeft())
-	x.True(c.GetExpires().AsTime().Equal(on(9, 1)))
+	x.True(c.GetDateExpires().AsTime().Equal(on(9, 1)))
 
 	w.clean()
 }

@@ -24,8 +24,8 @@ type Pool struct {
 	Id uuid.UUID `json:"id,omitempty"`
 	// Quantity holds the value of the "quantity" field.
 	Quantity int64 `json:"quantity,omitempty"`
-	// ValidFrom holds the value of the "valid_from" field.
-	ValidFrom time.Time `json:"valid_from,omitempty"`
+	// DateEffective holds the value of the "date_effective" field.
+	DateEffective time.Time `json:"date_effective,omitempty"`
 	// DateExpires holds the value of the "date_expires" field.
 	DateExpires time.Time `json:"date_expires,omitempty"`
 	// Reason holds the value of the "reason" field.
@@ -135,7 +135,7 @@ func (*Pool) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case pool.FieldReason, pool.FieldEndReason:
 			values[i] = new(sql.NullString)
-		case pool.FieldValidFrom, pool.FieldDateExpires, pool.FieldDateUpdated, pool.FieldDateErased, pool.FieldDateCreated:
+		case pool.FieldDateEffective, pool.FieldDateExpires, pool.FieldDateUpdated, pool.FieldDateErased, pool.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case pool.FieldGrantedById, pool.FieldEndedById:
 			values[i] = new(sql.Null[uuid.UUID])
@@ -168,11 +168,11 @@ func (_m *Pool) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Quantity = value.Int64
 			}
-		case pool.FieldValidFrom:
+		case pool.FieldDateEffective:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field valid_from", values[i])
+				return fmt.Errorf("unexpected type %T for field date_effective", values[i])
 			} else if value.Valid {
-				_m.ValidFrom = value.Time
+				_m.DateEffective = value.Time
 			}
 		case pool.FieldDateExpires:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -305,8 +305,8 @@ func (_m *Pool) String() string {
 	builder.WriteString("quantity=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Quantity))
 	builder.WriteString(", ")
-	builder.WriteString("valid_from=")
-	builder.WriteString(_m.ValidFrom.Format(time.ANSIC))
+	builder.WriteString("date_effective=")
+	builder.WriteString(_m.DateEffective.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("date_expires=")
 	builder.WriteString(_m.DateExpires.Format(time.ANSIC))

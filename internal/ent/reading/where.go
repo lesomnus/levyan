@@ -56,9 +56,9 @@ func IdLTE(id uuid.UUID) predicate.Reading {
 	return predicate.Reading(sql.FieldLTE(FieldId, id))
 }
 
-// MeasuredAt applies equality check predicate on the "measured_at" field. It's identical to MeasuredAtEQ.
-func MeasuredAt(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldEQ(FieldMeasuredAt, v))
+// DateMeasured applies equality check predicate on the "date_measured" field. It's identical to DateMeasuredEQ.
+func DateMeasured(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldEQ(FieldDateMeasured, v))
 }
 
 // Value applies equality check predicate on the "value" field. It's identical to ValueEQ.
@@ -96,54 +96,54 @@ func MeterId(v uuid.UUID) predicate.Reading {
 	return predicate.Reading(sql.FieldEQ(FieldMeterId, v))
 }
 
-// MeasuredAtEQ applies the EQ predicate on the "measured_at" field.
-func MeasuredAtEQ(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldEQ(FieldMeasuredAt, v))
+// DateMeasuredEQ applies the EQ predicate on the "date_measured" field.
+func DateMeasuredEQ(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldEQ(FieldDateMeasured, v))
 }
 
-// MeasuredAtNEQ applies the NEQ predicate on the "measured_at" field.
-func MeasuredAtNEQ(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldNEQ(FieldMeasuredAt, v))
+// DateMeasuredNEQ applies the NEQ predicate on the "date_measured" field.
+func DateMeasuredNEQ(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldNEQ(FieldDateMeasured, v))
 }
 
-// MeasuredAtIn applies the In predicate on the "measured_at" field.
-func MeasuredAtIn(vs ...time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldIn(FieldMeasuredAt, vs...))
+// DateMeasuredIn applies the In predicate on the "date_measured" field.
+func DateMeasuredIn(vs ...time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldIn(FieldDateMeasured, vs...))
 }
 
-// MeasuredAtNotIn applies the NotIn predicate on the "measured_at" field.
-func MeasuredAtNotIn(vs ...time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldNotIn(FieldMeasuredAt, vs...))
+// DateMeasuredNotIn applies the NotIn predicate on the "date_measured" field.
+func DateMeasuredNotIn(vs ...time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldNotIn(FieldDateMeasured, vs...))
 }
 
-// MeasuredAtGT applies the GT predicate on the "measured_at" field.
-func MeasuredAtGT(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldGT(FieldMeasuredAt, v))
+// DateMeasuredGT applies the GT predicate on the "date_measured" field.
+func DateMeasuredGT(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldGT(FieldDateMeasured, v))
 }
 
-// MeasuredAtGTE applies the GTE predicate on the "measured_at" field.
-func MeasuredAtGTE(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldGTE(FieldMeasuredAt, v))
+// DateMeasuredGTE applies the GTE predicate on the "date_measured" field.
+func DateMeasuredGTE(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldGTE(FieldDateMeasured, v))
 }
 
-// MeasuredAtLT applies the LT predicate on the "measured_at" field.
-func MeasuredAtLT(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldLT(FieldMeasuredAt, v))
+// DateMeasuredLT applies the LT predicate on the "date_measured" field.
+func DateMeasuredLT(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldLT(FieldDateMeasured, v))
 }
 
-// MeasuredAtLTE applies the LTE predicate on the "measured_at" field.
-func MeasuredAtLTE(v time.Time) predicate.Reading {
-	return predicate.Reading(sql.FieldLTE(FieldMeasuredAt, v))
+// DateMeasuredLTE applies the LTE predicate on the "date_measured" field.
+func DateMeasuredLTE(v time.Time) predicate.Reading {
+	return predicate.Reading(sql.FieldLTE(FieldDateMeasured, v))
 }
 
-// MeasuredAtIsNil applies the IsNil predicate on the "measured_at" field.
-func MeasuredAtIsNil() predicate.Reading {
-	return predicate.Reading(sql.FieldIsNull(FieldMeasuredAt))
+// DateMeasuredIsNil applies the IsNil predicate on the "date_measured" field.
+func DateMeasuredIsNil() predicate.Reading {
+	return predicate.Reading(sql.FieldIsNull(FieldDateMeasured))
 }
 
-// MeasuredAtNotNil applies the NotNil predicate on the "measured_at" field.
-func MeasuredAtNotNil() predicate.Reading {
-	return predicate.Reading(sql.FieldNotNull(FieldMeasuredAt))
+// DateMeasuredNotNil applies the NotNil predicate on the "date_measured" field.
+func DateMeasuredNotNil() predicate.Reading {
+	return predicate.Reading(sql.FieldNotNull(FieldDateMeasured))
 }
 
 // ValueEQ applies the EQ predicate on the "value" field.

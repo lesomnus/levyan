@@ -23,10 +23,10 @@ func (WorkspaceEvent) Fields() []ent.Field {
 			Immutable(),
 		field.Int32("kind").
 			Immutable(),
-		field.Time("happened_at").
+		field.Time("date_occurred").
 			Immutable().
 			Optional(),
-		field.Time("late_through").
+		field.Time("date_late_through").
 			Nillable().
 			Immutable().
 			Optional(),
@@ -62,7 +62,7 @@ func (WorkspaceEvent) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tenant_id", "date_created", "id").
 			StorageKey("workspaceevent_page"),
-		index.Fields("tenant_id", "workspace_id", "happened_at").
+		index.Fields("tenant_id", "workspace_id", "date_occurred").
 			StorageKey("workspaceevent_happened").
 			Unique().
 			Annotations(entsql.IndexWhere("date_erased IS NULL")),

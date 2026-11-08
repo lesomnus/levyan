@@ -55,7 +55,7 @@ func newCmdBillingAccount() *xli.Command {
 					if err := c.do(ctx, http.MethodPost, "/admin/billing-accounts", body, &v); err != nil {
 						return err
 					}
-					self.Printf("%s\t%s\t%s\t%s %s\tsince %s\t%s\n", v.Id, v.Owner, v.Country, v.Channel, v.Currency, when(v.Created), v.Name)
+					self.Printf("%s\t%s\t%s\t%s %s\tsince %s\t%s\n", v.Id, v.Owner, v.Country, v.Channel, v.Currency, when(v.DateCreated), v.Name)
 					return next(ctx)
 				}),
 			},

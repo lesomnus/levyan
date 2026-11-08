@@ -162,12 +162,12 @@ func entitlementGrant(v *levyan.Grant) (*pdpb.EntitlementGrant, error) {
 	}
 
 	b := pdpb.EntitlementGrant_builder{
-		Id:         v.GetId(),
-		TenantId:   ws,
-		Key:        v.GetKey(),
-		Version:    v.GetVersion(),
-		ValidFrom:  timestamppb.New(v.GetValidFrom().AsTime()),
-		ValidUntil: timestamppb.New(v.GetValidUntil().AsTime()),
+		Id:            v.GetId(),
+		TenantId:      ws,
+		Key:           v.GetKey(),
+		Version:       v.GetVersion(),
+		DateEffective: timestamppb.New(v.GetDateEffective().AsTime()),
+		DateExpires:   timestamppb.New(v.GetDateExpires().AsTime()),
 	}
 	switch value := grants.Value(v); value.Kind() {
 	case entitle.KindOn:

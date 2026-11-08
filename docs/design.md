@@ -167,6 +167,7 @@ payday의 Event·Fact처럼 payday 안에 넣지 않고 별도 서비스로 둔 
 - levyan 본체는 `replace ./api`로 같은 저장소의 API를 쓴다. `server/api`가 API 메시지와 내부 스키마 사이를 옮기고, wall 뒤의 스택으로 읽는다.
 - Go가 아닌 앱은 같은 `.proto`에서 자기 스텁을 생성한다.
 - API는 필드를 더할 뿐 번호, 이름, 타입을 바꾸지 않는다. PR마다 `buf breaking`(`scripts/api.sh --breaking`)이 이를 확인한다.
+  - 예외가 한 번 있었다. 시각을 담는 필드를 모두 payday의 관례대로 `date_*`로 바꿨다(대표, 2026-11-08: "`completed_at` 같은 필드 이름이 아직 남아있는데 payday 컨벤션에 따라 `date_completed`로 바꿔줘. 비슷한거 전부 다"). 번호와 타입은 그대로라 바이너리 wire는 같고, JSON 이름은 바뀌었다. 이 한 번의 예외이고 선례가 아니다.
 
 **왜 이것인가.**
 
@@ -649,7 +650,7 @@ Paddle은 멱등 키를 받지 않는다. 문서의 어느 API도 받지 않고,
   - `NoticeCursor`(43): 이벤트 스트림을 어디까지 읽었는지. MoR마다 하나. ent로만 쓰고 trail에서 뺀다.
   - `BillingAccount`에 `collection`(`CollectionState`)과 `date_collection`(그렇게 된 때)을 더했다.
 - **API**(`levyan.v1.PayerService`, 지불자): `GetBillingAccount`(결제 계정, 수금 상태, 살아 있는 구독이나 마지막 구독), `StartCheckout`(결제 계정, 돌아올 주소 → 결제창과 그것을 여는 값: `merchant`, `environment`, `transaction`, `client_token`, `script`, `url`, `country`), `CompleteCheckout`(levyan의 결제창 id → 결제창의 상태, 구독, 수금 상태). 스키마의 `levyan.PayerService`에 같은 이름으로 선언했고 policy 표의 지불자 열에 더했다.
-  - 제품의 `WorkspaceService`: `Payer`에 `collection`을 더했다. 지금 내는 결제 계정의 상태, 이유, 그리고 예정된 해지·일시정지의 때(`ends`)다. 결제수단은 제품에게 보이지 않는다.
+  - 제품의 `WorkspaceService`: `Payer`에 `collection`을 더했다. 지금 내는 결제 계정의 상태, 이유, 그리고 예정된 해지·일시정지의 때(`date_ends`)다. 결제수단은 제품에게 보이지 않는다.
   - API의 열거형(`CheckoutState`, `CollectionState`, `SubscriptionStatus`, `SubscriptionChange`)은 스키마의 것과 값마다 같다(`server/api`의 시험).
 - **`server/subscriptions`**: 결제창(`Start`, `Complete`), 사본(`Observe`, `ObserveTransaction`), 수금 상태(`CollectionOf`), inbox(`Inbox`: `Keep`, 웹훅 핸들러), 처리(`Taker`), 끌어오기(`Puller`). 결제 계정 하나의 결제창·사본·수금 상태를 쓰는 트랜잭션은 그 결제 계정 행을 먼저 잡는다(PostgreSQL은 `FOR UPDATE`).
 - **웹훅**: `POST /webhooks/mor/paddle`, 두 번째 리스너(`server.http`)에. 본문은 1 MiB까지, 4초 안에 담고 답한다. 서명이 맞지 않거나 낡으면 400, 담지 못하거나 비밀을 읽지 못하면 503(Paddle이 다시 보낸다). `server.http.addr`가 없으면 경고하고 받지 않는다.
@@ -731,7 +732,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
 
 ### 정한 것 (Claude, 2026-10-31, #7을 맡기며)
 
-- **Grant 엔티티.** 제품 tenant, 워크스페이스(앱의 tenant id), 키, 값, `valid_from`, `valid_until`, 버전, 출처를 갖는다. 출처는 운영자, 규칙, 계약, 체험 중 하나다.
+- **Grant 엔티티.** 제품 tenant, 워크스페이스(앱의 tenant id), 키, 값, `date_effective`, `date_expires`, 버전, 출처를 갖는다. 출처는 운영자, 규칙, 계약, 체험 중 하나다.
   - 쓰기는 payday의 서버를 거친다. 그래서 trail에 남는다.
   - 바뀔 때마다 버전이 오르고, id는 다시 쓰지 않는다.
 - **제한은 긍정 플래그로 표현한다. 그래서 Grant가 없으면 열린다(fail open).** 권한 사본에서 Grant가 없다는 것은 권한이 없다는 뜻이다. 그러니 앱의 핵심 쓰기를 Grant가 있는지에 묶지 않는다. 그렇게 하면 levyan의 빈틈 하나가 모든 워크스페이스를 잠근다.
@@ -740,7 +741,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
 - **이번에 넣는 출처.**
   - 운영자 Grant: `levyan-admin grant add|end|ls`. trail에 그 운영자가 actor로 남는다.
   - 끼울 수 있는 규칙 훅. 결제 상태에서 나오는 규칙(지불자 없이 유예가 지난 워크스페이스, 연체)은 #4와 #11이 더한다.
-- **기한과 갱신.** `valid_until`은 지금에 `grants.horizon`(기본 7일)을 더한 것이다. 이름 있는 루프 `levyan.grants.renew`가 `grants.renew`(기본 1시간)마다 살아 있는 Grant를 갱신한다. 운영자 Grant는 끝을 직접 정할 수 있다.
+- **기한과 갱신.** `date_expires`는 지금에 `grants.horizon`(기본 7일)을 더한 것이다. 이름 있는 루프 `levyan.grants.renew`가 `grants.renew`(기본 1시간)마다 살아 있는 Grant를 갱신한다. 운영자 Grant는 끝을 직접 정할 수 있다.
 - **`payday.GrantService`를 공개 gRPC 서버에서, 제품에게만, policy 표의 행으로 연다.** 제품은 자기 tenant의 Grant만 본다.
   - `Watch`는 outbox(payday의 것)나 Grant와 같은 트랜잭션에 쓰는 변경 기록이 움직인다.
   - 따라가지 못하는 소비자는 스트림을 끊는다.
@@ -749,7 +750,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
 
 ### 만든 것
 
-- **`Grant`**(domain 18): 제품(tenant), 워크스페이스(field 3, 원장과 같은 `Workspace`), 키, 값(`GrantValue`: ON, LIMIT과 그 양, UNLIMITED), `valid_from`, `valid_until`, `version`, 출처(`GrantSource`: OPERATOR, RULE, CONTRACT, TRIAL), 규칙의 이름(`rule`), 설명, `renews`. 키는 payday의 `entitle.CheckKey`를 따른다. 워크스페이스는 같은 제품의 것이어야 한다(`agrees: ["workspace.tenant"]`).
+- **`Grant`**(domain 18): 제품(tenant), 워크스페이스(field 3, 원장과 같은 `Workspace`), 키, 값(`GrantValue`: ON, LIMIT과 그 양, UNLIMITED), `date_effective`, `date_expires`, `version`, 출처(`GrantSource`: OPERATOR, RULE, CONTRACT, TRIAL), 규칙의 이름(`rule`), 설명, `renews`. 키는 payday의 `entitle.CheckKey`를 따른다. 워크스페이스는 같은 제품의 것이어야 한다(`agrees: ["workspace.tenant"]`).
 - **규칙 층**(`server/grants.Layer`, 두 스택 모두): 
   - Add는 무언가를 준다. 키, 값 하나, 시작보다 늦고 지금보다 늦은 끝, 지금보다 이르지 않은 시작, 출처, 그리고 규칙의 Grant일 때만 규칙의 이름이 있어야 한다. 버전은 요청이 무엇을 말하든 1이다.
   - Patch는 끝을 옮기거나 갱신을 멈출 뿐이다. 나머지는 바뀌지 않는다(immutable). 버전은 그 행의 다음 값이다. 끝은 지금보다 앞으로 옮길 수 없고, 이미 끝난 Grant의 끝을 뒤로 미룰 수 없다.
@@ -769,7 +770,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
 
 ### 구현에서 정한 것
 
-- **값은 바뀌지 않는다.** Grant 하나는 끝날 때까지 한 값을 준다. 다른 값은 다른 Grant다. 바뀌는 것은 끝(`valid_until`)과 갱신 여부뿐이라서, "언제 무엇을 받았는가"가 행 그대로 남는다. 그래서 OFF도 없다. 빼앗는 것은 끝내는 것이다.
+- **값은 바뀌지 않는다.** Grant 하나는 끝날 때까지 한 값을 준다. 다른 값은 다른 Grant다. 바뀌는 것은 끝(`date_expires`)과 갱신 여부뿐이라서, "언제 무엇을 받았는가"가 행 그대로 남는다. 그래서 OFF도 없다. 빼앗는 것은 끝내는 것이다.
 - **반이 남았을 때 갱신한다.** 루프는 매시간 돌지만, Grant는 기한의 반보다 적게 남았을 때만 갱신한다(DHCP가 임대를 반에서 갱신하듯). 매시간 모든 Grant를 갱신하면 Grant 하나가 일주일에 168번 바뀌고, 그때마다 levyan과 앱 양쪽에 행, trail, outbox가 쓰인다. 반에서 갱신하면 일주일에 두 번이고, 사본은 levyan이 멈춰도 적어도 기한의 반(3.5일)은 Grant를 갖는다. levyan이 오래 멈춰서 지나 버린 갱신 Grant는 돌아왔을 때 갱신한다.
 - **끝난 Grant는 48시간 목록에 남고, 그 뒤 soft erase한다.** payday는 적어도 하루를 요구한다. 하루를 더한 것은 시계가 늦은 앱 때문이다. 행은 남아서 trail과 "언제 무엇을 받았는가"에 답한다.
 - **주는 이 하나가 한 워크스페이스의 한 키에 주는 Grant는 한 번에 하나다.** 운영자, 계약, 체험은 모두 운영자의 손이라 한 주는 이로 친다. 같은 워크스페이스의 같은 키에 운영자 Grant가 살아 있으면 새 Grant는 거부한다. `--replace`이면 옛것을 새것의 시작에서 끝낸다. 겹침도 빈틈도 없다. 규칙의 Grant는 규칙마다 따로다. 다른 쪽끼리 겹치면 payday의 사본처럼 나중에 시작한 것이 정한다(`entitle.Decide`).
@@ -783,7 +784,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
 
 - 앱은 payday의 `entitle.Follower`로 사본을 둔다(`docs/apps.md`). 사본에 없는 키는 권한이 없는 것이다.
 - **핵심 쓰기를 Grant가 있는지에 묶지 않는다.** 제한은 `loft.restricted`, `loft.readonly` 같은 플래그가 **있을 때** 막는다. 기능과 한도처럼 돈을 내야 얻는 것만 Grant가 있을 때 연다. 두 플래그가 앱에 무엇을 뜻하는지는 `docs/apps.md` 3장이다.
-- 사본이 levyan에서 소식을 듣지 못하면 Grant는 `valid_until`까지만 남는다. 그 뒤에 무엇을 할지는 앱의 정책이다(payday 가이드 5장).
+- 사본이 levyan에서 소식을 듣지 못하면 Grant는 `date_expires`까지만 남는다. 그 뒤에 무엇을 할지는 앱의 정책이다(payday 가이드 5장).
 
 ## 14. 결제 계정과 지불자 (구현됨, #4)
 
@@ -841,7 +842,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
   - `Departure`(domain 22, global): roster가 계정이 지워지거나 정지됐다고 한 것을 적어 둔 표시(roster `standing`의 mark). 계정마다 하나다.
   - `Statement`에 `payer`, `billing_account`, `first_unit`을 더했다.
   - payday의 Holder에 `account` 필드를 더했다(overlay). levyan의 holder는 누구의 구성원도 아니지만, payday가 계정 frame을 만들 때 이 선언을 읽는다(`option (payday.app) = {accounts: ...}`).
-- **제품의 호출**(`levyan.v1.WorkspaceService`): `Arrive`(만든 사람이 만든 때부터 낸다. 다시 불러도 같다. `created`로 levyan이 듣기 전에 만든 워크스페이스도 만든 날부터 셀 수 있다), `Leave`(떠난 계정은 지금부터 내지 않고, 그 계정에게 한 제안은 거둔다), `Offer`(앞의 제안은 거둔다), `GetPayer`(지금과 다음의 지불자, 열린 제안, 지불자 없는 때와 제한되는 때와 읽기 전용이 되는 때). 닫힘·복원·파기(`Close`, `Restore`, `Destroy`, `GetLifecycle`)는 아래 생애 사건에 있다.
+- **제품의 호출**(`levyan.v1.WorkspaceService`): `Arrive`(만든 사람이 만든 때부터 낸다. 다시 불러도 같다. `date_created`로 levyan이 듣기 전에 만든 워크스페이스도 만든 날부터 셀 수 있다), `Leave`(떠난 계정은 지금부터 내지 않고, 그 계정에게 한 제안은 거둔다), `Offer`(앞의 제안은 거둔다), `GetPayer`(지금과 다음의 지불자, 열린 제안, 지불자 없는 때와 제한되는 때와 읽기 전용이 되는 때). 닫힘·복원·파기(`Close`, `Restore`, `Destroy`, `GetLifecycle`)는 아래 생애 사건에 있다.
 - **지불자의 호출**(`levyan.v1.PayerService`): 결제 계정 목록·만들기·고치기, 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`).
   - 스키마에 같은 이름의 `levyan.PayerService`를 선언하고 메서드마다 `(payday.method) = {account: {}}`를 달았다(`proto/levyan/payer.proto`). 이것은 선언이고 서빙하지 않는다. API의 메서드는 같은 이름의 스키마 메서드로 서빙된다(`batch.AsOp`). 시험이 두 목록을 서로 맞춘다.
   - 결제 계정은 계정 frame으로 wall이 있는 스택을 거쳐 읽고 쓴다. 읽는 것은 자기 결제 계정뿐이라고 선언한다(`pd.AccountReads`). trail의 actor는 그 계정이다.
@@ -866,7 +867,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
 - **가격은 지도가 쓰는 채널과 통화마다 있어야 한다.** 결제 계정의 채널과 통화에 가격이 없으면 그 워크스페이스의 기간은 아무것도 매겨지지 않는다(0원, 10장). 기본값이면 국내 결제 계정을 위해 MoR·원 가격이 있어야 한다.
 - **나라는 바뀌지 않는다.** 다른 나라에서 청구하려면 새 결제 계정을 만들고 `Use`한다. 그것도 기간 경계에서 바뀐다.
 - **만든 사람의 기본 결제 계정**은 그가 처음 만든, 아직 가진 결제 계정이다. 없으면 결제 계정 없는 연결이고, 그 동안은 제품의 기본값으로 매긴다.
-- **고객의 시작(`Rater.Since`)** 은 그 워크스페이스의 첫 연결이 시작한 때다(`Arrive`의 `created`). 연결이 없으면 전처럼 가장 이른 원장 행이다.
+- **고객의 시작(`Rater.Since`)** 은 그 워크스페이스의 첫 연결이 시작한 때다(`Arrive`의 `date_created`). 연결이 없으면 전처럼 가장 이른 원장 행이다.
 - **제안은 따로 된 엔티티다**(`Offer`). 워크스페이스마다 열린 제안은 하나이고, 새 제안이 앞의 것을 거둔다.
 - **계정의 호출이 제품 tenant에 쓰는 것은 deployment로서 쓴다.** 결제 계정은 계정 자신의 것이라 계정 frame으로 쓰고, 연결과 제안의 답은 payday의 가이드처럼 그 tenant 안의 deployment로 쓴다. 다만 Ungated가 아니라, 그 제품 하나로 좁힌 frame으로 wall이 있는 스택을 쓴다.
 - **표시(`Departure`)는 계정마다 하나다.** 정지와 삭제 모두 연결을 기간 끝에서 끝낸다. 다시 좋은 상태라고 들으면 표시를 거두고 다시 낸다. 개인정보는 roster에 그 사람이 더 없을 때만 지운다(roster의 규칙: 표시는 다시 물은 뒤에만 행동한다).
@@ -901,8 +902,8 @@ levyan#1의 "2026-11-01, 대표" 댓글이 102번에 답했다.
 
 - **API.** 손으로 쓴 `levyan.v1`에 `WorkspaceService.Close(workspace, at)`, `Restore(workspace, at)`, `Destroy(workspace, at)`를 더한다. `Arrive`, `Leave`처럼 제품의 호출이다.
   - 다시 말해도 바뀌는 것이 없다.
-  - `at`의 순서대로 읽는다. 그래서 더 오래된 사건이 더 새로운 사건을 되돌리지 않는다.
-  - 미래의 `at`과, 워크스페이스가 도착하기 전의 `at`은 거부한다.
+  - `date_occurred`의 순서대로 읽는다. 그래서 더 오래된 사건이 더 새로운 사건을 되돌리지 않는다.
+  - 미래의 `date_occurred`와, 워크스페이스가 도착하기 전의 `date_occurred`는 거부한다.
 - ~~**닫힌 워크스페이스는 닫힌 동안 청구하지 않는다.** `closed_at`부터 `restored_at`까지는 고객이 아니다.~~ 지금은 `closed_at`부터, 그 구간이 아직 닫혀 있거나 파기로 끝나는 동안 고객이 아니다(대표, 2026-11-01). 그 구간의 보유량 사용량은, 고객이 되기 전의 구간처럼(`Rater.Since`, `rating.Rate`의 `since`) 계산에서 뺀다. loft는 닫힌 동안에도 재므로 읽은 값은 계속 오고, levyan은 그 값을 남긴다. 그 구간이 복원으로 끝나면 남긴 값으로 청구한다.
   - ~~이유: 고객이 닫은 것이고, 복구 기간 내내 청구하면 고객이 놀란다. 의심스러우면 덜 청구한다.~~
   - **가격에 관한 결정이다.** 대표가 정했다(17장 102번, 2026-11-01).
@@ -914,18 +915,18 @@ levyan#1의 "2026-11-01, 대표" 댓글이 102번에 답했다.
   - `destroyed_at` 뒤에 잰 값은 자기 거부로 거부한다.
   - 파기된 워크스페이스에 대해서는 이것이 17장 13번의 답이다.
 - **무료 수.** 한 기간 내내 닫혀 있던 워크스페이스는 그 기간의 그 지불자의 `payers.free`에 들지 않는다. 그래서 다음으로 연결된 워크스페이스가 무료량을 받는다. 기간의 일부만 닫혔던 워크스페이스는 센다. 2026-11-01부터는 한 기간 내내 닫혀 있었어도 그 뒤에 복원되었다면 그 기간에 열린 워크스페이스로 센다(Claude, 2026-11-01, 대표의 결정을 맡기며). 그 기간을 청구하므로 무료 수도 그 청구와 맞아야 한다.
-- **이미 쓴 내역과 청구서는 바꾸지 않는다.** 닫힌 기간의 금액을 바꾸는 늦은 생애 사건은, 늦은 값처럼(#6) 나중 내역의 정정이 된다. 복원이 닫힌 구간을 청구하게 하므로, 닫힘이 든 기간이 이미 닫힌 뒤에 온 복원은 그 기간들을 다시 매기고, 그 차이가 나중 내역의 정정 줄이 된다. 이미 있는 늦은 사건의 길(`late_through`)을 쓴다(Claude, 2026-11-01).
+- **이미 쓴 내역과 청구서는 바꾸지 않는다.** 닫힌 기간의 금액을 바꾸는 늦은 생애 사건은, 늦은 값처럼(#6) 나중 내역의 정정이 된다. 복원이 닫힌 구간을 청구하게 하므로, 닫힘이 든 기간이 이미 닫힌 뒤에 온 복원은 그 기간들을 다시 매기고, 그 차이가 나중 내역의 정정 줄이 된다. 이미 있는 늦은 사건의 길(`date_late_through`)을 쓴다(Claude, 2026-11-01).
 - **시험.** SQLite와 PostgreSQL에서: ~~기간 중에 닫고 되돌린 것(열린 구간만 청구)~~ 기간 중에 닫고 되돌린 것(열린 것처럼 청구), 기간 내내 닫힌 것(0원, 무료 자리는 다음 워크스페이스로), 파기(보유 시간이 거기서 끝나고 그 뒤의 값은 거부), 같은 사건을 다시 보낸 것과 순서가 바뀐 것, 다른 제품의 워크스페이스에 대한 사건(거부), 늦은 사건(정정). 2026-11-01부터는 더해서 기간 닫기를 건너 닫혔다가 복원된 것(정정), 닫혔다가 파기된 것(청구하지 않음), 닫기 때 아직 닫혀 있는 것(청구하지 않음), 그리고 그 각각의 무료 수(Claude, 2026-11-01).
 
 #### 만든 것
 
-- **API**(`levyan.v1.WorkspaceService`): `Close`, `Restore`, `Destroy`. 각각 `workspace`와 `at`을 받고, 답은 그 워크스페이스의 `Lifecycle`(지금 닫혀 있다면 언제부터인지 `closed_since`, 파기되었다면 언제인지 `destroyed`)과 그 사건이 늦었는지(`late`)다. `GetLifecycle`로 다시 읽는다. 넷 다 policy 표의 제품 열에 더했다. 그 밖에 `MeteringService/Record`의 거부 `REFUSAL_DESTROYED`와 연결의 끝 `LINK_ENDED_DESTROYED`를 더했다(스키마와 API가 같은 값이다).
-- **`WorkspaceEvent`**(domain 44): 제품(tenant), 워크스페이스(field 3), 종류(`CLOSED`, `RESTORED`, `DESTROYED`), 일어난 시각(`happened_at`, 마이크로초, UTC), 늦었다면 어디까지인지(`late_through`). 모든 필드가 immutable이고 Patch와 Erase가 없다. (제품, 워크스페이스, 시각)이 unique다. 새 테이블이라 행이 있는 테이블에 열을 더하지 않는다. 연결의 끝에 값 하나를 더한 것 말고 이미 있는 엔티티는 바뀌지 않았다.
+- **API**(`levyan.v1.WorkspaceService`): `Close`, `Restore`, `Destroy`. 각각 `workspace`와 `date_occurred`를 받고, 답은 그 워크스페이스의 `Lifecycle`(지금 닫혀 있다면 언제부터인지 `date_closed`, 파기되었다면 언제인지 `destroyed`)과 그 사건이 늦었는지(`late`)다. `GetLifecycle`로 다시 읽는다. 넷 다 policy 표의 제품 열에 더했다. 그 밖에 `MeteringService/Record`의 거부 `REFUSAL_DESTROYED`와 연결의 끝 `LINK_ENDED_DESTROYED`를 더했다(스키마와 API가 같은 값이다).
+- **`WorkspaceEvent`**(domain 44): 제품(tenant), 워크스페이스(field 3), 종류(`CLOSED`, `RESTORED`, `DESTROYED`), 일어난 시각(`date_occurred`, 마이크로초, UTC), 늦었다면 어디까지인지(`date_late_through`). 모든 필드가 immutable이고 Patch와 Erase가 없다. (제품, 워크스페이스, 시각)이 unique다. 새 테이블이라 행이 있는 테이블에 열을 더하지 않는다. 연결의 끝에 값 하나를 더한 것 말고 이미 있는 엔티티는 바뀌지 않았다.
 - **쓰기**(`payers.Payers.Close|Restore|Destroy`): wall이 있는 스택을 그 제품으로서 거치고, 워크스페이스의 행을 잡은 한 트랜잭션에서 쓴다(`ledger.Lock`). 그래서 trail에 어느 키가 무엇을 말했는지 남고, 기간 닫기와 사건 중 어느 쪽이 먼저인지가 하나로 정해진다.
 - **읽기**(`rating.Lived`): 한 워크스페이스의 사건을 모두 시각 순으로 읽어, 고객이 아니었던 구간(away)을 만든다. away는 많아야 하나이고 영원히 이어진다. 복원되지 않은 닫힘부터(아직 닫혀 있는 것), 열린 채 파기되었으면 파기부터, 닫힌 채 파기되었으면 닫힌 때부터다. 닫혔다가 복원된 구간은 away가 아니다(대표, 2026-11-01). 닫힌 것을 닫거나 열린 것을 되돌리는 것은 아무것도 바꾸지 않고, 파기 뒤에 말한 것도 아무것도 바꾸지 않는다. 2026-10-31의 빌드(계산 버전 2)는 닫힘에서 그 뒤의 첫 복원까지도 away로 읽었다.
 - **금액**(`server/billing`, `internal/usage`, `internal/rating`): `Rater.Usage`가 원장을 읽을 때 away 구간을 뺀다. 보유량은 profile을 자르고(`usage.Cut`), 최댓값과 마지막 값은 away 밖에서 잰 값에서만 고르고, 흐름은 away 밖의 증가분만 센다(`usage.Open`). `rating.Rate`는 고객(`rating.Customer`: 시작과 away)을 받아, 버전이 바뀐 기간의 각 부분을 고객이었던 시간에서 차지하는 몫으로 매긴다. 기간 내내 away였으면 아무것도 매기지 않는다. 예상 금액(`GetUsage`)도 같은 계산이라, 지금 닫혀 있는 워크스페이스의 예상은 닫힌 때에서 멈추고, 복원하면 닫혀 있던 구간까지 든다. 계산 버전은 3이다(`rating.Version`). 같은 원장과 사건에서 금액이 바뀌었기 때문이다. 복원된 적 없는 워크스페이스는 버전 2와 금액이 같다.
 - **무료 수**(`Rater.PayerOf`): 지불자가 그 기간에 낸 워크스페이스 중 그 기간 내내 away였던 것은 빼고 센다. away를 금액과 같은 `rating.Lived`로 읽으므로, 그 기간 내내 닫혀 있었어도 그 뒤에 복원된 워크스페이스는 센다. 청구하는 기간에는 무료 자리도 차지한다.
-- **늦은 사건**: 사건을 쓸 때, 닫기가 시작된 기간 중 그 사건이 닿는 때(`rating.Reach`) 뒤에 끝나는 기간이 있으면 늦은 것이다. 그 가운데 마지막 기간의 끝을 `late_through`에 둔다. 다음 닫기의 정정(`Rater.marked`)은 닿는 때가 든 기간부터 `late_through`까지를 다시 계산한다. 그 뒤의 기간은 닫을 때 이미 그 사건을 알았다. 이미 한 정정은 같은 산수로 0이 된다.
+- **늦은 사건**: 사건을 쓸 때, 닫기가 시작된 기간 중 그 사건이 닿는 때(`rating.Reach`) 뒤에 끝나는 기간이 있으면 늦은 것이다. 그 가운데 마지막 기간의 끝을 `date_late_through`에 둔다. 다음 닫기의 정정(`Rater.marked`)은 닿는 때가 든 기간부터 `date_late_through`까지를 다시 계산한다. 그 뒤의 기간은 닫을 때 이미 그 사건을 알았다. 이미 한 정정은 같은 산수로 0이 된다.
   - **닿는 때**(2026-11-01부터): 닫힘은 그 시각이다. 복원은, 닫혀 있던 워크스페이스를 되돌린 것이면 그 닫힌 구간을 시작한 닫힘의 시각이다. 그 구간을 청구할지는 끝이 정하기 때문이다(대표의 결정). 파기는, 닫힌 채 파기되었고 그 뒤에 복원이 있으면(복원이 끝낼 구간을 파기가 끝낸 것이면) 그 닫힘의 시각이고, 아니면 그 시각이다. 그 밖과 파기 뒤의 사건은 그 시각이다.
   - 그래서 닫힌 기간 안에서 닫힌 워크스페이스를 오늘 되돌리면, 제때 말해도 늦은 사건이고(`late`), 닫힘이 든 기간부터 다시 매긴다. 차례대로 닫았다가 파기한 것은 그 시각보다 늦지 않다. 닫힌 구간은 어느 쪽이든 청구하지 않았기 때문이다.
 - **파기**: 같은 트랜잭션에서, 그 뒤로 이어질 연결은 그 시각에 끝내고(`LINK_ENDED_DESTROYED`), 기간 끝에 시작할 연결은 시작하기 전에 거두고, 열린 제안은 거둔다(`WITHDRAWN`). 원장(`ledger.Destroyed`)은 파기 시각과 그 뒤의 읽은 값과 점을 거부한다(`REFUSAL_DESTROYED`, OTLP의 partial success). 그 전에 이미 받아 둔 것은 그대로(`OUTCOME_ALREADY`)이고, 파기 뒤의 몫은 청구하지 않는다.
@@ -933,18 +934,18 @@ levyan#1의 "2026-11-01, 대표" 댓글이 102번에 답했다.
 
 #### 구현에서 정한 것
 
-- **`at`은 반드시 보낸다.** 없으면 InvalidArgument다. `Arrive`의 `created`는 비우면 지금이지만, 생애 사건은 outbox로 늦게 오는 것이 보통이다. "지금"으로 읽으면 다시 보낸 사건이 다른 사건이 된다. 예를 들어 복원 뒤에 다시 보낸 닫힘이 워크스페이스를 다시 닫는다.
+- **`date_occurred`는 반드시 보낸다.** 없으면 InvalidArgument다. `Arrive`의 `date_created`는 비우면 지금이지만, 생애 사건은 outbox로 늦게 오는 것이 보통이다. "지금"으로 읽으면 다시 보낸 사건이 다른 사건이 된다. 예를 들어 복원 뒤에 다시 보낸 닫힘이 워크스페이스를 다시 닫는다.
 - **기준.** "지금보다 앞선"은 원장과 같이 5분을 봐준다(`ledger.Skew`). "도착하기 전"은 `Rater.Since`보다 이른 것이다(첫 연결의 시작, 연결이 없으면 가장 이른 원장 행). levyan이 들은 적이 없는 워크스페이스(`Arrive`도 읽은 값도 없다)의 사건은 NotFound다. 다른 제품의 워크스페이스와 같다. 제품은 `Arrive`를 먼저 보낸다.
 - **한 시각에 사건 하나.** 같은 것을 다시 말하면 그대로 답한다. 같은 시각에 다른 종류를 말하면 거부하고(FailedPrecondition) 로그에 남긴다. 같은 시각에 다른 값을 보낸 읽은 값과 같은 규칙이다. 그래서 한 시각의 닫힘과 복원이 어느 쪽이 먼저인지를 정할 일이 없다.
 - **파기는 끝이다.** 파기 시각과 그 뒤의 닫힘·복원은 거부한다(FailedPrecondition). 파기를 다시 말하면, 더 늦은 시각이어도 바뀌지 않는다. 더 이른 시각의 파기가 오면 그 시각이 파기가 된다. 연결은 그 시각으로 다시 끝난다.
 - **흐름도 같다.** 닫힌 채 복원되지 않은 동안 센 증가분은 청구하지 않고(복원되면 그 구간의 증가분도 청구한다), 파기 시각과 그 뒤의 점은 거부한다. Claude의 결정은 보유량만 말한다. "고객이 아니다"를 흐름에도 그대로 적용했다.
 - **최댓값과 마지막 값은 일할하지 않는다.** 고객이 되기 전의 구간과 같이, away 밖에서 잰 값에서만 고르고 그 값 그대로 매긴다. 그래서 최댓값으로 매기는 미터는 열흘만 열려 있다가 닫힌 채로 기간이 끝나도 그 열흘의 최댓값 그대로다(17장 105번).
 - **기간 내내 고객이 아니었던 워크스페이스는 내역을 쓰지 않는다.** 쓸 줄이 없다. 그 기간에 대한 정정이 나중에 생기면, 내역이 없는 기간이라 `PayerOf`가 지금의 사건들로 `first_unit`을 정한다. 그 워크스페이스 자신은 무료량을 받는다(의심스러우면 덜).
-- **파기된 워크스페이스는 지불자 없는 워크스페이스가 아니다.** `GetPayer`는 `payerless_since`를 말하지 않고, `payers.grace`의 제한(`<제품>.restricted`)도 주지 않는다. 낼 사람이 없는 것이 아니라 낼 것이 없다.
+- **파기된 워크스페이스는 지불자 없는 워크스페이스가 아니다.** `GetPayer`는 `date_payerless`를 말하지 않고, `payers.grace`의 제한(`<제품>.restricted`)도 주지 않는다. 낼 사람이 없는 것이 아니라 낼 것이 없다.
 - **파기된 워크스페이스에 새로 시작하는 것이 없다.** 연결이 없던 워크스페이스의 `Arrive`, `Offer`, roster가 다시 좋다고 한 계정의 연결(`RESUMED`)은 만들지 않는다.
 - **파기된 워크스페이스의 Grant.** 새로 주지 않는다(FailedPrecondition). 갱신하던 Grant는 갱신할 때가 되면 갱신하지 않고 끝낸다(반 horizon, 3.5일 안). 끝이 있는 Grant는 그 끝까지다. 앱의 사본은 모르는 tenant의 Grant를 쓰지 않는다(`docs/apps.md` 3장).
 - **닫힘은 연결을 끝내지 않는다.** 지불자는 그대로다. 그래서 닫힌 워크스페이스도 지불자가 없어진 지 유예가 지나면 제한된다. 닫힌 동안 Grant도 그대로다.
-- **늦음의 끝은 시각이 아니라 기간의 끝으로 남긴다**(`late_through`). 사건을 쓴 시각과 기간 행을 쓴 시각을 비교하면, 두 프로세스(`levyan serve`와 `levyan-admin`)의 시계를 비교하게 된다. 그 트랜잭션이 본 기간을 그대로 적는다.
+- **늦음의 끝은 시각이 아니라 기간의 끝으로 남긴다**(`date_late_through`). 사건을 쓴 시각과 기간 행을 쓴 시각을 비교하면, 두 프로세스(`levyan serve`와 `levyan-admin`)의 시계를 비교하게 된다. 그 트랜잭션이 본 기간을 그대로 적는다.
 - **계산 버전을 2로 올렸다.** 사건이 있는 워크스페이스의 금액이 바뀌기 때문이다. 사건이 없으면 1과 같다. 2026-11-01에 3으로 올렸다(아래).
 - **`GetLifecycle`을 더했다.** 제품이 자기가 보낸 것을 levyan이 들었는지 확인하고, `scripts/upgrade.sh`가 앞 빌드가 쓴 사건을 다시 읽는 데 쓴다. levyan이 들은 적 없는 워크스페이스는 열려 있다고 답한다.
 
@@ -972,16 +973,16 @@ levyan#1의 "2026-11-01, 대표" 댓글이 102번에 답했다.
 **정한 것 (Claude, 2026-11-01, 대표의 답을 맡기며).** 대표의 결정이 아니며, 대표가 뒤집을 수 있다.
 
 - 복원으로 끝난 닫힌 구간은 열린 시간처럼 청구한다. 기간을 매길 때 아직 닫혀 있는 구간과 파기로 끝난 구간은 청구하지 않는다. 그래서 시스템은 복구 기간을 청구하지 않는다.
-- **늦은 사건.** 닫힌 구간이 든 기간을 닫은 뒤에 복원이 오면, 그 기간들을 다시 매기고 그 차이를 나중 내역의 정정 줄로 쓴다. 이미 있는 늦은 사건의 길(`late_through`)을 쓴다. 이미 쓴 내역과 청구서는 바뀌지 않는다.
+- **늦은 사건.** 닫힌 구간이 든 기간을 닫은 뒤에 복원이 오면, 그 기간들을 다시 매기고 그 차이를 나중 내역의 정정 줄로 쓴다. 이미 있는 늦은 사건의 길(`date_late_through`)을 쓴다. 이미 쓴 내역과 청구서는 바뀌지 않는다.
 - **무료 수.** 기간의 무료 수가 청구와 맞아야 한다. 한 기간 내내 닫혀 있었어도 그 뒤에 복원된 워크스페이스는 그 기간에 열린 것으로 센다. 17장 103번에 늦은 복원도 적는다.
 - **계산 버전.** 같은 입력의 금액이 바뀌면 올린다.
 
 **만든 것.**
 
 - `rating.Lived`: away는 복원되지 않은 닫힘(아직 닫혀 있거나 닫힌 채 파기된 것)과 파기부터의 하나다(위의 "읽기").
-- `rating.Reach`: 사건이 닿는 때(위의 "늦은 사건"). 쓸 때는 그 트랜잭션이 읽은 사건들로 `late_through`를 정하고(`payers.Payers.say`, `billing.Events`), 정정할 때는 지금 아는 모든 사건으로 다시 셈한다(`Rater.marked`의 `lateFor`).
+- `rating.Reach`: 사건이 닿는 때(위의 "늦은 사건"). 쓸 때는 그 트랜잭션이 읽은 사건들로 `date_late_through`를 정하고(`payers.Payers.say`, `billing.Events`), 정정할 때는 지금 아는 모든 사건으로 다시 셈한다(`Rater.marked`의 `lateFor`).
 - `rating.Version`은 3이다.
-- 스키마는 바뀌지 않았다. 사건과 `late_through`는 그대로이고, 읽는 법이 바뀌었다.
+- 스키마는 바뀌지 않았다. 사건과 `date_late_through`는 그대로이고, 읽는 법이 바뀌었다.
 
 **구현에서 정한 것.**
 
@@ -1253,7 +1254,7 @@ MoR 채널(`CHANNEL_MOR`)의 `invoices.Collector`다. 확정한 청구서의 금
   - `PaymentAttempt.date_twice`: 채널이 그 키의 결제를 원장이 아는 것보다 많이 가졌다는 것을 levyan이 안 때. 대조(#13)가 읽는 표시다. NULL을 허용하므로 이미 있는 행에도 더해진다. 끝난 시도에 쓸 수 있는 것은 이 표시와, 비어 있던 채널의 번호뿐이다(레이어).
 - **`internal/mor`**: `Channel.Minimum`, `Transaction.InvoiceNumber`(Paddle의 `invoice_number`), `Failure.Decline`(`mor.Decline`, `pg.Decline`과 이름도 값도 같다, `mor.Kind`가 `pg.Kind`와 같듯이).
 - **지불자의 API**는 확정된 상태(OPEN, PAID, UNCOLLECTIBLE, VOID)를 이름으로 골라 읽는다. 그래서 그림자는 보이지 않고, 앞으로 더하는 상태도 그 목록에 넣기 전에는 보이지 않는다.
-- **운영자**: `levyan-admin invoice ls --state shadow`와 `invoice show`가 그림자를 보여 준다. 시도의 표시(`twice`)도 보여 준다.
+- **운영자**: `levyan-admin invoice ls --state shadow`와 `invoice show`가 그림자를 보여 준다. 시도의 표시(`date_twice`)도 보여 준다.
 - **설정**: `invoices.mor.live_from`(RFC 3339, 오프셋과 함께). `mor:`가 있는데 이것이 없으면 읽을 때와 `cmd.Build`(DB를 열기 전)에서 거부한다.
 - **배선**: `cmd.Build`가 `mor:`가 있을 때 수금기를 넣고, inbox를 처리하는 `cmd.Server.Taker`의 `Transaction`에 `Collector.Heard`를 넣는다.
 
@@ -1391,9 +1392,9 @@ levyan#1의 "2026-11-01, 대표" 댓글이 3번에 답했다.
 
 - **1단계는 지금의 `<제품>.restricted`이고 바뀌지 않는다.** 앱은 청구되는 것을 늘리는 일을 막는다.
 - **2단계는 `<제품>.readonly` ON이다.** 아직 결제되지 않은 청구서의 첫 실패에서 60일이 지나면, 그 청구서가 청구하는 워크스페이스에 자기 규칙으로 준다. 앱은 읽기, 내보내기와 내려받기, 결제(지불자와 결제의 모든 것), 워크스페이스 닫기(여기까지 대표, 2026-11-01), 떠나기(Claude), 부르는 사람 자신의 것(자기 계정, 자기 알림의 읽음과 메일 끄기. Claude, loft#255) 말고는 모든 쓰기를 거부한다. 지키는 것은 앱(loft)의 몫이고, levyan은 키를 줄 뿐이다. 앱에게 무엇을 뜻하는지는 `docs/apps.md`에 적는다.
-- **행마다의 칸이다.** `readonly_after`, 모든 종류의 기본값이 1440h(60일)이고, 첫 실패에서 잰다. 지불자 없음의 행은 지불자가 없어진 때(`payerless_since`)부터 같은 60일이다.
+- **행마다의 칸이다.** `readonly_after`, 모든 종류의 기본값이 1440h(60일)이고, 첫 실패에서 잰다. 지불자 없음의 행은 지불자가 없어진 때(`date_payerless`)부터 같은 60일이다.
 - **읽을 때 검사한다.** 행의 제한보다 이를 수 없다. `restrict: at_once`가 아니면 유예보다 짧을 수 없다.
-- **회복.** 청구서가 결제되면 두 Grant가 함께 끝난다. `GetPayer`, `GetBillingAccount`, `GetInvoice`는 `restricted_from` 옆에 `readonly_from`으로 읽기 전용이 시작하는 때를 말한다.
+- **회복.** 청구서가 결제되면 두 Grant가 함께 끝난다. `GetPayer`, `GetBillingAccount`, `GetInvoice`는 `date_restricted` 옆에 `date_readonly`로 읽기 전용이 시작하는 때를 말한다.
 - **대조**(`server/reconcile`의 `grant_missing`·`grant_left`)가 새 규칙을 안다.
 
 #### 만든 것
@@ -1407,7 +1408,7 @@ levyan#1의 "2026-11-01, 대표" 댓글이 3번에 답했다.
 - **설정 `dunning`**: `every`, 그리고 `kinds.temporary`, `replace`, `fraud`, `other`의 `retries`, `grace`, `restrict`(`after_grace`, `at_once`), `readonly_after`. `kinds.payerless`에는 `grace`, `restrict`, `readonly_after`만 있다. 적지 않은 것은 행의 기본값이다. `payers.grace`는 없앴다.
 - **`grants`**: 제한 키(`grants.Restricted`)를 두 규칙이 함께 쓴다(`payers.Restricted`를 옮겼다). `Grants.Follow`가 따를 규칙을 받는다. 받지 않으면 전처럼 모든 규칙이다.
 - **`payers`**: `Payers.Payerless`와 `payers.Payerless.Row`가 표의 `payerless` 행이다. 규칙의 이름은 `payers.grace` 그대로다.
-- **API**: `Dunning`(청구서, 결제 계정, `kind`, `failed`, `next_retry`, `grace_ends`, `restricted_from`)과 `DeclineKind`(스키마와 값마다 같다). `GetBillingAccountResponse.dunning`(반복), `GetInvoiceResponse.dunning`, `Payer.dunning`(반복)이다. 필드를 더했을 뿐이다(`buf breaking`).
+- **API**: `Dunning`(청구서, 결제 계정, `kind`, `date_failed`, `date_next_retry`, `date_grace_ends`, `date_restricted`)과 `DeclineKind`(스키마와 값마다 같다). `GetBillingAccountResponse.dunning`(반복), `GetInvoiceResponse.dunning`, `Payer.dunning`(반복)이다. 필드를 더했을 뿐이다(`buf breaking`).
 - **운영자**: `levyan-admin invoice show`가 연체 상태를 보여 준다.
 - **스키마는 바뀌지 않았다.** 연체 상태는 셈하는 것이고 쓰지 않는다.
 - **2단계**(2026-11-01)
@@ -1416,7 +1417,7 @@ levyan#1의 "2026-11-01, 대표" 댓글이 3번에 답했다.
   - 규칙 `invoices.Readonly`(이름 `dunning.readonly`): 연체 청구서 중 읽기 전용이 되는 때가 지난 것의 줄의 워크스페이스에 `<제품>.readonly` ON. 파기된 워크스페이스는 뺀다. 연체 루프가 `dunning`과 함께 돌 때마다 따르므로, 결제되면 1분 안에 두 단계가 함께 풀린다.
   - 규칙 `payers.Readonly`(이름 `payers.readonly`): 지불자가 없어진 지 그 행의 `readonly_after`가 지난 워크스페이스에 `<제품>.readonly` ON. 누가 받아들이면 끝난다. Grant 루프가 `payers.grace`와 함께 따른다.
   - 설정 `readonly_after`(행마다, `payerless`에도). 음수는 그 칸이, 행의 제한보다 이른 것은 `dunning.kinds` 블록이 읽을 때 거부한다. 코드로 만든 표는 `cmd.Build`가 DB 전에 거부한다.
-  - API: `Dunning.readonly_from`(8)과 `Payer.readonly_from`(9). 필드를 더했을 뿐이다(`buf breaking`).
+  - API: `Dunning.date_readonly`(8)과 `Payer.date_readonly`(9). 필드를 더했을 뿐이다(`buf breaking`).
   - 운영자: `invoice show`의 `dunning` 줄에 `read-only from`.
   - 스키마는 바뀌지 않았다.
 
@@ -1435,7 +1436,7 @@ levyan#1의 "2026-11-01, 대표" 댓글이 3번에 답했다.
 - **`payers.grace`는 없앴다.** 표는 하나여야 하고, 한 값을 두 곳에서 말하지 않는다. 그 키를 적은 설정은 엄격한 키 검사가 위치와 함께 거부한다. 출시 전이라 옮겨 주는 길을 두지 않았다.
 - **제한되는 워크스페이스는 그 청구서의 줄의 워크스페이스다.** 줄은 그 결제 계정이 그 청구서의 기간에 낸 워크스페이스의 내역이다. 0원 줄(무료 워크스페이스)도 포함한다. 그 뒤에 다른 사람이 내게 된 워크스페이스도 포함한다(17장 110번).
 - **두 규칙이 한 워크스페이스를 제한하면 둘 다 끝날 때까지 제한된다(17장 32번의 답).** 규칙마다 자기 Grant를 주고, 둘 다 ON이다. 앱의 사본(`entitle.Decide`)은 그 시점에 유효한 Grant 중 나중에 시작한 것으로 정하는데, 둘 다 ON이라 어느 쪽이 정해도 ON이다. 하나가 끝나면 남은 것이 정한다. 그래서 제한 키에는 32번의 질문(다른 값)이 생기지 않는다.
-- **API의 `kind`는 마지막 거절의 종류다.** `DECLINE_KIND_UNSPECIFIED`가 그 밖이다(스키마와 같다). `next_retry`는 일정의 다음 시도이거나 다시 수금할 수 있게 된 때다. 지난 시각이면 다음 루프가 한다. 일정에 남은 것이 없으면 비운다.
+- **API의 `kind`는 마지막 거절의 종류다.** `DECLINE_KIND_UNSPECIFIED`가 그 밖이다(스키마와 같다). `date_next_retry`는 일정의 다음 시도이거나 다시 수금할 수 있게 된 때다. 지난 시각이면 다음 루프가 한다. 일정에 남은 것이 없으면 비운다.
 - **`GetBillingAccount`와 `GetPayer`의 `dunning`은 반복 필드다.** 결제 계정에는 연체 청구서가 여럿일 수 있고(달마다 하나), 워크스페이스는 전에 내던 결제 계정의 청구서로도 제한된다. 먼저 제한되는 것부터 준다. 지불자는 대신 부르는 제품의 청구서만 보고, 제품은 그 워크스페이스를 청구한 연체 청구서를 모두 본다. 지금 내는 결제 계정의 것이 아니어도 그렇다.
 - **읽기.** 지불자의 호출은 결제 계정과 청구서를 wall이 있는 스택으로 읽은 뒤, 그 청구서의 시도를 ent로 읽는다(wall이 답한 것에 대해서만). 제품의 `GetPayer`는 지금처럼 그 제품의 행을 ent로 읽는다. `server/api`에는 표만 넘기고 `Ungated`는 넘기지 않는다.
 - 시험용 채널(`invoicestest`)은 거절의 네 종류로 답한다(`DeclineReplace`, `DeclineFraud`, `DeclineOther`; `Decline`은 일시적).
@@ -1453,7 +1454,7 @@ levyan#1의 "2026-11-01, 대표" 댓글이 3번에 답했다.
 - **`server/invoices/merchant`**(`paddletest`): 시나리오 4를 끝까지 지불자와 제품의 API로 본다. 실패, 재시도 세 번, 유예, 제한과 회수 불가, 해지와 새 구독, 바로 청구, 결제, 제한이 풀림까지다. 구독이 없던 결제 계정이 구독하면 바로, 한 번 청구한다.
 - **`server/payers`**: 지불자 없는 행의 설정(바로, 10일). **`server/admin`**: 운영자의 `invoice show`.
 - SQLite와 PostgreSQL. `scripts/upgrade.sh`로 앞 빌드와 OLDEST가 쓴 DB를 이 빌드가 마이그레이션하고 다시 읽는다. 스키마가 바뀌지 않았고, 그 스크립트는 MoR에 닿지 않으므로 연체를 쓰지 않는다.
-- **2026-11-01**(SQLite와 PostgreSQL): 대표의 기본값(`internal/dunning`, `cmd`, 그리고 위의 시험들이 그 일정으로). 2단계는 `server/invoices`에서 종류마다 첫 실패 60일에 `loft.readonly`가 규칙 `dunning.readonly`로 오고(1분 전에는 없다), 일정이 60일 뒤에 남긴 재시도가 결제하면 그 돌기에서 두 단계가 함께 풀리는 것, 그리고 지불자와 제품이 읽는 `readonly_from`. `server/payers`에서 지불자 없음의 2단계가 `payerless_since`에서 60일(제한의 30일 뒤가 아니라)에 오고 받아들이면 끝나는 것. `cmd`에서 `readonly_after`의 설정(파일, 환경 변수, `at_once`)과, 제한보다 이른 것·음수의 거부(읽을 때, 환경 변수, `cmd.Build`). `server/reconcile`에서 두 규칙의 없는 Grant와 남은 Grant. `cli`와 `server/admin`에서 읽는 것. 일부러 망가뜨려 시험이 실패하는 것을 확인했다(기본값 셋, 2단계를 1단계의 때로, 60일을 30일로, 순서 검사 없음, `at_once`를 보지 않는 검사, 읽을 때의 검사 없음, `readonly_after`를 읽지 않음 둘, 규칙의 때, 연체 루프가 2단계를 따르지 않음, 키, 지불자 없음의 때와 상태, 배선 둘, API 둘, 운영자).
+- **2026-11-01**(SQLite와 PostgreSQL): 대표의 기본값(`internal/dunning`, `cmd`, 그리고 위의 시험들이 그 일정으로). 2단계는 `server/invoices`에서 종류마다 첫 실패 60일에 `loft.readonly`가 규칙 `dunning.readonly`로 오고(1분 전에는 없다), 일정이 60일 뒤에 남긴 재시도가 결제하면 그 돌기에서 두 단계가 함께 풀리는 것, 그리고 지불자와 제품이 읽는 `date_readonly`. `server/payers`에서 지불자 없음의 2단계가 `date_payerless`에서 60일(제한의 30일 뒤가 아니라)에 오고 받아들이면 끝나는 것. `cmd`에서 `readonly_after`의 설정(파일, 환경 변수, `at_once`)과, 제한보다 이른 것·음수의 거부(읽을 때, 환경 변수, `cmd.Build`). `server/reconcile`에서 두 규칙의 없는 Grant와 남은 Grant. `cli`와 `server/admin`에서 읽는 것. 일부러 망가뜨려 시험이 실패하는 것을 확인했다(기본값 셋, 2단계를 1단계의 때로, 60일을 30일로, 순서 검사 없음, `at_once`를 보지 않는 검사, 읽을 때의 검사 없음, `readonly_after`를 읽지 않음 둘, 규칙의 때, 연체 루프가 2단계를 따르지 않음, 키, 지불자 없음의 때와 상태, 배선 둘, API 둘, 운영자).
 
 ### 대조와 경보 (구현됨, #13)
 
@@ -1774,7 +1775,7 @@ levyan#1에서:
 109. 연체를 앱에 알리는 길: levyan은 메일을 보내지 않고, 앱은 `GetPayer`와 `GetBillingAccount`를 읽을 때만 연체를 안다. 첫 실패, 제한되기 며칠 전, 읽기 전용이 되기 며칠 전, 회복 때 메일을 보내려면 앱이 워크스페이스나 결제 계정을 돌아가며 읽어야 한다. 제품의 연체 목록을 주는 메서드를 둘지, Grant(`loft.overdue` 같은 플래그, 57번과 같은 질문)로 미리 알릴지
 110. 다른 사람이 내게 된 워크스페이스: 제한하는 것은 그 청구서의 기간에 그 결제 계정이 낸 모든 워크스페이스다(Claude). 2026-11-01부터 읽기 전용(2단계)도 같다. 그 뒤에 다른 지불자가 받아들여 내는 워크스페이스도 옛 지불자의 연체로 제한된다. 새 지불자가 낸다면 풀지, 그대로 둘지. 풀면 지불자를 바꿔 빠져나가는 길이 된다
 111. 결제수단만 바꾼 지불자: 구독이 살아 있는 채로 Paddle에서 카드만 바꾸면 수금 상태가 COLLECTABLE 그대로라 바로 다시 청구하지 않는다. 교체 필요와 부정 의심의 행에는 재시도가 없으므로 그 청구서는 회수 불가로 남는다. 지불자가 "지금 결제"를 누르는 `PayerService`의 메서드를 둘지, 구독 사본에서 결제수단이 바뀐 것을 읽어 다시 수금할 수 있게 된 것으로 칠지(91번)
-112. 계좌이체의 연체: 이체 채널은 청구를 보내지 않으므로 실패도 없고, 연체도 없다. 기한(`due_date`)이 지난 청구서를 연체로 보고 유예와 제한을 둘지, 계약으로 다룰지
+112. 계좌이체의 연체: 이체 채널은 청구를 보내지 않으므로 실패도 없고, 연체도 없다. 기한(`date_due`)이 지난 청구서를 연체로 보고 유예와 제한을 둘지, 계약으로 다룰지
 113. 행을 고르는 종류: 마지막 실패의 종류를 따른다(구현에서 정한 것). 그래서 부정 의심 뒤에 바꾼 결제수단이 일시적으로 거절되면, 첫 실패에서 유예(2026-11-01부터 14일) 안이면 제한이 풀린다. 가장 무거운 종류를 따를지
 114. 회수 불가의 끝: 회수 불가인 청구서는 결제될 때까지 제한되고, 첫 실패 60일 뒤부터는 읽기 전용이다(2026-11-01). 끝내 받지 못하면 언제 무효로 할지(운영자의 `invoice void`), 그 워크스페이스를 언제까지 제한할지. 대조(#13)나 운영자의 몫인지
 
@@ -1851,7 +1852,7 @@ MoR은 Paddle로 한다(대표, 2026-10-31). 대표의 "국내도 처음에는 M
 
 ### 추가 무료량 (`Allowance`, 구현됨)
 
-- **엔티티**(`Allowance`, domain 46): 제품(tenant), 워크스페이스(field 3), 미터, 기간마다 더 주는 양(`quantity`, 미터의 단위, 0보다 크다), 시작(`valid_from`)과 끝(`valid_until`, 없으면 끝낼 때까지), 이유(`reason`, `personal`), 준 운영자(`granted_by`), 끝낸 운영자와 그 이유(`ended_by`, `end_reason`). 끝만 바뀐다. Erase가 없다.
+- **엔티티**(`Allowance`, domain 46): 제품(tenant), 워크스페이스(field 3), 미터, 기간마다 더 주는 양(`quantity`, 미터의 단위, 0보다 크다), 시작(`date_effective`)과 끝(`date_expires`, 없으면 끝낼 때까지), 이유(`reason`, `personal`), 준 운영자(`granted_by`), 끝낸 운영자와 그 이유(`ended_by`, `end_reason`). 끝만 바뀐다. Erase가 없다.
 - **매기기**(`rating.Rate`, `rating.Allowance`): 단위 가격의 부분마다 그 버전의 무료량에 그때 효력이 있는 추가 무료량을 더한다. 버전이 바뀌는 곳에서 기간을 자르듯, 추가 무료량이 시작하고 끝나는 곳에서 그 부분을 다시 자른다. 조각마다 고객이었던 시간에서 차지하는 몫으로 매긴다. 청구량은 0보다 작아지지 않는다.
 - **일할.** 기간의 3분의 1 동안 효력이 있었으면 3분의 1을 준다. 예를 들어 1월 11일에 준 +500은 1월(31일)에 500 × 21/31 = 338.709677…을 준다. 몫은 고객이었던 시간에 대한 몫이다. 그래서 기간 중에 시작한 워크스페이스가 고객이었던 내내 효력이 있었으면 다 받는다. 가격의 무료량을 일할하지 않는 것(10장)과 같다.
 - **첫 단위부터 매기는 워크스페이스**(`first_unit`, 지불자의 N개 밖)도 받는다. 가격의 무료량은 그 워크스페이스의 것이 아니지만, 추가 무료량은 그 워크스페이스의 것이다.
@@ -1863,7 +1864,7 @@ MoR은 Paddle로 한다(대표, 2026-10-31). 대표의 "국내도 처음에는 M
 
 ### 사용량 크레딧 (`Pool`, 구현됨)
 
-- **엔티티**(`Pool`, domain 47): 제품(tenant), 워크스페이스(field 3), 미터, 묶음의 양(`quantity`, 미터의 단위 × 기간, 시간 가중 평균이면 자산·월), 시작(`valid_from`), 만료(`date_expires`, 반드시, 기본 1년), 이유(`personal`), 준 운영자(`granted_by`), 끝낸 운영자와 그 이유. 만료만 앞당겨진다. Erase가 없다.
+- **엔티티**(`Pool`, domain 47): 제품(tenant), 워크스페이스(field 3), 미터, 묶음의 양(`quantity`, 미터의 단위 × 기간, 시간 가중 평균이면 자산·월), 시작(`date_effective`), 만료(`date_expires`, 반드시, 기본 1년), 이유(`personal`), 준 운영자(`granted_by`), 끝낸 운영자와 그 이유. 만료만 앞당겨진다. Erase가 없다.
 - **매기기**(`rating.Rate`, `rating.Pool`): 무료량(가격의 무료량 + 추가 무료량)을 넘는 청구량을 먼저 그 미터의 사용량 크레딧에서 뺀다. 만료가 빠른 것부터, 남은 만큼까지다. 남은 청구량에만 단가를 곱한다. 가격이 기간 중에 바뀌었으면 각 부분의 청구량에 비례해서 뺀다. 그래서 어느 버전의 단가로 뺀 것인지를 정할 일이 없다.
 - **어느 기간이 쓰는가.** 그 기간의 어느 순간에든 효력이 있는 사용량 크레딧이다(시작이 기간의 끝 전이고, 만료가 기간의 시작 뒤). 쓰는 것은 그 기간의 청구량 전부이고, 기간의 몫으로 나누지 않는다. 묶음은 기간에 대한 비율이 아니기 때문이다.
 - **기간마다 쓴 것을 내역에 남긴다.** 내역 줄의 `pooled`(뺀 양)와 `pools`(사용량 크레딧마다 뺀 양)다. 부분마다 `pooled`도 있다. 정정 줄은 정정하는 기간이 지금 쓰는 양(절대값)을 남긴다. 한 기간이 사용량 크레딧에서 쓴 양은 그 기간을 매긴 줄 가운데 가장 나중의 것(그 기간의 내역 줄, 그 뒤의 정정 줄들 중 가장 늦은 내역의 것)이 말하는 양이다. 남은 양은 묶음의 양에서 모든 기간이 쓴 양을 뺀 것이다(`billing.Taps`).

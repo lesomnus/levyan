@@ -965,8 +965,8 @@ type Invoice struct {
 	xxx_hidden_Id             string                 `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_BillingAccount string                 `protobuf:"bytes,2,opt,name=billing_account,json=billingAccount"`
 	xxx_hidden_State          InvoiceState           `protobuf:"varint,3,opt,name=state,enum=levyan.v1.InvoiceState"`
-	xxx_hidden_Start          *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start"`
-	xxx_hidden_End            *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=end"`
+	xxx_hidden_DateStart      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd        *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_end,json=dateEnd"`
 	xxx_hidden_Channel        Channel                `protobuf:"varint,6,opt,name=channel,enum=levyan.v1.Channel"`
 	xxx_hidden_Currency       string                 `protobuf:"bytes,7,opt,name=currency"`
 	xxx_hidden_Subtotal       int64                  `protobuf:"varint,8,opt,name=subtotal"`
@@ -978,9 +978,9 @@ type Invoice struct {
 	xxx_hidden_Reduced        int64                  `protobuf:"varint,14,opt,name=reduced"`
 	xxx_hidden_Remaining      int64                  `protobuf:"varint,15,opt,name=remaining"`
 	xxx_hidden_Number         int64                  `protobuf:"varint,16,opt,name=number"`
-	xxx_hidden_Finalized      *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=finalized"`
-	xxx_hidden_DueDate        *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=due_date,json=dueDate"`
-	xxx_hidden_Settled        *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=settled"`
+	xxx_hidden_DateFinalized  *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=date_finalized,json=dateFinalized"`
+	xxx_hidden_DateDue        *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=date_due,json=dateDue"`
+	xxx_hidden_DateSettled    *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=date_settled,json=dateSettled"`
 	xxx_hidden_ChannelNumber  string                 `protobuf:"bytes,20,opt,name=channel_number,json=channelNumber"`
 	xxx_hidden_Lines          *[]*InvoiceLine        `protobuf:"bytes,21,rep,name=lines"`
 	xxx_hidden_Credits        *[]*InvoiceCredit      `protobuf:"bytes,22,rep,name=credits"`
@@ -1034,16 +1034,16 @@ func (x *Invoice) GetState() InvoiceState {
 	return InvoiceState_INVOICE_STATE_UNSPECIFIED
 }
 
-func (x *Invoice) GetStart() *timestamppb.Timestamp {
+func (x *Invoice) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Start
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *Invoice) GetEnd() *timestamppb.Timestamp {
+func (x *Invoice) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_End
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
@@ -1125,23 +1125,23 @@ func (x *Invoice) GetNumber() int64 {
 	return 0
 }
 
-func (x *Invoice) GetFinalized() *timestamppb.Timestamp {
+func (x *Invoice) GetDateFinalized() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Finalized
+		return x.xxx_hidden_DateFinalized
 	}
 	return nil
 }
 
-func (x *Invoice) GetDueDate() *timestamppb.Timestamp {
+func (x *Invoice) GetDateDue() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_DueDate
+		return x.xxx_hidden_DateDue
 	}
 	return nil
 }
 
-func (x *Invoice) GetSettled() *timestamppb.Timestamp {
+func (x *Invoice) GetDateSettled() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Settled
+		return x.xxx_hidden_DateSettled
 	}
 	return nil
 }
@@ -1183,12 +1183,12 @@ func (x *Invoice) SetState(v InvoiceState) {
 	x.xxx_hidden_State = v
 }
 
-func (x *Invoice) SetStart(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Start = v
+func (x *Invoice) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *Invoice) SetEnd(v *timestamppb.Timestamp) {
-	x.xxx_hidden_End = v
+func (x *Invoice) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
 func (x *Invoice) SetChannel(v Channel) {
@@ -1235,16 +1235,16 @@ func (x *Invoice) SetNumber(v int64) {
 	x.xxx_hidden_Number = v
 }
 
-func (x *Invoice) SetFinalized(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Finalized = v
+func (x *Invoice) SetDateFinalized(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateFinalized = v
 }
 
-func (x *Invoice) SetDueDate(v *timestamppb.Timestamp) {
-	x.xxx_hidden_DueDate = v
+func (x *Invoice) SetDateDue(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateDue = v
 }
 
-func (x *Invoice) SetSettled(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Settled = v
+func (x *Invoice) SetDateSettled(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateSettled = v
 }
 
 func (x *Invoice) SetChannelNumber(v string) {
@@ -1259,59 +1259,59 @@ func (x *Invoice) SetCredits(v []*InvoiceCredit) {
 	x.xxx_hidden_Credits = &v
 }
 
-func (x *Invoice) HasStart() bool {
+func (x *Invoice) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Start != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *Invoice) HasEnd() bool {
+func (x *Invoice) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_End != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *Invoice) HasFinalized() bool {
+func (x *Invoice) HasDateFinalized() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Finalized != nil
+	return x.xxx_hidden_DateFinalized != nil
 }
 
-func (x *Invoice) HasDueDate() bool {
+func (x *Invoice) HasDateDue() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_DueDate != nil
+	return x.xxx_hidden_DateDue != nil
 }
 
-func (x *Invoice) HasSettled() bool {
+func (x *Invoice) HasDateSettled() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Settled != nil
+	return x.xxx_hidden_DateSettled != nil
 }
 
-func (x *Invoice) ClearStart() {
-	x.xxx_hidden_Start = nil
+func (x *Invoice) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *Invoice) ClearEnd() {
-	x.xxx_hidden_End = nil
+func (x *Invoice) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
-func (x *Invoice) ClearFinalized() {
-	x.xxx_hidden_Finalized = nil
+func (x *Invoice) ClearDateFinalized() {
+	x.xxx_hidden_DateFinalized = nil
 }
 
-func (x *Invoice) ClearDueDate() {
-	x.xxx_hidden_DueDate = nil
+func (x *Invoice) ClearDateDue() {
+	x.xxx_hidden_DateDue = nil
 }
 
-func (x *Invoice) ClearSettled() {
-	x.xxx_hidden_Settled = nil
+func (x *Invoice) ClearDateSettled() {
+	x.xxx_hidden_DateSettled = nil
 }
 
 type Invoice_builder struct {
@@ -1322,10 +1322,10 @@ type Invoice_builder struct {
 	BillingAccount string
 	State          InvoiceState
 	// From the first moment it covers to the first after.
-	Start    *timestamppb.Timestamp
-	End      *timestamppb.Timestamp
-	Channel  Channel
-	Currency string
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
+	Channel   Channel
+	Currency  string
 	// What its lines come to; a seller's tax on that, on a channel levyan
 	// sells on itself (none on a merchant of record, whose tax is its own);
 	// and the two.
@@ -1346,9 +1346,9 @@ type Invoice_builder struct {
 	Number int64
 	// When it was finalized, when it is due where its channel says one, and
 	// when it was settled.
-	Finalized *timestamppb.Timestamp
-	DueDate   *timestamppb.Timestamp
-	Settled   *timestamppb.Timestamp
+	DateFinalized *timestamppb.Timestamp
+	DateDue       *timestamppb.Timestamp
+	DateSettled   *timestamppb.Timestamp
 	// On a merchant of record, its invoice number once it collected.
 	ChannelNumber string
 	// Its lines, in the order of their periods: in `GetInvoice`'s answer.
@@ -1366,8 +1366,8 @@ func (b0 Invoice_builder) Build() *Invoice {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_BillingAccount = b.BillingAccount
 	x.xxx_hidden_State = b.State
-	x.xxx_hidden_Start = b.Start
-	x.xxx_hidden_End = b.End
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	x.xxx_hidden_Channel = b.Channel
 	x.xxx_hidden_Currency = b.Currency
 	x.xxx_hidden_Subtotal = b.Subtotal
@@ -1379,9 +1379,9 @@ func (b0 Invoice_builder) Build() *Invoice {
 	x.xxx_hidden_Reduced = b.Reduced
 	x.xxx_hidden_Remaining = b.Remaining
 	x.xxx_hidden_Number = b.Number
-	x.xxx_hidden_Finalized = b.Finalized
-	x.xxx_hidden_DueDate = b.DueDate
-	x.xxx_hidden_Settled = b.Settled
+	x.xxx_hidden_DateFinalized = b.DateFinalized
+	x.xxx_hidden_DateDue = b.DateDue
+	x.xxx_hidden_DateSettled = b.DateSettled
 	x.xxx_hidden_ChannelNumber = b.ChannelNumber
 	x.xxx_hidden_Lines = &b.Lines
 	x.xxx_hidden_Credits = &b.Credits
@@ -1391,13 +1391,13 @@ func (b0 Invoice_builder) Build() *Invoice {
 // InvoiceCredit is what of an invoice's total one credit paid, before
 // anything was asked of its channel.
 type InvoiceCredit struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Credit    string                 `protobuf:"bytes,1,opt,name=credit"`
-	xxx_hidden_Amount    int64                  `protobuf:"varint,2,opt,name=amount"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Expires   *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Credit      string                 `protobuf:"bytes,1,opt,name=credit"`
+	xxx_hidden_Amount      int64                  `protobuf:"varint,2,opt,name=amount"`
+	xxx_hidden_Workspace   string                 `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_DateExpires *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=date_expires,json=dateExpires"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *InvoiceCredit) Reset() {
@@ -1446,9 +1446,9 @@ func (x *InvoiceCredit) GetWorkspace() string {
 	return ""
 }
 
-func (x *InvoiceCredit) GetExpires() *timestamppb.Timestamp {
+func (x *InvoiceCredit) GetDateExpires() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Expires
+		return x.xxx_hidden_DateExpires
 	}
 	return nil
 }
@@ -1465,19 +1465,19 @@ func (x *InvoiceCredit) SetWorkspace(v string) {
 	x.xxx_hidden_Workspace = v
 }
 
-func (x *InvoiceCredit) SetExpires(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Expires = v
+func (x *InvoiceCredit) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
 }
 
-func (x *InvoiceCredit) HasExpires() bool {
+func (x *InvoiceCredit) HasDateExpires() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Expires != nil
+	return x.xxx_hidden_DateExpires != nil
 }
 
-func (x *InvoiceCredit) ClearExpires() {
-	x.xxx_hidden_Expires = nil
+func (x *InvoiceCredit) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
 }
 
 type InvoiceCredit_builder struct {
@@ -1489,8 +1489,8 @@ type InvoiceCredit_builder struct {
 	Amount int64
 	// The workspace whose lines alone it paid, for a workspace's; and when it
 	// expires.
-	Workspace string
-	Expires   *timestamppb.Timestamp
+	Workspace   string
+	DateExpires *timestamppb.Timestamp
 }
 
 func (b0 InvoiceCredit_builder) Build() *InvoiceCredit {
@@ -1500,7 +1500,7 @@ func (b0 InvoiceCredit_builder) Build() *InvoiceCredit {
 	x.xxx_hidden_Credit = b.Credit
 	x.xxx_hidden_Amount = b.Amount
 	x.xxx_hidden_Workspace = b.Workspace
-	x.xxx_hidden_Expires = b.Expires
+	x.xxx_hidden_DateExpires = b.DateExpires
 	return m0
 }
 
@@ -1519,8 +1519,8 @@ type Credit struct {
 	xxx_hidden_Granted        int64                  `protobuf:"varint,4,opt,name=granted"`
 	xxx_hidden_Left           int64                  `protobuf:"varint,5,opt,name=left"`
 	xxx_hidden_Currency       string                 `protobuf:"bytes,6,opt,name=currency"`
-	xxx_hidden_Expires        *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires"`
-	xxx_hidden_Created        *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created"`
+	xxx_hidden_DateExpires    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_DateCreated    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=date_created,json=dateCreated"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1592,16 +1592,16 @@ func (x *Credit) GetCurrency() string {
 	return ""
 }
 
-func (x *Credit) GetExpires() *timestamppb.Timestamp {
+func (x *Credit) GetDateExpires() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Expires
+		return x.xxx_hidden_DateExpires
 	}
 	return nil
 }
 
-func (x *Credit) GetCreated() *timestamppb.Timestamp {
+func (x *Credit) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Created
+		return x.xxx_hidden_DateCreated
 	}
 	return nil
 }
@@ -1630,34 +1630,34 @@ func (x *Credit) SetCurrency(v string) {
 	x.xxx_hidden_Currency = v
 }
 
-func (x *Credit) SetExpires(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Expires = v
+func (x *Credit) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
 }
 
-func (x *Credit) SetCreated(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Created = v
+func (x *Credit) SetDateCreated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCreated = v
 }
 
-func (x *Credit) HasExpires() bool {
+func (x *Credit) HasDateExpires() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Expires != nil
+	return x.xxx_hidden_DateExpires != nil
 }
 
-func (x *Credit) HasCreated() bool {
+func (x *Credit) HasDateCreated() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Created != nil
+	return x.xxx_hidden_DateCreated != nil
 }
 
-func (x *Credit) ClearExpires() {
-	x.xxx_hidden_Expires = nil
+func (x *Credit) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
 }
 
-func (x *Credit) ClearCreated() {
-	x.xxx_hidden_Created = nil
+func (x *Credit) ClearDateCreated() {
+	x.xxx_hidden_DateCreated = nil
 }
 
 type Credit_builder struct {
@@ -1675,8 +1675,8 @@ type Credit_builder struct {
 	Left     int64
 	Currency string
 	// When it expires, and when it was granted.
-	Expires *timestamppb.Timestamp
-	Created *timestamppb.Timestamp
+	DateExpires *timestamppb.Timestamp
+	DateCreated *timestamppb.Timestamp
 }
 
 func (b0 Credit_builder) Build() *Credit {
@@ -1689,8 +1689,8 @@ func (b0 Credit_builder) Build() *Credit {
 	x.xxx_hidden_Granted = b.Granted
 	x.xxx_hidden_Left = b.Left
 	x.xxx_hidden_Currency = b.Currency
-	x.xxx_hidden_Expires = b.Expires
-	x.xxx_hidden_Created = b.Created
+	x.xxx_hidden_DateExpires = b.DateExpires
+	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
 
@@ -1713,11 +1713,11 @@ type Dunning struct {
 	xxx_hidden_Invoice        string                 `protobuf:"bytes,1,opt,name=invoice"`
 	xxx_hidden_BillingAccount string                 `protobuf:"bytes,2,opt,name=billing_account,json=billingAccount"`
 	xxx_hidden_Kind           DeclineKind            `protobuf:"varint,3,opt,name=kind,enum=levyan.v1.DeclineKind"`
-	xxx_hidden_Failed         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=failed"`
-	xxx_hidden_NextRetry      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=next_retry,json=nextRetry"`
-	xxx_hidden_GraceEnds      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=grace_ends,json=graceEnds"`
-	xxx_hidden_RestrictedFrom *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=restricted_from,json=restrictedFrom"`
-	xxx_hidden_ReadonlyFrom   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=readonly_from,json=readonlyFrom"`
+	xxx_hidden_DateFailed     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=date_failed,json=dateFailed"`
+	xxx_hidden_DateNextRetry  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_next_retry,json=dateNextRetry"`
+	xxx_hidden_DateGraceEnds  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_grace_ends,json=dateGraceEnds"`
+	xxx_hidden_DateRestricted *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date_restricted,json=dateRestricted"`
+	xxx_hidden_DateReadonly   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=date_readonly,json=dateReadonly"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1768,37 +1768,37 @@ func (x *Dunning) GetKind() DeclineKind {
 	return DeclineKind_DECLINE_KIND_UNSPECIFIED
 }
 
-func (x *Dunning) GetFailed() *timestamppb.Timestamp {
+func (x *Dunning) GetDateFailed() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Failed
+		return x.xxx_hidden_DateFailed
 	}
 	return nil
 }
 
-func (x *Dunning) GetNextRetry() *timestamppb.Timestamp {
+func (x *Dunning) GetDateNextRetry() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_NextRetry
+		return x.xxx_hidden_DateNextRetry
 	}
 	return nil
 }
 
-func (x *Dunning) GetGraceEnds() *timestamppb.Timestamp {
+func (x *Dunning) GetDateGraceEnds() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_GraceEnds
+		return x.xxx_hidden_DateGraceEnds
 	}
 	return nil
 }
 
-func (x *Dunning) GetRestrictedFrom() *timestamppb.Timestamp {
+func (x *Dunning) GetDateRestricted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_RestrictedFrom
+		return x.xxx_hidden_DateRestricted
 	}
 	return nil
 }
 
-func (x *Dunning) GetReadonlyFrom() *timestamppb.Timestamp {
+func (x *Dunning) GetDateReadonly() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ReadonlyFrom
+		return x.xxx_hidden_DateReadonly
 	}
 	return nil
 }
@@ -1815,79 +1815,79 @@ func (x *Dunning) SetKind(v DeclineKind) {
 	x.xxx_hidden_Kind = v
 }
 
-func (x *Dunning) SetFailed(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Failed = v
+func (x *Dunning) SetDateFailed(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateFailed = v
 }
 
-func (x *Dunning) SetNextRetry(v *timestamppb.Timestamp) {
-	x.xxx_hidden_NextRetry = v
+func (x *Dunning) SetDateNextRetry(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateNextRetry = v
 }
 
-func (x *Dunning) SetGraceEnds(v *timestamppb.Timestamp) {
-	x.xxx_hidden_GraceEnds = v
+func (x *Dunning) SetDateGraceEnds(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateGraceEnds = v
 }
 
-func (x *Dunning) SetRestrictedFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_RestrictedFrom = v
+func (x *Dunning) SetDateRestricted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateRestricted = v
 }
 
-func (x *Dunning) SetReadonlyFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ReadonlyFrom = v
+func (x *Dunning) SetDateReadonly(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateReadonly = v
 }
 
-func (x *Dunning) HasFailed() bool {
+func (x *Dunning) HasDateFailed() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Failed != nil
+	return x.xxx_hidden_DateFailed != nil
 }
 
-func (x *Dunning) HasNextRetry() bool {
+func (x *Dunning) HasDateNextRetry() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_NextRetry != nil
+	return x.xxx_hidden_DateNextRetry != nil
 }
 
-func (x *Dunning) HasGraceEnds() bool {
+func (x *Dunning) HasDateGraceEnds() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_GraceEnds != nil
+	return x.xxx_hidden_DateGraceEnds != nil
 }
 
-func (x *Dunning) HasRestrictedFrom() bool {
+func (x *Dunning) HasDateRestricted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_RestrictedFrom != nil
+	return x.xxx_hidden_DateRestricted != nil
 }
 
-func (x *Dunning) HasReadonlyFrom() bool {
+func (x *Dunning) HasDateReadonly() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ReadonlyFrom != nil
+	return x.xxx_hidden_DateReadonly != nil
 }
 
-func (x *Dunning) ClearFailed() {
-	x.xxx_hidden_Failed = nil
+func (x *Dunning) ClearDateFailed() {
+	x.xxx_hidden_DateFailed = nil
 }
 
-func (x *Dunning) ClearNextRetry() {
-	x.xxx_hidden_NextRetry = nil
+func (x *Dunning) ClearDateNextRetry() {
+	x.xxx_hidden_DateNextRetry = nil
 }
 
-func (x *Dunning) ClearGraceEnds() {
-	x.xxx_hidden_GraceEnds = nil
+func (x *Dunning) ClearDateGraceEnds() {
+	x.xxx_hidden_DateGraceEnds = nil
 }
 
-func (x *Dunning) ClearRestrictedFrom() {
-	x.xxx_hidden_RestrictedFrom = nil
+func (x *Dunning) ClearDateRestricted() {
+	x.xxx_hidden_DateRestricted = nil
 }
 
-func (x *Dunning) ClearReadonlyFrom() {
-	x.xxx_hidden_ReadonlyFrom = nil
+func (x *Dunning) ClearDateReadonly() {
+	x.xxx_hidden_DateReadonly = nil
 }
 
 type Dunning_builder struct {
@@ -1901,25 +1901,25 @@ type Dunning_builder struct {
 	// that it is one, or a failure that is no decline.
 	Kind DeclineKind
 	// When its first charge failed: what every time below is measured from.
-	Failed *timestamppb.Timestamp
+	DateFailed *timestamppb.Timestamp
 	// When it is charged next: a retry its row schedules, or the moment its
 	// billing account became collectable again. One already past is due, and
 	// is made at the deployment's next look (`dunning.every`, a minute). Unset
 	// when no retry is to come: then it is charged as soon as its billing
 	// account is collectable again, and never else -- a method to replace is
 	// never tried again as it is.
-	NextRetry *timestamppb.Timestamp
+	DateNextRetry *timestamppb.Timestamp
 	// When its grace ends, and from when what it bills -- every workspace of
 	// its lines -- is restricted (`<product>.restricted`): as its grace ends,
 	// or at once, from its first failure. It is restricted from then until it
 	// is paid.
-	GraceEnds      *timestamppb.Timestamp
-	RestrictedFrom *timestamppb.Timestamp
+	DateGraceEnds  *timestamppb.Timestamp
+	DateRestricted *timestamppb.Timestamp
 	// From when what it bills is read-only (`<product>.readonly`), the second
 	// stage of its restriction: sixty days after its first failure, by
-	// default, and never sooner than `restricted_from`. It is read-only from
+	// default, and never sooner than `date_restricted`. It is read-only from
 	// then until it is paid, when both stages end at once.
-	ReadonlyFrom *timestamppb.Timestamp
+	DateReadonly *timestamppb.Timestamp
 }
 
 func (b0 Dunning_builder) Build() *Dunning {
@@ -1929,11 +1929,11 @@ func (b0 Dunning_builder) Build() *Dunning {
 	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_BillingAccount = b.BillingAccount
 	x.xxx_hidden_Kind = b.Kind
-	x.xxx_hidden_Failed = b.Failed
-	x.xxx_hidden_NextRetry = b.NextRetry
-	x.xxx_hidden_GraceEnds = b.GraceEnds
-	x.xxx_hidden_RestrictedFrom = b.RestrictedFrom
-	x.xxx_hidden_ReadonlyFrom = b.ReadonlyFrom
+	x.xxx_hidden_DateFailed = b.DateFailed
+	x.xxx_hidden_DateNextRetry = b.DateNextRetry
+	x.xxx_hidden_DateGraceEnds = b.DateGraceEnds
+	x.xxx_hidden_DateRestricted = b.DateRestricted
+	x.xxx_hidden_DateReadonly = b.DateReadonly
 	return m0
 }
 
@@ -2072,20 +2072,20 @@ func (b0 InvoiceLine_builder) Build() *InvoiceLine {
 // still due first, then given back through the channel or kept as the
 // billing account's credit, to be taken off its next invoices.
 type CreditNote struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id       string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Invoice  string                 `protobuf:"bytes,2,opt,name=invoice"`
-	xxx_hidden_Reason   CreditNoteReason       `protobuf:"varint,3,opt,name=reason,enum=levyan.v1.CreditNoteReason"`
-	xxx_hidden_Amount   int64                  `protobuf:"varint,4,opt,name=amount"`
-	xxx_hidden_Tax      int64                  `protobuf:"varint,5,opt,name=tax"`
-	xxx_hidden_Total    int64                  `protobuf:"varint,6,opt,name=total"`
-	xxx_hidden_Reduced  int64                  `protobuf:"varint,7,opt,name=reduced"`
-	xxx_hidden_Refunded int64                  `protobuf:"varint,8,opt,name=refunded"`
-	xxx_hidden_Credited int64                  `protobuf:"varint,9,opt,name=credited"`
-	xxx_hidden_Number   int64                  `protobuf:"varint,10,opt,name=number"`
-	xxx_hidden_Created  *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Invoice     string                 `protobuf:"bytes,2,opt,name=invoice"`
+	xxx_hidden_Reason      CreditNoteReason       `protobuf:"varint,3,opt,name=reason,enum=levyan.v1.CreditNoteReason"`
+	xxx_hidden_Amount      int64                  `protobuf:"varint,4,opt,name=amount"`
+	xxx_hidden_Tax         int64                  `protobuf:"varint,5,opt,name=tax"`
+	xxx_hidden_Total       int64                  `protobuf:"varint,6,opt,name=total"`
+	xxx_hidden_Reduced     int64                  `protobuf:"varint,7,opt,name=reduced"`
+	xxx_hidden_Refunded    int64                  `protobuf:"varint,8,opt,name=refunded"`
+	xxx_hidden_Credited    int64                  `protobuf:"varint,9,opt,name=credited"`
+	xxx_hidden_Number      int64                  `protobuf:"varint,10,opt,name=number"`
+	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_created,json=dateCreated"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreditNote) Reset() {
@@ -2183,9 +2183,9 @@ func (x *CreditNote) GetNumber() int64 {
 	return 0
 }
 
-func (x *CreditNote) GetCreated() *timestamppb.Timestamp {
+func (x *CreditNote) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Created
+		return x.xxx_hidden_DateCreated
 	}
 	return nil
 }
@@ -2230,19 +2230,19 @@ func (x *CreditNote) SetNumber(v int64) {
 	x.xxx_hidden_Number = v
 }
 
-func (x *CreditNote) SetCreated(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Created = v
+func (x *CreditNote) SetDateCreated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCreated = v
 }
 
-func (x *CreditNote) HasCreated() bool {
+func (x *CreditNote) HasDateCreated() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Created != nil
+	return x.xxx_hidden_DateCreated != nil
 }
 
-func (x *CreditNote) ClearCreated() {
-	x.xxx_hidden_Created = nil
+func (x *CreditNote) ClearDateCreated() {
+	x.xxx_hidden_DateCreated = nil
 }
 
 type CreditNote_builder struct {
@@ -2260,8 +2260,8 @@ type CreditNote_builder struct {
 	Refunded int64
 	Credited int64
 	// Its number, on a channel levyan sells on itself; 0 on any other.
-	Number  int64
-	Created *timestamppb.Timestamp
+	Number      int64
+	DateCreated *timestamppb.Timestamp
 }
 
 func (b0 CreditNote_builder) Build() *CreditNote {
@@ -2278,7 +2278,7 @@ func (b0 CreditNote_builder) Build() *CreditNote {
 	x.xxx_hidden_Refunded = b.Refunded
 	x.xxx_hidden_Credited = b.Credited
 	x.xxx_hidden_Number = b.Number
-	x.xxx_hidden_Created = b.Created
+	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
 
@@ -2319,13 +2319,14 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x1fPayerServiceGetStatementRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"V\n" +
 	" PayerServiceGetStatementResponse\x122\n" +
-	"\tstatement\x18\x01 \x01(\v2\x14.levyan.v1.StatementR\tstatement\"\xa1\x06\n" +
+	"\tstatement\x18\x01 \x01(\v2\x14.levyan.v1.StatementR\tstatement\"\xc5\x06\n" +
 	"\aInvoice\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12-\n" +
-	"\x05state\x18\x03 \x01(\x0e2\x17.levyan.v1.InvoiceStateR\x05state\x120\n" +
-	"\x05start\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
-	"\x03end\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\x12,\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x17.levyan.v1.InvoiceStateR\x05state\x129\n" +
+	"\n" +
+	"date_start\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\x12,\n" +
 	"\achannel\x18\x06 \x01(\x0e2\x12.levyan.v1.ChannelR\achannel\x12\x1a\n" +
 	"\bcurrency\x18\a \x01(\tR\bcurrency\x12\x1a\n" +
 	"\bsubtotal\x18\b \x01(\x03R\bsubtotal\x12\x10\n" +
@@ -2337,44 +2338,43 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\x04paid\x18\r \x01(\x03R\x04paid\x12\x18\n" +
 	"\areduced\x18\x0e \x01(\x03R\areduced\x12\x1c\n" +
 	"\tremaining\x18\x0f \x01(\x03R\tremaining\x12\x16\n" +
-	"\x06number\x18\x10 \x01(\x03R\x06number\x128\n" +
-	"\tfinalized\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tfinalized\x125\n" +
-	"\bdue_date\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\adueDate\x124\n" +
-	"\asettled\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\asettled\x12%\n" +
+	"\x06number\x18\x10 \x01(\x03R\x06number\x12A\n" +
+	"\x0edate_finalized\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\rdateFinalized\x125\n" +
+	"\bdate_due\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\adateDue\x12=\n" +
+	"\fdate_settled\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\vdateSettled\x12%\n" +
 	"\x0echannel_number\x18\x14 \x01(\tR\rchannelNumber\x12,\n" +
 	"\x05lines\x18\x15 \x03(\v2\x16.levyan.v1.InvoiceLineR\x05lines\x122\n" +
-	"\acredits\x18\x16 \x03(\v2\x18.levyan.v1.InvoiceCreditR\acredits\"\x93\x01\n" +
+	"\acredits\x18\x16 \x03(\v2\x18.levyan.v1.InvoiceCreditR\acredits\"\x9c\x01\n" +
 	"\rInvoiceCredit\x12\x16\n" +
 	"\x06credit\x18\x01 \x01(\tR\x06credit\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x1c\n" +
-	"\tworkspace\x18\x03 \x01(\tR\tworkspace\x124\n" +
-	"\aexpires\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\"\x95\x02\n" +
+	"\tworkspace\x18\x03 \x01(\tR\tworkspace\x12=\n" +
+	"\fdate_expires\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vdateExpires\"\xa7\x02\n" +
 	"\x06Credit\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12'\n" +
 	"\x0fbilling_account\x18\x03 \x01(\tR\x0ebillingAccount\x12\x18\n" +
 	"\agranted\x18\x04 \x01(\x03R\agranted\x12\x12\n" +
 	"\x04left\x18\x05 \x01(\x03R\x04left\x12\x1a\n" +
-	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x124\n" +
-	"\aexpires\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\x124\n" +
-	"\acreated\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"\xa8\x03\n" +
+	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x12=\n" +
+	"\fdate_expires\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vdateExpires\x12=\n" +
+	"\fdate_created\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"\xc3\x03\n" +
 	"\aDunning\x12\x18\n" +
 	"\ainvoice\x18\x01 \x01(\tR\ainvoice\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12*\n" +
-	"\x04kind\x18\x03 \x01(\x0e2\x16.levyan.v1.DeclineKindR\x04kind\x122\n" +
-	"\x06failed\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x06failed\x129\n" +
-	"\n" +
-	"next_retry\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tnextRetry\x129\n" +
-	"\n" +
-	"grace_ends\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tgraceEnds\x12C\n" +
-	"\x0frestricted_from\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0erestrictedFrom\x12?\n" +
-	"\rreadonly_from\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\freadonlyFrom\"\xa0\x01\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x16.levyan.v1.DeclineKindR\x04kind\x12;\n" +
+	"\vdate_failed\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"dateFailed\x12B\n" +
+	"\x0fdate_next_retry\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rdateNextRetry\x12B\n" +
+	"\x0fdate_grace_ends\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\rdateGraceEnds\x12C\n" +
+	"\x0fdate_restricted\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0edateRestricted\x12?\n" +
+	"\rdate_readonly\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\fdateReadonly\"\xa0\x01\n" +
 	"\vInvoiceLine\x12\x1c\n" +
 	"\tstatement\x18\x01 \x01(\tR\tstatement\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x14\n" +
 	"\x05label\x18\x03 \x01(\tR\x05label\x12)\n" +
 	"\x06period\x18\x04 \x01(\v2\x11.levyan.v1.PeriodR\x06period\x12\x14\n" +
-	"\x05total\x18\x05 \x01(\x03R\x05total\"\xcb\x02\n" +
+	"\x05total\x18\x05 \x01(\x03R\x05total\"\xd4\x02\n" +
 	"\n" +
 	"CreditNote\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
@@ -2387,8 +2387,8 @@ const file_levyan_v1_invoice_proto_rawDesc = "" +
 	"\brefunded\x18\b \x01(\x03R\brefunded\x12\x1a\n" +
 	"\bcredited\x18\t \x01(\x03R\bcredited\x12\x16\n" +
 	"\x06number\x18\n" +
-	" \x01(\x03R\x06number\x124\n" +
-	"\acreated\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\acreated*\xe8\x01\n" +
+	" \x01(\x03R\x06number\x12=\n" +
+	"\fdate_created\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated*\xe8\x01\n" +
 	"\fInvoiceState\x12\x1d\n" +
 	"\x19INVOICE_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13INVOICE_STATE_DRAFT\x10\x01\x12\x16\n" +
@@ -2445,26 +2445,26 @@ var file_levyan_v1_invoice_proto_depIdxs = []int32{
 	19, // 5: levyan.v1.PayerServiceListStatementsResponse.statements:type_name -> levyan.v1.Statement
 	19, // 6: levyan.v1.PayerServiceGetStatementResponse.statement:type_name -> levyan.v1.Statement
 	0,  // 7: levyan.v1.Invoice.state:type_name -> levyan.v1.InvoiceState
-	20, // 8: levyan.v1.Invoice.start:type_name -> google.protobuf.Timestamp
-	20, // 9: levyan.v1.Invoice.end:type_name -> google.protobuf.Timestamp
+	20, // 8: levyan.v1.Invoice.date_start:type_name -> google.protobuf.Timestamp
+	20, // 9: levyan.v1.Invoice.date_end:type_name -> google.protobuf.Timestamp
 	21, // 10: levyan.v1.Invoice.channel:type_name -> levyan.v1.Channel
-	20, // 11: levyan.v1.Invoice.finalized:type_name -> google.protobuf.Timestamp
-	20, // 12: levyan.v1.Invoice.due_date:type_name -> google.protobuf.Timestamp
-	20, // 13: levyan.v1.Invoice.settled:type_name -> google.protobuf.Timestamp
+	20, // 11: levyan.v1.Invoice.date_finalized:type_name -> google.protobuf.Timestamp
+	20, // 12: levyan.v1.Invoice.date_due:type_name -> google.protobuf.Timestamp
+	20, // 13: levyan.v1.Invoice.date_settled:type_name -> google.protobuf.Timestamp
 	17, // 14: levyan.v1.Invoice.lines:type_name -> levyan.v1.InvoiceLine
 	14, // 15: levyan.v1.Invoice.credits:type_name -> levyan.v1.InvoiceCredit
-	20, // 16: levyan.v1.InvoiceCredit.expires:type_name -> google.protobuf.Timestamp
-	20, // 17: levyan.v1.Credit.expires:type_name -> google.protobuf.Timestamp
-	20, // 18: levyan.v1.Credit.created:type_name -> google.protobuf.Timestamp
+	20, // 16: levyan.v1.InvoiceCredit.date_expires:type_name -> google.protobuf.Timestamp
+	20, // 17: levyan.v1.Credit.date_expires:type_name -> google.protobuf.Timestamp
+	20, // 18: levyan.v1.Credit.date_created:type_name -> google.protobuf.Timestamp
 	1,  // 19: levyan.v1.Dunning.kind:type_name -> levyan.v1.DeclineKind
-	20, // 20: levyan.v1.Dunning.failed:type_name -> google.protobuf.Timestamp
-	20, // 21: levyan.v1.Dunning.next_retry:type_name -> google.protobuf.Timestamp
-	20, // 22: levyan.v1.Dunning.grace_ends:type_name -> google.protobuf.Timestamp
-	20, // 23: levyan.v1.Dunning.restricted_from:type_name -> google.protobuf.Timestamp
-	20, // 24: levyan.v1.Dunning.readonly_from:type_name -> google.protobuf.Timestamp
+	20, // 20: levyan.v1.Dunning.date_failed:type_name -> google.protobuf.Timestamp
+	20, // 21: levyan.v1.Dunning.date_next_retry:type_name -> google.protobuf.Timestamp
+	20, // 22: levyan.v1.Dunning.date_grace_ends:type_name -> google.protobuf.Timestamp
+	20, // 23: levyan.v1.Dunning.date_restricted:type_name -> google.protobuf.Timestamp
+	20, // 24: levyan.v1.Dunning.date_readonly:type_name -> google.protobuf.Timestamp
 	22, // 25: levyan.v1.InvoiceLine.period:type_name -> levyan.v1.Period
 	2,  // 26: levyan.v1.CreditNote.reason:type_name -> levyan.v1.CreditNoteReason
-	20, // 27: levyan.v1.CreditNote.created:type_name -> google.protobuf.Timestamp
+	20, // 27: levyan.v1.CreditNote.date_created:type_name -> google.protobuf.Timestamp
 	28, // [28:28] is the sub-list for method output_type
 	28, // [28:28] is the sub-list for method input_type
 	28, // [28:28] is the sub-list for extension type_name

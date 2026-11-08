@@ -50,23 +50,23 @@ const (
 // the trail says who gave it and who ended it; and ended, never deleted:
 // there is no Erase.
 type Allowance struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *Meter                 `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_Quantity    int64                  `protobuf:"varint,9,opt,name=quantity"`
-	xxx_hidden_ValidFrom   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=valid_from,json=validFrom"`
-	xxx_hidden_ValidUntil  *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=valid_until,json=validUntil"`
-	xxx_hidden_Reason      string                 `protobuf:"bytes,12,opt,name=reason"`
-	xxx_hidden_DateUpdated *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_GrantedBy   *Operator              `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
-	xxx_hidden_EndedBy     *Operator              `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
-	xxx_hidden_EndReason   string                 `protobuf:"bytes,18,opt,name=end_reason,json=endReason"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant        *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace     *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter         *Meter                 `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_Quantity      int64                  `protobuf:"varint,9,opt,name=quantity"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason        string                 `protobuf:"bytes,12,opt,name=reason"`
+	xxx_hidden_DateUpdated   *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateErased    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_GrantedBy     *Operator              `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
+	xxx_hidden_EndedBy       *Operator              `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
+	xxx_hidden_EndReason     string                 `protobuf:"bytes,18,opt,name=end_reason,json=endReason"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Allowance) Reset() {
@@ -129,16 +129,16 @@ func (x *Allowance) GetQuantity() int64 {
 	return 0
 }
 
-func (x *Allowance) GetValidFrom() *timestamppb.Timestamp {
+func (x *Allowance) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ValidFrom
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
 
-func (x *Allowance) GetValidUntil() *timestamppb.Timestamp {
+func (x *Allowance) GetDateExpires() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ValidUntil
+		return x.xxx_hidden_DateExpires
 	}
 	return nil
 }
@@ -215,12 +215,12 @@ func (x *Allowance) SetQuantity(v int64) {
 	x.xxx_hidden_Quantity = v
 }
 
-func (x *Allowance) SetValidFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ValidFrom = v
+func (x *Allowance) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
-func (x *Allowance) SetValidUntil(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ValidUntil = v
+func (x *Allowance) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
 }
 
 func (x *Allowance) SetReason(v string) {
@@ -272,18 +272,18 @@ func (x *Allowance) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *Allowance) HasValidFrom() bool {
+func (x *Allowance) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ValidFrom != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
-func (x *Allowance) HasValidUntil() bool {
+func (x *Allowance) HasDateExpires() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ValidUntil != nil
+	return x.xxx_hidden_DateExpires != nil
 }
 
 func (x *Allowance) HasDateUpdated() bool {
@@ -333,12 +333,12 @@ func (x *Allowance) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *Allowance) ClearValidFrom() {
-	x.xxx_hidden_ValidFrom = nil
+func (x *Allowance) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
-func (x *Allowance) ClearValidUntil() {
-	x.xxx_hidden_ValidUntil = nil
+func (x *Allowance) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
 }
 
 func (x *Allowance) ClearDateUpdated() {
@@ -376,11 +376,11 @@ type Allowance_builder struct {
 	Quantity int64
 	// When it begins: unset is the moment it is given. Never in a period whose
 	// close has begun.
-	ValidFrom *timestamppb.Timestamp
+	DateEffective *timestamppb.Timestamp
 	// When it ends, the moment it is in force no longer; unset is never, until
 	// it is ended. Ending it moves it to now -- or to when it begins, for one
 	// that has not -- and never later, nor into a period whose close has begun.
-	ValidUntil *timestamppb.Timestamp
+	DateExpires *timestamppb.Timestamp
 	// Why it was given, in the operator's words: "2027 봄 프로모션".
 	Reason string
 	// Stamped with every change.
@@ -406,8 +406,8 @@ func (b0 Allowance_builder) Build() *Allowance {
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
 	x.xxx_hidden_Quantity = b.Quantity
-	x.xxx_hidden_ValidFrom = b.ValidFrom
-	x.xxx_hidden_ValidUntil = b.ValidUntil
+	x.xxx_hidden_DateEffective = b.DateEffective
+	x.xxx_hidden_DateExpires = b.DateExpires
 	x.xxx_hidden_Reason = b.Reason
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateErased = b.DateErased
@@ -422,18 +422,16 @@ var File_levyan_allowance_proto protoreflect.FileDescriptor
 
 const file_levyan_allowance_proto_rawDesc = "" +
 	"\n" +
-	"\x16levyan/allowance.proto\x12\x06levyan\x1a\x12levyan/meter.proto\x1a\x15levyan/operator.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xdc\a\n" +
+	"\x16levyan/allowance.proto\x12\x06levyan\x1a\x12levyan/meter.proto\x1a\x15levyan/operator.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xea\a\n" +
 	"\tAllowance\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x11.levyan.WorkspaceB\x06\xf2\x82\x16\x02@\x01R\tworkspace\x12+\n" +
 	"\x05meter\x18\b \x01(\v2\r.levyan.MeterB\x06\xf2\x82\x16\x02@\x01R\x05meter\x12\"\n" +
-	"\bquantity\x18\t \x01(\x03B\x06\xea\x82\x16\x02@\x01R\bquantity\x12D\n" +
-	"\n" +
-	"valid_from\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tvalidFrom\x12C\n" +
-	"\vvalid_until\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\n" +
-	"validUntil\x12$\n" +
+	"\bquantity\x18\t \x01(\x03B\x06\xea\x82\x16\x02@\x01R\bquantity\x12L\n" +
+	"\x0edate_effective\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\rdateEffective\x12E\n" +
+	"\fdate_expires\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x06\xea\x82\x16\x028\x01R\vdateExpires\x12$\n" +
 	"\x06reason\x18\f \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x01R\x06reason\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
@@ -443,15 +441,14 @@ const file_levyan_allowance_proto_rawDesc = "" +
 	"granted_by\x18\x10 \x01(\v2\x10.levyan.OperatorB\b\xf2\x82\x16\x048\x01@\x01R\tgrantedBy\x123\n" +
 	"\bended_by\x18\x11 \x01(\v2\x10.levyan.OperatorB\x06\xf2\x82\x16\x028\x01R\aendedBy\x12%\n" +
 	"\n" +
-	"end_reason\x18\x12 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\tendReason:\xd7\x01\xca\xfc\x15n\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
+	"end_reason\x18\x12 \x01(\tB\x06\xaa\xc1\x16\x02\x18\x01R\tendReason:\xdb\x01\xca\xfc\x15r\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
-	"\x02id\x10\x01\x1a5\x12\tworkspace\x1a\r\n" +
+	"\x02id\x10\x01\x1a9\x12\tworkspace\x1a\r\n" +
 	"\tworkspace\x10\x03\x1a\t\n" +
-	"\x05meter\x10\b\x1a\x0e\n" +
-	"\n" +
-	"valid_from\x10\n" +
+	"\x05meter\x10\b\x1a\x12\n" +
+	"\x0edate_effective\x10\n" +
 	"\x8a\xbb\x16a\b.23\n" +
 	"\x10\n" +
 	"\x0e\n" +
@@ -476,8 +473,8 @@ var file_levyan_allowance_proto_depIdxs = []int32{
 	1,  // 0: levyan.Allowance.tenant:type_name -> levyan.Tenant
 	2,  // 1: levyan.Allowance.workspace:type_name -> levyan.Workspace
 	3,  // 2: levyan.Allowance.meter:type_name -> levyan.Meter
-	4,  // 3: levyan.Allowance.valid_from:type_name -> google.protobuf.Timestamp
-	4,  // 4: levyan.Allowance.valid_until:type_name -> google.protobuf.Timestamp
+	4,  // 3: levyan.Allowance.date_effective:type_name -> google.protobuf.Timestamp
+	4,  // 4: levyan.Allowance.date_expires:type_name -> google.protobuf.Timestamp
 	4,  // 5: levyan.Allowance.date_updated:type_name -> google.protobuf.Timestamp
 	4,  // 6: levyan.Allowance.date_erased:type_name -> google.protobuf.Timestamp
 	4,  // 7: levyan.Allowance.date_created:type_name -> google.protobuf.Timestamp

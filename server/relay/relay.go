@@ -81,12 +81,12 @@ func Handler(keys auth.Handler) auth.Handler {
 		}
 
 		return auth.Identity{
-			Authority: authority + id.Id,
-			Changed:   id.Changed,
-			Method:    id.Method + " for " + Header,
-			Id:        a.String(),
-			Grant:     id.Grant,
-			Expires:   id.Expires,
+			Authority:   authority + id.Id,
+			Changed:     id.Changed,
+			Method:      id.Method + " for " + Header,
+			Id:          a.String(),
+			Grant:       id.Grant,
+			DateExpires: id.DateExpires,
 		}, nil
 	})
 }

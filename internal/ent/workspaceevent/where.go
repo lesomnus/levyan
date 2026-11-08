@@ -61,14 +61,14 @@ func Kind(v int32) predicate.WorkspaceEvent {
 	return predicate.WorkspaceEvent(sql.FieldEQ(FieldKind, v))
 }
 
-// HappenedAt applies equality check predicate on the "happened_at" field. It's identical to HappenedAtEQ.
-func HappenedAt(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldEQ(FieldHappenedAt, v))
+// DateOccurred applies equality check predicate on the "date_occurred" field. It's identical to DateOccurredEQ.
+func DateOccurred(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldEQ(FieldDateOccurred, v))
 }
 
-// LateThrough applies equality check predicate on the "late_through" field. It's identical to LateThroughEQ.
-func LateThrough(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldEQ(FieldLateThrough, v))
+// DateLateThrough applies equality check predicate on the "date_late_through" field. It's identical to DateLateThroughEQ.
+func DateLateThrough(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldEQ(FieldDateLateThrough, v))
 }
 
 // DateErased applies equality check predicate on the "date_erased" field. It's identical to DateErasedEQ.
@@ -131,104 +131,104 @@ func KindLTE(v int32) predicate.WorkspaceEvent {
 	return predicate.WorkspaceEvent(sql.FieldLTE(FieldKind, v))
 }
 
-// HappenedAtEQ applies the EQ predicate on the "happened_at" field.
-func HappenedAtEQ(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldEQ(FieldHappenedAt, v))
+// DateOccurredEQ applies the EQ predicate on the "date_occurred" field.
+func DateOccurredEQ(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldEQ(FieldDateOccurred, v))
 }
 
-// HappenedAtNEQ applies the NEQ predicate on the "happened_at" field.
-func HappenedAtNEQ(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldNEQ(FieldHappenedAt, v))
+// DateOccurredNEQ applies the NEQ predicate on the "date_occurred" field.
+func DateOccurredNEQ(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldNEQ(FieldDateOccurred, v))
 }
 
-// HappenedAtIn applies the In predicate on the "happened_at" field.
-func HappenedAtIn(vs ...time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldIn(FieldHappenedAt, vs...))
+// DateOccurredIn applies the In predicate on the "date_occurred" field.
+func DateOccurredIn(vs ...time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldIn(FieldDateOccurred, vs...))
 }
 
-// HappenedAtNotIn applies the NotIn predicate on the "happened_at" field.
-func HappenedAtNotIn(vs ...time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldNotIn(FieldHappenedAt, vs...))
+// DateOccurredNotIn applies the NotIn predicate on the "date_occurred" field.
+func DateOccurredNotIn(vs ...time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldNotIn(FieldDateOccurred, vs...))
 }
 
-// HappenedAtGT applies the GT predicate on the "happened_at" field.
-func HappenedAtGT(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldGT(FieldHappenedAt, v))
+// DateOccurredGT applies the GT predicate on the "date_occurred" field.
+func DateOccurredGT(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldGT(FieldDateOccurred, v))
 }
 
-// HappenedAtGTE applies the GTE predicate on the "happened_at" field.
-func HappenedAtGTE(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldGTE(FieldHappenedAt, v))
+// DateOccurredGTE applies the GTE predicate on the "date_occurred" field.
+func DateOccurredGTE(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldGTE(FieldDateOccurred, v))
 }
 
-// HappenedAtLT applies the LT predicate on the "happened_at" field.
-func HappenedAtLT(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldLT(FieldHappenedAt, v))
+// DateOccurredLT applies the LT predicate on the "date_occurred" field.
+func DateOccurredLT(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldLT(FieldDateOccurred, v))
 }
 
-// HappenedAtLTE applies the LTE predicate on the "happened_at" field.
-func HappenedAtLTE(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldLTE(FieldHappenedAt, v))
+// DateOccurredLTE applies the LTE predicate on the "date_occurred" field.
+func DateOccurredLTE(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldLTE(FieldDateOccurred, v))
 }
 
-// HappenedAtIsNil applies the IsNil predicate on the "happened_at" field.
-func HappenedAtIsNil() predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldIsNull(FieldHappenedAt))
+// DateOccurredIsNil applies the IsNil predicate on the "date_occurred" field.
+func DateOccurredIsNil() predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldIsNull(FieldDateOccurred))
 }
 
-// HappenedAtNotNil applies the NotNil predicate on the "happened_at" field.
-func HappenedAtNotNil() predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldNotNull(FieldHappenedAt))
+// DateOccurredNotNil applies the NotNil predicate on the "date_occurred" field.
+func DateOccurredNotNil() predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldNotNull(FieldDateOccurred))
 }
 
-// LateThroughEQ applies the EQ predicate on the "late_through" field.
-func LateThroughEQ(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldEQ(FieldLateThrough, v))
+// DateLateThroughEQ applies the EQ predicate on the "date_late_through" field.
+func DateLateThroughEQ(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldEQ(FieldDateLateThrough, v))
 }
 
-// LateThroughNEQ applies the NEQ predicate on the "late_through" field.
-func LateThroughNEQ(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldNEQ(FieldLateThrough, v))
+// DateLateThroughNEQ applies the NEQ predicate on the "date_late_through" field.
+func DateLateThroughNEQ(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldNEQ(FieldDateLateThrough, v))
 }
 
-// LateThroughIn applies the In predicate on the "late_through" field.
-func LateThroughIn(vs ...time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldIn(FieldLateThrough, vs...))
+// DateLateThroughIn applies the In predicate on the "date_late_through" field.
+func DateLateThroughIn(vs ...time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldIn(FieldDateLateThrough, vs...))
 }
 
-// LateThroughNotIn applies the NotIn predicate on the "late_through" field.
-func LateThroughNotIn(vs ...time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldNotIn(FieldLateThrough, vs...))
+// DateLateThroughNotIn applies the NotIn predicate on the "date_late_through" field.
+func DateLateThroughNotIn(vs ...time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldNotIn(FieldDateLateThrough, vs...))
 }
 
-// LateThroughGT applies the GT predicate on the "late_through" field.
-func LateThroughGT(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldGT(FieldLateThrough, v))
+// DateLateThroughGT applies the GT predicate on the "date_late_through" field.
+func DateLateThroughGT(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldGT(FieldDateLateThrough, v))
 }
 
-// LateThroughGTE applies the GTE predicate on the "late_through" field.
-func LateThroughGTE(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldGTE(FieldLateThrough, v))
+// DateLateThroughGTE applies the GTE predicate on the "date_late_through" field.
+func DateLateThroughGTE(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldGTE(FieldDateLateThrough, v))
 }
 
-// LateThroughLT applies the LT predicate on the "late_through" field.
-func LateThroughLT(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldLT(FieldLateThrough, v))
+// DateLateThroughLT applies the LT predicate on the "date_late_through" field.
+func DateLateThroughLT(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldLT(FieldDateLateThrough, v))
 }
 
-// LateThroughLTE applies the LTE predicate on the "late_through" field.
-func LateThroughLTE(v time.Time) predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldLTE(FieldLateThrough, v))
+// DateLateThroughLTE applies the LTE predicate on the "date_late_through" field.
+func DateLateThroughLTE(v time.Time) predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldLTE(FieldDateLateThrough, v))
 }
 
-// LateThroughIsNil applies the IsNil predicate on the "late_through" field.
-func LateThroughIsNil() predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldIsNull(FieldLateThrough))
+// DateLateThroughIsNil applies the IsNil predicate on the "date_late_through" field.
+func DateLateThroughIsNil() predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldIsNull(FieldDateLateThrough))
 }
 
-// LateThroughNotNil applies the NotNil predicate on the "late_through" field.
-func LateThroughNotNil() predicate.WorkspaceEvent {
-	return predicate.WorkspaceEvent(sql.FieldNotNull(FieldLateThrough))
+// DateLateThroughNotNil applies the NotNil predicate on the "date_late_through" field.
+func DateLateThroughNotNil() predicate.WorkspaceEvent {
+	return predicate.WorkspaceEvent(sql.FieldNotNull(FieldDateLateThrough))
 }
 
 // DateErasedEQ applies the EQ predicate on the "date_erased" field.

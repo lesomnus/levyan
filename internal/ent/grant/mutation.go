@@ -23,8 +23,8 @@ type Mutation struct {
 	addvalue         *int32
 	_limit           *int64
 	add_limit        *int64
-	valid_from       *time.Time
-	valid_until      *time.Time
+	date_effective   *time.Time
+	date_expires     *time.Time
 	date_updated     *time.Time
 	date_erased      *time.Time
 	date_created     *time.Time
@@ -173,73 +173,73 @@ func (m *Mutation) ResetLimit() {
 	m.add_limit = nil
 }
 
-// SetValidFrom sets the "valid_from" field.
-func (m *Mutation) SetValidFrom(t time.Time) {
-	m.valid_from = &t
-	delete(m.clearedFields, FieldValidFrom)
+// SetDateEffective sets the "date_effective" field.
+func (m *Mutation) SetDateEffective(t time.Time) {
+	m.date_effective = &t
+	delete(m.clearedFields, FieldDateEffective)
 }
 
-// ValidFrom returns the value of the "valid_from" field in the mutation.
-func (m *Mutation) ValidFrom() (r time.Time, exists bool) {
-	v := m.valid_from
+// DateEffective returns the value of the "date_effective" field in the mutation.
+func (m *Mutation) DateEffective() (r time.Time, exists bool) {
+	v := m.date_effective
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearValidFrom clears the value of the "valid_from" field.
-func (m *Mutation) ClearValidFrom() {
-	m.valid_from = nil
-	m.clearedFields[FieldValidFrom] = struct{}{}
+// ClearDateEffective clears the value of the "date_effective" field.
+func (m *Mutation) ClearDateEffective() {
+	m.date_effective = nil
+	m.clearedFields[FieldDateEffective] = struct{}{}
 }
 
-// ValidFromCleared returns if the "valid_from" field was cleared in this mutation.
-func (m *Mutation) ValidFromCleared() bool {
-	_, ok := m.clearedFields[FieldValidFrom]
+// DateEffectiveCleared returns if the "date_effective" field was cleared in this mutation.
+func (m *Mutation) DateEffectiveCleared() bool {
+	_, ok := m.clearedFields[FieldDateEffective]
 	return ok
 }
 
-// ResetValidFrom resets all changes to the "valid_from" field.
-func (m *Mutation) ResetValidFrom() {
-	m.valid_from = nil
-	delete(m.clearedFields, FieldValidFrom)
+// ResetDateEffective resets all changes to the "date_effective" field.
+func (m *Mutation) ResetDateEffective() {
+	m.date_effective = nil
+	delete(m.clearedFields, FieldDateEffective)
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (m *Mutation) SetValidUntil(t time.Time) {
-	m.valid_until = &t
-	delete(m.clearedFields, FieldValidUntil)
-	delete(m.exprs, FieldValidUntil)
+// SetDateExpires sets the "date_expires" field.
+func (m *Mutation) SetDateExpires(t time.Time) {
+	m.date_expires = &t
+	delete(m.clearedFields, FieldDateExpires)
+	delete(m.exprs, FieldDateExpires)
 }
 
-// ValidUntil returns the value of the "valid_until" field in the mutation.
-func (m *Mutation) ValidUntil() (r time.Time, exists bool) {
-	v := m.valid_until
+// DateExpires returns the value of the "date_expires" field in the mutation.
+func (m *Mutation) DateExpires() (r time.Time, exists bool) {
+	v := m.date_expires
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearValidUntil clears the value of the "valid_until" field.
-func (m *Mutation) ClearValidUntil() {
-	m.valid_until = nil
-	delete(m.exprs, FieldValidUntil)
-	m.clearedFields[FieldValidUntil] = struct{}{}
+// ClearDateExpires clears the value of the "date_expires" field.
+func (m *Mutation) ClearDateExpires() {
+	m.date_expires = nil
+	delete(m.exprs, FieldDateExpires)
+	m.clearedFields[FieldDateExpires] = struct{}{}
 }
 
-// ValidUntilCleared returns if the "valid_until" field was cleared in this mutation.
-func (m *Mutation) ValidUntilCleared() bool {
-	_, ok := m.clearedFields[FieldValidUntil]
+// DateExpiresCleared returns if the "date_expires" field was cleared in this mutation.
+func (m *Mutation) DateExpiresCleared() bool {
+	_, ok := m.clearedFields[FieldDateExpires]
 	return ok
 }
 
-// ResetValidUntil resets all changes to the "valid_until" field.
-func (m *Mutation) ResetValidUntil() {
-	m.valid_until = nil
-	delete(m.clearedFields, FieldValidUntil)
-	delete(m.exprs, FieldValidUntil)
+// ResetDateExpires resets all changes to the "date_expires" field.
+func (m *Mutation) ResetDateExpires() {
+	m.date_expires = nil
+	delete(m.clearedFields, FieldDateExpires)
+	delete(m.exprs, FieldDateExpires)
 }
 
 // SetDateUpdated sets the "date_updated" field.
@@ -591,11 +591,11 @@ func (m *Mutation) Fields() []string {
 	if m._limit != nil {
 		fields = append(fields, FieldLimit)
 	}
-	if m.valid_from != nil {
-		fields = append(fields, FieldValidFrom)
+	if m.date_effective != nil {
+		fields = append(fields, FieldDateEffective)
 	}
-	if m.valid_until != nil || m.exprs[FieldValidUntil] != nil {
-		fields = append(fields, FieldValidUntil)
+	if m.date_expires != nil || m.exprs[FieldDateExpires] != nil {
+		fields = append(fields, FieldDateExpires)
 	}
 	if m.date_updated != nil || m.exprs[FieldDateUpdated] != nil {
 		fields = append(fields, FieldDateUpdated)
@@ -646,10 +646,10 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return m.Value()
 	case FieldLimit:
 		return m.Limit()
-	case FieldValidFrom:
-		return m.ValidFrom()
-	case FieldValidUntil:
-		return m.ValidUntil()
+	case FieldDateEffective:
+		return m.DateEffective()
+	case FieldDateExpires:
+		return m.DateExpires()
 	case FieldDateUpdated:
 		return m.DateUpdated()
 	case FieldDateErased:
@@ -727,7 +727,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLimit(v)
 		return nil
-	case FieldValidFrom:
+	case FieldDateEffective:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -735,9 +735,9 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetValidFrom(v)
+		m.SetDateEffective(v)
 		return nil
-	case FieldValidUntil:
+	case FieldDateExpires:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -745,7 +745,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetValidUntil(v)
+		m.SetDateExpires(v)
 		return nil
 	case FieldDateUpdated:
 		v, ok := value.(time.Time)
@@ -867,10 +867,10 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldLimit:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldValidFrom:
+	case FieldDateEffective:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldValidUntil:
-		m.ResetValidUntil()
+	case FieldDateExpires:
+		m.ResetDateExpires()
 	case FieldDateUpdated:
 		m.ResetDateUpdated()
 	case FieldDateErased:
@@ -910,8 +910,8 @@ func (m *Mutation) FieldExpr(name string) (sql.Querier, bool) {
 // SetFieldExpr.
 func (m *Mutation) ExprFields() []string {
 	var fields []string
-	if _, ok := m.exprs[FieldValidUntil]; ok {
-		fields = append(fields, FieldValidUntil)
+	if _, ok := m.exprs[FieldDateExpires]; ok {
+		fields = append(fields, FieldDateExpires)
 	}
 	if _, ok := m.exprs[FieldDateUpdated]; ok {
 		fields = append(fields, FieldDateUpdated)
@@ -1005,11 +1005,11 @@ func (m *Mutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *Mutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(FieldValidFrom) {
-		fields = append(fields, FieldValidFrom)
+	if m.FieldCleared(FieldDateEffective) {
+		fields = append(fields, FieldDateEffective)
 	}
-	if m.FieldCleared(FieldValidUntil) {
-		fields = append(fields, FieldValidUntil)
+	if m.FieldCleared(FieldDateExpires) {
+		fields = append(fields, FieldDateExpires)
 	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
@@ -1031,11 +1031,11 @@ func (m *Mutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *Mutation) ClearField(name string) error {
 	switch name {
-	case FieldValidFrom:
-		m.ClearValidFrom()
+	case FieldDateEffective:
+		m.ClearDateEffective()
 		return nil
-	case FieldValidUntil:
-		m.ClearValidUntil()
+	case FieldDateExpires:
+		m.ClearDateExpires()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -1063,11 +1063,11 @@ func (m *Mutation) ResetField(name string) error {
 	case FieldLimit:
 		m.ResetLimit()
 		return nil
-	case FieldValidFrom:
-		m.ResetValidFrom()
+	case FieldDateEffective:
+		m.ResetDateEffective()
 		return nil
-	case FieldValidUntil:
-		m.ResetValidUntil()
+	case FieldDateExpires:
+		m.ResetDateExpires()
 		return nil
 	case FieldDateUpdated:
 		m.ResetDateUpdated()

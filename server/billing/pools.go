@@ -88,7 +88,7 @@ func (r Rater) Taps(ctx context.Context, product, ws uuid.UUID) (*Taps, error) {
 			}
 			k := key{period: at(on), meter: m.Uuid()}
 			if l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION {
-				k.period = at(l.GetCorrectsStart().AsTime())
+				k.period = at(l.GetDateCorrectsStart().AsTime())
 			}
 			if was, ok := latest[k]; ok && !was.on.Before(on) {
 				continue
@@ -165,7 +165,7 @@ func (t *Taps) For(m uuid.UUID, p rating.Period) []rating.Pool {
 		out = append(out, rating.Pool{
 			Id:      pdid.Id(v.Id),
 			Left:    t.left(v, at(p.Start)),
-			From:    ledger.Moment(v.ValidFrom),
+			From:    ledger.Moment(v.DateEffective),
 			Expires: ledger.Moment(v.DateExpires),
 		})
 	}
@@ -255,7 +255,7 @@ func (t *Taps) InForce(p rating.Period) []PoolLeft {
 	out := []PoolLeft{}
 	for _, vs := range t.pools {
 		for _, v := range vs {
-			if ledger.Moment(v.ValidFrom).Before(p.End) && ledger.Moment(v.DateExpires).After(p.Start) {
+			if ledger.Moment(v.DateEffective).Before(p.End) && ledger.Moment(v.DateExpires).After(p.Start) {
 				out = append(out, PoolLeft{Row: v, Left: t.Left(v.Id)})
 			}
 		}

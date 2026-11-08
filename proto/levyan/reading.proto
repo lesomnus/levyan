@@ -44,7 +44,7 @@ message Reading {
 
   // When it was measured, in UTC, to the microsecond: what PostgreSQL keeps of
   // a time, so that a reading sent again is the same reading to the ledger.
-  google.protobuf.Timestamp measured_at = 9 [(orm.field) = {
+  google.protobuf.Timestamp date_measured = 9 [(orm.field) = {
     immutable: true
     default: ""
   }];
@@ -112,7 +112,7 @@ message Reading {
             number: 8
           },
           {
-            name: "measured_at"
+            name: "date_measured"
             number: 9
           }
         ]
@@ -132,7 +132,7 @@ message Reading {
             number: 8
           },
           {
-            name: "measured_at"
+            name: "date_measured"
             number: 9
           }
         ]
@@ -150,7 +150,7 @@ message Reading {
             number: 3
           },
           {
-            name: "measured_at"
+            name: "date_measured"
             number: 9
           }
         ]

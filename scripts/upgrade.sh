@@ -329,14 +329,19 @@ seed() {
 
 	# Two workspaces made two months ago, the first by the account with the
 	# billing account, and an offer to it of the second.
+	#
+	# A time the API renamed (every one is a `date_*` since 2026-11-08) is
+	# sent under both names, here and below: Connect's JSON drops a name the
+	# build does not know, so the build before reads the one it has, whichever
+	# side of the rename it is.
 	if out="$(call levyan.v1.WorkspaceService/Arrive \
-		"{\"workspace\":\"${ws1}\",\"creator\":\"${payer}\",\"created\":\"$(month 2)\",\"label\":\"Upgrade lab\"}")"; then
+		"{\"workspace\":\"${ws1}\",\"creator\":\"${payer}\",\"created\":\"$(month 2)\",\"dateCreated\":\"$(month 2)\",\"label\":\"Upgrade lab\"}")"; then
 		call levyan.v1.WorkspaceService/Arrive \
-			"{\"workspace\":\"${ws2}\",\"creator\":\"${other}\",\"created\":\"$(month 2)\"}" >/dev/null
+			"{\"workspace\":\"${ws2}\",\"creator\":\"${other}\",\"created\":\"$(month 2)\",\"dateCreated\":\"$(month 2)\"}" >/dev/null
 		call levyan.v1.WorkspaceService/Offer "{\"workspace\":\"${ws2}\",\"account\":\"${payer}\"}" >/dev/null
 		for ws in "${ws1}" "${ws2}"; do
 			ask "payer-${ws}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws}\"}" \
-				'.payer | {link: .current.id, account: .current.account, billing: .current.billingAccount, start: .current.start, offer: .offer.id}'
+				'.payer | {link: .current.id, account: .current.account, billing: .current.billingAccount, start: (.current.dateStart // .current.start), offer: .offer.id}'
 		done
 	elif [ $? -eq 3 ]; then
 		say "the build before has no \`WorkspaceService/Arrive\`: no payers"
@@ -348,7 +353,7 @@ seed() {
 	# flow's points in them.
 	out="$(call levyan.v1.MeteringService/Record "$(jq -cn --arg w1 "${ws1}" --arg w2 "${ws2}" \
 		--arg m2 "$(month 2)" --arg m1 "$(month 1)" --arg m0 "$(month 0)" '
-		def r($ws; $at; $v): {workspace: $ws, meter: "loft.assets.active", measuredAt: $at, value: $v, unit: "{asset}"};
+		def r($ws; $at; $v): {workspace: $ws, meter: "loft.assets.active", measuredAt: $at, dateMeasured: $at, value: $v, unit: "{asset}"};
 		{readings: [r($w1; $m2; 100), r($w1; $m1; 110), r($w1; $m0; 120), r($w2; $m2; 200), r($w2; $m1; 210), r($w2; $m0; 220)]}')")"
 	jq -e 'all(.results[]; .outcome == "OUTCOME_KEPT")' <<<"${out}" >/dev/null || fail "${log}" "readings were refused"
 	out="$(call opentelemetry.proto.collector.metrics.v1.MetricsService/Export "$(jq -cn --arg ws "${ws1}" \
@@ -374,11 +379,14 @@ seed() {
 	# that comes late is. Read back as it is, and in what this month comes
 	# to so far, which its close takes it out of.
 	local rc=0
-	call levyan.v1.WorkspaceService/Close "{\"workspace\":\"${ws2}\",\"at\":\"$(after "$(month 1)" 864000)\"}" >/dev/null || rc=$?
+	local closed
+	closed="$(after "$(month 1)" 864000)"
+	call levyan.v1.WorkspaceService/Close "{\"workspace\":\"${ws2}\",\"at\":\"${closed}\",\"dateOccurred\":\"${closed}\"}" >/dev/null || rc=$?
 	case "${rc}" in
 	0)
 		for ws in "${ws1}" "${ws2}"; do
-			ask "life-${ws}" levyan.v1.WorkspaceService/GetLifecycle "{\"workspace\":\"${ws}\"}" '.lifecycle'
+			ask "life-${ws}" levyan.v1.WorkspaceService/GetLifecycle "{\"workspace\":\"${ws}\"}" \
+				'.lifecycle | with_entries(.key |= ({closedSince: "dateClosed", destroyed: "dateDestroyed"}[.] // .))'
 		done
 		;;
 	3) say "the build before has no \`WorkspaceService/Close\`: no workspace closed" ;;
@@ -393,9 +401,9 @@ seed() {
 	done < <(cut -f1 <<<"${out}")
 	for ws in "${ws1}" "${ws2}"; do
 		ask "statements-${ws}" levyan.v1.BillingService/ListStatements "{\"workspace\":\"${ws}\"}" \
-			'[.statements[] | {id, start: .period.start, total, lines: [.lines[] | {meter, kind, usage, included, billable, amount}]}]'
+			'[.statements[] | {id, start: (.period.dateStart // .period.start), total, lines: [.lines[] | {meter, kind, usage, included, billable, amount}]}]'
 		ask "usage-${ws}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws}\"}" \
-			'.usage | {period: .period.start, lines: [.lines[] | {meter, usage}]}'
+			'.usage | {period: (.period.dateStart // .period.start), lines: [.lines[] | {meter, usage}]}'
 	done
 
 	# What the statements of the billing account came to, gathered onto its
@@ -428,7 +436,7 @@ seed() {
 		out="$(admin "${b}" grant add --workspace "${ws2}" --limit 20 --until 2099-01-01 --source contract --yes loft loft.seats)"
 		expect "$(cut -f1 <<<"${out}")" grant ls loft
 		ask grants payday.GrantService/List '{}' \
-			'[.items[] | {id, tenantId, key, version, on, limit, unlimited, validFrom, validUntil}] | sort_by(.id)'
+			'[.items[] | {id, tenantId, key, version, on, limit, unlimited, dateEffective: (.dateEffective // .validFrom), dateExpires: (.dateExpires // .validUntil)}] | sort_by(.id)'
 	else
 		say "the build before has no \`grant add\`: no grants"
 	fi
@@ -438,10 +446,12 @@ seed() {
 	# billing account paid by transfer -- read back as an operator lists them
 	# and as the product reads them.
 	if has "${b}" allowance add; then
-		out="$(admin "${b}" allowance add --workspace "${ws1}" --quantity 50 --reason pilot --yes loft loft.assets.active)"
+		# Until a year from this month, so that its end is a value the
+		# migration keeps and not the null of one that never ends.
+		out="$(admin "${b}" allowance add --workspace "${ws1}" --quantity 50 --until "$(after "$(month 0)" 31536000)" --reason pilot --yes loft loft.assets.active)"
 		expect "$(cut -f1 <<<"${out}")" allowance ls loft
 		ask "allowances-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
-			'[.usage.allowances[] | {id, meter, quantity, from}]'
+			'[.usage.allowances[] | {id, meter, quantity, dateEffective: (.dateEffective // .from), dateExpires: (.dateExpires // .until)}]'
 	else
 		say "the build before has no \`allowance add\`: no allowance"
 	fi
@@ -449,7 +459,7 @@ seed() {
 		out="$(admin "${b}" pool grant --workspace "${ws1}" --quantity 1000 --reason pilot --yes loft loft.assets.active)"
 		expect "$(cut -f1 <<<"${out}")" pool ls loft
 		ask "pools-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
-			'[.usage.pools[] | {id, meter, granted, left, from, expires}]'
+			'[.usage.pools[] | {id, meter, granted, left, dateEffective: (.dateEffective // .from), dateExpires: (.dateExpires // .expires)}]'
 	else
 		say "the build before has no \`pool grant\`: no pool"
 	fi
@@ -461,7 +471,7 @@ seed() {
 			expect "$(cut -f1 <<<"${out}")" credit ls loft
 		fi
 		ask "credits-${ws1}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws1}\"}" \
-			'[.payer.credits[] | {id, workspace, granted, left, currency, expires}]'
+			'[.payer.credits[] | {id, workspace, granted, left, currency, dateExpires: (.dateExpires // .expires)}]'
 	else
 		say "the build before has no \`credit grant\`: no credit granted"
 	fi

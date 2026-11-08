@@ -290,8 +290,8 @@ func TestAStatementSaysWhatItHadNoPriceFor(t *testing.T) {
 	}
 	assets := byMeter["loft.assets.active"]
 	x.Len(assets.GetUnpriced(), 1, "priced on the product's gateway, and not here")
-	x.True(assets.GetUnpriced()[0].GetFrom().AsTime().Equal(on(1, 1)))
-	x.True(assets.GetUnpriced()[0].GetTo().AsTime().Equal(on(2, 1)))
+	x.True(assets.GetUnpriced()[0].GetDateStart().AsTime().Equal(on(1, 1)))
+	x.True(assets.GetUnpriced()[0].GetDateEnd().AsTime().Equal(on(2, 1)))
 	x.Empty(byMeter["loft.members"].GetUnpriced(), "not sold anywhere")
 
 	row := w.row(ws, on(1, 1))

@@ -82,7 +82,7 @@ func (l Ledger) Record(ctx context.Context, product pdid.Id, rs []Reading) ([]Re
 			out[i] = refused(Invalid, "%s: %d is less than nothing, which nothing holds", r.Meter, r.Value)
 			continue
 		}
-		at, bad := l.moment(r.MeasuredAt, now, "measured_at")
+		at, bad := l.moment(r.MeasuredAt, now, "date_measured")
 		if bad != nil {
 			out[i] = *bad
 			continue
@@ -152,7 +152,7 @@ func (l Ledger) Record(ctx context.Context, product pdid.Id, rs []Reading) ([]Re
 					entreading.TenantId(product.Uuid()),
 					entreading.WorkspaceId(w),
 					entreading.MeterId(v.meter.Id),
-					entreading.MeasuredAt(v.at),
+					entreading.DateMeasured(v.at),
 				).
 				Only(ctx)
 			switch {
@@ -174,12 +174,12 @@ func (l Ledger) Record(ctx context.Context, product pdid.Id, rs []Reading) ([]Re
 			late := reaches(ps, v.at, v.at.Add(usage.Hold))
 			sent[k] = v.value
 			adds = append(adds, levyan.ReadingAddRequest_builder{
-				Tenant:     levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
-				Workspace:  levyan.WorkspaceRef_builder{Id: w[:]}.Build(),
-				Meter:      levyan.MeterRef_builder{Id: v.meter.Id[:]}.Build(),
-				MeasuredAt: stamp(v.at),
-				Value:      v.value,
-				Late:       late,
+				Tenant:       levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
+				Workspace:    levyan.WorkspaceRef_builder{Id: w[:]}.Build(),
+				Meter:        levyan.MeterRef_builder{Id: v.meter.Id[:]}.Build(),
+				DateMeasured: stamp(v.at),
+				Value:        v.value,
+				Late:         late,
 			}.Build())
 			kept = append(kept, v.i)
 			out[v.i] = Result{Outcome: Kept, Late: late}

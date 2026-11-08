@@ -160,13 +160,13 @@ func TestAStreamIsReadyAndThenEveryChange(t *testing.T) {
 	x.Equal("loft.seats", m.GetKey())
 	x.Equal(uint64(1), m.GetVersion())
 	x.Equal(int64(5), m.GetLimit())
-	x.True(m.GetValidUntil().AsTime().After(time.Now()))
+	x.True(m.GetDateExpires().AsTime().After(time.Now()))
 
 	g.end(v)
 	m = next(t, s)
 	x.Equal(v.GetId(), m.GetId())
 	x.Equal(uint64(2), m.GetVersion(), "ended, at the version after")
-	x.False(m.GetValidUntil().AsTime().After(time.Now()))
+	x.False(m.GetDateExpires().AsTime().After(time.Now()))
 
 	u := g.give(loft, ws, "loft.export", entitle.On)
 	m = next(t, s)
@@ -299,7 +299,7 @@ func TestAStreamOpenedAgainAndAListConverge(t *testing.T) {
 		x.NoError(err)
 		m := held[pdid.Id(v.GetId()).String()]
 		x.Equal(r.Version, m.GetVersion(), "%s as levyan holds it", r.Key)
-		x.Equal(r.ValidUntil.UTC(), m.GetValidUntil().AsTime())
+		x.Equal(r.DateExpires.UTC(), m.GetDateExpires().AsTime())
 	}
 
 	// And the stream opened again carries what changes from then on -- after
@@ -415,7 +415,7 @@ func TestAFollowerKeepsACopyOfWhatLevyanGrants(t *testing.T) {
 				return false
 			}
 			c, ok := cp.of(ws)[string(v.GetId())]
-			return ok && c.Version == r.Version && c.Until.Equal(r.ValidUntil.UTC()) && c.Key == r.Key
+			return ok && c.Version == r.Version && c.DateExpires.Equal(r.DateExpires.UTC()) && c.Key == r.Key
 		}
 	}
 	x.Eventually(holds(before), 5*time.Second, 10*time.Millisecond, "what was given before it followed")

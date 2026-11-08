@@ -30,17 +30,17 @@ import (
 
 // Allowance is more of a meter a workspace is given each period.
 type Allowance struct {
-	Id        string     `json:"id"`
-	Workspace string     `json:"workspace"`
-	Meter     string     `json:"meter"`
-	Quantity  int64      `json:"quantity"`
-	From      time.Time  `json:"from"`
-	Until     *time.Time `json:"until,omitempty"`
-	Reason    string     `json:"reason"`
-	GrantedBy string     `json:"granted_by,omitempty"`
-	Given     time.Time  `json:"given"`
-	EndedBy   string     `json:"ended_by,omitempty"`
-	EndReason string     `json:"end_reason,omitempty"`
+	Id            string     `json:"id"`
+	Workspace     string     `json:"workspace"`
+	Meter         string     `json:"meter"`
+	Quantity      int64      `json:"quantity"`
+	DateEffective time.Time  `json:"date_effective"`
+	DateExpires   *time.Time `json:"date_expires,omitempty"`
+	Reason        string     `json:"reason"`
+	GrantedBy     string     `json:"granted_by,omitempty"`
+	DateGiven     time.Time  `json:"date_given"`
+	EndedBy       string     `json:"ended_by,omitempty"`
+	EndReason     string     `json:"end_reason,omitempty"`
 }
 
 // Credit is credit an operator granted, and what is left of it.
@@ -51,10 +51,10 @@ type Credit struct {
 	Granted        int64     `json:"granted"`
 	Left           int64     `json:"left"`
 	Currency       string    `json:"currency"`
-	Expires        time.Time `json:"expires"`
+	DateExpires    time.Time `json:"date_expires"`
 	Reason         string    `json:"reason"`
 	GrantedBy      string    `json:"granted_by,omitempty"`
-	Created        time.Time `json:"created"`
+	DateCreated    time.Time `json:"date_created"`
 }
 
 // operators is each operator's name, by their row.
@@ -73,12 +73,12 @@ func (a *Routes) operators(r *http.Request) (map[uuid.UUID]string, error) {
 
 func allowanceOf(v *ent.Allowance, who map[uuid.UUID]string) Allowance {
 	out := Allowance{
-		Id: pdid.Id(v.Id).String(), Quantity: v.Quantity, From: v.ValidFrom.UTC(), Reason: v.Reason,
-		GrantedBy: who[v.GrantedById], Given: v.DateCreated.UTC(), EndedBy: who[v.EndedById], EndReason: v.EndReason,
+		Id: pdid.Id(v.Id).String(), Quantity: v.Quantity, DateEffective: v.DateEffective.UTC(), Reason: v.Reason,
+		GrantedBy: who[v.GrantedById], DateGiven: v.DateCreated.UTC(), EndedBy: who[v.EndedById], EndReason: v.EndReason,
 	}
-	if v.ValidUntil != nil {
-		at := v.ValidUntil.UTC()
-		out.Until = &at
+	if v.DateExpires != nil {
+		at := v.DateExpires.UTC()
+		out.DateExpires = &at
 	}
 	if w := v.Edges.Workspace; w != nil {
 		out.Workspace = text(w.Key)
@@ -93,7 +93,7 @@ func allowanceOf(v *ent.Allowance, who map[uuid.UUID]string) Allowance {
 func (a *Routes) creditOf(r *http.Request, l invoices.Lot, who map[uuid.UUID]string) (Credit, error) {
 	out := Credit{
 		Id: pdid.Id(l.Row.Id).String(), Granted: l.Row.Amount, Left: l.Left, Currency: l.Row.Currency,
-		Expires: l.Expires().UTC(), Reason: l.Row.Reason, GrantedBy: who[l.Row.OperatorId], Created: l.Row.DateCreated.UTC(),
+		DateExpires: l.Expires().UTC(), Reason: l.Row.Reason, GrantedBy: who[l.Row.OperatorId], DateCreated: l.Row.DateCreated.UTC(),
 	}
 	if ba := l.Row.BillingAccountId; ba != (uuid.UUID{}) {
 		out.BillingAccount = pdid.Id(ba).String()
@@ -133,12 +133,12 @@ func (a *Routes) giveAllowance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Workspace string     `json:"workspace"`
-		Meter     string     `json:"meter"`
-		Quantity  int64      `json:"quantity"`
-		From      *time.Time `json:"from"`
-		Until     *time.Time `json:"until"`
-		Reason    string     `json:"reason"`
+		Workspace     string     `json:"workspace"`
+		Meter         string     `json:"meter"`
+		Quantity      int64      `json:"quantity"`
+		DateEffective *time.Time `json:"date_effective"`
+		DateExpires   *time.Time `json:"date_expires"`
+		Reason        string     `json:"reason"`
 	}
 	if !read(w, r, &in) {
 		return
@@ -150,11 +150,11 @@ func (a *Routes) giveAllowance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	give := benefits.Give{Product: pdid.Id(t.Id), Workspace: ws, Meter: in.Meter, Quantity: in.Quantity, Reason: in.Reason}
-	if in.From != nil {
-		give.From = *in.From
+	if in.DateEffective != nil {
+		give.From = *in.DateEffective
 	}
-	if in.Until != nil {
-		give.Until = *in.Until
+	if in.DateExpires != nil {
+		give.Until = *in.DateExpires
 	}
 	v, err := a.S.Allowances.Give(r.Context(), give)
 	if err != nil {
@@ -210,7 +210,7 @@ func (a *Routes) allowances(w http.ResponseWriter, r *http.Request) {
 	}
 	q := a.S.Ent.Allowance.Query().Where(entallowance.TenantId(t.Id))
 	if r.URL.Query().Get("all") != "true" {
-		q = q.Where(entallowance.Or(entallowance.ValidUntilIsNil(), entallowance.ValidUntilGT(a.S.Clock())))
+		q = q.Where(entallowance.Or(entallowance.DateExpiresIsNil(), entallowance.DateExpiresGT(a.S.Clock())))
 	}
 	key, named, ok := workspaceOf(w, r)
 	if !ok {
@@ -249,7 +249,7 @@ func (a *Routes) grantCredit(w http.ResponseWriter, r *http.Request) {
 		BillingAccount string     `json:"billing_account"`
 		Amount         int64      `json:"amount"`
 		Currency       string     `json:"currency"`
-		Expires        *time.Time `json:"expires"`
+		DateExpires    *time.Time `json:"date_expires"`
 		Reason         string     `json:"reason"`
 	}
 	if !read(w, r, &in) {
@@ -273,8 +273,8 @@ func (a *Routes) grantCredit(w http.ResponseWriter, r *http.Request) {
 		}
 		g.BillingAccount = ba
 	}
-	if in.Expires != nil {
-		g.Expires = *in.Expires
+	if in.DateExpires != nil {
+		g.Expires = *in.DateExpires
 	}
 
 	l, err := a.S.Invoices.Grant(r.Context(), g)
@@ -377,18 +377,18 @@ func (a *Routes) credits(w http.ResponseWriter, r *http.Request) {
 
 // Pool is a bundle of a meter a workspace is given, and what is left of it.
 type Pool struct {
-	Id        string    `json:"id"`
-	Workspace string    `json:"workspace"`
-	Meter     string    `json:"meter"`
-	Granted   int64     `json:"granted"`
-	Left      string    `json:"left"` // exactly, as a fraction: 1001/3
-	From      time.Time `json:"from"`
-	Expires   time.Time `json:"expires"`
-	Reason    string    `json:"reason"`
-	GrantedBy string    `json:"granted_by,omitempty"`
-	Given     time.Time `json:"given"`
-	EndedBy   string    `json:"ended_by,omitempty"`
-	EndReason string    `json:"end_reason,omitempty"`
+	Id            string    `json:"id"`
+	Workspace     string    `json:"workspace"`
+	Meter         string    `json:"meter"`
+	Granted       int64     `json:"granted"`
+	Left          string    `json:"left"` // exactly, as a fraction: 1001/3
+	DateEffective time.Time `json:"date_effective"`
+	DateExpires   time.Time `json:"date_expires"`
+	Reason        string    `json:"reason"`
+	GrantedBy     string    `json:"granted_by,omitempty"`
+	DateGiven     time.Time `json:"date_given"`
+	EndedBy       string    `json:"ended_by,omitempty"`
+	EndReason     string    `json:"end_reason,omitempty"`
 }
 
 // poolOf is pool `v` as an operator is told of it: what is left of it as its
@@ -400,8 +400,8 @@ func (a *Routes) poolOf(r *http.Request, v *ent.Pool, who map[uuid.UUID]string) 
 	}
 	out := Pool{
 		Id: pdid.Id(v.Id).String(), Granted: v.Quantity, Left: taps.Left(v.Id).RatString(),
-		From: v.ValidFrom.UTC(), Expires: v.DateExpires.UTC(), Reason: v.Reason,
-		GrantedBy: who[v.GrantedById], Given: v.DateCreated.UTC(), EndedBy: who[v.EndedById], EndReason: v.EndReason,
+		DateEffective: v.DateEffective.UTC(), DateExpires: v.DateExpires.UTC(), Reason: v.Reason,
+		GrantedBy: who[v.GrantedById], DateGiven: v.DateCreated.UTC(), EndedBy: who[v.EndedById], EndReason: v.EndReason,
 	}
 	if w := v.Edges.Workspace; w != nil {
 		out.Workspace = text(w.Key)
@@ -421,12 +421,12 @@ func (a *Routes) grantPool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Workspace string     `json:"workspace"`
-		Meter     string     `json:"meter"`
-		Quantity  int64      `json:"quantity"`
-		From      *time.Time `json:"from"`
-		Expires   *time.Time `json:"expires"`
-		Reason    string     `json:"reason"`
+		Workspace     string     `json:"workspace"`
+		Meter         string     `json:"meter"`
+		Quantity      int64      `json:"quantity"`
+		DateEffective *time.Time `json:"date_effective"`
+		DateExpires   *time.Time `json:"date_expires"`
+		Reason        string     `json:"reason"`
 	}
 	if !read(w, r, &in) {
 		return
@@ -438,11 +438,11 @@ func (a *Routes) grantPool(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fill := benefits.Fill{Product: pdid.Id(t.Id), Workspace: ws, Meter: in.Meter, Quantity: in.Quantity, Reason: in.Reason}
-	if in.From != nil {
-		fill.From = *in.From
+	if in.DateEffective != nil {
+		fill.From = *in.DateEffective
 	}
-	if in.Expires != nil {
-		fill.Expires = *in.Expires
+	if in.DateExpires != nil {
+		fill.Expires = *in.DateExpires
 	}
 	v, err := a.S.Pools.Grant(r.Context(), fill)
 	if err != nil {

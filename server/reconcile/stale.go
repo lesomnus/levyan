@@ -176,9 +176,9 @@ func (r *Reconciler) readings(ctx context.Context, p *pass) ([]Found, error) {
 			Last        instant `json:"last"`
 		}
 		err = p.db.Reading.Query().
-			Where(entreading.TenantId(t.Id), entreading.MeterIdIn(ids...), entreading.MeasuredAtGTE(p.now.Add(-recent))).
+			Where(entreading.TenantId(t.Id), entreading.MeterIdIn(ids...), entreading.DateMeasuredGTE(p.now.Add(-recent))).
 			GroupBy(entreading.FieldWorkspaceId, entreading.FieldMeterId).
-			Aggregate(ent.As(ent.Max(entreading.FieldMeasuredAt), "last")).
+			Aggregate(ent.As(ent.Max(entreading.FieldDateMeasured), "last")).
 			Scan(ctx, &vs)
 		if err != nil {
 			return nil, err

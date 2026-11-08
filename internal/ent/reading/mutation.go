@@ -17,7 +17,7 @@ import (
 type Mutation struct {
 	op               ent.Op
 	typ              string
-	measured_at      *time.Time
+	date_measured    *time.Time
 	value            *int64
 	addvalue         *int64
 	late             *bool
@@ -48,37 +48,37 @@ func (m *Mutation) Predicates() []predicate.Reading {
 	return m.predicates
 }
 
-// SetMeasuredAt sets the "measured_at" field.
-func (m *Mutation) SetMeasuredAt(t time.Time) {
-	m.measured_at = &t
-	delete(m.clearedFields, FieldMeasuredAt)
+// SetDateMeasured sets the "date_measured" field.
+func (m *Mutation) SetDateMeasured(t time.Time) {
+	m.date_measured = &t
+	delete(m.clearedFields, FieldDateMeasured)
 }
 
-// MeasuredAt returns the value of the "measured_at" field in the mutation.
-func (m *Mutation) MeasuredAt() (r time.Time, exists bool) {
-	v := m.measured_at
+// DateMeasured returns the value of the "date_measured" field in the mutation.
+func (m *Mutation) DateMeasured() (r time.Time, exists bool) {
+	v := m.date_measured
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearMeasuredAt clears the value of the "measured_at" field.
-func (m *Mutation) ClearMeasuredAt() {
-	m.measured_at = nil
-	m.clearedFields[FieldMeasuredAt] = struct{}{}
+// ClearDateMeasured clears the value of the "date_measured" field.
+func (m *Mutation) ClearDateMeasured() {
+	m.date_measured = nil
+	m.clearedFields[FieldDateMeasured] = struct{}{}
 }
 
-// MeasuredAtCleared returns if the "measured_at" field was cleared in this mutation.
-func (m *Mutation) MeasuredAtCleared() bool {
-	_, ok := m.clearedFields[FieldMeasuredAt]
+// DateMeasuredCleared returns if the "date_measured" field was cleared in this mutation.
+func (m *Mutation) DateMeasuredCleared() bool {
+	_, ok := m.clearedFields[FieldDateMeasured]
 	return ok
 }
 
-// ResetMeasuredAt resets all changes to the "measured_at" field.
-func (m *Mutation) ResetMeasuredAt() {
-	m.measured_at = nil
-	delete(m.clearedFields, FieldMeasuredAt)
+// ResetDateMeasured resets all changes to the "date_measured" field.
+func (m *Mutation) ResetDateMeasured() {
+	m.date_measured = nil
+	delete(m.clearedFields, FieldDateMeasured)
 }
 
 // SetValue sets the "value" field.
@@ -381,8 +381,8 @@ func (m *Mutation) Type() string {
 // AddedFields().
 func (m *Mutation) Fields() []string {
 	fields := make([]string, 0, 8)
-	if m.measured_at != nil {
-		fields = append(fields, FieldMeasuredAt)
+	if m.date_measured != nil {
+		fields = append(fields, FieldDateMeasured)
 	}
 	if m.value != nil {
 		fields = append(fields, FieldValue)
@@ -419,8 +419,8 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return e, true
 	}
 	switch name {
-	case FieldMeasuredAt:
-		return m.MeasuredAt()
+	case FieldDateMeasured:
+		return m.DateMeasured()
 	case FieldValue:
 		return m.Value()
 	case FieldLate:
@@ -454,7 +454,7 @@ func (m *Mutation) OldField(ctx context.Context, name string) (ent.Value, error)
 // that what Field returns for a field can be set back on it.
 func (m *Mutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case FieldMeasuredAt:
+	case FieldDateMeasured:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -462,7 +462,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetMeasuredAt(v)
+		m.SetDateMeasured(v)
 		return nil
 	case FieldValue:
 		v, ok := value.(int64)
@@ -556,7 +556,7 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		return fmt.Errorf("field %s cannot be assigned an expression: a create writes values, and an expression is written only by an update", name)
 	}
 	switch name {
-	case FieldMeasuredAt:
+	case FieldDateMeasured:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldValue:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
@@ -640,8 +640,8 @@ func (m *Mutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *Mutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(FieldMeasuredAt) {
-		fields = append(fields, FieldMeasuredAt)
+	if m.FieldCleared(FieldDateMeasured) {
+		fields = append(fields, FieldDateMeasured)
 	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
@@ -663,8 +663,8 @@ func (m *Mutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *Mutation) ClearField(name string) error {
 	switch name {
-	case FieldMeasuredAt:
-		m.ClearMeasuredAt()
+	case FieldDateMeasured:
+		m.ClearDateMeasured()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -680,8 +680,8 @@ func (m *Mutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *Mutation) ResetField(name string) error {
 	switch name {
-	case FieldMeasuredAt:
-		m.ResetMeasuredAt()
+	case FieldDateMeasured:
+		m.ResetDateMeasured()
 		return nil
 	case FieldValue:
 		m.ResetValue()

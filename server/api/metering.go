@@ -38,7 +38,7 @@ func (m Metering) Record(ctx context.Context, req *levyanv1.RecordRequest) (*lev
 		rs = append(rs, ledger.Reading{
 			Workspace:  r.GetWorkspace(),
 			Meter:      r.GetMeter(),
-			MeasuredAt: r.GetMeasuredAt().AsTime(),
+			MeasuredAt: r.GetDateMeasured().AsTime(),
 			Value:      r.GetValue(),
 			Unit:       r.GetUnit(),
 		})

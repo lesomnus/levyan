@@ -411,7 +411,7 @@ func (p Payers) Arrive(ctx context.Context, product, key, creator pdid.Id, creat
 	}
 	created = ledger.Moment(created)
 	if created.After(now.Add(ledger.Skew)) {
-		return State{}, status.Errorf(codes.InvalidArgument, "created: %s is ahead of now", created.Format(time.RFC3339))
+		return State{}, status.Errorf(codes.InvalidArgument, "date_created: %s is ahead of now", created.Format(time.RFC3339))
 	}
 
 	ws, err := p.workspace(ctx, product, key)

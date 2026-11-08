@@ -32,8 +32,8 @@ message GrantAddRequest {
   string key = 8 [features.field_presence = IMPLICIT];
   GrantValue value = 9 [features.field_presence = IMPLICIT];
   int64 limit = 10 [features.field_presence = IMPLICIT];
-  google.protobuf.Timestamp valid_from = 11;
-  google.protobuf.Timestamp valid_until = 12;
+  google.protobuf.Timestamp date_effective = 11;
+  google.protobuf.Timestamp date_expires = 12;
   google.protobuf.Timestamp date_created = 15;
   uint64 version = 16 [features.field_presence = IMPLICIT];
   GrantSource source = 17 [features.field_presence = IMPLICIT];
@@ -60,8 +60,8 @@ message GrantSelect {
   bool key = 8;
   bool value = 9;
   bool limit = 10;
-  bool valid_from = 11;
-  bool valid_until = 12;
+  bool date_effective = 11;
+  bool date_expires = 12;
   bool date_updated = 13;
   bool date_erased = 14;
   bool date_created = 15;
@@ -73,7 +73,7 @@ message GrantSelect {
 
 message GrantPatchRequest {
   GrantRef ref = 1;
-  google.protobuf.Timestamp valid_until = 24;
+  google.protobuf.Timestamp date_expires = 24;
   // The version this update requires the stored date_updated to be.
   // It is a precondition, not a write: the update applies only if the row
   // still holds this value, and the server stamps the new version itself.

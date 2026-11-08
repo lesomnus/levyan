@@ -25,8 +25,8 @@ message PointAddRequest {
   TenantRef tenant = 2;
   WorkspaceRef workspace = 3;
   SeriesRef series = 8;
-  google.protobuf.Timestamp started_at = 9;
-  google.protobuf.Timestamp counted_at = 10;
+  google.protobuf.Timestamp date_started = 9;
+  google.protobuf.Timestamp date_counted = 10;
   int64 value = 11 [features.field_presence = IMPLICIT];
   bool late = 12 [features.field_presence = IMPLICIT];
   google.protobuf.Timestamp date_created = 15;
@@ -54,8 +54,8 @@ message PointRef {
 
 message PointRefByCounted {
   SeriesRef series = 8;
-  google.protobuf.Timestamp started_at = 9;
-  google.protobuf.Timestamp counted_at = 10;
+  google.protobuf.Timestamp date_started = 9;
+  google.protobuf.Timestamp date_counted = 10;
 }
 
 message PointSelect {
@@ -63,8 +63,8 @@ message PointSelect {
   TenantSelect tenant = 2;
   WorkspaceSelect workspace = 3;
   SeriesSelect series = 8;
-  bool started_at = 9;
-  bool counted_at = 10;
+  bool date_started = 9;
+  bool date_counted = 10;
   bool value = 11;
   bool late = 12;
   bool date_erased = 14;

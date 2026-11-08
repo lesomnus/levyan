@@ -746,23 +746,23 @@ func (b0 ListPricesResponse_builder) Build() *ListPricesResponse {
 // currency.
 //
 // Of the versions of a meter on a channel in a currency, the one in force for
-// a customer at a moment is the one with the latest `effective` of those that
-// apply to them by then -- `effective` for a customer who started on it or
-// later, `existing` for one who was there before -- and of two with the same
-// `effective`, the one published last.
+// a customer at a moment is the one with the latest `date_effective` of those that
+// apply to them by then -- `date_effective` for a customer who started on it or
+// later, `date_existing` for one who was there before -- and of two with the same
+// `date_effective`, the one published last.
 type Price struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id        string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Meter     string                 `protobuf:"bytes,2,opt,name=meter"`
-	xxx_hidden_Channel   Channel                `protobuf:"varint,3,opt,name=channel,enum=levyan.v1.Channel"`
-	xxx_hidden_Currency  string                 `protobuf:"bytes,4,opt,name=currency"`
-	xxx_hidden_Rate      isPrice_Rate           `protobuf_oneof:"rate"`
-	xxx_hidden_Effective *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=effective"`
-	xxx_hidden_Existing  *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=existing"`
-	xxx_hidden_Published *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=published"`
-	xxx_hidden_Desc      string                 `protobuf:"bytes,10,opt,name=desc"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Meter         string                 `protobuf:"bytes,2,opt,name=meter"`
+	xxx_hidden_Channel       Channel                `protobuf:"varint,3,opt,name=channel,enum=levyan.v1.Channel"`
+	xxx_hidden_Currency      string                 `protobuf:"bytes,4,opt,name=currency"`
+	xxx_hidden_Rate          isPrice_Rate           `protobuf_oneof:"rate"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExisting  *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=date_existing,json=dateExisting"`
+	xxx_hidden_DatePublished *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_published,json=datePublished"`
+	xxx_hidden_Desc          string                 `protobuf:"bytes,10,opt,name=desc"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Price) Reset() {
@@ -836,23 +836,23 @@ func (x *Price) GetBanded() *Banded {
 	return nil
 }
 
-func (x *Price) GetEffective() *timestamppb.Timestamp {
+func (x *Price) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Effective
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
 
-func (x *Price) GetExisting() *timestamppb.Timestamp {
+func (x *Price) GetDateExisting() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Existing
+		return x.xxx_hidden_DateExisting
 	}
 	return nil
 }
 
-func (x *Price) GetPublished() *timestamppb.Timestamp {
+func (x *Price) GetDatePublished() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Published
+		return x.xxx_hidden_DatePublished
 	}
 	return nil
 }
@@ -896,16 +896,16 @@ func (x *Price) SetBanded(v *Banded) {
 	x.xxx_hidden_Rate = &price_Banded{v}
 }
 
-func (x *Price) SetEffective(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Effective = v
+func (x *Price) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
-func (x *Price) SetExisting(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Existing = v
+func (x *Price) SetDateExisting(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExisting = v
 }
 
-func (x *Price) SetPublished(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Published = v
+func (x *Price) SetDatePublished(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DatePublished = v
 }
 
 func (x *Price) SetDesc(v string) {
@@ -935,25 +935,25 @@ func (x *Price) HasBanded() bool {
 	return ok
 }
 
-func (x *Price) HasEffective() bool {
+func (x *Price) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Effective != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
-func (x *Price) HasExisting() bool {
+func (x *Price) HasDateExisting() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Existing != nil
+	return x.xxx_hidden_DateExisting != nil
 }
 
-func (x *Price) HasPublished() bool {
+func (x *Price) HasDatePublished() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Published != nil
+	return x.xxx_hidden_DatePublished != nil
 }
 
 func (x *Price) ClearRate() {
@@ -972,16 +972,16 @@ func (x *Price) ClearBanded() {
 	}
 }
 
-func (x *Price) ClearEffective() {
-	x.xxx_hidden_Effective = nil
+func (x *Price) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
-func (x *Price) ClearExisting() {
-	x.xxx_hidden_Existing = nil
+func (x *Price) ClearDateExisting() {
+	x.xxx_hidden_DateExisting = nil
 }
 
-func (x *Price) ClearPublished() {
-	x.xxx_hidden_Published = nil
+func (x *Price) ClearDatePublished() {
+	x.xxx_hidden_DatePublished = nil
 }
 
 const Price_Rate_not_set_case case_Price_Rate = 0
@@ -1020,12 +1020,12 @@ type Price_builder struct {
 	Banded  *Banded
 	// -- end of xxx_hidden_Rate
 	// From when it applies to a customer who starts on it or later.
-	Effective *timestamppb.Timestamp
-	// From when it applies to the customers who were there before `effective`:
+	DateEffective *timestamppb.Timestamp
+	// From when it applies to the customers who were there before `date_effective`:
 	// the same moment or later, which is the notice a rise gives.
-	Existing *timestamppb.Timestamp
+	DateExisting *timestamppb.Timestamp
 	// When it was published.
-	Published *timestamppb.Timestamp
+	DatePublished *timestamppb.Timestamp
 	// Why it was published, as the operator who published it said.
 	Desc string
 }
@@ -1044,9 +1044,9 @@ func (b0 Price_builder) Build() *Price {
 	if b.Banded != nil {
 		x.xxx_hidden_Rate = &price_Banded{b.Banded}
 	}
-	x.xxx_hidden_Effective = b.Effective
-	x.xxx_hidden_Existing = b.Existing
-	x.xxx_hidden_Published = b.Published
+	x.xxx_hidden_DateEffective = b.DateEffective
+	x.xxx_hidden_DateExisting = b.DateExisting
+	x.xxx_hidden_DatePublished = b.DatePublished
 	x.xxx_hidden_Desc = b.Desc
 	return m0
 }
@@ -1347,17 +1347,17 @@ const file_levyan_v1_price_book_proto_rawDesc = "" +
 	"\x11ListPricesRequest\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\tR\x05meter\">\n" +
 	"\x12ListPricesResponse\x12(\n" +
-	"\x06prices\x18\x01 \x03(\v2\x10.levyan.v1.PriceR\x06prices\"\x9d\x03\n" +
+	"\x06prices\x18\x01 \x03(\v2\x10.levyan.v1.PriceR\x06prices\"\xb8\x03\n" +
 	"\x05Price\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05meter\x18\x02 \x01(\tR\x05meter\x12,\n" +
 	"\achannel\x18\x03 \x01(\x0e2\x12.levyan.v1.ChannelR\achannel\x12\x1a\n" +
 	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12/\n" +
 	"\bper_unit\x18\x05 \x01(\v2\x12.levyan.v1.PerUnitH\x00R\aperUnit\x12+\n" +
-	"\x06banded\x18\x06 \x01(\v2\x11.levyan.v1.BandedH\x00R\x06banded\x128\n" +
-	"\teffective\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\teffective\x126\n" +
-	"\bexisting\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\bexisting\x128\n" +
-	"\tpublished\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tpublished\x12\x12\n" +
+	"\x06banded\x18\x06 \x01(\v2\x11.levyan.v1.BandedH\x00R\x06banded\x12A\n" +
+	"\x0edate_effective\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\rdateEffective\x12?\n" +
+	"\rdate_existing\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\fdateExisting\x12A\n" +
+	"\x0edate_published\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\rdatePublished\x12\x12\n" +
 	"\x04desc\x18\n" +
 	" \x01(\tR\x04descB\x06\n" +
 	"\x04rate\"V\n" +
@@ -1423,9 +1423,9 @@ var file_levyan_v1_price_book_proto_depIdxs = []int32{
 	2,  // 5: levyan.v1.Price.channel:type_name -> levyan.v1.Channel
 	12, // 6: levyan.v1.Price.per_unit:type_name -> levyan.v1.PerUnit
 	13, // 7: levyan.v1.Price.banded:type_name -> levyan.v1.Banded
-	15, // 8: levyan.v1.Price.effective:type_name -> google.protobuf.Timestamp
-	15, // 9: levyan.v1.Price.existing:type_name -> google.protobuf.Timestamp
-	15, // 10: levyan.v1.Price.published:type_name -> google.protobuf.Timestamp
+	15, // 8: levyan.v1.Price.date_effective:type_name -> google.protobuf.Timestamp
+	15, // 9: levyan.v1.Price.date_existing:type_name -> google.protobuf.Timestamp
+	15, // 10: levyan.v1.Price.date_published:type_name -> google.protobuf.Timestamp
 	14, // 11: levyan.v1.Banded.bands:type_name -> levyan.v1.Band
 	3,  // 12: levyan.v1.PriceBookService.GetProduct:input_type -> levyan.v1.GetProductRequest
 	6,  // 13: levyan.v1.PriceBookService.ListMeters:input_type -> levyan.v1.ListMetersRequest

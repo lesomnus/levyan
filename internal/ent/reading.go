@@ -21,8 +21,8 @@ type Reading struct {
 	config `json:"-"`
 	// Id of the ent.
 	Id uuid.UUID `json:"id,omitempty"`
-	// MeasuredAt holds the value of the "measured_at" field.
-	MeasuredAt time.Time `json:"measured_at,omitempty"`
+	// DateMeasured holds the value of the "date_measured" field.
+	DateMeasured time.Time `json:"date_measured,omitempty"`
 	// Value holds the value of the "value" field.
 	Value int64 `json:"value,omitempty"`
 	// Late holds the value of the "late" field.
@@ -98,7 +98,7 @@ func (*Reading) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case reading.FieldValue:
 			values[i] = new(sql.NullInt64)
-		case reading.FieldMeasuredAt, reading.FieldDateErased, reading.FieldDateCreated:
+		case reading.FieldDateMeasured, reading.FieldDateErased, reading.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case reading.FieldId, reading.FieldTenantId, reading.FieldWorkspaceId, reading.FieldMeterId:
 			values[i] = new(uuid.UUID)
@@ -123,11 +123,11 @@ func (_m *Reading) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.Id = *value
 			}
-		case reading.FieldMeasuredAt:
+		case reading.FieldDateMeasured:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field measured_at", values[i])
+				return fmt.Errorf("unexpected type %T for field date_measured", values[i])
 			} else if value.Valid {
-				_m.MeasuredAt = value.Time
+				_m.DateMeasured = value.Time
 			}
 		case reading.FieldValue:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -223,8 +223,8 @@ func (_m *Reading) String() string {
 	var builder strings.Builder
 	builder.WriteString("Reading(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.Id))
-	builder.WriteString("measured_at=")
-	builder.WriteString(_m.MeasuredAt.Format(time.ANSIC))
+	builder.WriteString("date_measured=")
+	builder.WriteString(_m.DateMeasured.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("value=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Value))

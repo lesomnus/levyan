@@ -49,8 +49,8 @@ func (r *Reconciler) grants(ctx context.Context, p *pass) ([]Found, error) {
 			Where(
 				entgrant.TenantId(t.Id),
 				entgrant.DateErasedIsNil(),
-				entgrant.ValidFromLTE(p.now),
-				entgrant.Or(entgrant.Renews(true), entgrant.ValidUntilGT(p.now)),
+				entgrant.DateEffectiveLTE(p.now),
+				entgrant.Or(entgrant.Renews(true), entgrant.DateExpiresGT(p.now)),
 			).
 			Order(ent.Asc(entgrant.FieldDateCreated), ent.Asc(entgrant.FieldId)).
 			All(ctx)

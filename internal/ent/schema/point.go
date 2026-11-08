@@ -21,10 +21,10 @@ func (Point) Fields() []ent.Field {
 		field.Uuid("id").
 			Unique().
 			Immutable(),
-		field.Time("started_at").
+		field.Time("date_started").
 			Immutable().
 			Optional(),
-		field.Time("counted_at").
+		field.Time("date_counted").
 			Immutable().
 			Optional(),
 		field.Int64("value").
@@ -70,13 +70,13 @@ func (Point) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tenant_id", "date_created", "id").
 			StorageKey("point_page"),
-		index.Fields("series_id", "started_at", "counted_at").
+		index.Fields("series_id", "date_started", "date_counted").
 			StorageKey("point_counted").
 			Unique().
 			Annotations(entsql.IndexWhere("date_erased IS NULL")),
-		index.Fields("workspace_id", "counted_at").
+		index.Fields("workspace_id", "date_counted").
 			StorageKey("point_workspace"),
-		index.Fields("late", "workspace_id", "counted_at").
+		index.Fields("late", "workspace_id", "date_counted").
 			StorageKey("point_late"),
 	}
 }

@@ -101,17 +101,17 @@ func (x WorkspaceEventKind) Number() protoreflect.EnumNumber {
 // (`ledger.Lock`), so that whether it came after a period's close began is a
 // question with one answer.
 type WorkspaceEvent struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Kind        WorkspaceEventKind     `protobuf:"varint,8,opt,name=kind,enum=levyan.WorkspaceEventKind"`
-	xxx_hidden_HappenedAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=happened_at,json=happenedAt"`
-	xxx_hidden_LateThrough *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=late_through,json=lateThrough"`
-	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id              []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant          *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace       *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Kind            WorkspaceEventKind     `protobuf:"varint,8,opt,name=kind,enum=levyan.WorkspaceEventKind"`
+	xxx_hidden_DateOccurred    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_occurred,json=dateOccurred"`
+	xxx_hidden_DateLateThrough *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_late_through,json=dateLateThrough"`
+	xxx_hidden_DateErased      *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated     *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *WorkspaceEvent) Reset() {
@@ -167,16 +167,16 @@ func (x *WorkspaceEvent) GetKind() WorkspaceEventKind {
 	return WorkspaceEventKind_WORKSPACE_EVENT_KIND_UNSPECIFIED
 }
 
-func (x *WorkspaceEvent) GetHappenedAt() *timestamppb.Timestamp {
+func (x *WorkspaceEvent) GetDateOccurred() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_HappenedAt
+		return x.xxx_hidden_DateOccurred
 	}
 	return nil
 }
 
-func (x *WorkspaceEvent) GetLateThrough() *timestamppb.Timestamp {
+func (x *WorkspaceEvent) GetDateLateThrough() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_LateThrough
+		return x.xxx_hidden_DateLateThrough
 	}
 	return nil
 }
@@ -214,12 +214,12 @@ func (x *WorkspaceEvent) SetKind(v WorkspaceEventKind) {
 	x.xxx_hidden_Kind = v
 }
 
-func (x *WorkspaceEvent) SetHappenedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_HappenedAt = v
+func (x *WorkspaceEvent) SetDateOccurred(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateOccurred = v
 }
 
-func (x *WorkspaceEvent) SetLateThrough(v *timestamppb.Timestamp) {
-	x.xxx_hidden_LateThrough = v
+func (x *WorkspaceEvent) SetDateLateThrough(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateLateThrough = v
 }
 
 func (x *WorkspaceEvent) SetDateErased(v *timestamppb.Timestamp) {
@@ -244,18 +244,18 @@ func (x *WorkspaceEvent) HasWorkspace() bool {
 	return x.xxx_hidden_Workspace != nil
 }
 
-func (x *WorkspaceEvent) HasHappenedAt() bool {
+func (x *WorkspaceEvent) HasDateOccurred() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_HappenedAt != nil
+	return x.xxx_hidden_DateOccurred != nil
 }
 
-func (x *WorkspaceEvent) HasLateThrough() bool {
+func (x *WorkspaceEvent) HasDateLateThrough() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_LateThrough != nil
+	return x.xxx_hidden_DateLateThrough != nil
 }
 
 func (x *WorkspaceEvent) HasDateErased() bool {
@@ -280,12 +280,12 @@ func (x *WorkspaceEvent) ClearWorkspace() {
 	x.xxx_hidden_Workspace = nil
 }
 
-func (x *WorkspaceEvent) ClearHappenedAt() {
-	x.xxx_hidden_HappenedAt = nil
+func (x *WorkspaceEvent) ClearDateOccurred() {
+	x.xxx_hidden_DateOccurred = nil
 }
 
-func (x *WorkspaceEvent) ClearLateThrough() {
-	x.xxx_hidden_LateThrough = nil
+func (x *WorkspaceEvent) ClearDateLateThrough() {
+	x.xxx_hidden_DateLateThrough = nil
 }
 
 func (x *WorkspaceEvent) ClearDateErased() {
@@ -308,7 +308,7 @@ type WorkspaceEvent_builder struct {
 	Kind WorkspaceEventKind
 	// When, in UTC, to the microsecond, as the product says it happened: never
 	// ahead of when it came, nor before the workspace arrived.
-	HappenedAt *timestamppb.Timestamp
+	DateOccurred *timestamppb.Timestamp
 	// The end of the last of the product's periods whose close had begun when
 	// it came, for one whose reach is before that end: what was billed for the
 	// periods from its reach through there is corrected on a later statement
@@ -318,7 +318,7 @@ type WorkspaceEvent_builder struct {
 	// billed is its end's to say. Unset for one that came before any close it
 	// reaches. Said as it is written, under the workspace's lock, so that a
 	// close and an event never both take the other to have come first.
-	LateThrough *timestamppb.Timestamp
+	DateLateThrough *timestamppb.Timestamp
 	// Never stamped: there is no Erase.
 	DateErased *timestamppb.Timestamp
 	// When it was kept, which is when it came.
@@ -333,8 +333,8 @@ func (b0 WorkspaceEvent_builder) Build() *WorkspaceEvent {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Kind = b.Kind
-	x.xxx_hidden_HappenedAt = b.HappenedAt
-	x.xxx_hidden_LateThrough = b.LateThrough
+	x.xxx_hidden_DateOccurred = b.DateOccurred
+	x.xxx_hidden_DateLateThrough = b.DateLateThrough
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
@@ -344,27 +344,26 @@ var File_levyan_workspace_event_proto protoreflect.FileDescriptor
 
 const file_levyan_workspace_event_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/workspace_event.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x8e\x05\n" +
+	"\x1clevyan/workspace_event.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x9d\x05\n" +
 	"\x0eWorkspaceEvent\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x11.levyan.WorkspaceB\x06\xf2\x82\x16\x02@\x01R\tworkspace\x126\n" +
-	"\x04kind\x18\b \x01(\x0e2\x1a.levyan.WorkspaceEventKindB\x06\xea\x82\x16\x02@\x01R\x04kind\x12F\n" +
-	"\vhappened_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\n" +
-	"happenedAt\x12G\n" +
-	"\flate_through\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB\b\xea\x82\x16\x048\x01@\x01R\vlateThrough\x12D\n" +
+	"\x04kind\x18\b \x01(\x0e2\x1a.levyan.WorkspaceEventKindB\x06\xea\x82\x16\x02@\x01R\x04kind\x12J\n" +
+	"\rdate_occurred\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\fdateOccurred\x12P\n" +
+	"\x11date_late_through\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampB\b\xea\x82\x16\x048\x01@\x01R\x0fdateLateThrough\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\x9c\x01\xca\xfc\x15v\x12\f\x10\x01\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\x9e\x01\xca\xfc\x15x\x12\f\x10\x01\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
-	"\x02id\x10\x01\x1a8\x12\bhappened\x1a\n" +
+	"\x02id\x10\x01\x1a:\x12\bhappened\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\r\n" +
-	"\tworkspace\x10\x03\x1a\x0f\n" +
-	"\vhappened_at\x10\t0\x01\x8a\xbb\x16\x1e\b,\"\x1a\n" +
+	"\tworkspace\x10\x03\x1a\x11\n" +
+	"\rdate_occurred\x10\t0\x01\x8a\xbb\x16\x1e\b,\"\x1a\n" +
 	"\x06tenant\"\x10workspace.tenant*\xa2\x01\n" +
 	"\x12WorkspaceEventKind\x12$\n" +
 	" WORKSPACE_EVENT_KIND_UNSPECIFIED\x10\x00\x12\x1f\n" +
@@ -385,8 +384,8 @@ var file_levyan_workspace_event_proto_depIdxs = []int32{
 	2, // 0: levyan.WorkspaceEvent.tenant:type_name -> levyan.Tenant
 	3, // 1: levyan.WorkspaceEvent.workspace:type_name -> levyan.Workspace
 	0, // 2: levyan.WorkspaceEvent.kind:type_name -> levyan.WorkspaceEventKind
-	4, // 3: levyan.WorkspaceEvent.happened_at:type_name -> google.protobuf.Timestamp
-	4, // 4: levyan.WorkspaceEvent.late_through:type_name -> google.protobuf.Timestamp
+	4, // 3: levyan.WorkspaceEvent.date_occurred:type_name -> google.protobuf.Timestamp
+	4, // 4: levyan.WorkspaceEvent.date_late_through:type_name -> google.protobuf.Timestamp
 	4, // 5: levyan.WorkspaceEvent.date_erased:type_name -> google.protobuf.Timestamp
 	4, // 6: levyan.WorkspaceEvent.date_created:type_name -> google.protobuf.Timestamp
 	7, // [7:7] is the sub-list for method output_type

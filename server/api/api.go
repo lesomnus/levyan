@@ -193,14 +193,14 @@ func meter(v *levyan.Meter) *levyanv1.Meter {
 
 func price(v *levyan.Price, key string) *levyanv1.Price {
 	p := levyanv1.Price_builder{
-		Id:        text(v.GetId()),
-		Meter:     key,
-		Channel:   levyanv1.Channel(v.GetChannel()),
-		Currency:  v.GetCurrency(),
-		Effective: stamp(v.GetDateEffective()),
-		Existing:  stamp(v.GetDateExisting()),
-		Published: stamp(v.GetDateCreated()),
-		Desc:      v.GetDesc(),
+		Id:            text(v.GetId()),
+		Meter:         key,
+		Channel:       levyanv1.Channel(v.GetChannel()),
+		Currency:      v.GetCurrency(),
+		DateEffective: stamp(v.GetDateEffective()),
+		DateExisting:  stamp(v.GetDateExisting()),
+		DatePublished: stamp(v.GetDateCreated()),
+		Desc:          v.GetDesc(),
 	}.Build()
 
 	if bs := v.GetBands().GetBands(); len(bs) > 0 {

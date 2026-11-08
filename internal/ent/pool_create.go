@@ -33,16 +33,16 @@ func (_c *PoolCreate) SetQuantity(v int64) *PoolCreate {
 	return _c
 }
 
-// SetValidFrom sets the "valid_from" field.
-func (_c *PoolCreate) SetValidFrom(v time.Time) *PoolCreate {
-	_c.mutation.SetValidFrom(v)
+// SetDateEffective sets the "date_effective" field.
+func (_c *PoolCreate) SetDateEffective(v time.Time) *PoolCreate {
+	_c.mutation.SetDateEffective(v)
 	return _c
 }
 
-// SetNillableValidFrom sets the "valid_from" field if the given value is not nil.
-func (_c *PoolCreate) SetNillableValidFrom(v *time.Time) *PoolCreate {
+// SetNillableDateEffective sets the "date_effective" field if the given value is not nil.
+func (_c *PoolCreate) SetNillableDateEffective(v *time.Time) *PoolCreate {
 	if v != nil {
-		_c.SetValidFrom(*v)
+		_c.SetDateEffective(*v)
 	}
 	return _c
 }
@@ -306,9 +306,9 @@ func (_c *PoolCreate) createSpec() (*Pool, *sqlgraph.CreateSpec) {
 		_spec.SetField(pool.FieldQuantity, field.TypeInt64, value)
 		_node.Quantity = value
 	}
-	if value, ok := _c.mutation.ValidFrom(); ok {
-		_spec.SetField(pool.FieldValidFrom, field.TypeTime, value)
-		_node.ValidFrom = value
+	if value, ok := _c.mutation.DateEffective(); ok {
+		_spec.SetField(pool.FieldDateEffective, field.TypeTime, value)
+		_node.DateEffective = value
 	}
 	if value, ok := _c.mutation.DateExpires(); ok {
 		_spec.SetField(pool.FieldDateExpires, field.TypeTime, value)

@@ -117,12 +117,12 @@ func TestAPayerSubscribesInTheMerchantsCheckout(t *testing.T) {
 	done, err := p.payers().CompleteCheckout(p.as(a), levyanv1.CompleteCheckoutRequest_builder{Checkout: co.GetId()}.Build())
 	x.NoError(err)
 	x.Equal(levyanv1.CheckoutState_CHECKOUT_STATE_COMPLETED, done.GetCheckout().GetState())
-	x.NotNil(done.GetCheckout().GetDone())
+	x.NotNil(done.GetCheckout().GetDateDone())
 	sub := done.GetSubscription()
 	x.Equal(levyanv1.SubscriptionStatus_SUBSCRIPTION_STATUS_ACTIVE, sub.GetStatus())
 	x.Equal("KRW", sub.GetCurrency(), "in the billing account's currency, by its plan")
 	x.Equal("paddle", sub.GetMerchant())
-	x.NotNil(sub.GetNextBilled())
+	x.NotNil(sub.GetDateNextBilled())
 	x.Equal("card", sub.GetMethod().GetType())
 	x.Equal("visa", sub.GetMethod().GetBrand())
 	x.Equal("4242", sub.GetMethod().GetLast4())
@@ -156,7 +156,7 @@ func TestAPayerSubscribesInTheMerchantsCheckout(t *testing.T) {
 	payer, err = p.workspaces().GetPayer(p.product, levyanv1.GetPayerRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
 	x.Equal(levyanv1.CollectionState_COLLECTION_STATE_COLLECTABLE, payer.GetPayer().GetCollection().GetState())
-	x.NotNil(payer.GetPayer().GetCollection().GetEnds(), "asked again as the checkout was refused: canceled at the period's end")
+	x.NotNil(payer.GetPayer().GetCollection().GetDateEnds(), "asked again as the checkout was refused: canceled at the period's end")
 }
 
 // mirrored is the merchant's id of the subscription levyan mirrors as `id`.

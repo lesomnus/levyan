@@ -24,10 +24,10 @@ type Allowance struct {
 	Id uuid.UUID `json:"id,omitempty"`
 	// Quantity holds the value of the "quantity" field.
 	Quantity int64 `json:"quantity,omitempty"`
-	// ValidFrom holds the value of the "valid_from" field.
-	ValidFrom time.Time `json:"valid_from,omitempty"`
-	// ValidUntil holds the value of the "valid_until" field.
-	ValidUntil *time.Time `json:"valid_until,omitempty"`
+	// DateEffective holds the value of the "date_effective" field.
+	DateEffective time.Time `json:"date_effective,omitempty"`
+	// DateExpires holds the value of the "date_expires" field.
+	DateExpires *time.Time `json:"date_expires,omitempty"`
 	// Reason holds the value of the "reason" field.
 	Reason string `json:"reason,omitempty"`
 	// DateUpdated holds the value of the "date_updated" field.
@@ -135,7 +135,7 @@ func (*Allowance) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case allowance.FieldReason, allowance.FieldEndReason:
 			values[i] = new(sql.NullString)
-		case allowance.FieldValidFrom, allowance.FieldValidUntil, allowance.FieldDateUpdated, allowance.FieldDateErased, allowance.FieldDateCreated:
+		case allowance.FieldDateEffective, allowance.FieldDateExpires, allowance.FieldDateUpdated, allowance.FieldDateErased, allowance.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case allowance.FieldGrantedById, allowance.FieldEndedById:
 			values[i] = new(sql.Null[uuid.UUID])
@@ -168,18 +168,18 @@ func (_m *Allowance) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Quantity = value.Int64
 			}
-		case allowance.FieldValidFrom:
+		case allowance.FieldDateEffective:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field valid_from", values[i])
+				return fmt.Errorf("unexpected type %T for field date_effective", values[i])
 			} else if value.Valid {
-				_m.ValidFrom = value.Time
+				_m.DateEffective = value.Time
 			}
-		case allowance.FieldValidUntil:
+		case allowance.FieldDateExpires:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field valid_until", values[i])
+				return fmt.Errorf("unexpected type %T for field date_expires", values[i])
 			} else if value.Valid {
-				_m.ValidUntil = new(time.Time)
-				*_m.ValidUntil = value.Time
+				_m.DateExpires = new(time.Time)
+				*_m.DateExpires = value.Time
 			}
 		case allowance.FieldReason:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -306,11 +306,11 @@ func (_m *Allowance) String() string {
 	builder.WriteString("quantity=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Quantity))
 	builder.WriteString(", ")
-	builder.WriteString("valid_from=")
-	builder.WriteString(_m.ValidFrom.Format(time.ANSIC))
+	builder.WriteString("date_effective=")
+	builder.WriteString(_m.DateEffective.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := _m.ValidUntil; v != nil {
-		builder.WriteString("valid_until=")
+	if v := _m.DateExpires; v != nil {
+		builder.WriteString("date_expires=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

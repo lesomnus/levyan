@@ -194,8 +194,8 @@ func (_u *PoolUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if _u.mutation.ValidFromCleared() {
-		_spec.ClearField(pool.FieldValidFrom, field.TypeTime)
+	if _u.mutation.DateEffectiveCleared() {
+		_spec.ClearField(pool.FieldDateEffective, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateExpires(); ok {
 		_spec.SetField(pool.FieldDateExpires, field.TypeTime, value)
@@ -474,8 +474,8 @@ func (_u *PoolUpdateOne) sqlSave(ctx context.Context) (_node *Pool, err error) {
 			}
 		}
 	}
-	if _u.mutation.ValidFromCleared() {
-		_spec.ClearField(pool.FieldValidFrom, field.TypeTime)
+	if _u.mutation.DateEffectiveCleared() {
+		_spec.ClearField(pool.FieldDateEffective, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateExpires(); ok {
 		_spec.SetField(pool.FieldDateExpires, field.TypeTime, value)

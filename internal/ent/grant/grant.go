@@ -20,10 +20,10 @@ const (
 	FieldValue = "value"
 	// FieldLimit holds the string denoting the limit field in the database.
 	FieldLimit = "limit"
-	// FieldValidFrom holds the string denoting the valid_from field in the database.
-	FieldValidFrom = "valid_from"
-	// FieldValidUntil holds the string denoting the valid_until field in the database.
-	FieldValidUntil = "valid_until"
+	// FieldDateEffective holds the string denoting the date_effective field in the database.
+	FieldDateEffective = "date_effective"
+	// FieldDateExpires holds the string denoting the date_expires field in the database.
+	FieldDateExpires = "date_expires"
 	// FieldDateUpdated holds the string denoting the date_updated field in the database.
 	FieldDateUpdated = "date_updated"
 	// FieldDateErased holds the string denoting the date_erased field in the database.
@@ -71,8 +71,8 @@ var Columns = []string{
 	FieldKey,
 	FieldValue,
 	FieldLimit,
-	FieldValidFrom,
-	FieldValidUntil,
+	FieldDateEffective,
+	FieldDateExpires,
 	FieldDateUpdated,
 	FieldDateErased,
 	FieldDateCreated,
@@ -122,14 +122,14 @@ func ByLimit(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLimit, opts...).ToFunc()
 }
 
-// ByValidFrom orders the results by the valid_from field.
-func ByValidFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldValidFrom, opts...).ToFunc()
+// ByDateEffective orders the results by the date_effective field.
+func ByDateEffective(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateEffective, opts...).ToFunc()
 }
 
-// ByValidUntil orders the results by the valid_until field.
-func ByValidUntil(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldValidUntil, opts...).ToFunc()
+// ByDateExpires orders the results by the date_expires field.
+func ByDateExpires(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateExpires, opts...).ToFunc()
 }
 
 // ByDateUpdated orders the results by the date_updated field.

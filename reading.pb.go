@@ -38,18 +38,18 @@ const (
 // Written through the servers, as the product that sent it, so the trail says
 // which key sent what.
 type Reading struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *Meter                 `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_MeasuredAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=measured_at,json=measuredAt"`
-	xxx_hidden_Value       int64                  `protobuf:"varint,10,opt,name=value"`
-	xxx_hidden_Late        bool                   `protobuf:"varint,11,opt,name=late"`
-	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id           []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant       *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace    *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter        *Meter                 `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_DateMeasured *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_measured,json=dateMeasured"`
+	xxx_hidden_Value        int64                  `protobuf:"varint,10,opt,name=value"`
+	xxx_hidden_Late         bool                   `protobuf:"varint,11,opt,name=late"`
+	xxx_hidden_DateErased   *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated  *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Reading) Reset() {
@@ -105,9 +105,9 @@ func (x *Reading) GetMeter() *Meter {
 	return nil
 }
 
-func (x *Reading) GetMeasuredAt() *timestamppb.Timestamp {
+func (x *Reading) GetDateMeasured() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_MeasuredAt
+		return x.xxx_hidden_DateMeasured
 	}
 	return nil
 }
@@ -159,8 +159,8 @@ func (x *Reading) SetMeter(v *Meter) {
 	x.xxx_hidden_Meter = v
 }
 
-func (x *Reading) SetMeasuredAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_MeasuredAt = v
+func (x *Reading) SetDateMeasured(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateMeasured = v
 }
 
 func (x *Reading) SetValue(v int64) {
@@ -200,11 +200,11 @@ func (x *Reading) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *Reading) HasMeasuredAt() bool {
+func (x *Reading) HasDateMeasured() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_MeasuredAt != nil
+	return x.xxx_hidden_DateMeasured != nil
 }
 
 func (x *Reading) HasDateErased() bool {
@@ -233,8 +233,8 @@ func (x *Reading) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *Reading) ClearMeasuredAt() {
-	x.xxx_hidden_MeasuredAt = nil
+func (x *Reading) ClearDateMeasured() {
+	x.xxx_hidden_DateMeasured = nil
 }
 
 func (x *Reading) ClearDateErased() {
@@ -257,7 +257,7 @@ type Reading_builder struct {
 	Meter *Meter
 	// When it was measured, in UTC, to the microsecond: what PostgreSQL keeps of
 	// a time, so that a reading sent again is the same reading to the ledger.
-	MeasuredAt *timestamppb.Timestamp
+	DateMeasured *timestamppb.Timestamp
 	// How much the workspace held, in the meter's unit.
 	Value int64
 	// Measured in a period of the product's that was closed by the time it came
@@ -280,7 +280,7 @@ func (b0 Reading_builder) Build() *Reading {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
-	x.xxx_hidden_MeasuredAt = b.MeasuredAt
+	x.xxx_hidden_DateMeasured = b.DateMeasured
 	x.xxx_hidden_Value = b.Value
 	x.xxx_hidden_Late = b.Late
 	x.xxx_hidden_DateErased = b.DateErased
@@ -292,36 +292,35 @@ var File_levyan_reading_proto protoreflect.FileDescriptor
 
 const file_levyan_reading_proto_rawDesc = "" +
 	"\n" +
-	"\x14levyan/reading.proto\x12\x06levyan\x1a\x12levyan/meter.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\x98\x06\n" +
+	"\x14levyan/reading.proto\x12\x06levyan\x1a\x12levyan/meter.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xa2\x06\n" +
 	"\aReading\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x11.levyan.WorkspaceB\x06\xf2\x82\x16\x02@\x01R\tworkspace\x12+\n" +
-	"\x05meter\x18\b \x01(\v2\r.levyan.MeterB\x06\xf2\x82\x16\x02@\x01R\x05meter\x12F\n" +
-	"\vmeasured_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\n" +
-	"measuredAt\x12\x1c\n" +
+	"\x05meter\x18\b \x01(\v2\r.levyan.MeterB\x06\xf2\x82\x16\x02@\x01R\x05meter\x12J\n" +
+	"\rdate_measured\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\fdateMeasured\x12\x1c\n" +
 	"\x05value\x18\n" +
 	" \x01(\x03B\x06\xea\x82\x16\x02@\x01R\x05value\x12\x1a\n" +
 	"\x04late\x18\v \x01(\bB\x06\xea\x82\x16\x02@\x01R\x04late\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\xc7\x02\xca\xfc\x15\xea\x01\x12\x11\x10\x01\x82\x01\x02\x12\x00\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\xcd\x02\xca\xfc\x15\xf0\x01\x12\x11\x10\x01\x82\x01\x02\x12\x00\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
-	"\x02id\x10\x01\x1aC\x12\bmeasured\x1a\n" +
+	"\x02id\x10\x01\x1aE\x12\bmeasured\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\r\n" +
 	"\tworkspace\x10\x03\x1a\t\n" +
-	"\x05meter\x10\b\x1a\x0f\n" +
-	"\vmeasured_at\x10\t0\x01\x1a0\x12\x06recent\x1a\n" +
+	"\x05meter\x10\b\x1a\x11\n" +
+	"\rdate_measured\x10\t0\x01\x1a2\x12\x06recent\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\t\n" +
-	"\x05meter\x10\b\x1a\x0f\n" +
-	"\vmeasured_at\x10\t\x1a0\x12\x04late\x1a\b\n" +
+	"\x05meter\x10\b\x1a\x11\n" +
+	"\rdate_measured\x10\t\x1a2\x12\x04late\x1a\b\n" +
 	"\x04late\x10\v\x1a\r\n" +
-	"\tworkspace\x10\x03\x1a\x0f\n" +
-	"\vmeasured_at\x10\t\x8a\xbb\x16T\b\r2&\n" +
+	"\tworkspace\x10\x03\x1a\x11\n" +
+	"\rdate_measured\x10\t\x8a\xbb\x16T\b\r2&\n" +
 	"\x10\n" +
 	"\x0e\n" +
 	"\fdate_created\n" +
@@ -343,7 +342,7 @@ var file_levyan_reading_proto_depIdxs = []int32{
 	1, // 0: levyan.Reading.tenant:type_name -> levyan.Tenant
 	2, // 1: levyan.Reading.workspace:type_name -> levyan.Workspace
 	3, // 2: levyan.Reading.meter:type_name -> levyan.Meter
-	4, // 3: levyan.Reading.measured_at:type_name -> google.protobuf.Timestamp
+	4, // 3: levyan.Reading.date_measured:type_name -> google.protobuf.Timestamp
 	4, // 4: levyan.Reading.date_erased:type_name -> google.protobuf.Timestamp
 	4, // 5: levyan.Reading.date_created:type_name -> google.protobuf.Timestamp
 	6, // [6:6] is the sub-list for method output_type

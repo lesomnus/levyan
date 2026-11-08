@@ -138,7 +138,7 @@ func (w *world) daily(ws pdid.Id, from, to time.Time, v int64) {
 	w.t.Helper()
 	rs := []*levyanv1.Reading{}
 	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
-		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(d), Value: v, Unit: "{asset}"}.Build())
+		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(d), Value: v, Unit: "{asset}"}.Build())
 	}
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(w.as, levyanv1.RecordRequest_builder{Readings: rs}.Build())
 	w.X.NoError(err)

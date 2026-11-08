@@ -33,7 +33,7 @@ func TestAnOperatorGivesAllowancesAndGrantsCredit(t *testing.T) {
 	x.Equal(ws, a.Workspace)
 	x.Equal("loft.assets.active", a.Meter)
 	x.Equal(int64(500), a.Quantity)
-	x.Nil(a.Until)
+	x.Nil(a.DateExpires)
 	x.Equal("alice", a.GrantedBy)
 	x.Equal("2027 봄 프로모션", a.Reason)
 	x.Equal(d.operator("alice"), d.actorOf(a.Id), "the trail names who gave it")
@@ -57,8 +57,8 @@ func TestAnOperatorGivesAllowancesAndGrantsCredit(t *testing.T) {
 	x.Equal(http.StatusBadRequest, code, "with why")
 	var ended admin.Allowance
 	d.as(bobKey, http.MethodPost, "/admin/allowances/"+a.Id+"/end", map[string]string{"reason": "프로모션 종료"}, &ended)
-	x.NotNil(ended.Until)
-	x.False(ended.Until.After(time.Now()))
+	x.NotNil(ended.DateExpires)
+	x.False(ended.DateExpires.After(time.Now()))
 	x.Equal("bob", ended.EndedBy)
 	x.Equal("프로모션 종료", ended.EndReason)
 	code, _ = d.ask(bobKey, http.MethodPost, "/admin/allowances/"+a.Id+"/end", map[string]string{"reason": "again"})
@@ -79,7 +79,7 @@ func TestAnOperatorGivesAllowancesAndGrantsCredit(t *testing.T) {
 	x.Equal(int64(100000), c.Granted)
 	x.Equal(int64(100000), c.Left)
 	x.Equal("KRW", c.Currency)
-	x.WithinDuration(time.Now().AddDate(1, 0, 0), c.Expires, time.Minute, "a year, unless said")
+	x.WithinDuration(time.Now().AddDate(1, 0, 0), c.DateExpires, time.Minute, "a year, unless said")
 	x.Equal("alice", c.GrantedBy)
 	x.Equal(d.operator("alice"), d.actorOf(c.Id))
 
@@ -91,10 +91,10 @@ func TestAnOperatorGivesAllowancesAndGrantsCredit(t *testing.T) {
 	x.NoError(err)
 	expires := time.Now().UTC().AddDate(0, 3, 0).Truncate(time.Second)
 	var cb admin.Credit
-	d.as(aliceKey, http.MethodPost, "/admin/products/loft/credits", map[string]any{"billing_account": ba.String(), "amount": 5000, "expires": expires, "reason": "계약"}, &cb)
+	d.as(aliceKey, http.MethodPost, "/admin/products/loft/credits", map[string]any{"billing_account": ba.String(), "amount": 5000, "date_expires": expires, "reason": "계약"}, &cb)
 	x.Equal(ba.String(), cb.BillingAccount)
 	x.Equal("KRW", cb.Currency)
-	x.Equal(expires, cb.Expires)
+	x.Equal(expires, cb.DateExpires)
 
 	for _, body := range []map[string]any{
 		{"billing_account": ba.String(), "amount": 5000, "currency": "USD", "reason": "x"},
@@ -102,7 +102,7 @@ func TestAnOperatorGivesAllowancesAndGrantsCredit(t *testing.T) {
 		{"amount": 5000, "reason": "x"},
 		{"billing_account": ba.String(), "amount": 5000},
 		{"billing_account": ba.String(), "amount": 0, "reason": "x"},
-		{"billing_account": ba.String(), "amount": 5000, "reason": "x", "expires": time.Now().Add(-time.Hour)},
+		{"billing_account": ba.String(), "amount": 5000, "reason": "x", "date_expires": time.Now().Add(-time.Hour)},
 	} {
 		code, b := d.ask(aliceKey, http.MethodPost, "/admin/products/loft/credits", body)
 		x.Equal(http.StatusBadRequest, code, "%v: %s", body, b)
@@ -151,14 +151,14 @@ func TestAnOperatorGivesPools(t *testing.T) {
 	x.Equal("loft.assets.active", p.Meter)
 	x.Equal(int64(10000), p.Granted)
 	x.Equal("10000", p.Left)
-	x.WithinDuration(time.Now().AddDate(1, 0, 0), p.Expires, time.Minute, "a year, unless said")
+	x.WithinDuration(time.Now().AddDate(1, 0, 0), p.DateExpires, time.Minute, "a year, unless said")
 	x.Equal("alice", p.GrantedBy)
 	x.Equal(d.operator("alice"), d.actorOf(p.Id))
 
 	for _, body := range []map[string]any{
 		{"workspace": ws, "meter": "loft.assets.active", "quantity": 5},
 		{"workspace": ws, "meter": "loft.assets.active", "quantity": 0, "reason": "x"},
-		{"workspace": ws, "meter": "loft.assets.active", "quantity": 5, "reason": "x", "expires": time.Now().Add(-time.Hour)},
+		{"workspace": ws, "meter": "loft.assets.active", "quantity": 5, "reason": "x", "date_expires": time.Now().Add(-time.Hour)},
 	} {
 		code, b := d.ask(aliceKey, http.MethodPost, "/admin/products/loft/pools", body)
 		x.Equal(http.StatusBadRequest, code, "%v: %s", body, b)
@@ -173,7 +173,7 @@ func TestAnOperatorGivesPools(t *testing.T) {
 	var ended admin.Pool
 	d.as(bobKey, http.MethodPost, "/admin/pools/"+p.Id+"/expire", map[string]string{"reason": "종료"}, &ended)
 	x.Equal("bob", ended.EndedBy)
-	x.False(ended.Expires.After(time.Now()), "from the start of the period now open")
+	x.False(ended.DateExpires.After(time.Now()), "from the start of the period now open")
 	code, _ := d.ask(bobKey, http.MethodPost, "/admin/pools/"+p.Id+"/expire", map[string]string{"reason": "again"})
 	x.Equal(http.StatusConflict, code)
 	d.as(aliceKey, http.MethodGet, "/admin/products/loft/pools", nil, &vs)

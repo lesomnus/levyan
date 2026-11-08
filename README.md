@@ -122,7 +122,7 @@ curl -sX POST http://localhost:8080/levyan.v1.MeteringService/Record \
   -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
   -H "Authorization: Bearer $KEY" \
   -d '{"readings":[{"workspace":"<워크스페이스의 tenant id>","meter":"loft.assets.active",
-       "measuredAt":"2027-01-15T00:00:00Z","value":120,"unit":"{asset}"}]}'
+       "dateMeasured":"2027-01-15T00:00:00Z","value":120,"unit":"{asset}"}]}'
 ```
 
 답은 보낸 값마다 하나다. `OUTCOME_KEPT`는 새로 남긴 것, `OUTCOME_ALREADY`는 이미 같은 값이 있던 것, `OUTCOME_REFUSED`는 남기지 않은 것이다(이유는 `refusal`과 `why`). 거부는 값 하나씩이라 나머지는 남는다. 호출이 실패하면 아무것도 남지 않았으므로 그대로 다시 보내면 된다. `late`는 이미 닫힌 기간에 대한 값이라 다음 내역에서 정정된다는 뜻이다.
@@ -264,7 +264,7 @@ levyan의 role에는 roster `standing.Methods`(`HolderService/Get`, `SyncService
 ```sh
 curl -sX POST http://localhost:8080/levyan.v1.WorkspaceService/Close \
   -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
-  -H "Authorization: Bearer $KEY" -d '{"workspace":"<워크스페이스의 tenant id>","at":"2027-01-11T00:00:00Z"}'
+  -H "Authorization: Bearer $KEY" -d '{"workspace":"<워크스페이스의 tenant id>","dateOccurred":"2027-01-11T00:00:00Z"}'
 ```
 
 ### 청구서

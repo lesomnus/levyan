@@ -12,10 +12,10 @@ const (
 	Label = "point"
 	// FieldId holds the string denoting the id field in the database.
 	FieldId = "id"
-	// FieldStartedAt holds the string denoting the started_at field in the database.
-	FieldStartedAt = "started_at"
-	// FieldCountedAt holds the string denoting the counted_at field in the database.
-	FieldCountedAt = "counted_at"
+	// FieldDateStarted holds the string denoting the date_started field in the database.
+	FieldDateStarted = "date_started"
+	// FieldDateCounted holds the string denoting the date_counted field in the database.
+	FieldDateCounted = "date_counted"
 	// FieldValue holds the string denoting the value field in the database.
 	FieldValue = "value"
 	// FieldLate holds the string denoting the late field in the database.
@@ -64,8 +64,8 @@ const (
 // Columns holds all SQL columns for point fields.
 var Columns = []string{
 	FieldId,
-	FieldStartedAt,
-	FieldCountedAt,
+	FieldDateStarted,
+	FieldDateCounted,
 	FieldValue,
 	FieldLate,
 	FieldDateErased,
@@ -93,14 +93,14 @@ func ById(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldId, opts...).ToFunc()
 }
 
-// ByStartedAt orders the results by the started_at field.
-func ByStartedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStartedAt, opts...).ToFunc()
+// ByDateStarted orders the results by the date_started field.
+func ByDateStarted(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateStarted, opts...).ToFunc()
 }
 
-// ByCountedAt orders the results by the counted_at field.
-func ByCountedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCountedAt, opts...).ToFunc()
+// ByDateCounted orders the results by the date_counted field.
+func ByDateCounted(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateCounted, opts...).ToFunc()
 }
 
 // ByValue orders the results by the value field.

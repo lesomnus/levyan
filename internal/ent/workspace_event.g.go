@@ -27,9 +27,9 @@ func (e *WorkspaceEvent) Proto() *levyan.WorkspaceEvent {
 		x.SetWorkspace(r)
 	}
 	x.SetKind(levyan.WorkspaceEventKind(e.Kind))
-	x.SetHappenedAt(timestamppb.New(e.HappenedAt))
-	if e.LateThrough != nil {
-		x.SetLateThrough(timestamppb.New(*e.LateThrough))
+	x.SetDateOccurred(timestamppb.New(e.DateOccurred))
+	if e.DateLateThrough != nil {
+		x.SetDateLateThrough(timestamppb.New(*e.DateLateThrough))
 	}
 	if e.DateErased != nil {
 		x.SetDateErased(timestamppb.New(*e.DateErased))

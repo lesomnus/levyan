@@ -278,8 +278,8 @@ func invoiceOf(v *levyan.Invoice) *levyanv1.Invoice {
 		Id:             text(v.GetId()),
 		BillingAccount: text(v.GetBillingAccount().GetId()),
 		State:          levyanv1.InvoiceState(v.GetState()),
-		Start:          stamp(v.GetDateStart()),
-		End:            stamp(v.GetDateEnd()),
+		DateStart:      stamp(v.GetDateStart()),
+		DateEnd:        stamp(v.GetDateEnd()),
 		Currency:       v.GetCurrency(),
 		Subtotal:       v.GetSubtotal(),
 		Tax:            v.GetTax(),
@@ -296,13 +296,13 @@ func invoiceOf(v *levyan.Invoice) *levyanv1.Invoice {
 		out.SetChannel(levyanv1.Channel(c))
 	}
 	if v.HasDateFinalized() {
-		out.SetFinalized(stamp(v.GetDateFinalized()))
+		out.SetDateFinalized(stamp(v.GetDateFinalized()))
 	}
 	if v.HasDateDue() {
-		out.SetDueDate(stamp(v.GetDateDue()))
+		out.SetDateDue(stamp(v.GetDateDue()))
 	}
 	if v.HasDateSettled() {
-		out.SetSettled(stamp(v.GetDateSettled()))
+		out.SetDateSettled(stamp(v.GetDateSettled()))
 	}
 
 	return out
@@ -310,16 +310,16 @@ func invoiceOf(v *levyan.Invoice) *levyanv1.Invoice {
 
 func creditNoteOf(v *levyan.CreditNote) *levyanv1.CreditNote {
 	return levyanv1.CreditNote_builder{
-		Id:       text(v.GetId()),
-		Invoice:  text(v.GetInvoice().GetId()),
-		Reason:   levyanv1.CreditNoteReason(v.GetReason()),
-		Amount:   v.GetAmount(),
-		Tax:      v.GetTax(),
-		Total:    v.GetTotal(),
-		Reduced:  v.GetReduced(),
-		Refunded: v.GetRefunded(),
-		Credited: v.GetCredited(),
-		Number:   v.GetNumber(),
-		Created:  timestamppb.New(v.GetDateCreated().AsTime()),
+		Id:          text(v.GetId()),
+		Invoice:     text(v.GetInvoice().GetId()),
+		Reason:      levyanv1.CreditNoteReason(v.GetReason()),
+		Amount:      v.GetAmount(),
+		Tax:         v.GetTax(),
+		Total:       v.GetTotal(),
+		Reduced:     v.GetReduced(),
+		Refunded:    v.GetRefunded(),
+		Credited:    v.GetCredited(),
+		Number:      v.GetNumber(),
+		DateCreated: timestamppb.New(v.GetDateCreated().AsTime()),
 	}.Build()
 }

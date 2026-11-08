@@ -26,16 +26,16 @@ type ReadingCreate struct {
 	stored   **Reading
 }
 
-// SetMeasuredAt sets the "measured_at" field.
-func (_c *ReadingCreate) SetMeasuredAt(v time.Time) *ReadingCreate {
-	_c.mutation.SetMeasuredAt(v)
+// SetDateMeasured sets the "date_measured" field.
+func (_c *ReadingCreate) SetDateMeasured(v time.Time) *ReadingCreate {
+	_c.mutation.SetDateMeasured(v)
 	return _c
 }
 
-// SetNillableMeasuredAt sets the "measured_at" field if the given value is not nil.
-func (_c *ReadingCreate) SetNillableMeasuredAt(v *time.Time) *ReadingCreate {
+// SetNillableDateMeasured sets the "date_measured" field if the given value is not nil.
+func (_c *ReadingCreate) SetNillableDateMeasured(v *time.Time) *ReadingCreate {
 	if v != nil {
-		_c.SetMeasuredAt(*v)
+		_c.SetDateMeasured(*v)
 	}
 	return _c
 }
@@ -231,9 +231,9 @@ func (_c *ReadingCreate) createSpec() (*Reading, *sqlgraph.CreateSpec) {
 		_node.Id = id
 		_spec.Id.Value = &id
 	}
-	if value, ok := _c.mutation.MeasuredAt(); ok {
-		_spec.SetField(reading.FieldMeasuredAt, field.TypeTime, value)
-		_node.MeasuredAt = value
+	if value, ok := _c.mutation.DateMeasured(); ok {
+		_spec.SetField(reading.FieldDateMeasured, field.TypeTime, value)
+		_node.DateMeasured = value
 	}
 	if value, ok := _c.mutation.Value(); ok {
 		_spec.SetField(reading.FieldValue, field.TypeInt64, value)

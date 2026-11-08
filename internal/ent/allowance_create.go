@@ -33,30 +33,30 @@ func (_c *AllowanceCreate) SetQuantity(v int64) *AllowanceCreate {
 	return _c
 }
 
-// SetValidFrom sets the "valid_from" field.
-func (_c *AllowanceCreate) SetValidFrom(v time.Time) *AllowanceCreate {
-	_c.mutation.SetValidFrom(v)
+// SetDateEffective sets the "date_effective" field.
+func (_c *AllowanceCreate) SetDateEffective(v time.Time) *AllowanceCreate {
+	_c.mutation.SetDateEffective(v)
 	return _c
 }
 
-// SetNillableValidFrom sets the "valid_from" field if the given value is not nil.
-func (_c *AllowanceCreate) SetNillableValidFrom(v *time.Time) *AllowanceCreate {
+// SetNillableDateEffective sets the "date_effective" field if the given value is not nil.
+func (_c *AllowanceCreate) SetNillableDateEffective(v *time.Time) *AllowanceCreate {
 	if v != nil {
-		_c.SetValidFrom(*v)
+		_c.SetDateEffective(*v)
 	}
 	return _c
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (_c *AllowanceCreate) SetValidUntil(v time.Time) *AllowanceCreate {
-	_c.mutation.SetValidUntil(v)
+// SetDateExpires sets the "date_expires" field.
+func (_c *AllowanceCreate) SetDateExpires(v time.Time) *AllowanceCreate {
+	_c.mutation.SetDateExpires(v)
 	return _c
 }
 
-// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
-func (_c *AllowanceCreate) SetNillableValidUntil(v *time.Time) *AllowanceCreate {
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_c *AllowanceCreate) SetNillableDateExpires(v *time.Time) *AllowanceCreate {
 	if v != nil {
-		_c.SetValidUntil(*v)
+		_c.SetDateExpires(*v)
 	}
 	return _c
 }
@@ -306,13 +306,13 @@ func (_c *AllowanceCreate) createSpec() (*Allowance, *sqlgraph.CreateSpec) {
 		_spec.SetField(allowance.FieldQuantity, field.TypeInt64, value)
 		_node.Quantity = value
 	}
-	if value, ok := _c.mutation.ValidFrom(); ok {
-		_spec.SetField(allowance.FieldValidFrom, field.TypeTime, value)
-		_node.ValidFrom = value
+	if value, ok := _c.mutation.DateEffective(); ok {
+		_spec.SetField(allowance.FieldDateEffective, field.TypeTime, value)
+		_node.DateEffective = value
 	}
-	if value, ok := _c.mutation.ValidUntil(); ok {
-		_spec.SetField(allowance.FieldValidUntil, field.TypeTime, value)
-		_node.ValidUntil = &value
+	if value, ok := _c.mutation.DateExpires(); ok {
+		_spec.SetField(allowance.FieldDateExpires, field.TypeTime, value)
+		_node.DateExpires = &value
 	}
 	if value, ok := _c.mutation.Reason(); ok {
 		_spec.SetField(allowance.FieldReason, field.TypeString, value)

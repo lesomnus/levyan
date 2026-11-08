@@ -217,10 +217,10 @@ func checkoutOf(v *ent.Checkout) *levyanv1.Checkout {
 		Id:             pdid.Id(v.Id).String(),
 		BillingAccount: pdid.Id(v.BillingAccountId).String(),
 		State:          levyanv1.CheckoutState(v.State),
-		Started:        timestamppb.New(v.DateCreated),
+		DateStarted:    timestamppb.New(v.DateCreated),
 	}.Build()
 	if v.DateDone != nil {
-		out.SetDone(timestamppb.New(*v.DateDone))
+		out.SetDateDone(timestamppb.New(*v.DateDone))
 	}
 
 	return out
@@ -228,18 +228,18 @@ func checkoutOf(v *ent.Checkout) *levyanv1.Checkout {
 
 func subscriptionOf(v *levyan.Subscription) *levyanv1.Subscription {
 	out := levyanv1.Subscription_builder{
-		Id:          text(v.GetId()),
-		Merchant:    v.GetMor(),
-		Status:      levyanv1.SubscriptionStatus(v.GetStatus()),
-		Currency:    v.GetCurrency(),
-		PeriodStart: stamp(v.GetDatePeriodStart()),
-		PeriodEnd:   stamp(v.GetDatePeriodEnd()),
-		NextBilled:  stamp(v.GetDateNext()),
-		Change:      levyanv1.SubscriptionChange(v.GetChange()),
-		ChangeAt:    stamp(v.GetDateChange()),
-		Canceled:    stamp(v.GetDateCanceled()),
-		Updated:     stamp(v.GetDateMorUpdated()),
-		Checked:     stamp(v.GetDateChecked()),
+		Id:              text(v.GetId()),
+		Merchant:        v.GetMor(),
+		Status:          levyanv1.SubscriptionStatus(v.GetStatus()),
+		Currency:        v.GetCurrency(),
+		DatePeriodStart: stamp(v.GetDatePeriodStart()),
+		DatePeriodEnd:   stamp(v.GetDatePeriodEnd()),
+		DateNextBilled:  stamp(v.GetDateNext()),
+		Change:          levyanv1.SubscriptionChange(v.GetChange()),
+		DateChange:      stamp(v.GetDateChange()),
+		DateCanceled:    stamp(v.GetDateCanceled()),
+		DateUpdated:     stamp(v.GetDateMorUpdated()),
+		DateChecked:     stamp(v.GetDateChecked()),
 	}.Build()
 	if v.GetMethodType() != "" {
 		out.SetMethod(levyanv1.PaymentMethod_builder{
@@ -255,10 +255,10 @@ func subscriptionOf(v *levyan.Subscription) *levyanv1.Subscription {
 func collectionOf(c subscriptions.Collection) *levyanv1.Collection {
 	out := levyanv1.Collection_builder{State: levyanv1.CollectionState(c.State)}.Build()
 	if !c.Since.IsZero() {
-		out.SetSince(timestamppb.New(c.Since))
+		out.SetDateSince(timestamppb.New(c.Since))
 	}
 	if !c.Ends.IsZero() {
-		out.SetEnds(timestamppb.New(c.Ends))
+		out.SetDateEnds(timestamppb.New(c.Ends))
 	}
 
 	return out

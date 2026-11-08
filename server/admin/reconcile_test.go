@@ -33,7 +33,7 @@ func TestAnOperatorReconcilesAndAcceptsWhatIsFound(t *testing.T) {
 	m := levyanv1.NewMeteringServiceClient(d.w.Serve())
 	d.w.At(jan.AddDate(0, 0, 20))
 	res, err := m.Record(levyantest.As(context.Background(), key), levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: pdid.New(pd.TenantDomain).String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 10)), Value: 130, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: pdid.New(pd.TenantDomain).String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 0, 10)), Value: 130, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	x.Equal(levyanv1.Outcome_OUTCOME_KEPT, res.GetResults()[0].GetOutcome())

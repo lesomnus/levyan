@@ -21,10 +21,10 @@ type Point struct {
 	config `json:"-"`
 	// Id of the ent.
 	Id uuid.UUID `json:"id,omitempty"`
-	// StartedAt holds the value of the "started_at" field.
-	StartedAt time.Time `json:"started_at,omitempty"`
-	// CountedAt holds the value of the "counted_at" field.
-	CountedAt time.Time `json:"counted_at,omitempty"`
+	// DateStarted holds the value of the "date_started" field.
+	DateStarted time.Time `json:"date_started,omitempty"`
+	// DateCounted holds the value of the "date_counted" field.
+	DateCounted time.Time `json:"date_counted,omitempty"`
 	// Value holds the value of the "value" field.
 	Value int64 `json:"value,omitempty"`
 	// Late holds the value of the "late" field.
@@ -100,7 +100,7 @@ func (*Point) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case point.FieldValue:
 			values[i] = new(sql.NullInt64)
-		case point.FieldStartedAt, point.FieldCountedAt, point.FieldDateErased, point.FieldDateCreated:
+		case point.FieldDateStarted, point.FieldDateCounted, point.FieldDateErased, point.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case point.FieldId, point.FieldTenantId, point.FieldWorkspaceId, point.FieldSeriesId:
 			values[i] = new(uuid.UUID)
@@ -125,17 +125,17 @@ func (_m *Point) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.Id = *value
 			}
-		case point.FieldStartedAt:
+		case point.FieldDateStarted:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field started_at", values[i])
+				return fmt.Errorf("unexpected type %T for field date_started", values[i])
 			} else if value.Valid {
-				_m.StartedAt = value.Time
+				_m.DateStarted = value.Time
 			}
-		case point.FieldCountedAt:
+		case point.FieldDateCounted:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field counted_at", values[i])
+				return fmt.Errorf("unexpected type %T for field date_counted", values[i])
 			} else if value.Valid {
-				_m.CountedAt = value.Time
+				_m.DateCounted = value.Time
 			}
 		case point.FieldValue:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -231,11 +231,11 @@ func (_m *Point) String() string {
 	var builder strings.Builder
 	builder.WriteString("Point(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.Id))
-	builder.WriteString("started_at=")
-	builder.WriteString(_m.StartedAt.Format(time.ANSIC))
+	builder.WriteString("date_started=")
+	builder.WriteString(_m.DateStarted.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("counted_at=")
-	builder.WriteString(_m.CountedAt.Format(time.ANSIC))
+	builder.WriteString("date_counted=")
+	builder.WriteString(_m.DateCounted.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("value=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Value))

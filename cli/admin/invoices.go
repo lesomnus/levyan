@@ -30,7 +30,7 @@ func printInvoice(self *xli.Command, v admin.Invoice) {
 		state = fmt.Sprintf("draft, waited %d time(s)", v.Carried)
 	}
 	self.Printf("%s\t%s\t%s\t%s\t%s\t%s %s\t%s, %s left%s\n",
-		v.Id, v.Product, v.BillingAccount, when(v.Start), when(v.End), v.Channel, v.Currency,
+		v.Id, v.Product, v.BillingAccount, when(v.DateStart), when(v.DateEnd), v.Channel, v.Currency,
 		state, money.String(v.Remaining, v.Currency), number)
 }
 
@@ -43,18 +43,18 @@ func printAmounts(self *xli.Command, v admin.Invoice) {
 		money.String(v.Subtotal, v.Currency), money.String(v.Tax, v.Currency), tax, money.String(v.Total, v.Currency),
 		money.String(v.Credited, v.Currency), money.String(v.Due, v.Currency), money.String(v.Paid, v.Currency),
 		money.String(v.Reduced, v.Currency), money.String(v.Remaining, v.Currency))
-	if v.Finalized != nil {
+	if v.DateFinalized != nil {
 		extra := ""
-		if v.DueDate != nil {
-			extra = ", due " + when(*v.DueDate)
+		if v.DateDue != nil {
+			extra = ", due " + when(*v.DateDue)
 		}
-		if v.Issued != nil {
-			extra += ", issued " + when(*v.Issued) + " as " + v.Document
+		if v.DateIssued != nil {
+			extra += ", issued " + when(*v.DateIssued) + " as " + v.Document
 		}
-		self.Printf("  finalized %s%s\n", when(*v.Finalized), extra)
+		self.Printf("  finalized %s%s\n", when(*v.DateFinalized), extra)
 	}
-	if v.Settled != nil {
-		self.Printf("  settled %s\t%s\n", when(*v.Settled), v.Reason)
+	if v.DateSettled != nil {
+		self.Printf("  settled %s\t%s\n", when(*v.DateSettled), v.Reason)
 	}
 }
 
@@ -128,7 +128,7 @@ func newCmdInvoice() *xli.Command {
 					if err := c.do(ctx, http.MethodPost, "/admin/invoices/collect", map[string]any{}, &v); err != nil {
 						return err
 					}
-					self.Printf("a pass made at %s: `invoice ls` says what it invoiced\n", when(v.At))
+					self.Printf("a pass made at %s: `invoice ls` says what it invoiced\n", when(v.DateOccurred))
 					return next(ctx)
 				}),
 			},
@@ -255,7 +255,7 @@ func printShown(self *xli.Command, v admin.Invoice) {
 		if label == "" {
 			label = l.Workspace
 		}
-		self.Printf("  line\t%s\t%s\t%s\t%s\t%s\n", l.Statement, label, when(l.Start), when(l.End), money.String(l.Total, v.Currency))
+		self.Printf("  line\t%s\t%s\t%s\t%s\t%s\n", l.Statement, label, when(l.DateStart), when(l.DateEnd), money.String(l.Total, v.Currency))
 	}
 	for _, cn := range v.CreditNotes {
 		number := ""
@@ -275,8 +275,8 @@ func printShown(self *xli.Command, v admin.Invoice) {
 		if a.Recorded {
 			extra = append(extra, "recorded, "+a.Reference)
 		}
-		if a.Twice != nil {
-			extra = append(extra, "the channel holds more of its key than this, since "+a.Twice.UTC().Format(time.RFC3339)+": reconciliation's")
+		if a.DateTwice != nil {
+			extra = append(extra, "the channel holds more of its key than this, since "+a.DateTwice.UTC().Format(time.RFC3339)+": reconciliation's")
 		}
 		self.Printf("  attempt\t%s\t%s\t%s\t%s\t%d sent\t%s\n", a.Key, a.Kind, money.String(a.Amount, a.Currency), a.State, a.Sends, strings.Join(extra, "; "))
 	}
@@ -285,10 +285,10 @@ func printShown(self *xli.Command, v admin.Invoice) {
 	}
 	if d := v.Dunning; d != nil {
 		next := "none"
-		if d.NextRetry != nil {
-			next = d.NextRetry.UTC().Format(time.RFC3339)
+		if d.DateNextRetry != nil {
+			next = d.DateNextRetry.UTC().Format(time.RFC3339)
 		}
 		self.Printf("  dunning\t%s since %s\tnext retry %s\tgrace ends %s\trestricted from %s\tread-only from %s\n",
-			d.Kind, d.Failed.UTC().Format(time.RFC3339), next, d.GraceEnds.UTC().Format(time.RFC3339), d.RestrictedFrom.UTC().Format(time.RFC3339), d.ReadonlyFrom.UTC().Format(time.RFC3339))
+			d.Kind, d.DateFailed.UTC().Format(time.RFC3339), next, d.DateGraceEnds.UTC().Format(time.RFC3339), d.DateRestricted.UTC().Format(time.RFC3339), d.DateReadonly.UTC().Format(time.RFC3339))
 	}
 }

@@ -14,8 +14,8 @@ const (
 	FieldId = "id"
 	// FieldQuantity holds the string denoting the quantity field in the database.
 	FieldQuantity = "quantity"
-	// FieldValidFrom holds the string denoting the valid_from field in the database.
-	FieldValidFrom = "valid_from"
+	// FieldDateEffective holds the string denoting the date_effective field in the database.
+	FieldDateEffective = "date_effective"
 	// FieldDateExpires holds the string denoting the date_expires field in the database.
 	FieldDateExpires = "date_expires"
 	// FieldReason holds the string denoting the reason field in the database.
@@ -91,7 +91,7 @@ const (
 var Columns = []string{
 	FieldId,
 	FieldQuantity,
-	FieldValidFrom,
+	FieldDateEffective,
 	FieldDateExpires,
 	FieldReason,
 	FieldDateUpdated,
@@ -128,9 +128,9 @@ func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
 }
 
-// ByValidFrom orders the results by the valid_from field.
-func ByValidFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldValidFrom, opts...).ToFunc()
+// ByDateEffective orders the results by the date_effective field.
+func ByDateEffective(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateEffective, opts...).ToFunc()
 }
 
 // ByDateExpires orders the results by the date_expires field.

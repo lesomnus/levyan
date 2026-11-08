@@ -220,13 +220,13 @@ func (st AllowanceServiceServer) create(ctx context.Context, req *levyan.Allowan
 		})
 	}
 	q.SetQuantity(req.GetQuantity())
-	if req.HasValidFrom() {
-		q.SetValidFrom(req.GetValidFrom().AsTime())
+	if req.HasDateEffective() {
+		q.SetDateEffective(req.GetDateEffective().AsTime())
 	} else {
-		q.SetValidFrom(st.now())
+		q.SetDateEffective(st.now())
 	}
-	if req.HasValidUntil() {
-		q.SetValidUntil(req.GetValidUntil().AsTime())
+	if req.HasDateExpires() {
+		q.SetDateExpires(req.GetDateExpires().AsTime())
 	}
 	q.SetReason(req.GetReason())
 	q.SetDateUpdated(st.now())
@@ -386,11 +386,11 @@ func AllowanceSelectedFields(m *levyan.AllowanceSelect) []string {
 	if m.GetQuantity() {
 		vs = append(vs, allowance.FieldQuantity)
 	}
-	if m.GetValidFrom() {
-		vs = append(vs, allowance.FieldValidFrom)
+	if m.GetDateEffective() {
+		vs = append(vs, allowance.FieldDateEffective)
 	}
-	if m.GetValidUntil() {
-		vs = append(vs, allowance.FieldValidUntil)
+	if m.GetDateExpires() {
+		vs = append(vs, allowance.FieldDateExpires)
 	}
 	if m.GetReason() {
 		vs = append(vs, allowance.FieldReason)
@@ -510,7 +510,7 @@ func AllowanceGetKey(ctx context.Context, db *ent.Client, ref *levyan.AllowanceR
 var allowanceOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_allowance_proto, "Allowance")
 
 var allowancePatchColumns = entpatch.Columns{
-	1: allowance.FieldId, 2: allowance.TenantColumn, 3: allowance.WorkspaceColumn, 8: allowance.MeterColumn, 9: allowance.FieldQuantity, 10: allowance.FieldValidFrom, 11: allowance.FieldValidUntil, 12: allowance.FieldReason, 13: allowance.FieldDateUpdated, 14: allowance.FieldDateErased, 15: allowance.FieldDateCreated, 16: allowance.GrantedByColumn, 17: allowance.EndedByColumn, 18: allowance.FieldEndReason}
+	1: allowance.FieldId, 2: allowance.TenantColumn, 3: allowance.WorkspaceColumn, 8: allowance.MeterColumn, 9: allowance.FieldQuantity, 10: allowance.FieldDateEffective, 11: allowance.FieldDateExpires, 12: allowance.FieldReason, 13: allowance.FieldDateUpdated, 14: allowance.FieldDateErased, 15: allowance.FieldDateCreated, 16: allowance.GrantedByColumn, 17: allowance.EndedByColumn, 18: allowance.FieldEndReason}
 
 func (s AllowanceServiceServer) Apply(ctx context.Context, req *levyan.AllowanceApplyRequest) (*levyan.Allowance, error) {
 	if !req.HasPatch() {

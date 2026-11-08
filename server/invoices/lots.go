@@ -560,7 +560,7 @@ func (v Invoices) Grant(ctx context.Context, g Grant) (Lot, error) {
 	case g.BillingAccount.IsZero() == g.Workspace.IsZero():
 		return Lot{}, status.Error(codes.InvalidArgument, "a credit is granted to a workspace, or to a billing account: one of the two")
 	case !expires.After(now):
-		return Lot{}, status.Errorf(codes.InvalidArgument, "expires: %s is not after now", expires.Format(time.RFC3339))
+		return Lot{}, status.Errorf(codes.InvalidArgument, "date_expires: %s is not after now", expires.Format(time.RFC3339))
 	}
 	product, err := v.db().Tenant.Get(ctx, g.Product.Uuid())
 	if ent.IsNotFound(err) {

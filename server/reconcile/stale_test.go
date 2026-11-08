@@ -81,7 +81,7 @@ func (w *world) read(ws pdid.Id, meter, unit string, from, to time.Time) {
 	w.t.Helper()
 	rs := []*levyanv1.Reading{}
 	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
-		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: meter, MeasuredAt: timestamppb.New(d), Value: 1, Unit: unit}.Build())
+		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: meter, DateMeasured: timestamppb.New(d), Value: 1, Unit: unit}.Build())
 	}
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(w.as, levyanv1.RecordRequest_builder{Readings: rs}.Build())
 	w.X.NoError(err)

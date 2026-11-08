@@ -44,7 +44,7 @@ message Reading {
   string meter = 2;
 
   // When it was measured. Kept to the microsecond, in UTC.
-  google.protobuf.Timestamp measured_at = 3;
+  google.protobuf.Timestamp date_measured = 3;
 
   // How much the workspace held, in the meter's unit.
   int64 value = 4;

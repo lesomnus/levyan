@@ -120,7 +120,7 @@ func (a Pools) Grant(ctx context.Context, v Fill) (*ent.Pool, error) {
 			GrantedBy:   levyan.OperatorRef_builder{Id: who.Bytes()}.Build(),
 		}.Build()
 		if !v.From.IsZero() {
-			req.SetValidFrom(timestamppb.New(ledger.Moment(v.From)))
+			req.SetDateEffective(timestamppb.New(ledger.Moment(v.From)))
 		}
 		_, err := s.Pool().Add(ctx, req)
 		return err
@@ -166,7 +166,7 @@ func (a Pools) Expire(ctx context.Context, id pdid.Id, reason string) (*ent.Pool
 		if err != nil {
 			return err
 		}
-		at := latest(open.Start, ledger.Moment(v.ValidFrom))
+		at := latest(open.Start, ledger.Moment(v.DateEffective))
 		if !ledger.Moment(v.DateExpires).After(at) {
 			return status.Errorf(codes.FailedPrecondition, "pool %s is over already: it expired at %s", id, v.DateExpires.UTC().Format(time.RFC3339))
 		}

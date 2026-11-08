@@ -61,9 +61,9 @@ func Quantity(v int64) predicate.Pool {
 	return predicate.Pool(sql.FieldEQ(FieldQuantity, v))
 }
 
-// ValidFrom applies equality check predicate on the "valid_from" field. It's identical to ValidFromEQ.
-func ValidFrom(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldEQ(FieldValidFrom, v))
+// DateEffective applies equality check predicate on the "date_effective" field. It's identical to DateEffectiveEQ.
+func DateEffective(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldEQ(FieldDateEffective, v))
 }
 
 // DateExpires applies equality check predicate on the "date_expires" field. It's identical to DateExpiresEQ.
@@ -161,54 +161,54 @@ func QuantityLTE(v int64) predicate.Pool {
 	return predicate.Pool(sql.FieldLTE(FieldQuantity, v))
 }
 
-// ValidFromEQ applies the EQ predicate on the "valid_from" field.
-func ValidFromEQ(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldEQ(FieldValidFrom, v))
+// DateEffectiveEQ applies the EQ predicate on the "date_effective" field.
+func DateEffectiveEQ(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldEQ(FieldDateEffective, v))
 }
 
-// ValidFromNEQ applies the NEQ predicate on the "valid_from" field.
-func ValidFromNEQ(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldNEQ(FieldValidFrom, v))
+// DateEffectiveNEQ applies the NEQ predicate on the "date_effective" field.
+func DateEffectiveNEQ(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldNEQ(FieldDateEffective, v))
 }
 
-// ValidFromIn applies the In predicate on the "valid_from" field.
-func ValidFromIn(vs ...time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldIn(FieldValidFrom, vs...))
+// DateEffectiveIn applies the In predicate on the "date_effective" field.
+func DateEffectiveIn(vs ...time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldIn(FieldDateEffective, vs...))
 }
 
-// ValidFromNotIn applies the NotIn predicate on the "valid_from" field.
-func ValidFromNotIn(vs ...time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldNotIn(FieldValidFrom, vs...))
+// DateEffectiveNotIn applies the NotIn predicate on the "date_effective" field.
+func DateEffectiveNotIn(vs ...time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldNotIn(FieldDateEffective, vs...))
 }
 
-// ValidFromGT applies the GT predicate on the "valid_from" field.
-func ValidFromGT(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldGT(FieldValidFrom, v))
+// DateEffectiveGT applies the GT predicate on the "date_effective" field.
+func DateEffectiveGT(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldGT(FieldDateEffective, v))
 }
 
-// ValidFromGTE applies the GTE predicate on the "valid_from" field.
-func ValidFromGTE(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldGTE(FieldValidFrom, v))
+// DateEffectiveGTE applies the GTE predicate on the "date_effective" field.
+func DateEffectiveGTE(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldGTE(FieldDateEffective, v))
 }
 
-// ValidFromLT applies the LT predicate on the "valid_from" field.
-func ValidFromLT(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldLT(FieldValidFrom, v))
+// DateEffectiveLT applies the LT predicate on the "date_effective" field.
+func DateEffectiveLT(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldLT(FieldDateEffective, v))
 }
 
-// ValidFromLTE applies the LTE predicate on the "valid_from" field.
-func ValidFromLTE(v time.Time) predicate.Pool {
-	return predicate.Pool(sql.FieldLTE(FieldValidFrom, v))
+// DateEffectiveLTE applies the LTE predicate on the "date_effective" field.
+func DateEffectiveLTE(v time.Time) predicate.Pool {
+	return predicate.Pool(sql.FieldLTE(FieldDateEffective, v))
 }
 
-// ValidFromIsNil applies the IsNil predicate on the "valid_from" field.
-func ValidFromIsNil() predicate.Pool {
-	return predicate.Pool(sql.FieldIsNull(FieldValidFrom))
+// DateEffectiveIsNil applies the IsNil predicate on the "date_effective" field.
+func DateEffectiveIsNil() predicate.Pool {
+	return predicate.Pool(sql.FieldIsNull(FieldDateEffective))
 }
 
-// ValidFromNotNil applies the NotNil predicate on the "valid_from" field.
-func ValidFromNotNil() predicate.Pool {
-	return predicate.Pool(sql.FieldNotNull(FieldValidFrom))
+// DateEffectiveNotNil applies the NotNil predicate on the "date_effective" field.
+func DateEffectiveNotNil() predicate.Pool {
+	return predicate.Pool(sql.FieldNotNull(FieldDateEffective))
 }
 
 // DateExpiresEQ applies the EQ predicate on the "date_expires" field.

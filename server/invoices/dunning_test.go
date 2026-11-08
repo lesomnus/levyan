@@ -94,7 +94,7 @@ func (w world) granted(ws pdid.Id, key string) (bool, []string) {
 	var rows []entitle.Row
 	var by []string
 	for _, v := range vs {
-		r := entitle.Row{Key: v.Key, Value: grants.Value(v.Proto()), From: v.ValidFrom, Until: v.ValidUntil, Grant: v.Id[:]}
+		r := entitle.Row{Key: v.Key, Value: grants.Value(v.Proto()), DateEffective: v.DateEffective, DateExpires: v.DateExpires, Grant: v.Id[:]}
 		rows = append(rows, r)
 		if r.In(now) {
 			by = append(by, v.Rule)
@@ -324,7 +324,7 @@ func TestDunningIsOfOneProductAlone(t *testing.T) {
 	w.At(on(2, 9))
 	rs := []*levyanv1.Reading{}
 	for d := on(1, 1); d.Before(on(2, 1)); d = d.AddDate(0, 0, 1) {
-		rs = append(rs, levyanv1.Reading_builder{Workspace: theirs.String(), Meter: "kamino.assets.active", MeasuredAt: timestamppb.New(d), Value: 200, Unit: "{asset}"}.Build())
+		rs = append(rs, levyanv1.Reading_builder{Workspace: theirs.String(), Meter: "kamino.assets.active", DateMeasured: timestamppb.New(d), Value: 200, Unit: "{asset}"}.Build())
 	}
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(as, levyanv1.RecordRequest_builder{Readings: rs}.Build())
 	x.NoError(err)
@@ -445,8 +445,8 @@ func TestWhatAnInvoiceStillOwedBillsIsReadonlySixtyDaysOn(t *testing.T) {
 	ds := told()
 	x.Len(ds, 4, "the billing account, the invoice, and each workspace")
 	for _, d := range ds {
-		x.True(t0.Add(14*day).Equal(d.GetRestrictedFrom().AsTime()), "as its fortnight's grace ends")
-		x.True(t0.Add(60*day).Equal(d.GetReadonlyFrom().AsTime()), "sixty days after it first failed")
+		x.True(t0.Add(14*day).Equal(d.GetDateRestricted().AsTime()), "as its fortnight's grace ends")
+		x.True(t0.Add(60*day).Equal(d.GetDateReadonly().AsTime()), "sixty days after it first failed")
 	}
 
 	// Restricted as its grace ends, and not read-only yet.

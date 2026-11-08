@@ -23,23 +23,23 @@ const (
 )
 
 type PoolAddRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *MeterRef              `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_Quantity    int64                  `protobuf:"varint,9,opt,name=quantity"`
-	xxx_hidden_ValidFrom   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=valid_from,json=validFrom"`
-	xxx_hidden_DateExpires *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_expires,json=dateExpires"`
-	xxx_hidden_Reason      string                 `protobuf:"bytes,12,opt,name=reason"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_GrantedBy   *OperatorRef           `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
-	xxx_hidden_EndedBy     *OperatorRef           `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
-	xxx_hidden_EndReason   string                 `protobuf:"bytes,18,opt,name=end_reason,json=endReason"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant        *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace     *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter         *MeterRef              `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_Quantity      int64                  `protobuf:"varint,9,opt,name=quantity"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason        string                 `protobuf:"bytes,12,opt,name=reason"`
+	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_GrantedBy     *OperatorRef           `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
+	xxx_hidden_EndedBy       *OperatorRef           `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
+	xxx_hidden_EndReason     string                 `protobuf:"bytes,18,opt,name=end_reason,json=endReason"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *PoolAddRequest) Reset() {
@@ -102,9 +102,9 @@ func (x *PoolAddRequest) GetQuantity() int64 {
 	return 0
 }
 
-func (x *PoolAddRequest) GetValidFrom() *timestamppb.Timestamp {
+func (x *PoolAddRequest) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ValidFrom
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
@@ -175,8 +175,8 @@ func (x *PoolAddRequest) SetQuantity(v int64) {
 	x.xxx_hidden_Quantity = v
 }
 
-func (x *PoolAddRequest) SetValidFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ValidFrom = v
+func (x *PoolAddRequest) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
 func (x *PoolAddRequest) SetDateExpires(v *timestamppb.Timestamp) {
@@ -231,11 +231,11 @@ func (x *PoolAddRequest) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *PoolAddRequest) HasValidFrom() bool {
+func (x *PoolAddRequest) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ValidFrom != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
 func (x *PoolAddRequest) HasDateExpires() bool {
@@ -283,8 +283,8 @@ func (x *PoolAddRequest) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *PoolAddRequest) ClearValidFrom() {
-	x.xxx_hidden_ValidFrom = nil
+func (x *PoolAddRequest) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
 func (x *PoolAddRequest) ClearDateExpires() {
@@ -306,18 +306,18 @@ func (x *PoolAddRequest) ClearEndedBy() {
 type PoolAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id          []byte
-	Tenant      *TenantRef
-	Workspace   *WorkspaceRef
-	Meter       *MeterRef
-	Quantity    int64
-	ValidFrom   *timestamppb.Timestamp
-	DateExpires *timestamppb.Timestamp
-	Reason      string
-	DateCreated *timestamppb.Timestamp
-	GrantedBy   *OperatorRef
-	EndedBy     *OperatorRef
-	EndReason   string
+	Id            []byte
+	Tenant        *TenantRef
+	Workspace     *WorkspaceRef
+	Meter         *MeterRef
+	Quantity      int64
+	DateEffective *timestamppb.Timestamp
+	DateExpires   *timestamppb.Timestamp
+	Reason        string
+	DateCreated   *timestamppb.Timestamp
+	GrantedBy     *OperatorRef
+	EndedBy       *OperatorRef
+	EndReason     string
 }
 
 func (b0 PoolAddRequest_builder) Build() *PoolAddRequest {
@@ -332,7 +332,7 @@ func (b0 PoolAddRequest_builder) Build() *PoolAddRequest {
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
 	x.xxx_hidden_Quantity = b.Quantity
-	x.xxx_hidden_ValidFrom = b.ValidFrom
+	x.xxx_hidden_DateEffective = b.DateEffective
 	x.xxx_hidden_DateExpires = b.DateExpires
 	x.xxx_hidden_Reason = b.Reason
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -562,25 +562,25 @@ type poolRef_Id struct {
 func (*poolRef_Id) isPoolRef_Key() {}
 
 type PoolSelect struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_All         bool                   `protobuf:"varint,1,opt,name=all"`
-	xxx_hidden_Tenant      *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *MeterSelect           `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_Quantity    bool                   `protobuf:"varint,9,opt,name=quantity"`
-	xxx_hidden_ValidFrom   bool                   `protobuf:"varint,10,opt,name=valid_from,json=validFrom"`
-	xxx_hidden_DateExpires bool                   `protobuf:"varint,11,opt,name=date_expires,json=dateExpires"`
-	xxx_hidden_Reason      bool                   `protobuf:"varint,12,opt,name=reason"`
-	xxx_hidden_DateUpdated bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateErased  bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_GrantedBy   *OperatorSelect        `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
-	xxx_hidden_EndedBy     *OperatorSelect        `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
-	xxx_hidden_EndReason   bool                   `protobuf:"varint,18,opt,name=end_reason,json=endReason"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_All           bool                   `protobuf:"varint,1,opt,name=all"`
+	xxx_hidden_Tenant        *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace     *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter         *MeterSelect           `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_Quantity      bool                   `protobuf:"varint,9,opt,name=quantity"`
+	xxx_hidden_DateEffective bool                   `protobuf:"varint,10,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   bool                   `protobuf:"varint,11,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason        bool                   `protobuf:"varint,12,opt,name=reason"`
+	xxx_hidden_DateUpdated   bool                   `protobuf:"varint,13,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateErased    bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated   bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_GrantedBy     *OperatorSelect        `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
+	xxx_hidden_EndedBy       *OperatorSelect        `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
+	xxx_hidden_EndReason     bool                   `protobuf:"varint,18,opt,name=end_reason,json=endReason"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *PoolSelect) Reset() {
@@ -643,9 +643,9 @@ func (x *PoolSelect) GetQuantity() bool {
 	return false
 }
 
-func (x *PoolSelect) GetValidFrom() bool {
+func (x *PoolSelect) GetDateEffective() bool {
 	if x != nil {
-		return x.xxx_hidden_ValidFrom
+		return x.xxx_hidden_DateEffective
 	}
 	return false
 }
@@ -728,8 +728,8 @@ func (x *PoolSelect) SetQuantity(v bool) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
 }
 
-func (x *PoolSelect) SetValidFrom(v bool) {
-	x.xxx_hidden_ValidFrom = v
+func (x *PoolSelect) SetDateEffective(v bool) {
+	x.xxx_hidden_DateEffective = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 14)
 }
 
@@ -806,7 +806,7 @@ func (x *PoolSelect) HasQuantity() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *PoolSelect) HasValidFrom() bool {
+func (x *PoolSelect) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
@@ -891,9 +891,9 @@ func (x *PoolSelect) ClearQuantity() {
 	x.xxx_hidden_Quantity = false
 }
 
-func (x *PoolSelect) ClearValidFrom() {
+func (x *PoolSelect) ClearDateEffective() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_ValidFrom = false
+	x.xxx_hidden_DateEffective = false
 }
 
 func (x *PoolSelect) ClearDateExpires() {
@@ -937,20 +937,20 @@ func (x *PoolSelect) ClearEndReason() {
 type PoolSelect_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	All         *bool
-	Tenant      *TenantSelect
-	Workspace   *WorkspaceSelect
-	Meter       *MeterSelect
-	Quantity    *bool
-	ValidFrom   *bool
-	DateExpires *bool
-	Reason      *bool
-	DateUpdated *bool
-	DateErased  *bool
-	DateCreated *bool
-	GrantedBy   *OperatorSelect
-	EndedBy     *OperatorSelect
-	EndReason   *bool
+	All           *bool
+	Tenant        *TenantSelect
+	Workspace     *WorkspaceSelect
+	Meter         *MeterSelect
+	Quantity      *bool
+	DateEffective *bool
+	DateExpires   *bool
+	Reason        *bool
+	DateUpdated   *bool
+	DateErased    *bool
+	DateCreated   *bool
+	GrantedBy     *OperatorSelect
+	EndedBy       *OperatorSelect
+	EndReason     *bool
 }
 
 func (b0 PoolSelect_builder) Build() *PoolSelect {
@@ -968,9 +968,9 @@ func (b0 PoolSelect_builder) Build() *PoolSelect {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
 		x.xxx_hidden_Quantity = *b.Quantity
 	}
-	if b.ValidFrom != nil {
+	if b.DateEffective != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 14)
-		x.xxx_hidden_ValidFrom = *b.ValidFrom
+		x.xxx_hidden_DateEffective = *b.DateEffective
 	}
 	if b.DateExpires != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
@@ -1639,16 +1639,15 @@ var File_levyan_pool_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_pool_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x17levyan/pool_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18levyan/meter_svc.g.proto\x1a\x1blevyan/operator_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x11levyan/pool.proto\x1a\x1clevyan/workspace_svc.g.proto\x1a\x11patch/patch.proto\"\xac\x04\n" +
+	"\x17levyan/pool_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18levyan/meter_svc.g.proto\x1a\x1blevyan/operator_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x11levyan/pool.proto\x1a\x1clevyan/workspace_svc.g.proto\x1a\x11patch/patch.proto\"\xb4\x04\n" +
 	"\x0ePoolAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12&\n" +
 	"\x05meter\x18\b \x01(\v2\x10.levyan.MeterRefR\x05meter\x12!\n" +
-	"\bquantity\x18\t \x01(\x03B\x05\xaa\x01\x02\b\x02R\bquantity\x129\n" +
-	"\n" +
-	"valid_from\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tvalidFrom\x12=\n" +
+	"\bquantity\x18\t \x01(\x03B\x05\xaa\x01\x02\b\x02R\bquantity\x12A\n" +
+	"\x0edate_effective\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\rdateEffective\x12=\n" +
 	"\fdate_expires\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\vdateExpires\x12\x1d\n" +
 	"\x06reason\x18\f \x01(\tB\x05\xaa\x01\x02\b\x02R\x06reason\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\x122\n" +
@@ -1662,17 +1661,16 @@ const file_levyan_pool_svc_g_proto_rawDesc = "" +
 	"\x06select\x18\x02 \x01(\v2\x12.levyan.PoolSelectR\x06select\"\"\n" +
 	"\aPoolRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02idB\x05\n" +
-	"\x03key\"\x94\x04\n" +
+	"\x03key\"\x9c\x04\n" +
 	"\n" +
 	"PoolSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x125\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x17.levyan.WorkspaceSelectR\tworkspace\x12)\n" +
 	"\x05meter\x18\b \x01(\v2\x13.levyan.MeterSelectR\x05meter\x12\x1a\n" +
-	"\bquantity\x18\t \x01(\bR\bquantity\x12\x1d\n" +
-	"\n" +
-	"valid_from\x18\n" +
-	" \x01(\bR\tvalidFrom\x12!\n" +
+	"\bquantity\x18\t \x01(\bR\bquantity\x12%\n" +
+	"\x0edate_effective\x18\n" +
+	" \x01(\bR\rdateEffective\x12!\n" +
 	"\fdate_expires\x18\v \x01(\bR\vdateExpires\x12\x16\n" +
 	"\x06reason\x18\f \x01(\bR\x06reason\x12!\n" +
 	"\fdate_updated\x18\r \x01(\bR\vdateUpdated\x12\x1f\n" +
@@ -1742,7 +1740,7 @@ var file_levyan_pool_svc_g_proto_depIdxs = []int32{
 	9,  // 0: levyan.PoolAddRequest.tenant:type_name -> levyan.TenantRef
 	10, // 1: levyan.PoolAddRequest.workspace:type_name -> levyan.WorkspaceRef
 	11, // 2: levyan.PoolAddRequest.meter:type_name -> levyan.MeterRef
-	12, // 3: levyan.PoolAddRequest.valid_from:type_name -> google.protobuf.Timestamp
+	12, // 3: levyan.PoolAddRequest.date_effective:type_name -> google.protobuf.Timestamp
 	12, // 4: levyan.PoolAddRequest.date_expires:type_name -> google.protobuf.Timestamp
 	12, // 5: levyan.PoolAddRequest.date_created:type_name -> google.protobuf.Timestamp
 	13, // 6: levyan.PoolAddRequest.granted_by:type_name -> levyan.OperatorRef

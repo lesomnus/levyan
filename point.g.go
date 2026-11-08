@@ -18,8 +18,8 @@ func (x *Point) Ref() *PointRef {
 	}
 	{
 		v1 := x.GetSeries()
-		v2 := x.GetStartedAt()
-		v3 := x.GetCountedAt()
+		v2 := x.GetDateStarted()
+		v3 := x.GetDateCounted()
 		if v1 != nil && v2 != nil && v3 != nil {
 			return PointByCounted(v1.Ref(), v2, v3)
 		}
@@ -39,8 +39,8 @@ func (x *PointRef) Picks(v *Point) bool {
 	case PointRef_Counted_case:
 		x := x.GetCounted()
 		return (x.GetSeries().Picks(v.GetSeries())) &&
-			(proto.Equal(x.GetStartedAt(), v.GetStartedAt())) &&
-			(proto.Equal(x.GetCountedAt(), v.GetCountedAt()))
+			(proto.Equal(x.GetDateStarted(), v.GetDateStarted())) &&
+			(proto.Equal(x.GetDateCounted(), v.GetDateCounted()))
 	default:
 		return false
 	}
@@ -64,14 +64,14 @@ func PointGetById(v []byte) *PointGetRequest {
 	return PointGetRequest_builder{Ref: PointById(v)}.Build()
 }
 
-func PointByCounted(series *SeriesRef, started_at *timestamppb.Timestamp, counted_at *timestamppb.Timestamp) *PointRef {
+func PointByCounted(series *SeriesRef, date_started *timestamppb.Timestamp, date_counted *timestamppb.Timestamp) *PointRef {
 	x := &PointRefByCounted{}
 	x.SetSeries(series)
-	x.SetStartedAt(started_at)
-	x.SetCountedAt(counted_at)
+	x.SetDateStarted(date_started)
+	x.SetDateCounted(date_counted)
 	return PointRef_builder{Counted: x}.Build()
 }
 
-func PointGetByCounted(series *SeriesRef, started_at *timestamppb.Timestamp, counted_at *timestamppb.Timestamp) *PointGetRequest {
-	return PointGetRequest_builder{Ref: PointByCounted(series, started_at, counted_at)}.Build()
+func PointGetByCounted(series *SeriesRef, date_started *timestamppb.Timestamp, date_counted *timestamppb.Timestamp) *PointGetRequest {
+	return PointGetRequest_builder{Ref: PointByCounted(series, date_started, date_counted)}.Build()
 }

@@ -245,13 +245,13 @@ func (l Ledger) Count(ctx context.Context, product pdid.Id, ps []Point) ([]Resul
 			r.most = max(r.most, v.p.Value)
 
 			adds = append(adds, levyan.PointAddRequest_builder{
-				Tenant:    levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
-				Workspace: levyan.WorkspaceRef_builder{Id: bytesOf(wss[v.ws])}.Build(),
-				Series:    levyan.SeriesRef_builder{Id: sid[:]}.Build(),
-				StartedAt: stamp(v.start),
-				CountedAt: stamp(v.at),
-				Value:     v.p.Value,
-				Late:      late,
+				Tenant:      levyan.TenantRef_builder{Id: product.Bytes()}.Build(),
+				Workspace:   levyan.WorkspaceRef_builder{Id: bytesOf(wss[v.ws])}.Build(),
+				Series:      levyan.SeriesRef_builder{Id: sid[:]}.Build(),
+				DateStarted: stamp(v.start),
+				DateCounted: stamp(v.at),
+				Value:       v.p.Value,
+				Late:        late,
 			}.Build())
 			out[v.i] = Result{Outcome: Kept, Late: late}
 		}
@@ -280,7 +280,7 @@ func (l Ledger) Count(ctx context.Context, product pdid.Id, ps []Point) ([]Resul
 // counted from that point, so both periods are what it changes.
 func (l Ledger) among(ctx context.Context, db *ent.Client, product pdid.Id, sid uuid.UUID, v counted) (Result, bool, error) {
 	u, err := db.Point.Query().
-		Where(entpoint.SeriesId(sid), entpoint.StartedAt(v.start), entpoint.CountedAt(v.at)).
+		Where(entpoint.SeriesId(sid), entpoint.DateStarted(v.start), entpoint.DateCounted(v.at)).
 		Only(ctx)
 	if err == nil {
 		if u.Value == v.p.Value {
@@ -293,7 +293,7 @@ func (l Ledger) among(ctx context.Context, db *ent.Client, product pdid.Id, sid 
 	}
 
 	before, err := db.Point.Query().
-		Where(entpoint.SeriesId(sid), entpoint.StartedAt(v.start), entpoint.CountedAtLT(v.at), entpoint.ValueGTE(v.p.Value)).
+		Where(entpoint.SeriesId(sid), entpoint.DateStarted(v.start), entpoint.DateCountedLT(v.at), entpoint.ValueGTE(v.p.Value)).
 		Exist(ctx)
 	if err != nil {
 		return Result{}, false, err
@@ -304,12 +304,12 @@ func (l Ledger) among(ctx context.Context, db *ent.Client, product pdid.Id, sid 
 
 	moments := []time.Time{v.at}
 	next, err := db.Point.Query().
-		Where(entpoint.SeriesId(sid), entpoint.StartedAt(v.start), entpoint.CountedAtGT(v.at)).
-		Order(ent.Asc(entpoint.FieldCountedAt)).
+		Where(entpoint.SeriesId(sid), entpoint.DateStarted(v.start), entpoint.DateCountedGT(v.at)).
+		Order(ent.Asc(entpoint.FieldDateCounted)).
 		First(ctx)
 	switch {
 	case err == nil:
-		moments = append(moments, Moment(next.CountedAt))
+		moments = append(moments, Moment(next.DateCounted))
 	case !ent.IsNotFound(err):
 		return Result{}, false, err
 	}
@@ -335,16 +335,16 @@ func runsOf(ctx context.Context, db *ent.Client, series map[string]uuid.UUID) (m
 	}
 
 	var vs []struct {
-		SeriesId  key     `json:"series_id"`
-		StartedAt instant `json:"started_at"`
-		Latest    instant `json:"latest"`
-		Most      int64   `json:"most"`
+		SeriesId    key     `json:"series_id"`
+		DateStarted instant `json:"date_started"`
+		Latest      instant `json:"latest"`
+		Most        int64   `json:"most"`
 	}
 	err := db.Point.Query().
 		Where(entpoint.SeriesIdIn(ids...)).
-		GroupBy(entpoint.FieldSeriesId, entpoint.FieldStartedAt).
+		GroupBy(entpoint.FieldSeriesId, entpoint.FieldDateStarted).
 		Aggregate(
-			ent.As(ent.Max(entpoint.FieldCountedAt), "latest"),
+			ent.As(ent.Max(entpoint.FieldDateCounted), "latest"),
 			ent.As(ent.Max(entpoint.FieldValue), "most"),
 		).
 		Scan(ctx, &vs)
@@ -354,7 +354,7 @@ func runsOf(ctx context.Context, db *ent.Client, series map[string]uuid.UUID) (m
 
 	out := make(map[run]*held, len(vs))
 	for _, v := range vs {
-		k := run{series: uuid.UUID(v.SeriesId), start: Moment(time.Time(v.StartedAt)).UnixMicro()}
+		k := run{series: uuid.UUID(v.SeriesId), start: Moment(time.Time(v.DateStarted)).UnixMicro()}
 		out[k] = &held{latest: Moment(time.Time(v.Latest)), most: v.Most}
 	}
 

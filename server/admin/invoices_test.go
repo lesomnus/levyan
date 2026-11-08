@@ -51,7 +51,7 @@ func TestAnOperatorKeepsAProductsInvoices(t *testing.T) {
 	d.w.At(jan.AddDate(0, 1, 0))
 	for _, ws := range []pdid.Id{wa, wb} {
 		_, err := levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-			levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+			levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
 		}}.Build())
 		x.NoError(err)
 	}
@@ -64,7 +64,7 @@ func TestAnOperatorKeepsAProductsInvoices(t *testing.T) {
 	for _, v := range vs {
 		x.Equal(int64(5000), v.Due)
 		x.Equal("mor", v.Channel)
-		x.NotNil(v.DueDate, "a transfer's channel says when")
+		x.NotNil(v.DateDue, "a transfer's channel says when")
 	}
 	code, _ := d.ask(aliceKey, http.MethodGet, "/admin/products/loft/invoices?state=lost", nil)
 	x.Equal(http.StatusBadRequest, code)
@@ -115,7 +115,7 @@ func TestAnOperatorKeepsAProductsInvoices(t *testing.T) {
 	ch.Push = true
 	d.w.At(jan.AddDate(0, 2, 0))
 	_, err := levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: wa.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 1, 20)), Value: 200, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: wa.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 1, 20)), Value: 200, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
@@ -158,7 +158,7 @@ func TestAnOperatorInvoicesWhatWasClosedNow(t *testing.T) {
 	feb := jan.AddDate(0, 1, 0)
 	d.w.At(feb)
 	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
@@ -171,7 +171,7 @@ func TestAnOperatorInvoicesWhatWasClosedNow(t *testing.T) {
 
 	var p admin.InvoicePass
 	d.as(aliceKey, http.MethodPost, "/admin/invoices/collect", map[string]any{}, &p)
-	x.True(feb.Equal(p.At), "by the deployment's clock")
+	x.True(feb.Equal(p.DateOccurred), "by the deployment's clock")
 	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
 	x.Len(vs, 1, "invoiced by the time it answered")
 	x.Equal("open", vs[0].State, "and decided: its period is closed")
@@ -240,7 +240,7 @@ func TestAnOperatorSeesAShadow(t *testing.T) {
 	x.NoError(err)
 	d.w.At(jan.AddDate(0, 1, 0))
 	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
@@ -252,8 +252,8 @@ func TestAnOperatorSeesAShadow(t *testing.T) {
 	x.Equal("shadow", vs[0].State)
 	x.Equal(int64(5000), vs[0].Subtotal, "what it would have come to")
 	x.Zero(vs[0].Remaining, "and nothing of it to collect")
-	x.Nil(vs[0].Finalized)
-	x.NotNil(vs[0].Settled)
+	x.Nil(vs[0].DateFinalized)
+	x.NotNil(vs[0].DateSettled)
 	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
 	x.Len(vs, 1, "among the rest")
 
@@ -293,7 +293,7 @@ func TestAnOperatorSeesWhatIsDoneOfAnInvoiceWhoseChargeFailed(t *testing.T) {
 	failed := jan.AddDate(0, 1, 0)
 	d.w.At(failed)
 	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(jan.AddDate(0, 0, 20)), Value: 200, Unit: "{asset}"}.Build(),
 	}}.Build())
 	x.NoError(err)
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/periods/close", map[string]any{}, nil)
@@ -307,12 +307,12 @@ func TestAnOperatorSeesWhatIsDoneOfAnInvoiceWhoseChargeFailed(t *testing.T) {
 	x.Equal("open", got.State)
 	x.NotNil(got.Dunning)
 	x.Equal("temporary", got.Dunning.Kind)
-	x.True(failed.Equal(got.Dunning.Failed))
-	x.NotNil(got.Dunning.NextRetry)
-	x.True(failed.AddDate(0, 0, 1).Equal(*got.Dunning.NextRetry), "a day after")
-	x.True(failed.AddDate(0, 0, 14).Equal(got.Dunning.GraceEnds))
-	x.True(failed.AddDate(0, 0, 14).Equal(got.Dunning.RestrictedFrom))
-	x.True(failed.AddDate(0, 0, 60).Equal(got.Dunning.ReadonlyFrom))
+	x.True(failed.Equal(got.Dunning.DateFailed))
+	x.NotNil(got.Dunning.DateNextRetry)
+	x.True(failed.AddDate(0, 0, 1).Equal(*got.Dunning.DateNextRetry), "a day after")
+	x.True(failed.AddDate(0, 0, 14).Equal(got.Dunning.DateGraceEnds))
+	x.True(failed.AddDate(0, 0, 14).Equal(got.Dunning.DateRestricted))
+	x.True(failed.AddDate(0, 0, 60).Equal(got.Dunning.DateReadonly))
 
 	for _, days := range []int{1, 3, 7, 14} {
 		ch.Then(invoicestest.Decline)
@@ -324,5 +324,5 @@ func TestAnOperatorSeesWhatIsDoneOfAnInvoiceWhoseChargeFailed(t *testing.T) {
 	x.Equal("uncollectible", spent.State)
 	x.Len(spent.Attempts, 4)
 	x.NotNil(spent.Dunning, "still owed")
-	x.Nil(spent.Dunning.NextRetry, "no retry left")
+	x.Nil(spent.Dunning.DateNextRetry, "no retry left")
 }

@@ -35,11 +35,11 @@ func TestAnOperatorGivesAndEndsGrants(t *testing.T) {
 	until := time.Now().UTC().Add(90 * 24 * time.Hour).Truncate(time.Second)
 	var seats admin.Grant
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/grants", map[string]any{
-		"workspace": ws, "key": "loft.seats", "value": "limit", "limit": 20, "until": until, "source": "contract",
+		"workspace": ws, "key": "loft.seats", "value": "limit", "limit": 20, "date_expires": until, "source": "contract",
 	}, &seats)
 	x.Equal(int64(20), *seats.Limit)
 	x.False(seats.Renews, "an end of its own")
-	x.Equal(until, seats.Until)
+	x.Equal(until, seats.DateExpires)
 
 	code, b := d.ask(aliceKey, http.MethodPost, "/admin/products/loft/grants", map[string]any{
 		"workspace": ws, "key": "loft.seats", "value": "limit", "limit": 30,
@@ -70,7 +70,7 @@ func TestAnOperatorGivesAndEndsGrants(t *testing.T) {
 	d.as(aliceKey, http.MethodPost, "/admin/grants/"+pilot.Id+"/end", map[string]string{}, &ended)
 	x.False(ended.Renews)
 	x.Equal(uint64(2), ended.Version)
-	x.False(ended.Until.After(time.Now()))
+	x.False(ended.DateExpires.After(time.Now()))
 
 	var vs []admin.Grant
 	d.as(aliceKey, http.MethodGet, "/admin/products/loft/grants", nil, &vs)

@@ -33,7 +33,7 @@ func (e *Reading) Proto() *levyan.Reading {
 		r.SetId(v[:])
 		x.SetMeter(r)
 	}
-	x.SetMeasuredAt(timestamppb.New(e.MeasuredAt))
+	x.SetDateMeasured(timestamppb.New(e.DateMeasured))
 	x.SetValue(e.Value)
 	x.SetLate(e.Late)
 	if e.DateErased != nil {

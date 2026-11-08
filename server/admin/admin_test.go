@@ -188,11 +188,11 @@ func TestAnOperatorPutsAProductUpAndIssuesItsKeys(t *testing.T) {
 	x.NotContains(string(b), k.Token, "said once")
 	x.NoError(json.Unmarshal(b, &p))
 	x.Len(p.Keys, 1)
-	x.Nil(p.Keys[0].Revoked)
+	x.Nil(p.Keys[0].DateRevoked)
 
 	var revoked admin.Key
 	d.as(aliceKey, http.MethodPost, "/admin/keys/"+k.Id+"/revoke", map[string]string{}, &revoked)
-	x.NotNil(revoked.Revoked)
+	x.NotNil(revoked.DateRevoked)
 	_, err = store.Lookup(t.Context(), k.Token)
 	x.Error(err, "a key revoked opens nothing")
 
@@ -230,18 +230,18 @@ func TestAnOperatorPublishesPricesAndAsksWhichWasInForce(t *testing.T) {
 	var v1, v2 admin.Price
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/prices", map[string]any{
 		"meter": "loft.assets.active", "channel": "pg_kr", "currency": "KRW",
-		"included": 100, "unit_price": 50, "effective": day(3, 1), "desc": "처음 가격",
+		"included": 100, "unit_price": 50, "date_effective": day(3, 1), "desc": "처음 가격",
 	}, &v1)
 	d.as(aliceKey, http.MethodPost, "/admin/products/loft/prices", map[string]any{
 		"meter": "loft.assets.active", "channel": "pg_kr", "currency": "KRW",
-		"included": 100, "unit_price": 70, "effective": day(5, 1), "existing": day(7, 1), "desc": "인상, 두 달 고지",
+		"included": 100, "unit_price": 70, "date_effective": day(5, 1), "date_existing": day(7, 1), "desc": "인상, 두 달 고지",
 	}, &v2)
 	x.Equal(int64(1), v1.Per)
 	x.Equal(d.operator("alice"), d.actorOf(v2.Id), "the trail says who published it")
 
 	code, b = d.ask(aliceKey, http.MethodPost, "/admin/products/loft/prices", map[string]any{
 		"meter": "loft.assets.active", "channel": "pg_kr", "currency": "KRW", "unit_price": 1,
-		"effective": time.Now().Add(-24 * time.Hour),
+		"date_effective": time.Now().Add(-24 * time.Hour),
 	})
 	x.Equal(http.StatusBadRequest, code, "%s", b)
 	x.Contains(string(b), "date_effective")
@@ -262,7 +262,7 @@ func TestAnOperatorPublishesPricesAndAsksWhichWasInForce(t *testing.T) {
 			if v.Price != nil {
 				price = v.Price.UnitPrice
 			}
-			out = append(out, [3]any{v.From.UTC(), v.To.UTC(), price})
+			out = append(out, [3]any{v.DateStart.UTC(), v.DateEnd.UTC(), price})
 		}
 		return out
 	}

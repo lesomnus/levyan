@@ -373,12 +373,12 @@ func (_q *ReadingQuery) WithMeter(opts ...func(*MeterQuery)) *ReadingQuery {
 // Example:
 //
 //	var v []struct {
-//		MeasuredAt time.Time `json:"measured_at,omitempty"`
+//		DateMeasured time.Time `json:"date_measured,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Reading.Query().
-//		GroupBy(reading.FieldMeasuredAt).
+//		GroupBy(reading.FieldDateMeasured).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *ReadingQuery) GroupBy(field string, fields ...string) *ReadingGroupBy {
@@ -396,11 +396,11 @@ func (_q *ReadingQuery) GroupBy(field string, fields ...string) *ReadingGroupBy 
 // Example:
 //
 //	var v []struct {
-//		MeasuredAt time.Time `json:"measured_at,omitempty"`
+//		DateMeasured time.Time `json:"date_measured,omitempty"`
 //	}
 //
 //	client.Reading.Query().
-//		Select(reading.FieldMeasuredAt).
+//		Select(reading.FieldDateMeasured).
 //		Scan(ctx, &v)
 func (_q *ReadingQuery) Select(fields ...string) *ReadingSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

@@ -35,7 +35,7 @@ func TestAnOperatorAsksWhichWorkspacesStoppedSendingReadings(t *testing.T) {
 		key, meter, unit string
 	}{{loftKey, "loft.assets.active", "{asset}"}, {otherKey, "other.things", "{thing}"}} {
 		res, err := m.Record(levyantest.As(context.Background(), v.key), levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-			levyanv1.Reading_builder{Workspace: quiet.String(), Meter: v.meter, MeasuredAt: timestamppb.New(last), Value: 1, Unit: v.unit}.Build(),
+			levyanv1.Reading_builder{Workspace: quiet.String(), Meter: v.meter, DateMeasured: timestamppb.New(last), Value: 1, Unit: v.unit}.Build(),
 		}}.Build())
 		x.NoError(err)
 		x.Equal(levyanv1.Outcome_OUTCOME_KEPT, res.GetResults()[0].GetOutcome())
@@ -46,7 +46,7 @@ func TestAnOperatorAsksWhichWorkspacesStoppedSendingReadings(t *testing.T) {
 	x.Len(vs, 2)
 
 	d.as(aliceKey, http.MethodGet, "/admin/gaps?product=loft", nil, &vs)
-	x.Equal([]admin.Gap{{Product: "loft", Workspace: quiet.String(), Meter: "loft.assets.active", Last: last}}, vs)
+	x.Equal([]admin.Gap{{Product: "loft", Workspace: quiet.String(), Meter: "loft.assets.active", DateLast: last}}, vs)
 
 	code, _ := d.ask("", http.MethodGet, "/admin/gaps", nil)
 	x.Equal(http.StatusUnauthorized, code)

@@ -137,7 +137,7 @@ func (x GrantSource) Number() protoreflect.EnumNumber {
 // transaction of the write it decides (payday#185, #7).
 //
 // It is **state**: every change to a grant is the whole of it again at a
-// greater `version`, and a grant is taken away by ending it -- `valid_until`
+// greater `version`, and a grant is taken away by ending it -- `date_expires`
 // moved to now -- never by deleting it. So the product applies what it hears
 // once, in any order, and a copy that missed something is put right by the
 // next thing it hears of the grant. Its identifier is never another grant's:
@@ -160,25 +160,25 @@ func (x GrantSource) Number() protoreflect.EnumNumber {
 // Written through the servers, so the trail says who gave each and who ended
 // it: an operator by their row, the deployment's own rules as the deployment.
 type Grant struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Desc        string                 `protobuf:"bytes,6,opt,name=desc"`
-	xxx_hidden_Key         string                 `protobuf:"bytes,8,opt,name=key"`
-	xxx_hidden_Value       GrantValue             `protobuf:"varint,9,opt,name=value,enum=levyan.GrantValue"`
-	xxx_hidden_Limit       int64                  `protobuf:"varint,10,opt,name=limit"`
-	xxx_hidden_ValidFrom   *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=valid_from,json=validFrom"`
-	xxx_hidden_ValidUntil  *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=valid_until,json=validUntil"`
-	xxx_hidden_DateUpdated *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_Version     uint64                 `protobuf:"varint,16,opt,name=version"`
-	xxx_hidden_Source      GrantSource            `protobuf:"varint,17,opt,name=source,enum=levyan.GrantSource"`
-	xxx_hidden_Rule        string                 `protobuf:"bytes,18,opt,name=rule"`
-	xxx_hidden_Renews      bool                   `protobuf:"varint,19,opt,name=renews"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant        *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace     *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Desc          string                 `protobuf:"bytes,6,opt,name=desc"`
+	xxx_hidden_Key           string                 `protobuf:"bytes,8,opt,name=key"`
+	xxx_hidden_Value         GrantValue             `protobuf:"varint,9,opt,name=value,enum=levyan.GrantValue"`
+	xxx_hidden_Limit         int64                  `protobuf:"varint,10,opt,name=limit"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_DateUpdated   *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateErased    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_Version       uint64                 `protobuf:"varint,16,opt,name=version"`
+	xxx_hidden_Source        GrantSource            `protobuf:"varint,17,opt,name=source,enum=levyan.GrantSource"`
+	xxx_hidden_Rule          string                 `protobuf:"bytes,18,opt,name=rule"`
+	xxx_hidden_Renews        bool                   `protobuf:"varint,19,opt,name=renews"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Grant) Reset() {
@@ -255,16 +255,16 @@ func (x *Grant) GetLimit() int64 {
 	return 0
 }
 
-func (x *Grant) GetValidFrom() *timestamppb.Timestamp {
+func (x *Grant) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ValidFrom
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
 
-func (x *Grant) GetValidUntil() *timestamppb.Timestamp {
+func (x *Grant) GetDateExpires() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ValidUntil
+		return x.xxx_hidden_DateExpires
 	}
 	return nil
 }
@@ -349,12 +349,12 @@ func (x *Grant) SetLimit(v int64) {
 	x.xxx_hidden_Limit = v
 }
 
-func (x *Grant) SetValidFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ValidFrom = v
+func (x *Grant) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
-func (x *Grant) SetValidUntil(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ValidUntil = v
+func (x *Grant) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
 }
 
 func (x *Grant) SetDateUpdated(v *timestamppb.Timestamp) {
@@ -399,18 +399,18 @@ func (x *Grant) HasWorkspace() bool {
 	return x.xxx_hidden_Workspace != nil
 }
 
-func (x *Grant) HasValidFrom() bool {
+func (x *Grant) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ValidFrom != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
-func (x *Grant) HasValidUntil() bool {
+func (x *Grant) HasDateExpires() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ValidUntil != nil
+	return x.xxx_hidden_DateExpires != nil
 }
 
 func (x *Grant) HasDateUpdated() bool {
@@ -442,12 +442,12 @@ func (x *Grant) ClearWorkspace() {
 	x.xxx_hidden_Workspace = nil
 }
 
-func (x *Grant) ClearValidFrom() {
-	x.xxx_hidden_ValidFrom = nil
+func (x *Grant) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
-func (x *Grant) ClearValidUntil() {
-	x.xxx_hidden_ValidUntil = nil
+func (x *Grant) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
 }
 
 func (x *Grant) ClearDateUpdated() {
@@ -485,14 +485,14 @@ type Grant_builder struct {
 	// amount to add to another grant's. Zero for any other value.
 	Limit int64
 	// When it begins: unset is the moment it is given.
-	ValidFrom *timestamppb.Timestamp
+	DateEffective *timestamppb.Timestamp
 	// When it ends, which every grant says: the moment it is in force no
 	// longer. Moved on by a renewal, and to now when it is ended; never later
 	// once it has passed, but for a grant that `renews` and was not renewed in
 	// time, which is renewed when it can be. An Add says it: the server
 	// refuses one that does not, rather than letting the default end a grant
 	// as it is given (`server/grants`).
-	ValidUntil *timestamppb.Timestamp
+	DateExpires *timestamppb.Timestamp
 	// Stamped with every change, as `version` is moved on.
 	DateUpdated *timestamppb.Timestamp
 	// Stamped once the grant has been over for long enough that the product
@@ -525,8 +525,8 @@ func (b0 Grant_builder) Build() *Grant {
 	x.xxx_hidden_Key = b.Key
 	x.xxx_hidden_Value = b.Value
 	x.xxx_hidden_Limit = b.Limit
-	x.xxx_hidden_ValidFrom = b.ValidFrom
-	x.xxx_hidden_ValidUntil = b.ValidUntil
+	x.xxx_hidden_DateEffective = b.DateEffective
+	x.xxx_hidden_DateExpires = b.DateExpires
 	x.xxx_hidden_DateUpdated = b.DateUpdated
 	x.xxx_hidden_DateErased = b.DateErased
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -541,7 +541,7 @@ var File_levyan_grant_proto protoreflect.FileDescriptor
 
 const file_levyan_grant_proto_rawDesc = "" +
 	"\n" +
-	"\x12levyan/grant.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xaf\b\n" +
+	"\x12levyan/grant.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xba\b\n" +
 	"\x05Grant\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
@@ -550,11 +550,9 @@ const file_levyan_grant_proto_rawDesc = "" +
 	"\x03key\x18\b \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x00R\x03key\x120\n" +
 	"\x05value\x18\t \x01(\x0e2\x12.levyan.GrantValueB\x06\xea\x82\x16\x02@\x01R\x05value\x12\x1c\n" +
 	"\x05limit\x18\n" +
-	" \x01(\x03B\x06\xea\x82\x16\x02@\x01R\x05limit\x12D\n" +
-	"\n" +
-	"valid_from\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tvalidFrom\x12D\n" +
-	"\vvalid_until\x18\f \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x82\x01\x00R\n" +
-	"validUntil\x12F\n" +
+	" \x01(\x03B\x06\xea\x82\x16\x02@\x01R\x05limit\x12L\n" +
+	"\x0edate_effective\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\rdateEffective\x12F\n" +
+	"\fdate_expires\x18\f \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x82\x01\x00R\vdateExpires\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
@@ -562,17 +560,17 @@ const file_levyan_grant_proto_rawDesc = "" +
 	"\aversion\x18\x10 \x01(\x04R\aversion\x123\n" +
 	"\x06source\x18\x11 \x01(\x0e2\x13.levyan.GrantSourceB\x06\xea\x82\x16\x02@\x01R\x06source\x12 \n" +
 	"\x04rule\x18\x12 \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x00R\x04rule\x12\x16\n" +
-	"\x06renews\x18\x13 \x01(\bR\x06renews:\xa0\x02\xca\xfc\x15\xb7\x01\x12\x02\x10\x01\x1a,\x12\x04page\x1a\n" +
+	"\x06renews\x18\x13 \x01(\bR\x06renews:\xa1\x02\xca\xfc\x15\xb8\x01\x12\x02\x10\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
 	"\x02id\x10\x01\x1a4\x12\tworkspace\x1a\r\n" +
 	"\tworkspace\x10\x03\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
-	"\x02id\x10\x01\x1a&\x12\arenewal\x1a\n" +
+	"\x02id\x10\x01\x1a'\x12\arenewal\x1a\n" +
 	"\n" +
-	"\x06renews\x10\x13\x1a\x0f\n" +
-	"\vvalid_until\x10\f\x1a%\x12\x04rule\x1a\n" +
+	"\x06renews\x10\x13\x1a\x10\n" +
+	"\fdate_expires\x10\f\x1a%\x12\x04rule\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\b\n" +
 	"\x04rule\x10\x12\x1a\a\n" +
@@ -614,8 +612,8 @@ var file_levyan_grant_proto_depIdxs = []int32{
 	3, // 0: levyan.Grant.tenant:type_name -> levyan.Tenant
 	4, // 1: levyan.Grant.workspace:type_name -> levyan.Workspace
 	0, // 2: levyan.Grant.value:type_name -> levyan.GrantValue
-	5, // 3: levyan.Grant.valid_from:type_name -> google.protobuf.Timestamp
-	5, // 4: levyan.Grant.valid_until:type_name -> google.protobuf.Timestamp
+	5, // 3: levyan.Grant.date_effective:type_name -> google.protobuf.Timestamp
+	5, // 4: levyan.Grant.date_expires:type_name -> google.protobuf.Timestamp
 	5, // 5: levyan.Grant.date_updated:type_name -> google.protobuf.Timestamp
 	5, // 6: levyan.Grant.date_erased:type_name -> google.protobuf.Timestamp
 	5, // 7: levyan.Grant.date_created:type_name -> google.protobuf.Timestamp

@@ -106,8 +106,8 @@ func TestAnAllowanceInForceForPartOfAPeriod(t *testing.T) {
 	x.Equal(a.String(), got.GetId())
 	x.Equal("loft.assets.active", got.GetMeter())
 	x.Equal(int64(500), got.GetQuantity())
-	x.True(got.GetFrom().AsTime().Equal(on(1, 11)))
-	x.False(got.HasUntil())
+	x.True(got.GetDateEffective().AsTime().Equal(on(1, 11)))
+	x.False(got.HasDateExpires())
 	x.Equal("338.709677", line(levyanv1.Statement_builder{Lines: u.GetUsage().GetLines()}.Build(), "loft.assets.active").GetAllowance(), "500 * 21/31")
 
 	w.At(on(2, 10))

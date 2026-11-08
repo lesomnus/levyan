@@ -17,8 +17,8 @@ import (
 type Mutation struct {
 	op               ent.Op
 	typ              string
-	started_at       *time.Time
-	counted_at       *time.Time
+	date_started     *time.Time
+	date_counted     *time.Time
 	value            *int64
 	addvalue         *int64
 	late             *bool
@@ -49,70 +49,70 @@ func (m *Mutation) Predicates() []predicate.Point {
 	return m.predicates
 }
 
-// SetStartedAt sets the "started_at" field.
-func (m *Mutation) SetStartedAt(t time.Time) {
-	m.started_at = &t
-	delete(m.clearedFields, FieldStartedAt)
+// SetDateStarted sets the "date_started" field.
+func (m *Mutation) SetDateStarted(t time.Time) {
+	m.date_started = &t
+	delete(m.clearedFields, FieldDateStarted)
 }
 
-// StartedAt returns the value of the "started_at" field in the mutation.
-func (m *Mutation) StartedAt() (r time.Time, exists bool) {
-	v := m.started_at
+// DateStarted returns the value of the "date_started" field in the mutation.
+func (m *Mutation) DateStarted() (r time.Time, exists bool) {
+	v := m.date_started
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearStartedAt clears the value of the "started_at" field.
-func (m *Mutation) ClearStartedAt() {
-	m.started_at = nil
-	m.clearedFields[FieldStartedAt] = struct{}{}
+// ClearDateStarted clears the value of the "date_started" field.
+func (m *Mutation) ClearDateStarted() {
+	m.date_started = nil
+	m.clearedFields[FieldDateStarted] = struct{}{}
 }
 
-// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
-func (m *Mutation) StartedAtCleared() bool {
-	_, ok := m.clearedFields[FieldStartedAt]
+// DateStartedCleared returns if the "date_started" field was cleared in this mutation.
+func (m *Mutation) DateStartedCleared() bool {
+	_, ok := m.clearedFields[FieldDateStarted]
 	return ok
 }
 
-// ResetStartedAt resets all changes to the "started_at" field.
-func (m *Mutation) ResetStartedAt() {
-	m.started_at = nil
-	delete(m.clearedFields, FieldStartedAt)
+// ResetDateStarted resets all changes to the "date_started" field.
+func (m *Mutation) ResetDateStarted() {
+	m.date_started = nil
+	delete(m.clearedFields, FieldDateStarted)
 }
 
-// SetCountedAt sets the "counted_at" field.
-func (m *Mutation) SetCountedAt(t time.Time) {
-	m.counted_at = &t
-	delete(m.clearedFields, FieldCountedAt)
+// SetDateCounted sets the "date_counted" field.
+func (m *Mutation) SetDateCounted(t time.Time) {
+	m.date_counted = &t
+	delete(m.clearedFields, FieldDateCounted)
 }
 
-// CountedAt returns the value of the "counted_at" field in the mutation.
-func (m *Mutation) CountedAt() (r time.Time, exists bool) {
-	v := m.counted_at
+// DateCounted returns the value of the "date_counted" field in the mutation.
+func (m *Mutation) DateCounted() (r time.Time, exists bool) {
+	v := m.date_counted
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearCountedAt clears the value of the "counted_at" field.
-func (m *Mutation) ClearCountedAt() {
-	m.counted_at = nil
-	m.clearedFields[FieldCountedAt] = struct{}{}
+// ClearDateCounted clears the value of the "date_counted" field.
+func (m *Mutation) ClearDateCounted() {
+	m.date_counted = nil
+	m.clearedFields[FieldDateCounted] = struct{}{}
 }
 
-// CountedAtCleared returns if the "counted_at" field was cleared in this mutation.
-func (m *Mutation) CountedAtCleared() bool {
-	_, ok := m.clearedFields[FieldCountedAt]
+// DateCountedCleared returns if the "date_counted" field was cleared in this mutation.
+func (m *Mutation) DateCountedCleared() bool {
+	_, ok := m.clearedFields[FieldDateCounted]
 	return ok
 }
 
-// ResetCountedAt resets all changes to the "counted_at" field.
-func (m *Mutation) ResetCountedAt() {
-	m.counted_at = nil
-	delete(m.clearedFields, FieldCountedAt)
+// ResetDateCounted resets all changes to the "date_counted" field.
+func (m *Mutation) ResetDateCounted() {
+	m.date_counted = nil
+	delete(m.clearedFields, FieldDateCounted)
 }
 
 // SetValue sets the "value" field.
@@ -415,11 +415,11 @@ func (m *Mutation) Type() string {
 // AddedFields().
 func (m *Mutation) Fields() []string {
 	fields := make([]string, 0, 9)
-	if m.started_at != nil {
-		fields = append(fields, FieldStartedAt)
+	if m.date_started != nil {
+		fields = append(fields, FieldDateStarted)
 	}
-	if m.counted_at != nil {
-		fields = append(fields, FieldCountedAt)
+	if m.date_counted != nil {
+		fields = append(fields, FieldDateCounted)
 	}
 	if m.value != nil {
 		fields = append(fields, FieldValue)
@@ -456,10 +456,10 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 		return e, true
 	}
 	switch name {
-	case FieldStartedAt:
-		return m.StartedAt()
-	case FieldCountedAt:
-		return m.CountedAt()
+	case FieldDateStarted:
+		return m.DateStarted()
+	case FieldDateCounted:
+		return m.DateCounted()
 	case FieldValue:
 		return m.Value()
 	case FieldLate:
@@ -493,7 +493,7 @@ func (m *Mutation) OldField(ctx context.Context, name string) (ent.Value, error)
 // that what Field returns for a field can be set back on it.
 func (m *Mutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case FieldStartedAt:
+	case FieldDateStarted:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -501,9 +501,9 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetStartedAt(v)
+		m.SetDateStarted(v)
 		return nil
-	case FieldCountedAt:
+	case FieldDateCounted:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -511,7 +511,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCountedAt(v)
+		m.SetDateCounted(v)
 		return nil
 	case FieldValue:
 		v, ok := value.(int64)
@@ -605,9 +605,9 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 		return fmt.Errorf("field %s cannot be assigned an expression: a create writes values, and an expression is written only by an update", name)
 	}
 	switch name {
-	case FieldStartedAt:
+	case FieldDateStarted:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldCountedAt:
+	case FieldDateCounted:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldValue:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
@@ -691,11 +691,11 @@ func (m *Mutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *Mutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(FieldStartedAt) {
-		fields = append(fields, FieldStartedAt)
+	if m.FieldCleared(FieldDateStarted) {
+		fields = append(fields, FieldDateStarted)
 	}
-	if m.FieldCleared(FieldCountedAt) {
-		fields = append(fields, FieldCountedAt)
+	if m.FieldCleared(FieldDateCounted) {
+		fields = append(fields, FieldDateCounted)
 	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
@@ -717,11 +717,11 @@ func (m *Mutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *Mutation) ClearField(name string) error {
 	switch name {
-	case FieldStartedAt:
-		m.ClearStartedAt()
+	case FieldDateStarted:
+		m.ClearDateStarted()
 		return nil
-	case FieldCountedAt:
-		m.ClearCountedAt()
+	case FieldDateCounted:
+		m.ClearDateCounted()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -737,11 +737,11 @@ func (m *Mutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *Mutation) ResetField(name string) error {
 	switch name {
-	case FieldStartedAt:
-		m.ResetStartedAt()
+	case FieldDateStarted:
+		m.ResetDateStarted()
 		return nil
-	case FieldCountedAt:
-		m.ResetCountedAt()
+	case FieldDateCounted:
+		m.ResetDateCounted()
 		return nil
 	case FieldValue:
 		m.ResetValue()

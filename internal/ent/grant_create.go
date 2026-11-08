@@ -49,30 +49,30 @@ func (_c *GrantCreate) SetLimit(v int64) *GrantCreate {
 	return _c
 }
 
-// SetValidFrom sets the "valid_from" field.
-func (_c *GrantCreate) SetValidFrom(v time.Time) *GrantCreate {
-	_c.mutation.SetValidFrom(v)
+// SetDateEffective sets the "date_effective" field.
+func (_c *GrantCreate) SetDateEffective(v time.Time) *GrantCreate {
+	_c.mutation.SetDateEffective(v)
 	return _c
 }
 
-// SetNillableValidFrom sets the "valid_from" field if the given value is not nil.
-func (_c *GrantCreate) SetNillableValidFrom(v *time.Time) *GrantCreate {
+// SetNillableDateEffective sets the "date_effective" field if the given value is not nil.
+func (_c *GrantCreate) SetNillableDateEffective(v *time.Time) *GrantCreate {
 	if v != nil {
-		_c.SetValidFrom(*v)
+		_c.SetDateEffective(*v)
 	}
 	return _c
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (_c *GrantCreate) SetValidUntil(v time.Time) *GrantCreate {
-	_c.mutation.SetValidUntil(v)
+// SetDateExpires sets the "date_expires" field.
+func (_c *GrantCreate) SetDateExpires(v time.Time) *GrantCreate {
+	_c.mutation.SetDateExpires(v)
 	return _c
 }
 
-// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
-func (_c *GrantCreate) SetNillableValidUntil(v *time.Time) *GrantCreate {
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_c *GrantCreate) SetNillableDateExpires(v *time.Time) *GrantCreate {
 	if v != nil {
-		_c.SetValidUntil(*v)
+		_c.SetDateExpires(*v)
 	}
 	return _c
 }
@@ -306,13 +306,13 @@ func (_c *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_spec.SetField(grant.FieldLimit, field.TypeInt64, value)
 		_node.Limit = value
 	}
-	if value, ok := _c.mutation.ValidFrom(); ok {
-		_spec.SetField(grant.FieldValidFrom, field.TypeTime, value)
-		_node.ValidFrom = value
+	if value, ok := _c.mutation.DateEffective(); ok {
+		_spec.SetField(grant.FieldDateEffective, field.TypeTime, value)
+		_node.DateEffective = value
 	}
-	if value, ok := _c.mutation.ValidUntil(); ok {
-		_spec.SetField(grant.FieldValidUntil, field.TypeTime, value)
-		_node.ValidUntil = value
+	if value, ok := _c.mutation.DateExpires(); ok {
+		_spec.SetField(grant.FieldDateExpires, field.TypeTime, value)
+		_node.DateExpires = value
 	}
 	if value, ok := _c.mutation.DateUpdated(); ok {
 		_spec.SetField(grant.FieldDateUpdated, field.TypeTime, value)

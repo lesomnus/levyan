@@ -45,18 +45,18 @@ message Point {
 
   // When the count it is part of began: OpenTelemetry's start time, to the
   // microsecond.
-  google.protobuf.Timestamp started_at = 9 [(orm.field) = {
+  google.protobuf.Timestamp date_started = 9 [(orm.field) = {
     immutable: true
     default: ""
   }];
 
   // When it was counted to: OpenTelemetry's time, to the microsecond.
-  google.protobuf.Timestamp counted_at = 10 [(orm.field) = {
+  google.protobuf.Timestamp date_counted = 10 [(orm.field) = {
     immutable: true
     default: ""
   }];
 
-  // How much its series had counted from `started_at` to `counted_at`, in
+  // How much its series had counted from `date_started` to `date_counted`, in
   // the meter's unit.
   int64 value = 11 [(orm.field) = {immutable: true}];
 
@@ -110,11 +110,11 @@ message Point {
             number: 8
           },
           {
-            name: "started_at"
+            name: "date_started"
             number: 9
           },
           {
-            name: "counted_at"
+            name: "date_counted"
             number: 10
           }
         ]
@@ -129,7 +129,7 @@ message Point {
             number: 3
           },
           {
-            name: "counted_at"
+            name: "date_counted"
             number: 10
           }
         ]
@@ -146,7 +146,7 @@ message Point {
             number: 3
           },
           {
-            name: "counted_at"
+            name: "date_counted"
             number: 10
           }
         ]

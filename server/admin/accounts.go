@@ -12,13 +12,13 @@ import (
 
 // BillingAccount is a billing account as an operator opens one.
 type BillingAccount struct {
-	Id       string    `json:"id"`
-	Owner    string    `json:"owner"`
-	Name     string    `json:"name,omitempty"`
-	Country  string    `json:"country"`
-	Channel  string    `json:"channel"`
-	Currency string    `json:"currency"`
-	Created  time.Time `json:"created"`
+	Id          string    `json:"id"`
+	Owner       string    `json:"owner"`
+	Name        string    `json:"name,omitempty"`
+	Country     string    `json:"country"`
+	Channel     string    `json:"channel"`
+	Currency    string    `json:"currency"`
+	DateCreated time.Time `json:"date_created"`
 }
 
 // Business is the business a billing account bills, for its tax invoices.
@@ -84,6 +84,6 @@ func (a *Routes) openBillingAccount(w http.ResponseWriter, r *http.Request) {
 
 	answer(w, http.StatusCreated, BillingAccount{
 		Id: text(v.GetId()), Owner: owner.String(), Name: v.GetName(), Country: v.GetCountry(),
-		Channel: named(v.GetChannel(), "CHANNEL_"), Currency: v.GetCurrency(), Created: v.GetDateCreated().AsTime(),
+		Channel: named(v.GetChannel(), "CHANNEL_"), Currency: v.GetCurrency(), DateCreated: v.GetDateCreated().AsTime(),
 	})
 }

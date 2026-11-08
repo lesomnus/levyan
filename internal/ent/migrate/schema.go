@@ -57,8 +57,8 @@ var (
 	AllowanceColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
 		{Name: "quantity", Type: field.TypeInt64},
-		{Name: "valid_from", Type: field.TypeTime, Nullable: true},
-		{Name: "valid_until", Type: field.TypeTime, Nullable: true},
+		{Name: "date_effective", Type: field.TypeTime, Nullable: true},
+		{Name: "date_expires", Type: field.TypeTime, Nullable: true},
 		{Name: "reason", Type: field.TypeString},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
@@ -556,8 +556,8 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "value", Type: field.TypeInt32},
 		{Name: "limit", Type: field.TypeInt64},
-		{Name: "valid_from", Type: field.TypeTime, Nullable: true},
-		{Name: "valid_until", Type: field.TypeTime, Nullable: true},
+		{Name: "date_effective", Type: field.TypeTime, Nullable: true},
+		{Name: "date_expires", Type: field.TypeTime, Nullable: true},
 		{Name: "date_updated", Type: field.TypeTime},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
@@ -1245,8 +1245,8 @@ var (
 	// PointColumns holds the columns for the "point" table.
 	PointColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
-		{Name: "started_at", Type: field.TypeTime, Nullable: true},
-		{Name: "counted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "date_started", Type: field.TypeTime, Nullable: true},
+		{Name: "date_counted", Type: field.TypeTime, Nullable: true},
 		{Name: "value", Type: field.TypeInt64},
 		{Name: "late", Type: field.TypeBool},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
@@ -1310,7 +1310,7 @@ var (
 	PoolColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
 		{Name: "quantity", Type: field.TypeInt64},
-		{Name: "valid_from", Type: field.TypeTime, Nullable: true},
+		{Name: "date_effective", Type: field.TypeTime, Nullable: true},
 		{Name: "date_expires", Type: field.TypeTime, Nullable: true},
 		{Name: "reason", Type: field.TypeString},
 		{Name: "date_updated", Type: field.TypeTime},
@@ -1425,7 +1425,7 @@ var (
 	// ReadingColumns holds the columns for the "reading" table.
 	ReadingColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
-		{Name: "measured_at", Type: field.TypeTime, Nullable: true},
+		{Name: "date_measured", Type: field.TypeTime, Nullable: true},
 		{Name: "value", Type: field.TypeInt64},
 		{Name: "late", Type: field.TypeBool},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
@@ -1809,8 +1809,8 @@ var (
 	WorkspaceeventColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUuid, Unique: true},
 		{Name: "kind", Type: field.TypeInt32},
-		{Name: "happened_at", Type: field.TypeTime, Nullable: true},
-		{Name: "late_through", Type: field.TypeTime, Nullable: true},
+		{Name: "date_occurred", Type: field.TypeTime, Nullable: true},
+		{Name: "date_late_through", Type: field.TypeTime, Nullable: true},
 		{Name: "date_erased", Type: field.TypeTime, Nullable: true},
 		{Name: "date_created", Type: field.TypeTime, Nullable: true},
 		{Name: "tenant_id", Type: field.TypeUuid},

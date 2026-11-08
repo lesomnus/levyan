@@ -355,12 +355,12 @@ func (h Payers) link(ctx context.Context, v *levyan.Link) *levyanv1.Link {
 		Workspace:      text(w.Key),
 		Account:        text(v.GetPayer()),
 		BillingAccount: text(v.GetBillingAccount().GetId()),
-		Start:          stamp(v.GetDateStart()),
+		DateStart:      stamp(v.GetDateStart()),
 		Began:          levyanv1.LinkBegan(v.GetBegan()),
 		Ended:          levyanv1.LinkEnded(v.GetEnded()),
 	}.Build()
 	if v.HasDateEnd() {
-		l.SetEnd(stamp(v.GetDateEnd()))
+		l.SetDateEnd(stamp(v.GetDateEnd()))
 	}
 
 	return l
@@ -371,11 +371,11 @@ func linkOf(v *ent.Link, w *ent.Workspace) *levyanv1.Link {
 		return nil
 	}
 	l := levyanv1.Link_builder{
-		Id:      pdid.Id(v.Id).String(),
-		Account: pdid.Id(v.Payer).String(),
-		Start:   timestamppb.New(v.DateStart),
-		Began:   levyanv1.LinkBegan(v.Began),
-		Ended:   levyanv1.LinkEnded(v.Ended),
+		Id:        pdid.Id(v.Id).String(),
+		Account:   pdid.Id(v.Payer).String(),
+		DateStart: timestamppb.New(v.DateStart),
+		Began:     levyanv1.LinkBegan(v.Began),
+		Ended:     levyanv1.LinkEnded(v.Ended),
 	}.Build()
 	if w != nil {
 		l.SetWorkspace(text(w.Key))
@@ -384,7 +384,7 @@ func linkOf(v *ent.Link, w *ent.Workspace) *levyanv1.Link {
 		l.SetBillingAccount(pdid.Id(b).String())
 	}
 	if v.DateEnd != nil {
-		l.SetEnd(timestamppb.New(*v.DateEnd))
+		l.SetDateEnd(timestamppb.New(*v.DateEnd))
 	}
 
 	return l
@@ -392,9 +392,9 @@ func linkOf(v *ent.Link, w *ent.Workspace) *levyanv1.Link {
 
 func offerOf(v *ent.Offer) *levyanv1.Offer {
 	o := levyanv1.Offer_builder{
-		Id:      pdid.Id(v.Id).String(),
-		Account: pdid.Id(v.Account).String(),
-		Offered: timestamppb.New(v.DateCreated),
+		Id:          pdid.Id(v.Id).String(),
+		Account:     pdid.Id(v.Account).String(),
+		DateOffered: timestamppb.New(v.DateCreated),
 	}.Build()
 	if w := v.Edges.Workspace; w != nil {
 		o.SetWorkspace(text(w.Key))
@@ -414,7 +414,7 @@ func billingAccount(v *levyan.BillingAccount) *levyanv1.BillingAccount {
 			Email:   v.GetEmail(),
 			Address: v.GetAddress(),
 		}.Build(),
-		Created: stamp(v.GetDateCreated()),
+		DateCreated: stamp(v.GetDateCreated()),
 	}.Build()
 	if c, ok := levyanv1.Channel_value[v.GetChannel()]; ok {
 		out.SetChannel(levyanv1.Channel(c))

@@ -185,10 +185,10 @@ func (st ReadingServiceServer) create(ctx context.Context, req *levyan.ReadingAd
 			v.SetMeter(levyan.Meter_builder{Id: k[:]}.Build())
 		})
 	}
-	if req.HasMeasuredAt() {
-		q.SetMeasuredAt(req.GetMeasuredAt().AsTime())
+	if req.HasDateMeasured() {
+		q.SetDateMeasured(req.GetDateMeasured().AsTime())
 	} else {
-		q.SetMeasuredAt(st.now())
+		q.SetDateMeasured(st.now())
 	}
 	q.SetValue(req.GetValue())
 	q.SetLate(req.GetLate())
@@ -448,8 +448,8 @@ func ReadingSelectedFields(m *levyan.ReadingSelect) []string {
 	{
 		vs = append(vs, reading.FieldId)
 	}
-	if m.GetMeasuredAt() {
-		vs = append(vs, reading.FieldMeasuredAt)
+	if m.GetDateMeasured() {
+		vs = append(vs, reading.FieldDateMeasured)
 	}
 	if m.GetValue() {
 		vs = append(vs, reading.FieldValue)
@@ -541,7 +541,7 @@ func pickReading(req *levyan.ReadingRef) (predicate.Reading, error) {
 		} else {
 			ps = append(ps, reading.HasMeterWith(p))
 		}
-		ps = append(ps, reading.MeasuredAtEQ(k.GetMeasuredAt().AsTime()))
+		ps = append(ps, reading.DateMeasuredEQ(k.GetDateMeasured().AsTime()))
 		return reading.And(ps...), nil
 	case levyan.ReadingRef_Key_not_set_case:
 		return nil, status.Errorf(codes.InvalidArgument, "key not set: Reading")

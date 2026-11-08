@@ -25,13 +25,13 @@ func dunningOf(d invoices.Dunned) *levyanv1.Dunning {
 		Invoice:        pdid.Id(d.Invoice.Id).String(),
 		BillingAccount: pdid.Id(d.Invoice.BillingAccountId).String(),
 		Kind:           levyanv1.DeclineKind(d.Kind),
-		Failed:         timestamppb.New(d.Failed),
-		GraceEnds:      timestamppb.New(d.GraceEnds),
-		RestrictedFrom: timestamppb.New(d.Restricted),
-		ReadonlyFrom:   timestamppb.New(d.Readonly),
+		DateFailed:     timestamppb.New(d.Failed),
+		DateGraceEnds:  timestamppb.New(d.GraceEnds),
+		DateRestricted: timestamppb.New(d.Restricted),
+		DateReadonly:   timestamppb.New(d.Readonly),
 	}.Build()
 	if !d.Retry.IsZero() {
-		out.SetNextRetry(timestamppb.New(d.Retry))
+		out.SetDateNextRetry(timestamppb.New(d.Retry))
 	}
 
 	return out

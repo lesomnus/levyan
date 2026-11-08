@@ -23,10 +23,10 @@ func (Allowance) Fields() []ent.Field {
 			Immutable(),
 		field.Int64("quantity").
 			Immutable(),
-		field.Time("valid_from").
+		field.Time("date_effective").
 			Immutable().
 			Optional(),
-		field.Time("valid_until").
+		field.Time("date_expires").
 			Nillable().
 			Optional(),
 		field.String("reason").
@@ -84,7 +84,7 @@ func (Allowance) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tenant_id", "date_created", "id").
 			StorageKey("allowance_page"),
-		index.Fields("workspace_id", "meter_id", "valid_from").
+		index.Fields("workspace_id", "meter_id", "date_effective").
 			StorageKey("allowance_workspace"),
 	}
 }

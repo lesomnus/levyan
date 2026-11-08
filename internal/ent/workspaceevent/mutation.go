@@ -15,21 +15,21 @@ import (
 
 // Mutation represents an operation that mutates the WorkspaceEvent nodes in the graph.
 type Mutation struct {
-	op               ent.Op
-	typ              string
-	kind             *int32
-	addkind          *int32
-	happened_at      *time.Time
-	late_through     *time.Time
-	date_erased      *time.Time
-	date_created     *time.Time
-	clearedFields    map[string]struct{}
-	exprs            map[string]sql.Querier
-	tenant           *uuid.UUID
-	clearedtenant    bool
-	workspace        *uuid.UUID
-	clearedworkspace bool
-	predicates       []predicate.WorkspaceEvent
+	op                ent.Op
+	typ               string
+	kind              *int32
+	addkind           *int32
+	date_occurred     *time.Time
+	date_late_through *time.Time
+	date_erased       *time.Time
+	date_created      *time.Time
+	clearedFields     map[string]struct{}
+	exprs             map[string]sql.Querier
+	tenant            *uuid.UUID
+	clearedtenant     bool
+	workspace         *uuid.UUID
+	clearedworkspace  bool
+	predicates        []predicate.WorkspaceEvent
 }
 
 // NewMutation creates a new Mutation for the WorkspaceEvent entity.
@@ -85,70 +85,70 @@ func (m *Mutation) ResetKind() {
 	m.addkind = nil
 }
 
-// SetHappenedAt sets the "happened_at" field.
-func (m *Mutation) SetHappenedAt(t time.Time) {
-	m.happened_at = &t
-	delete(m.clearedFields, FieldHappenedAt)
+// SetDateOccurred sets the "date_occurred" field.
+func (m *Mutation) SetDateOccurred(t time.Time) {
+	m.date_occurred = &t
+	delete(m.clearedFields, FieldDateOccurred)
 }
 
-// HappenedAt returns the value of the "happened_at" field in the mutation.
-func (m *Mutation) HappenedAt() (r time.Time, exists bool) {
-	v := m.happened_at
+// DateOccurred returns the value of the "date_occurred" field in the mutation.
+func (m *Mutation) DateOccurred() (r time.Time, exists bool) {
+	v := m.date_occurred
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearHappenedAt clears the value of the "happened_at" field.
-func (m *Mutation) ClearHappenedAt() {
-	m.happened_at = nil
-	m.clearedFields[FieldHappenedAt] = struct{}{}
+// ClearDateOccurred clears the value of the "date_occurred" field.
+func (m *Mutation) ClearDateOccurred() {
+	m.date_occurred = nil
+	m.clearedFields[FieldDateOccurred] = struct{}{}
 }
 
-// HappenedAtCleared returns if the "happened_at" field was cleared in this mutation.
-func (m *Mutation) HappenedAtCleared() bool {
-	_, ok := m.clearedFields[FieldHappenedAt]
+// DateOccurredCleared returns if the "date_occurred" field was cleared in this mutation.
+func (m *Mutation) DateOccurredCleared() bool {
+	_, ok := m.clearedFields[FieldDateOccurred]
 	return ok
 }
 
-// ResetHappenedAt resets all changes to the "happened_at" field.
-func (m *Mutation) ResetHappenedAt() {
-	m.happened_at = nil
-	delete(m.clearedFields, FieldHappenedAt)
+// ResetDateOccurred resets all changes to the "date_occurred" field.
+func (m *Mutation) ResetDateOccurred() {
+	m.date_occurred = nil
+	delete(m.clearedFields, FieldDateOccurred)
 }
 
-// SetLateThrough sets the "late_through" field.
-func (m *Mutation) SetLateThrough(t time.Time) {
-	m.late_through = &t
-	delete(m.clearedFields, FieldLateThrough)
+// SetDateLateThrough sets the "date_late_through" field.
+func (m *Mutation) SetDateLateThrough(t time.Time) {
+	m.date_late_through = &t
+	delete(m.clearedFields, FieldDateLateThrough)
 }
 
-// LateThrough returns the value of the "late_through" field in the mutation.
-func (m *Mutation) LateThrough() (r time.Time, exists bool) {
-	v := m.late_through
+// DateLateThrough returns the value of the "date_late_through" field in the mutation.
+func (m *Mutation) DateLateThrough() (r time.Time, exists bool) {
+	v := m.date_late_through
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearLateThrough clears the value of the "late_through" field.
-func (m *Mutation) ClearLateThrough() {
-	m.late_through = nil
-	m.clearedFields[FieldLateThrough] = struct{}{}
+// ClearDateLateThrough clears the value of the "date_late_through" field.
+func (m *Mutation) ClearDateLateThrough() {
+	m.date_late_through = nil
+	m.clearedFields[FieldDateLateThrough] = struct{}{}
 }
 
-// LateThroughCleared returns if the "late_through" field was cleared in this mutation.
-func (m *Mutation) LateThroughCleared() bool {
-	_, ok := m.clearedFields[FieldLateThrough]
+// DateLateThroughCleared returns if the "date_late_through" field was cleared in this mutation.
+func (m *Mutation) DateLateThroughCleared() bool {
+	_, ok := m.clearedFields[FieldDateLateThrough]
 	return ok
 }
 
-// ResetLateThrough resets all changes to the "late_through" field.
-func (m *Mutation) ResetLateThrough() {
-	m.late_through = nil
-	delete(m.clearedFields, FieldLateThrough)
+// ResetDateLateThrough resets all changes to the "date_late_through" field.
+func (m *Mutation) ResetDateLateThrough() {
+	m.date_late_through = nil
+	delete(m.clearedFields, FieldDateLateThrough)
 }
 
 // SetDateErased sets the "date_erased" field.
@@ -350,11 +350,11 @@ func (m *Mutation) Fields() []string {
 	if m.kind != nil {
 		fields = append(fields, FieldKind)
 	}
-	if m.happened_at != nil {
-		fields = append(fields, FieldHappenedAt)
+	if m.date_occurred != nil {
+		fields = append(fields, FieldDateOccurred)
 	}
-	if m.late_through != nil {
-		fields = append(fields, FieldLateThrough)
+	if m.date_late_through != nil {
+		fields = append(fields, FieldDateLateThrough)
 	}
 	if m.date_erased != nil || m.exprs[FieldDateErased] != nil {
 		fields = append(fields, FieldDateErased)
@@ -384,10 +384,10 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case FieldKind:
 		return m.Kind()
-	case FieldHappenedAt:
-		return m.HappenedAt()
-	case FieldLateThrough:
-		return m.LateThrough()
+	case FieldDateOccurred:
+		return m.DateOccurred()
+	case FieldDateLateThrough:
+		return m.DateLateThrough()
 	case FieldDateErased:
 		return m.DateErased()
 	case FieldDateCreated:
@@ -425,7 +425,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetKind(v)
 		return nil
-	case FieldHappenedAt:
+	case FieldDateOccurred:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -433,9 +433,9 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetHappenedAt(v)
+		m.SetDateOccurred(v)
 		return nil
-	case FieldLateThrough:
+	case FieldDateLateThrough:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -443,7 +443,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetLateThrough(v)
+		m.SetDateLateThrough(v)
 		return nil
 	case FieldDateErased:
 		v, ok := value.(time.Time)
@@ -509,9 +509,9 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 	switch name {
 	case FieldKind:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldHappenedAt:
+	case FieldDateOccurred:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldLateThrough:
+	case FieldDateLateThrough:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldDateErased:
 		m.ResetDateErased()
@@ -589,11 +589,11 @@ func (m *Mutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *Mutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(FieldHappenedAt) {
-		fields = append(fields, FieldHappenedAt)
+	if m.FieldCleared(FieldDateOccurred) {
+		fields = append(fields, FieldDateOccurred)
 	}
-	if m.FieldCleared(FieldLateThrough) {
-		fields = append(fields, FieldLateThrough)
+	if m.FieldCleared(FieldDateLateThrough) {
+		fields = append(fields, FieldDateLateThrough)
 	}
 	if m.FieldCleared(FieldDateErased) {
 		fields = append(fields, FieldDateErased)
@@ -615,11 +615,11 @@ func (m *Mutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *Mutation) ClearField(name string) error {
 	switch name {
-	case FieldHappenedAt:
-		m.ClearHappenedAt()
+	case FieldDateOccurred:
+		m.ClearDateOccurred()
 		return nil
-	case FieldLateThrough:
-		m.ClearLateThrough()
+	case FieldDateLateThrough:
+		m.ClearDateLateThrough()
 		return nil
 	case FieldDateErased:
 		m.ClearDateErased()
@@ -638,11 +638,11 @@ func (m *Mutation) ResetField(name string) error {
 	case FieldKind:
 		m.ResetKind()
 		return nil
-	case FieldHappenedAt:
-		m.ResetHappenedAt()
+	case FieldDateOccurred:
+		m.ResetDateOccurred()
 		return nil
-	case FieldLateThrough:
-		m.ResetLateThrough()
+	case FieldDateLateThrough:
+		m.ResetDateLateThrough()
 		return nil
 	case FieldDateErased:
 		m.ResetDateErased()

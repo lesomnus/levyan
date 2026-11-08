@@ -33,8 +33,8 @@ func (e *Point) Proto() *levyan.Point {
 		r.SetId(v[:])
 		x.SetSeries(r)
 	}
-	x.SetStartedAt(timestamppb.New(e.StartedAt))
-	x.SetCountedAt(timestamppb.New(e.CountedAt))
+	x.SetDateStarted(timestamppb.New(e.DateStarted))
+	x.SetDateCounted(timestamppb.New(e.DateCounted))
 	x.SetValue(e.Value)
 	x.SetLate(e.Late)
 	if e.DateErased != nil {

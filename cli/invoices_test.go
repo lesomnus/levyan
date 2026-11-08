@@ -54,13 +54,13 @@ func TestAPayerReadsItsInvoicesThroughTheProduct(t *testing.T) {
 	x.NoError(err)
 	w.At(at(1, 1))
 	ws := levyantest.Tenant()
-	_, err = workspaces.Arrive(product, levyanv1.ArriveRequest_builder{Workspace: ws.String(), Creator: me.String(), Created: timestamppb.New(at(1, 1)), Label: "디자인팀"}.Build())
+	_, err = workspaces.Arrive(product, levyanv1.ArriveRequest_builder{Workspace: ws.String(), Creator: me.String(), DateCreated: timestamppb.New(at(1, 1)), Label: "디자인팀"}.Build())
 	x.NoError(err)
 
 	w.At(at(2, 10))
 	rs := []*levyanv1.Reading{}
 	for d := at(1, 1); d.Before(at(2, 1)); d = d.AddDate(0, 0, 1) {
-		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(d), Value: 200, Unit: "{asset}"}.Build())
+		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(d), Value: 200, Unit: "{asset}"}.Build())
 	}
 	_, err = levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: rs}.Build())
 	x.NoError(err)

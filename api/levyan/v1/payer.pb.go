@@ -2162,8 +2162,8 @@ type Checkout struct {
 	xxx_hidden_Id             string                 `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_BillingAccount string                 `protobuf:"bytes,2,opt,name=billing_account,json=billingAccount"`
 	xxx_hidden_State          CheckoutState          `protobuf:"varint,3,opt,name=state,enum=levyan.v1.CheckoutState"`
-	xxx_hidden_Started        *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=started"`
-	xxx_hidden_Done           *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=done"`
+	xxx_hidden_DateStarted    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=date_started,json=dateStarted"`
+	xxx_hidden_DateDone       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_done,json=dateDone"`
 	xxx_hidden_Window         *CheckoutWindow        `protobuf:"bytes,6,opt,name=window"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
@@ -2215,16 +2215,16 @@ func (x *Checkout) GetState() CheckoutState {
 	return CheckoutState_CHECKOUT_STATE_UNSPECIFIED
 }
 
-func (x *Checkout) GetStarted() *timestamppb.Timestamp {
+func (x *Checkout) GetDateStarted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Started
+		return x.xxx_hidden_DateStarted
 	}
 	return nil
 }
 
-func (x *Checkout) GetDone() *timestamppb.Timestamp {
+func (x *Checkout) GetDateDone() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Done
+		return x.xxx_hidden_DateDone
 	}
 	return nil
 }
@@ -2248,30 +2248,30 @@ func (x *Checkout) SetState(v CheckoutState) {
 	x.xxx_hidden_State = v
 }
 
-func (x *Checkout) SetStarted(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Started = v
+func (x *Checkout) SetDateStarted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStarted = v
 }
 
-func (x *Checkout) SetDone(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Done = v
+func (x *Checkout) SetDateDone(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateDone = v
 }
 
 func (x *Checkout) SetWindow(v *CheckoutWindow) {
 	x.xxx_hidden_Window = v
 }
 
-func (x *Checkout) HasStarted() bool {
+func (x *Checkout) HasDateStarted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Started != nil
+	return x.xxx_hidden_DateStarted != nil
 }
 
-func (x *Checkout) HasDone() bool {
+func (x *Checkout) HasDateDone() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Done != nil
+	return x.xxx_hidden_DateDone != nil
 }
 
 func (x *Checkout) HasWindow() bool {
@@ -2281,12 +2281,12 @@ func (x *Checkout) HasWindow() bool {
 	return x.xxx_hidden_Window != nil
 }
 
-func (x *Checkout) ClearStarted() {
-	x.xxx_hidden_Started = nil
+func (x *Checkout) ClearDateStarted() {
+	x.xxx_hidden_DateStarted = nil
 }
 
-func (x *Checkout) ClearDone() {
-	x.xxx_hidden_Done = nil
+func (x *Checkout) ClearDateDone() {
+	x.xxx_hidden_DateDone = nil
 }
 
 func (x *Checkout) ClearWindow() {
@@ -2299,9 +2299,9 @@ type Checkout_builder struct {
 	Id             string
 	BillingAccount string
 	State          CheckoutState
-	Started        *timestamppb.Timestamp
+	DateStarted    *timestamppb.Timestamp
 	// When the merchant said it was finished, or that it never will be.
-	Done *timestamppb.Timestamp
+	DateDone *timestamppb.Timestamp
 	// What a page opens it with: answered by `StartCheckout`, and unset
 	// elsewhere.
 	Window *CheckoutWindow
@@ -2314,8 +2314,8 @@ func (b0 Checkout_builder) Build() *Checkout {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_BillingAccount = b.BillingAccount
 	x.xxx_hidden_State = b.State
-	x.xxx_hidden_Started = b.Started
-	x.xxx_hidden_Done = b.Done
+	x.xxx_hidden_DateStarted = b.DateStarted
+	x.xxx_hidden_DateDone = b.DateDone
 	x.xxx_hidden_Window = b.Window
 	return m0
 }
@@ -2485,12 +2485,12 @@ func (b0 CheckoutWindow_builder) Build() *CheckoutWindow {
 // Collection is whether what a billing account is billed can be collected
 // now, and why not.
 type Collection struct {
-	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_State CollectionState        `protobuf:"varint,1,opt,name=state,enum=levyan.v1.CollectionState"`
-	xxx_hidden_Since *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=since"`
-	xxx_hidden_Ends  *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=ends"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_State     CollectionState        `protobuf:"varint,1,opt,name=state,enum=levyan.v1.CollectionState"`
+	xxx_hidden_DateSince *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_since,json=dateSince"`
+	xxx_hidden_DateEnds  *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_ends,json=dateEnds"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Collection) Reset() {
@@ -2525,16 +2525,16 @@ func (x *Collection) GetState() CollectionState {
 	return CollectionState_COLLECTION_STATE_UNSPECIFIED
 }
 
-func (x *Collection) GetSince() *timestamppb.Timestamp {
+func (x *Collection) GetDateSince() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Since
+		return x.xxx_hidden_DateSince
 	}
 	return nil
 }
 
-func (x *Collection) GetEnds() *timestamppb.Timestamp {
+func (x *Collection) GetDateEnds() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Ends
+		return x.xxx_hidden_DateEnds
 	}
 	return nil
 }
@@ -2543,34 +2543,34 @@ func (x *Collection) SetState(v CollectionState) {
 	x.xxx_hidden_State = v
 }
 
-func (x *Collection) SetSince(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Since = v
+func (x *Collection) SetDateSince(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateSince = v
 }
 
-func (x *Collection) SetEnds(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Ends = v
+func (x *Collection) SetDateEnds(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnds = v
 }
 
-func (x *Collection) HasSince() bool {
+func (x *Collection) HasDateSince() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Since != nil
+	return x.xxx_hidden_DateSince != nil
 }
 
-func (x *Collection) HasEnds() bool {
+func (x *Collection) HasDateEnds() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Ends != nil
+	return x.xxx_hidden_DateEnds != nil
 }
 
-func (x *Collection) ClearSince() {
-	x.xxx_hidden_Since = nil
+func (x *Collection) ClearDateSince() {
+	x.xxx_hidden_DateSince = nil
 }
 
-func (x *Collection) ClearEnds() {
-	x.xxx_hidden_Ends = nil
+func (x *Collection) ClearDateEnds() {
+	x.xxx_hidden_DateEnds = nil
 }
 
 type Collection_builder struct {
@@ -2578,12 +2578,12 @@ type Collection_builder struct {
 
 	State CollectionState
 	// Since when it has been so.
-	Since *timestamppb.Timestamp
+	DateSince *timestamppb.Timestamp
 	// When the merchant of record will end, or pause, the subscription it is
 	// collected through, as somebody scheduled it there -- the payer, in the
 	// merchant's own pages, among them -- from when it is not collectable;
 	// unset for nothing scheduled.
-	Ends *timestamppb.Timestamp
+	DateEnds *timestamppb.Timestamp
 }
 
 func (b0 Collection_builder) Build() *Collection {
@@ -2591,30 +2591,30 @@ func (b0 Collection_builder) Build() *Collection {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_State = b.State
-	x.xxx_hidden_Since = b.Since
-	x.xxx_hidden_Ends = b.Ends
+	x.xxx_hidden_DateSince = b.DateSince
+	x.xxx_hidden_DateEnds = b.DateEnds
 	return m0
 }
 
 // Subscription is a subscription a merchant of record runs for a billing
 // account, as levyan mirrors it from what the merchant's API answers.
 type Subscription struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Merchant    string                 `protobuf:"bytes,2,opt,name=merchant"`
-	xxx_hidden_Status      SubscriptionStatus     `protobuf:"varint,3,opt,name=status,enum=levyan.v1.SubscriptionStatus"`
-	xxx_hidden_Currency    string                 `protobuf:"bytes,4,opt,name=currency"`
-	xxx_hidden_PeriodStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=period_start,json=periodStart"`
-	xxx_hidden_PeriodEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=period_end,json=periodEnd"`
-	xxx_hidden_NextBilled  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=next_billed,json=nextBilled"`
-	xxx_hidden_Change      SubscriptionChange     `protobuf:"varint,8,opt,name=change,enum=levyan.v1.SubscriptionChange"`
-	xxx_hidden_ChangeAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=change_at,json=changeAt"`
-	xxx_hidden_Canceled    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=canceled"`
-	xxx_hidden_Method      *PaymentMethod         `protobuf:"bytes,11,opt,name=method"`
-	xxx_hidden_Updated     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated"`
-	xxx_hidden_Checked     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=checked"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id              string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Merchant        string                 `protobuf:"bytes,2,opt,name=merchant"`
+	xxx_hidden_Status          SubscriptionStatus     `protobuf:"varint,3,opt,name=status,enum=levyan.v1.SubscriptionStatus"`
+	xxx_hidden_Currency        string                 `protobuf:"bytes,4,opt,name=currency"`
+	xxx_hidden_DatePeriodStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_period_start,json=datePeriodStart"`
+	xxx_hidden_DatePeriodEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_period_end,json=datePeriodEnd"`
+	xxx_hidden_DateNextBilled  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=date_next_billed,json=dateNextBilled"`
+	xxx_hidden_Change          SubscriptionChange     `protobuf:"varint,8,opt,name=change,enum=levyan.v1.SubscriptionChange"`
+	xxx_hidden_DateChange      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_change,json=dateChange"`
+	xxx_hidden_DateCanceled    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_canceled,json=dateCanceled"`
+	xxx_hidden_Method          *PaymentMethod         `protobuf:"bytes,11,opt,name=method"`
+	xxx_hidden_DateUpdated     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateChecked     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_checked,json=dateChecked"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Subscription) Reset() {
@@ -2670,23 +2670,23 @@ func (x *Subscription) GetCurrency() string {
 	return ""
 }
 
-func (x *Subscription) GetPeriodStart() *timestamppb.Timestamp {
+func (x *Subscription) GetDatePeriodStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_PeriodStart
+		return x.xxx_hidden_DatePeriodStart
 	}
 	return nil
 }
 
-func (x *Subscription) GetPeriodEnd() *timestamppb.Timestamp {
+func (x *Subscription) GetDatePeriodEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_PeriodEnd
+		return x.xxx_hidden_DatePeriodEnd
 	}
 	return nil
 }
 
-func (x *Subscription) GetNextBilled() *timestamppb.Timestamp {
+func (x *Subscription) GetDateNextBilled() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_NextBilled
+		return x.xxx_hidden_DateNextBilled
 	}
 	return nil
 }
@@ -2698,16 +2698,16 @@ func (x *Subscription) GetChange() SubscriptionChange {
 	return SubscriptionChange_SUBSCRIPTION_CHANGE_UNSPECIFIED
 }
 
-func (x *Subscription) GetChangeAt() *timestamppb.Timestamp {
+func (x *Subscription) GetDateChange() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ChangeAt
+		return x.xxx_hidden_DateChange
 	}
 	return nil
 }
 
-func (x *Subscription) GetCanceled() *timestamppb.Timestamp {
+func (x *Subscription) GetDateCanceled() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Canceled
+		return x.xxx_hidden_DateCanceled
 	}
 	return nil
 }
@@ -2719,16 +2719,16 @@ func (x *Subscription) GetMethod() *PaymentMethod {
 	return nil
 }
 
-func (x *Subscription) GetUpdated() *timestamppb.Timestamp {
+func (x *Subscription) GetDateUpdated() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Updated
+		return x.xxx_hidden_DateUpdated
 	}
 	return nil
 }
 
-func (x *Subscription) GetChecked() *timestamppb.Timestamp {
+func (x *Subscription) GetDateChecked() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Checked
+		return x.xxx_hidden_DateChecked
 	}
 	return nil
 }
@@ -2749,75 +2749,75 @@ func (x *Subscription) SetCurrency(v string) {
 	x.xxx_hidden_Currency = v
 }
 
-func (x *Subscription) SetPeriodStart(v *timestamppb.Timestamp) {
-	x.xxx_hidden_PeriodStart = v
+func (x *Subscription) SetDatePeriodStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DatePeriodStart = v
 }
 
-func (x *Subscription) SetPeriodEnd(v *timestamppb.Timestamp) {
-	x.xxx_hidden_PeriodEnd = v
+func (x *Subscription) SetDatePeriodEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DatePeriodEnd = v
 }
 
-func (x *Subscription) SetNextBilled(v *timestamppb.Timestamp) {
-	x.xxx_hidden_NextBilled = v
+func (x *Subscription) SetDateNextBilled(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateNextBilled = v
 }
 
 func (x *Subscription) SetChange(v SubscriptionChange) {
 	x.xxx_hidden_Change = v
 }
 
-func (x *Subscription) SetChangeAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ChangeAt = v
+func (x *Subscription) SetDateChange(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateChange = v
 }
 
-func (x *Subscription) SetCanceled(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Canceled = v
+func (x *Subscription) SetDateCanceled(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCanceled = v
 }
 
 func (x *Subscription) SetMethod(v *PaymentMethod) {
 	x.xxx_hidden_Method = v
 }
 
-func (x *Subscription) SetUpdated(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Updated = v
+func (x *Subscription) SetDateUpdated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateUpdated = v
 }
 
-func (x *Subscription) SetChecked(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Checked = v
+func (x *Subscription) SetDateChecked(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateChecked = v
 }
 
-func (x *Subscription) HasPeriodStart() bool {
+func (x *Subscription) HasDatePeriodStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_PeriodStart != nil
+	return x.xxx_hidden_DatePeriodStart != nil
 }
 
-func (x *Subscription) HasPeriodEnd() bool {
+func (x *Subscription) HasDatePeriodEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_PeriodEnd != nil
+	return x.xxx_hidden_DatePeriodEnd != nil
 }
 
-func (x *Subscription) HasNextBilled() bool {
+func (x *Subscription) HasDateNextBilled() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_NextBilled != nil
+	return x.xxx_hidden_DateNextBilled != nil
 }
 
-func (x *Subscription) HasChangeAt() bool {
+func (x *Subscription) HasDateChange() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ChangeAt != nil
+	return x.xxx_hidden_DateChange != nil
 }
 
-func (x *Subscription) HasCanceled() bool {
+func (x *Subscription) HasDateCanceled() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Canceled != nil
+	return x.xxx_hidden_DateCanceled != nil
 }
 
 func (x *Subscription) HasMethod() bool {
@@ -2827,50 +2827,50 @@ func (x *Subscription) HasMethod() bool {
 	return x.xxx_hidden_Method != nil
 }
 
-func (x *Subscription) HasUpdated() bool {
+func (x *Subscription) HasDateUpdated() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Updated != nil
+	return x.xxx_hidden_DateUpdated != nil
 }
 
-func (x *Subscription) HasChecked() bool {
+func (x *Subscription) HasDateChecked() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Checked != nil
+	return x.xxx_hidden_DateChecked != nil
 }
 
-func (x *Subscription) ClearPeriodStart() {
-	x.xxx_hidden_PeriodStart = nil
+func (x *Subscription) ClearDatePeriodStart() {
+	x.xxx_hidden_DatePeriodStart = nil
 }
 
-func (x *Subscription) ClearPeriodEnd() {
-	x.xxx_hidden_PeriodEnd = nil
+func (x *Subscription) ClearDatePeriodEnd() {
+	x.xxx_hidden_DatePeriodEnd = nil
 }
 
-func (x *Subscription) ClearNextBilled() {
-	x.xxx_hidden_NextBilled = nil
+func (x *Subscription) ClearDateNextBilled() {
+	x.xxx_hidden_DateNextBilled = nil
 }
 
-func (x *Subscription) ClearChangeAt() {
-	x.xxx_hidden_ChangeAt = nil
+func (x *Subscription) ClearDateChange() {
+	x.xxx_hidden_DateChange = nil
 }
 
-func (x *Subscription) ClearCanceled() {
-	x.xxx_hidden_Canceled = nil
+func (x *Subscription) ClearDateCanceled() {
+	x.xxx_hidden_DateCanceled = nil
 }
 
 func (x *Subscription) ClearMethod() {
 	x.xxx_hidden_Method = nil
 }
 
-func (x *Subscription) ClearUpdated() {
-	x.xxx_hidden_Updated = nil
+func (x *Subscription) ClearDateUpdated() {
+	x.xxx_hidden_DateUpdated = nil
 }
 
-func (x *Subscription) ClearChecked() {
-	x.xxx_hidden_Checked = nil
+func (x *Subscription) ClearDateChecked() {
+	x.xxx_hidden_DateChecked = nil
 }
 
 type Subscription_builder struct {
@@ -2884,20 +2884,20 @@ type Subscription_builder struct {
 	Currency string
 	// The billing period the merchant is in, and when it bills it next:
 	// unset when it will not.
-	PeriodStart *timestamppb.Timestamp
-	PeriodEnd   *timestamppb.Timestamp
-	NextBilled  *timestamppb.Timestamp
+	DatePeriodStart *timestamppb.Timestamp
+	DatePeriodEnd   *timestamppb.Timestamp
+	DateNextBilled  *timestamppb.Timestamp
 	// What the merchant will do to it, and when; unspecified for nothing.
-	Change   SubscriptionChange
-	ChangeAt *timestamppb.Timestamp
-	Canceled *timestamppb.Timestamp
+	Change       SubscriptionChange
+	DateChange   *timestamppb.Timestamp
+	DateCanceled *timestamppb.Timestamp
 	// How the payer pays, as the newest payment levyan was told of says;
 	// unset until one says.
 	Method *PaymentMethod
 	// When the merchant last changed it, by its own clock, and when levyan
 	// last asked it.
-	Updated *timestamppb.Timestamp
-	Checked *timestamppb.Timestamp
+	DateUpdated *timestamppb.Timestamp
+	DateChecked *timestamppb.Timestamp
 }
 
 func (b0 Subscription_builder) Build() *Subscription {
@@ -2908,15 +2908,15 @@ func (b0 Subscription_builder) Build() *Subscription {
 	x.xxx_hidden_Merchant = b.Merchant
 	x.xxx_hidden_Status = b.Status
 	x.xxx_hidden_Currency = b.Currency
-	x.xxx_hidden_PeriodStart = b.PeriodStart
-	x.xxx_hidden_PeriodEnd = b.PeriodEnd
-	x.xxx_hidden_NextBilled = b.NextBilled
+	x.xxx_hidden_DatePeriodStart = b.DatePeriodStart
+	x.xxx_hidden_DatePeriodEnd = b.DatePeriodEnd
+	x.xxx_hidden_DateNextBilled = b.DateNextBilled
 	x.xxx_hidden_Change = b.Change
-	x.xxx_hidden_ChangeAt = b.ChangeAt
-	x.xxx_hidden_Canceled = b.Canceled
+	x.xxx_hidden_DateChange = b.DateChange
+	x.xxx_hidden_DateCanceled = b.DateCanceled
 	x.xxx_hidden_Method = b.Method
-	x.xxx_hidden_Updated = b.Updated
-	x.xxx_hidden_Checked = b.Checked
+	x.xxx_hidden_DateUpdated = b.DateUpdated
+	x.xxx_hidden_DateChecked = b.DateChecked
 	return m0
 }
 
@@ -3013,17 +3013,17 @@ func (b0 PaymentMethod_builder) Build() *PaymentMethod {
 
 // BillingAccount is what an account pays with.
 type BillingAccount struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id        string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Name      string                 `protobuf:"bytes,2,opt,name=name"`
-	xxx_hidden_Country   string                 `protobuf:"bytes,3,opt,name=country"`
-	xxx_hidden_Channel   Channel                `protobuf:"varint,4,opt,name=channel,enum=levyan.v1.Channel"`
-	xxx_hidden_Currency  string                 `protobuf:"bytes,5,opt,name=currency"`
-	xxx_hidden_Recipient *Recipient             `protobuf:"bytes,6,opt,name=recipient"`
-	xxx_hidden_Business  *Business              `protobuf:"bytes,7,opt,name=business"`
-	xxx_hidden_Created   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Name        string                 `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_Country     string                 `protobuf:"bytes,3,opt,name=country"`
+	xxx_hidden_Channel     Channel                `protobuf:"varint,4,opt,name=channel,enum=levyan.v1.Channel"`
+	xxx_hidden_Currency    string                 `protobuf:"bytes,5,opt,name=currency"`
+	xxx_hidden_Recipient   *Recipient             `protobuf:"bytes,6,opt,name=recipient"`
+	xxx_hidden_Business    *Business              `protobuf:"bytes,7,opt,name=business"`
+	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=date_created,json=dateCreated"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *BillingAccount) Reset() {
@@ -3100,9 +3100,9 @@ func (x *BillingAccount) GetBusiness() *Business {
 	return nil
 }
 
-func (x *BillingAccount) GetCreated() *timestamppb.Timestamp {
+func (x *BillingAccount) GetDateCreated() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Created
+		return x.xxx_hidden_DateCreated
 	}
 	return nil
 }
@@ -3135,8 +3135,8 @@ func (x *BillingAccount) SetBusiness(v *Business) {
 	x.xxx_hidden_Business = v
 }
 
-func (x *BillingAccount) SetCreated(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Created = v
+func (x *BillingAccount) SetDateCreated(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCreated = v
 }
 
 func (x *BillingAccount) HasRecipient() bool {
@@ -3153,11 +3153,11 @@ func (x *BillingAccount) HasBusiness() bool {
 	return x.xxx_hidden_Business != nil
 }
 
-func (x *BillingAccount) HasCreated() bool {
+func (x *BillingAccount) HasDateCreated() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Created != nil
+	return x.xxx_hidden_DateCreated != nil
 }
 
 func (x *BillingAccount) ClearRecipient() {
@@ -3168,8 +3168,8 @@ func (x *BillingAccount) ClearBusiness() {
 	x.xxx_hidden_Business = nil
 }
 
-func (x *BillingAccount) ClearCreated() {
-	x.xxx_hidden_Created = nil
+func (x *BillingAccount) ClearDateCreated() {
+	x.xxx_hidden_DateCreated = nil
 }
 
 type BillingAccount_builder struct {
@@ -3179,12 +3179,12 @@ type BillingAccount_builder struct {
 	Name string
 	// The country it is billed in, and what the deployment sold that country
 	// through when it was made: the channel and the currency.
-	Country   string
-	Channel   Channel
-	Currency  string
-	Recipient *Recipient
-	Business  *Business
-	Created   *timestamppb.Timestamp
+	Country     string
+	Channel     Channel
+	Currency    string
+	Recipient   *Recipient
+	Business    *Business
+	DateCreated *timestamppb.Timestamp
 }
 
 func (b0 BillingAccount_builder) Build() *BillingAccount {
@@ -3198,7 +3198,7 @@ func (b0 BillingAccount_builder) Build() *BillingAccount {
 	x.xxx_hidden_Currency = b.Currency
 	x.xxx_hidden_Recipient = b.Recipient
 	x.xxx_hidden_Business = b.Business
-	x.xxx_hidden_Created = b.Created
+	x.xxx_hidden_DateCreated = b.DateCreated
 	return m0
 }
 
@@ -3436,13 +3436,13 @@ func (b0 Business_builder) Build() *Business {
 
 // Offer is a product asking an account to pay for one of its workspaces.
 type Offer struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id        string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,2,opt,name=workspace"`
-	xxx_hidden_Account   string                 `protobuf:"bytes,3,opt,name=account"`
-	xxx_hidden_Offered   *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=offered"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Workspace   string                 `protobuf:"bytes,2,opt,name=workspace"`
+	xxx_hidden_Account     string                 `protobuf:"bytes,3,opt,name=account"`
+	xxx_hidden_DateOffered *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=date_offered,json=dateOffered"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Offer) Reset() {
@@ -3491,9 +3491,9 @@ func (x *Offer) GetAccount() string {
 	return ""
 }
 
-func (x *Offer) GetOffered() *timestamppb.Timestamp {
+func (x *Offer) GetDateOffered() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Offered
+		return x.xxx_hidden_DateOffered
 	}
 	return nil
 }
@@ -3510,19 +3510,19 @@ func (x *Offer) SetAccount(v string) {
 	x.xxx_hidden_Account = v
 }
 
-func (x *Offer) SetOffered(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Offered = v
+func (x *Offer) SetDateOffered(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateOffered = v
 }
 
-func (x *Offer) HasOffered() bool {
+func (x *Offer) HasDateOffered() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Offered != nil
+	return x.xxx_hidden_DateOffered != nil
 }
 
-func (x *Offer) ClearOffered() {
-	x.xxx_hidden_Offered = nil
+func (x *Offer) ClearDateOffered() {
+	x.xxx_hidden_DateOffered = nil
 }
 
 type Offer_builder struct {
@@ -3532,8 +3532,8 @@ type Offer_builder struct {
 	// The workspace, as the product names it.
 	Workspace string
 	// The account it is made to.
-	Account string
-	Offered *timestamppb.Timestamp
+	Account     string
+	DateOffered *timestamppb.Timestamp
 }
 
 func (b0 Offer_builder) Build() *Offer {
@@ -3543,7 +3543,7 @@ func (b0 Offer_builder) Build() *Offer {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Account = b.Account
-	x.xxx_hidden_Offered = b.Offered
+	x.xxx_hidden_DateOffered = b.DateOffered
 	return m0
 }
 
@@ -3554,8 +3554,8 @@ type Link struct {
 	xxx_hidden_Workspace      string                 `protobuf:"bytes,2,opt,name=workspace"`
 	xxx_hidden_Account        string                 `protobuf:"bytes,3,opt,name=account"`
 	xxx_hidden_BillingAccount string                 `protobuf:"bytes,4,opt,name=billing_account,json=billingAccount"`
-	xxx_hidden_Start          *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=start"`
-	xxx_hidden_End            *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=end"`
+	xxx_hidden_DateStart      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd        *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_end,json=dateEnd"`
 	xxx_hidden_Began          LinkBegan              `protobuf:"varint,7,opt,name=began,enum=levyan.v1.LinkBegan"`
 	xxx_hidden_Ended          LinkEnded              `protobuf:"varint,8,opt,name=ended,enum=levyan.v1.LinkEnded"`
 	unknownFields             protoimpl.UnknownFields
@@ -3615,16 +3615,16 @@ func (x *Link) GetBillingAccount() string {
 	return ""
 }
 
-func (x *Link) GetStart() *timestamppb.Timestamp {
+func (x *Link) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Start
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *Link) GetEnd() *timestamppb.Timestamp {
+func (x *Link) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_End
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
@@ -3659,12 +3659,12 @@ func (x *Link) SetBillingAccount(v string) {
 	x.xxx_hidden_BillingAccount = v
 }
 
-func (x *Link) SetStart(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Start = v
+func (x *Link) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *Link) SetEnd(v *timestamppb.Timestamp) {
-	x.xxx_hidden_End = v
+func (x *Link) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
 func (x *Link) SetBegan(v LinkBegan) {
@@ -3675,26 +3675,26 @@ func (x *Link) SetEnded(v LinkEnded) {
 	x.xxx_hidden_Ended = v
 }
 
-func (x *Link) HasStart() bool {
+func (x *Link) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Start != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *Link) HasEnd() bool {
+func (x *Link) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_End != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *Link) ClearStart() {
-	x.xxx_hidden_Start = nil
+func (x *Link) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *Link) ClearEnd() {
-	x.xxx_hidden_End = nil
+func (x *Link) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
 type Link_builder struct {
@@ -3705,11 +3705,11 @@ type Link_builder struct {
 	Account   string
 	// The billing account it pays with; empty for none yet.
 	BillingAccount string
-	// In force from `start`, and until `end` when it says one.
-	Start *timestamppb.Timestamp
-	End   *timestamppb.Timestamp
-	Began LinkBegan
-	Ended LinkEnded
+	// In force from `date_start`, and until `date_end` when it says one.
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
+	Began     LinkBegan
+	Ended     LinkEnded
 }
 
 func (b0 Link_builder) Build() *Link {
@@ -3720,8 +3720,8 @@ func (b0 Link_builder) Build() *Link {
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Account = b.Account
 	x.xxx_hidden_BillingAccount = b.BillingAccount
-	x.xxx_hidden_Start = b.Start
-	x.xxx_hidden_End = b.End
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	x.xxx_hidden_Began = b.Began
 	x.xxx_hidden_Ended = b.Ended
 	return m0
@@ -3798,13 +3798,13 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\fsubscription\x18\x02 \x01(\v2\x17.levyan.v1.SubscriptionR\fsubscription\x125\n" +
 	"\n" +
 	"collection\x18\x03 \x01(\v2\x15.levyan.v1.CollectionR\n" +
-	"collection\"\x8c\x02\n" +
+	"collection\"\x9e\x02\n" +
 	"\bCheckout\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fbilling_account\x18\x02 \x01(\tR\x0ebillingAccount\x12.\n" +
-	"\x05state\x18\x03 \x01(\x0e2\x18.levyan.v1.CheckoutStateR\x05state\x124\n" +
-	"\astarted\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x12.\n" +
-	"\x04done\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x04done\x121\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x18.levyan.v1.CheckoutStateR\x05state\x12=\n" +
+	"\fdate_started\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vdateStarted\x127\n" +
+	"\tdate_done\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bdateDone\x121\n" +
 	"\x06window\x18\x06 \x01(\v2\x19.levyan.v1.CheckoutWindowR\x06window\"\xd7\x01\n" +
 	"\x0eCheckoutWindow\x12\x1a\n" +
 	"\bmerchant\x18\x01 \x01(\tR\bmerchant\x12 \n" +
@@ -3813,33 +3813,33 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\fclient_token\x18\x04 \x01(\tR\vclientToken\x12\x16\n" +
 	"\x06script\x18\x05 \x01(\tR\x06script\x12\x10\n" +
 	"\x03url\x18\x06 \x01(\tR\x03url\x12\x18\n" +
-	"\acountry\x18\a \x01(\tR\acountry\"\xa0\x01\n" +
+	"\acountry\x18\a \x01(\tR\acountry\"\xb2\x01\n" +
 	"\n" +
 	"Collection\x120\n" +
-	"\x05state\x18\x01 \x01(\x0e2\x1a.levyan.v1.CollectionStateR\x05state\x120\n" +
-	"\x05since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\x12.\n" +
-	"\x04ends\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04ends\"\x8a\x05\n" +
+	"\x05state\x18\x01 \x01(\x0e2\x1a.levyan.v1.CollectionStateR\x05state\x129\n" +
+	"\n" +
+	"date_since\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tdateSince\x127\n" +
+	"\tdate_ends\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bdateEnds\"\xc4\x05\n" +
 	"\fSubscription\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bmerchant\x18\x02 \x01(\tR\bmerchant\x125\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x1d.levyan.v1.SubscriptionStatusR\x06status\x12\x1a\n" +
-	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12=\n" +
-	"\fperiod_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
-	"\n" +
-	"period_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\x12;\n" +
-	"\vnext_billed\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"nextBilled\x125\n" +
-	"\x06change\x18\b \x01(\x0e2\x1d.levyan.v1.SubscriptionChangeR\x06change\x127\n" +
-	"\tchange_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\bchangeAt\x126\n" +
-	"\bcanceled\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\bcanceled\x120\n" +
-	"\x06method\x18\v \x01(\v2\x18.levyan.v1.PaymentMethodR\x06method\x124\n" +
-	"\aupdated\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\aupdated\x124\n" +
-	"\achecked\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\achecked\"O\n" +
+	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12F\n" +
+	"\x11date_period_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0fdatePeriodStart\x12B\n" +
+	"\x0fdate_period_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\rdatePeriodEnd\x12D\n" +
+	"\x10date_next_billed\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x0edateNextBilled\x125\n" +
+	"\x06change\x18\b \x01(\x0e2\x1d.levyan.v1.SubscriptionChangeR\x06change\x12;\n" +
+	"\vdate_change\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"dateChange\x12?\n" +
+	"\rdate_canceled\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\fdateCanceled\x120\n" +
+	"\x06method\x18\v \x01(\v2\x18.levyan.v1.PaymentMethodR\x06method\x12=\n" +
+	"\fdate_updated\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\vdateUpdated\x12=\n" +
+	"\fdate_checked\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\vdateChecked\"O\n" +
 	"\rPaymentMethod\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x14\n" +
 	"\x05brand\x18\x02 \x01(\tR\x05brand\x12\x14\n" +
-	"\x05last4\x18\x03 \x01(\tR\x05last4\"\xb3\x02\n" +
+	"\x05last4\x18\x03 \x01(\tR\x05last4\"\xbc\x02\n" +
 	"\x0eBillingAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -3847,8 +3847,8 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\achannel\x18\x04 \x01(\x0e2\x12.levyan.v1.ChannelR\achannel\x12\x1a\n" +
 	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x122\n" +
 	"\trecipient\x18\x06 \x01(\v2\x14.levyan.v1.RecipientR\trecipient\x12/\n" +
-	"\bbusiness\x18\a \x01(\v2\x13.levyan.v1.BusinessR\bbusiness\x124\n" +
-	"\acreated\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"O\n" +
+	"\bbusiness\x18\a \x01(\v2\x13.levyan.v1.BusinessR\bbusiness\x12=\n" +
+	"\fdate_created\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"O\n" +
 	"\tRecipient\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x18\n" +
@@ -3860,19 +3860,20 @@ const file_levyan_v1_payer_proto_rawDesc = "" +
 	"\aaddress\x18\x04 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04kind\x18\x05 \x01(\tR\x04kind\x12\x12\n" +
 	"\x04item\x18\x06 \x01(\tR\x04item\x12\x14\n" +
-	"\x05email\x18\a \x01(\tR\x05email\"\x85\x01\n" +
+	"\x05email\x18\a \x01(\tR\x05email\"\x8e\x01\n" +
 	"\x05Offer\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x18\n" +
-	"\aaccount\x18\x03 \x01(\tR\aaccount\x124\n" +
-	"\aoffered\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aoffered\"\xaf\x02\n" +
+	"\aaccount\x18\x03 \x01(\tR\aaccount\x12=\n" +
+	"\fdate_offered\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vdateOffered\"\xc1\x02\n" +
 	"\x04Link\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12\x18\n" +
 	"\aaccount\x18\x03 \x01(\tR\aaccount\x12'\n" +
-	"\x0fbilling_account\x18\x04 \x01(\tR\x0ebillingAccount\x120\n" +
-	"\x05start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
-	"\x03end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\x12*\n" +
+	"\x0fbilling_account\x18\x04 \x01(\tR\x0ebillingAccount\x129\n" +
+	"\n" +
+	"date_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\x12*\n" +
 	"\x05began\x18\a \x01(\x0e2\x14.levyan.v1.LinkBeganR\x05began\x12*\n" +
 	"\x05ended\x18\b \x01(\x0e2\x14.levyan.v1.LinkEndedR\x05ended*\x83\x01\n" +
 	"\rCheckoutState\x12\x1e\n" +
@@ -4016,29 +4017,29 @@ var file_levyan_v1_payer_proto_depIdxs = []int32{
 	33, // 19: levyan.v1.CompleteCheckoutResponse.subscription:type_name -> levyan.v1.Subscription
 	32, // 20: levyan.v1.CompleteCheckoutResponse.collection:type_name -> levyan.v1.Collection
 	0,  // 21: levyan.v1.Checkout.state:type_name -> levyan.v1.CheckoutState
-	42, // 22: levyan.v1.Checkout.started:type_name -> google.protobuf.Timestamp
-	42, // 23: levyan.v1.Checkout.done:type_name -> google.protobuf.Timestamp
+	42, // 22: levyan.v1.Checkout.date_started:type_name -> google.protobuf.Timestamp
+	42, // 23: levyan.v1.Checkout.date_done:type_name -> google.protobuf.Timestamp
 	31, // 24: levyan.v1.Checkout.window:type_name -> levyan.v1.CheckoutWindow
 	1,  // 25: levyan.v1.Collection.state:type_name -> levyan.v1.CollectionState
-	42, // 26: levyan.v1.Collection.since:type_name -> google.protobuf.Timestamp
-	42, // 27: levyan.v1.Collection.ends:type_name -> google.protobuf.Timestamp
+	42, // 26: levyan.v1.Collection.date_since:type_name -> google.protobuf.Timestamp
+	42, // 27: levyan.v1.Collection.date_ends:type_name -> google.protobuf.Timestamp
 	2,  // 28: levyan.v1.Subscription.status:type_name -> levyan.v1.SubscriptionStatus
-	42, // 29: levyan.v1.Subscription.period_start:type_name -> google.protobuf.Timestamp
-	42, // 30: levyan.v1.Subscription.period_end:type_name -> google.protobuf.Timestamp
-	42, // 31: levyan.v1.Subscription.next_billed:type_name -> google.protobuf.Timestamp
+	42, // 29: levyan.v1.Subscription.date_period_start:type_name -> google.protobuf.Timestamp
+	42, // 30: levyan.v1.Subscription.date_period_end:type_name -> google.protobuf.Timestamp
+	42, // 31: levyan.v1.Subscription.date_next_billed:type_name -> google.protobuf.Timestamp
 	3,  // 32: levyan.v1.Subscription.change:type_name -> levyan.v1.SubscriptionChange
-	42, // 33: levyan.v1.Subscription.change_at:type_name -> google.protobuf.Timestamp
-	42, // 34: levyan.v1.Subscription.canceled:type_name -> google.protobuf.Timestamp
+	42, // 33: levyan.v1.Subscription.date_change:type_name -> google.protobuf.Timestamp
+	42, // 34: levyan.v1.Subscription.date_canceled:type_name -> google.protobuf.Timestamp
 	34, // 35: levyan.v1.Subscription.method:type_name -> levyan.v1.PaymentMethod
-	42, // 36: levyan.v1.Subscription.updated:type_name -> google.protobuf.Timestamp
-	42, // 37: levyan.v1.Subscription.checked:type_name -> google.protobuf.Timestamp
+	42, // 36: levyan.v1.Subscription.date_updated:type_name -> google.protobuf.Timestamp
+	42, // 37: levyan.v1.Subscription.date_checked:type_name -> google.protobuf.Timestamp
 	43, // 38: levyan.v1.BillingAccount.channel:type_name -> levyan.v1.Channel
 	36, // 39: levyan.v1.BillingAccount.recipient:type_name -> levyan.v1.Recipient
 	37, // 40: levyan.v1.BillingAccount.business:type_name -> levyan.v1.Business
-	42, // 41: levyan.v1.BillingAccount.created:type_name -> google.protobuf.Timestamp
-	42, // 42: levyan.v1.Offer.offered:type_name -> google.protobuf.Timestamp
-	42, // 43: levyan.v1.Link.start:type_name -> google.protobuf.Timestamp
-	42, // 44: levyan.v1.Link.end:type_name -> google.protobuf.Timestamp
+	42, // 41: levyan.v1.BillingAccount.date_created:type_name -> google.protobuf.Timestamp
+	42, // 42: levyan.v1.Offer.date_offered:type_name -> google.protobuf.Timestamp
+	42, // 43: levyan.v1.Link.date_start:type_name -> google.protobuf.Timestamp
+	42, // 44: levyan.v1.Link.date_end:type_name -> google.protobuf.Timestamp
 	4,  // 45: levyan.v1.Link.began:type_name -> levyan.v1.LinkBegan
 	5,  // 46: levyan.v1.Link.ended:type_name -> levyan.v1.LinkEnded
 	6,  // 47: levyan.v1.PayerService.ListBillingAccounts:input_type -> levyan.v1.ListBillingAccountsRequest

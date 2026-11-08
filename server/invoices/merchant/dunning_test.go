@@ -40,7 +40,7 @@ func (w *world) restricted(ws pdid.Id) bool {
 	w.X.NoError(err)
 	var rows []entitle.Row
 	for _, v := range vs {
-		rows = append(rows, entitle.Row{Key: v.Key, Value: grants.Value(v.Proto()), From: v.ValidFrom, Until: v.ValidUntil, Grant: v.Id[:]})
+		rows = append(rows, entitle.Row{Key: v.Key, Value: grants.Value(v.Proto()), DateEffective: v.DateEffective, DateExpires: v.DateExpires, Grant: v.Id[:]})
 	}
 
 	return entitle.Decide("loft.restricted", rows, w.S.Clock()).Value.Has()
@@ -97,11 +97,11 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 	x.Equal(id.String(), d.GetInvoice())
 	x.Equal(ba.String(), d.GetBillingAccount())
 	x.Equal(levyanv1.DeclineKind_DECLINE_KIND_UNSPECIFIED, d.GetKind(), "a charge made now that is declined says no more of why")
-	x.True(t0.Equal(d.GetFailed().AsTime()))
-	x.True(t0.Add(day).Equal(d.GetNextRetry().AsTime()))
-	x.True(t0.Add(14 * day).Equal(d.GetGraceEnds().AsTime()))
-	x.True(t0.Add(14 * day).Equal(d.GetRestrictedFrom().AsTime()))
-	x.True(t0.Add(60*day).Equal(d.GetReadonlyFrom().AsTime()), "read-only sixty days after it first failed")
+	x.True(t0.Equal(d.GetDateFailed().AsTime()))
+	x.True(t0.Add(day).Equal(d.GetDateNextRetry().AsTime()))
+	x.True(t0.Add(14 * day).Equal(d.GetDateGraceEnds().AsTime()))
+	x.True(t0.Add(14 * day).Equal(d.GetDateRestricted().AsTime()))
+	x.True(t0.Add(60*day).Equal(d.GetDateReadonly().AsTime()), "read-only sixty days after it first failed")
 	x.Equal(d.String(), i.GetDunning().String(), "the payer's invoice says the same")
 	x.Len(p.GetDunning(), 1)
 	x.Equal(d.String(), p.GetDunning()[0].String(), "and loft's workspace")
@@ -117,9 +117,9 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 		x.NotEqual(cs[n].AttemptKey, cs[n+1].AttemptKey, "a key of its own")
 		_, i, _ := w.told(account, ba, ws, id)
 		if n < 2 {
-			x.True(t0.Add([]time.Duration{3 * day, 7 * day}[n]).Equal(i.GetDunning().GetNextRetry().AsTime()), "%s after", at)
+			x.True(t0.Add([]time.Duration{3 * day, 7 * day}[n]).Equal(i.GetDunning().GetDateNextRetry().AsTime()), "%s after", at)
 		} else {
-			x.False(i.GetDunning().HasNextRetry(), "no retry left")
+			x.False(i.GetDunning().HasDateNextRetry(), "no retry left")
 		}
 	}
 	x.Equal(4, w.srv.Requests(paddletest.Charge))
@@ -141,7 +141,7 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 	x.Equal(inv.Due, i.GetInvoice().GetRemaining(), "still owed")
 	x.Len(b.GetDunning(), 1)
 	x.Len(p.GetDunning(), 1)
-	x.False(p.GetDunning()[0].HasNextRetry())
+	x.False(p.GetDunning()[0].HasDateNextRetry())
 
 	// The payment: the payer cancels the subscription that would not pay
 	// and begins another, and the invoice is charged as the billing account
@@ -175,7 +175,7 @@ func TestScenario4AFailedPaymentIsRetriedRestrictedAndRecovered(t *testing.T) {
 	x.NoError(err)
 	x.Len(vs, 1, "the restriction was one grant, given once")
 	x.False(vs[0].Renews)
-	x.False(vs[0].ValidUntil.After(w.S.Clock()), "and ended")
+	x.False(vs[0].DateExpires.After(w.S.Clock()), "and ended")
 }
 
 // A billing account that cannot be collected from -- here its payer never
@@ -198,7 +198,7 @@ func TestABillingAccountCollectableAgainIsChargedAtOnce(t *testing.T) {
 	b, _, _ := w.told(account, ba, ws, pdid.Id(inv.Id))
 	x.Len(b.GetDunning(), 1)
 	x.Equal(levyanv1.DeclineKind_DECLINE_KIND_REPLACE, b.GetDunning()[0].GetKind(), "a method to give anew: the payer is told at once")
-	x.False(b.GetDunning()[0].HasNextRetry(), "and it is never tried again as it is")
+	x.False(b.GetDunning()[0].HasDateNextRetry(), "and it is never tried again as it is")
 	x.Equal(levyanv1.CollectionState_COLLECTION_STATE_NO_SUBSCRIPTION, b.GetCollection().GetState())
 
 	w.to(on(2, 13))
@@ -207,7 +207,7 @@ func TestABillingAccountCollectableAgainIsChargedAtOnce(t *testing.T) {
 
 	w.subscribe(account, ba)
 	b, _, _ = w.told(account, ba, ws, pdid.Id(inv.Id))
-	x.True(b.GetDunning()[0].GetNextRetry().AsTime().Equal(b.GetCollection().GetSince().AsTime()), "due as it became collectable")
+	x.True(b.GetDunning()[0].GetDateNextRetry().AsTime().Equal(b.GetCollection().GetDateSince().AsTime()), "due as it became collectable")
 	w.dun()
 	w.dun()
 	inv = w.again(inv)

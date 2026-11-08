@@ -56,7 +56,7 @@ message Usage {
   Period period = 2;
 
   // The moment the ledger was read as of.
-  google.protobuf.Timestamp as_of = 3;
+  google.protobuf.Timestamp date_as_of = 3;
 
   // What it is priced on and in; unset for a product nothing is priced for
   // yet, whose lines have their usage and no amounts.
@@ -100,10 +100,10 @@ message Pool {
   int64 granted = 3;
   string left = 4;
 
-  // In force from `from`; no period that begins from `expires` on takes
-  // from it.
-  google.protobuf.Timestamp from = 5;
-  google.protobuf.Timestamp expires = 6;
+  // In force from `date_effective`; no period that begins from
+  // `date_expires` on takes from it.
+  google.protobuf.Timestamp date_effective = 5;
+  google.protobuf.Timestamp date_expires = 6;
 }
 
 // Allowance is more of a meter a workspace is given for nothing each period,
@@ -123,17 +123,17 @@ message Allowance {
   // How much more each period includes, in the meter's unit.
   int64 quantity = 3;
 
-  // In force from `from`, and until `until` when it says one: unset is
-  // until an operator ends it.
-  google.protobuf.Timestamp from = 4;
-  google.protobuf.Timestamp until = 5;
+  // In force from `date_effective`, and until `date_expires` when it says
+  // one: unset is until an operator ends it.
+  google.protobuf.Timestamp date_effective = 4;
+  google.protobuf.Timestamp date_expires = 5;
 }
 
 // Period is one period of a product's billing: a calendar month in its zone.
 message Period {
   // Its first moment, and the first after it.
-  google.protobuf.Timestamp start = 1;
-  google.protobuf.Timestamp end = 2;
+  google.protobuf.Timestamp date_start = 1;
+  google.protobuf.Timestamp date_end = 2;
 
   // The zone it is a month in, as an IANA name.
   string zone = 3;
@@ -189,7 +189,7 @@ message Statement {
   int64 total = 7;
 
   // When it was written, which is when the period was closed for it.
-  google.protobuf.Timestamp closed = 8;
+  google.protobuf.Timestamp date_closed = 8;
 }
 
 // Line is what one meter came to over a period, or how much what an earlier
@@ -251,10 +251,11 @@ message LinePool {
   string taken = 2;
 }
 
-// Stretch is a stretch of time, from `from` to the moment before `to`.
+// Stretch is a stretch of time, from `date_start` to the moment before
+// `date_end`.
 message Stretch {
-  google.protobuf.Timestamp from = 1;
-  google.protobuf.Timestamp to = 2;
+  google.protobuf.Timestamp date_start = 1;
+  google.protobuf.Timestamp date_end = 2;
 }
 
 // LineKind is what a line is.
@@ -273,8 +274,8 @@ message LinePart {
   // The version, by its identifier as `PriceBookService.ListPrices` says it.
   string price = 1;
 
-  google.protobuf.Timestamp from = 2;
-  google.protobuf.Timestamp to = 3;
+  google.protobuf.Timestamp date_start = 2;
+  google.protobuf.Timestamp date_end = 3;
 
   // The share of the period it is charged by.
   string share = 4;

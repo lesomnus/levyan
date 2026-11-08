@@ -85,7 +85,7 @@ func (b *billed) account(a pdid.Id, name string) string {
 func (b *billed) arrive(ws, creator pdid.Id, label string) {
 	b.x.TB().Helper()
 	_, err := b.workspaces().Arrive(b.product, levyanv1.ArriveRequest_builder{
-		Workspace: ws.String(), Creator: creator.String(), Created: timestamppb.New(month(1, 1)), Label: label,
+		Workspace: ws.String(), Creator: creator.String(), DateCreated: timestamppb.New(month(1, 1)), Label: label,
 	}.Build())
 	b.x.NoError(err)
 }
@@ -96,7 +96,7 @@ func (b *billed) held(ws pdid.Id, v int64, from, to time.Time) {
 	b.x.TB().Helper()
 	rs := []*levyanv1.Reading{}
 	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
-		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(d), Value: v, Unit: "{asset}"}.Build())
+		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(d), Value: v, Unit: "{asset}"}.Build())
 	}
 	_, err := levyanv1.NewMeteringServiceClient(b.conn).Record(b.product, levyanv1.RecordRequest_builder{Readings: rs}.Build())
 	b.x.NoError(err)
@@ -136,7 +136,7 @@ func (b *billed) mine(ctx context.Context, billing string, size int32) []*levyan
 func periods(ss []*levyanv1.Statement) map[string][]time.Time {
 	out := map[string][]time.Time{}
 	for _, s := range ss {
-		out[s.GetWorkspace()] = append(out[s.GetWorkspace()], s.GetPeriod().GetStart().AsTime())
+		out[s.GetWorkspace()] = append(out[s.GetWorkspace()], s.GetPeriod().GetDateStart().AsTime())
 	}
 	return out
 }
@@ -196,7 +196,7 @@ func TestAPayerReadsTheStatementsItsBillingAccountsPaidFor(t *testing.T) {
 	// 150: 50 at 50 won.
 	var jan *levyanv1.Statement
 	for _, s := range all {
-		if s.GetWorkspace() == design.String() && s.GetPeriod().GetStart().AsTime().Equal(month(1, 1)) {
+		if s.GetWorkspace() == design.String() && s.GetPeriod().GetDateStart().AsTime().Equal(month(1, 1)) {
 			jan = s
 		}
 	}
@@ -242,7 +242,7 @@ func TestAPayerReadsTheStatementsItsBillingAccountsPaidFor(t *testing.T) {
 			x.NoError(err)
 			x.Equal(il.GetWorkspace(), s.GetStatement().GetWorkspace())
 			x.Equal(il.GetTotal(), s.GetStatement().GetTotal())
-			x.True(il.GetPeriod().GetStart().AsTime().Equal(s.GetStatement().GetPeriod().GetStart().AsTime()))
+			x.True(il.GetPeriod().GetDateStart().AsTime().Equal(s.GetStatement().GetPeriod().GetDateStart().AsTime()))
 			lines++
 		}
 	}
@@ -289,8 +289,8 @@ func TestAPayerChangedReadsItsOwnPeriodsAlone(t *testing.T) {
 	x.NoError(err)
 	x.Len(all.GetStatements(), 2, "the product reads both")
 	feb, jan := all.GetStatements()[0], all.GetStatements()[1]
-	x.True(jan.GetPeriod().GetStart().AsTime().Equal(month(1, 1)))
-	x.True(feb.GetPeriod().GetStart().AsTime().Equal(month(2, 1)))
+	x.True(jan.GetPeriod().GetDateStart().AsTime().Equal(month(1, 1)))
+	x.True(feb.GetPeriod().GetDateStart().AsTime().Equal(month(2, 1)))
 
 	x.Equal(map[string][]time.Time{ws.String(): {month(1, 1)}}, periods(b.mine(b.as(creator), "", 20)), "the creator paid for January")
 	x.Equal(map[string][]time.Time{ws.String(): {month(2, 1)}}, periods(b.mine(b.as(next), "", 20)), "and the one who accepted, from February")
@@ -308,7 +308,7 @@ func TestAPayerChangedReadsItsOwnPeriodsAlone(t *testing.T) {
 	corrects := []time.Time{}
 	for _, l := range got.GetStatement().GetLines() {
 		if l.GetKind() == levyanv1.LineKind_LINE_KIND_CORRECTION {
-			corrects = append(corrects, l.GetCorrects().GetStart().AsTime())
+			corrects = append(corrects, l.GetCorrects().GetDateStart().AsTime())
 		}
 	}
 	x.Equal([]time.Time{month(1, 1)}, corrects)

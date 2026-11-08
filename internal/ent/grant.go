@@ -28,10 +28,10 @@ type Grant struct {
 	Value int32 `json:"value,omitempty"`
 	// Limit holds the value of the "limit" field.
 	Limit int64 `json:"limit,omitempty"`
-	// ValidFrom holds the value of the "valid_from" field.
-	ValidFrom time.Time `json:"valid_from,omitempty"`
-	// ValidUntil holds the value of the "valid_until" field.
-	ValidUntil time.Time `json:"valid_until,omitempty"`
+	// DateEffective holds the value of the "date_effective" field.
+	DateEffective time.Time `json:"date_effective,omitempty"`
+	// DateExpires holds the value of the "date_expires" field.
+	DateExpires time.Time `json:"date_expires,omitempty"`
 	// DateUpdated holds the value of the "date_updated" field.
 	DateUpdated time.Time `json:"date_updated,omitempty"`
 	// DateErased holds the value of the "date_erased" field.
@@ -100,7 +100,7 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case grant.FieldDesc, grant.FieldKey, grant.FieldRule:
 			values[i] = new(sql.NullString)
-		case grant.FieldValidFrom, grant.FieldValidUntil, grant.FieldDateUpdated, grant.FieldDateErased, grant.FieldDateCreated:
+		case grant.FieldDateEffective, grant.FieldDateExpires, grant.FieldDateUpdated, grant.FieldDateErased, grant.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case grant.FieldId, grant.FieldTenantId, grant.FieldWorkspaceId:
 			values[i] = new(uuid.UUID)
@@ -149,17 +149,17 @@ func (_m *Grant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Limit = value.Int64
 			}
-		case grant.FieldValidFrom:
+		case grant.FieldDateEffective:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field valid_from", values[i])
+				return fmt.Errorf("unexpected type %T for field date_effective", values[i])
 			} else if value.Valid {
-				_m.ValidFrom = value.Time
+				_m.DateEffective = value.Time
 			}
-		case grant.FieldValidUntil:
+		case grant.FieldDateExpires:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field valid_until", values[i])
+				return fmt.Errorf("unexpected type %T for field date_expires", values[i])
 			} else if value.Valid {
-				_m.ValidUntil = value.Time
+				_m.DateExpires = value.Time
 			}
 		case grant.FieldDateUpdated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -274,11 +274,11 @@ func (_m *Grant) String() string {
 	builder.WriteString("limit=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Limit))
 	builder.WriteString(", ")
-	builder.WriteString("valid_from=")
-	builder.WriteString(_m.ValidFrom.Format(time.ANSIC))
+	builder.WriteString("date_effective=")
+	builder.WriteString(_m.DateEffective.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("valid_until=")
-	builder.WriteString(_m.ValidUntil.Format(time.ANSIC))
+	builder.WriteString("date_expires=")
+	builder.WriteString(_m.DateExpires.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("date_updated=")
 	builder.WriteString(_m.DateUpdated.Format(time.ANSIC))

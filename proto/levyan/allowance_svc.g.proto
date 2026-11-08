@@ -30,8 +30,8 @@ message AllowanceAddRequest {
   WorkspaceRef workspace = 3;
   MeterRef meter = 8;
   int64 quantity = 9 [features.field_presence = IMPLICIT];
-  google.protobuf.Timestamp valid_from = 10;
-  google.protobuf.Timestamp valid_until = 11;
+  google.protobuf.Timestamp date_effective = 10;
+  google.protobuf.Timestamp date_expires = 11;
   string reason = 12 [features.field_presence = IMPLICIT];
   google.protobuf.Timestamp date_created = 15;
   OperatorRef granted_by = 16;
@@ -56,8 +56,8 @@ message AllowanceSelect {
   WorkspaceSelect workspace = 3;
   MeterSelect meter = 8;
   bool quantity = 9;
-  bool valid_from = 10;
-  bool valid_until = 11;
+  bool date_effective = 10;
+  bool date_expires = 11;
   bool reason = 12;
   bool date_updated = 13;
   bool date_erased = 14;
@@ -69,12 +69,12 @@ message AllowanceSelect {
 
 message AllowancePatchRequest {
   AllowanceRef ref = 1;
-  google.protobuf.Timestamp valid_until = 22;
-  // Clear valid_until instead of writing it.
+  google.protobuf.Timestamp date_expires = 22;
+  // Clear date_expires instead of writing it.
   // It takes a field of its own because an unset value already means
   // "leave it alone", so no value could have meant NULL. It wins
-  // outright: setting both this and valid_until clears.
-  bool valid_until_null = 23;
+  // outright: setting both this and date_expires clears.
+  bool date_expires_null = 23;
   // The version this update requires the stored date_updated to be.
   // It is a precondition, not a write: the update applies only if the row
   // still holds this value, and the server stamps the new version itself.

@@ -163,13 +163,13 @@ func (st WorkspaceEventServiceServer) create(ctx context.Context, req *levyan.Wo
 		})
 	}
 	q.SetKind(int32(req.GetKind()))
-	if req.HasHappenedAt() {
-		q.SetHappenedAt(req.GetHappenedAt().AsTime())
+	if req.HasDateOccurred() {
+		q.SetDateOccurred(req.GetDateOccurred().AsTime())
 	} else {
-		q.SetHappenedAt(st.now())
+		q.SetDateOccurred(st.now())
 	}
-	if req.HasLateThrough() {
-		q.SetLateThrough(req.GetLateThrough().AsTime())
+	if req.HasDateLateThrough() {
+		q.SetDateLateThrough(req.GetDateLateThrough().AsTime())
 	}
 	if req.HasDateCreated() {
 		q.SetDateCreated(req.GetDateCreated().AsTime())
@@ -306,11 +306,11 @@ func WorkspaceEventSelectedFields(m *levyan.WorkspaceEventSelect) []string {
 	if m.GetKind() {
 		vs = append(vs, workspaceevent.FieldKind)
 	}
-	if m.GetHappenedAt() {
-		vs = append(vs, workspaceevent.FieldHappenedAt)
+	if m.GetDateOccurred() {
+		vs = append(vs, workspaceevent.FieldDateOccurred)
 	}
-	if m.GetLateThrough() {
-		vs = append(vs, workspaceevent.FieldLateThrough)
+	if m.GetDateLateThrough() {
+		vs = append(vs, workspaceevent.FieldDateLateThrough)
 	}
 	if m.GetDateErased() {
 		vs = append(vs, workspaceevent.FieldDateErased)
@@ -385,7 +385,7 @@ func pickWorkspaceEvent(req *levyan.WorkspaceEventRef) (predicate.WorkspaceEvent
 		} else {
 			ps = append(ps, workspaceevent.HasWorkspaceWith(p))
 		}
-		ps = append(ps, workspaceevent.HappenedAtEQ(k.GetHappenedAt().AsTime()))
+		ps = append(ps, workspaceevent.DateOccurredEQ(k.GetDateOccurred().AsTime()))
 		return workspaceevent.And(ps...), nil
 	case levyan.WorkspaceEventRef_Key_not_set_case:
 		return nil, status.Errorf(codes.InvalidArgument, "key not set: WorkspaceEvent")

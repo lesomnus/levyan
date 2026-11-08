@@ -287,15 +287,15 @@ func printProduct(self *xli.Command, v admin.Product) {
 		}
 		terms = fmt.Sprintf("%s %s, months in %s", v.Channel, v.Currency, zone)
 	}
-	self.Printf("%s\t%s\t%s\tsince %s\t%s\n", v.Alias, v.Name, v.Id, when(v.Created), terms)
+	self.Printf("%s\t%s\t%s\tsince %s\t%s\n", v.Alias, v.Name, v.Id, when(v.DateCreated), terms)
 }
 
 func printKey(self *xli.Command, v admin.Key) {
 	state := "live"
-	if v.Revoked != nil {
-		state = "revoked " + when(*v.Revoked)
-	} else if v.Expires != nil {
-		state = "until " + when(*v.Expires)
+	if v.DateRevoked != nil {
+		state = "revoked " + when(*v.DateRevoked)
+	} else if v.DateExpires != nil {
+		state = "until " + when(*v.DateExpires)
 	}
 	self.Printf("  key\t%s\t%s\t%s\n", v.Id, v.Alias, state)
 }
@@ -328,7 +328,7 @@ func printPrice(self *xli.Command, v admin.Price) {
 		rate = fmt.Sprintf("%d included, then %s%s", v.Included, money.String(v.UnitPrice, v.Currency), per)
 	}
 	self.Printf("%s\t%s\t%s %s\t%s\tnew from %s, existing from %s\tpublished %s\n",
-		v.Id, v.Meter, v.Channel, v.Currency, rate, when(v.Effective), when(v.Existing), when(v.Published))
+		v.Id, v.Meter, v.Channel, v.Currency, rate, when(v.DateEffective), when(v.DateExisting), when(v.DatePublished))
 }
 
 func newCmdProduct() *xli.Command {
@@ -469,7 +469,7 @@ func newCmdKey() *xli.Command {
 						if err != nil {
 							return fmt.Errorf("--expires: %w", err)
 						}
-						body["expires"] = t
+						body["date_expires"] = t
 					}
 					var v admin.Issued
 					if err := c.do(ctx, http.MethodPost, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/keys", body, &v); err != nil {
@@ -630,13 +630,15 @@ func newCmdPrice() *xli.Command {
 						}
 						body["bands"] = bands
 					}
-					for _, k := range []string{"effective", "existing"} {
-						if v := str(self, k); v != "" {
+					// The flag is the word on the command line, and the key the
+					// field the server reads it into, a `date_*` as every time is.
+					for _, k := range [][2]string{{"effective", "date_effective"}, {"existing", "date_existing"}} {
+						if v := str(self, k[0]); v != "" {
 							t, err := instant(v)
 							if err != nil {
-								return fmt.Errorf("--%s: %w", k, err)
+								return fmt.Errorf("--%s: %w", k[0], err)
 							}
-							body[k] = t
+							body[k[1]] = t
 						}
 					}
 					var v admin.Price
@@ -723,10 +725,10 @@ func newCmdPrice() *xli.Command {
 					}
 					for _, v := range vs {
 						if v.Price == nil {
-							self.Printf("%s\t%s\tnothing in force\n", when(v.From), when(v.To))
+							self.Printf("%s\t%s\tnothing in force\n", when(v.DateStart), when(v.DateEnd))
 							continue
 						}
-						self.Printf("%s\t%s\t", when(v.From), when(v.To))
+						self.Printf("%s\t%s\t", when(v.DateStart), when(v.DateEnd))
 						printPrice(self, *v.Price)
 					}
 					return next(ctx)
@@ -761,7 +763,7 @@ func newCmdGap() *xli.Command {
 					}
 					now := time.Now()
 					for _, v := range vs {
-						self.Printf("%s\t%s\t%s\tlast %s\t%s ago\n", v.Product, v.Meter, v.Workspace, when(v.Last), now.Sub(v.Last).Truncate(time.Minute))
+						self.Printf("%s\t%s\t%s\tlast %s\t%s ago\n", v.Product, v.Meter, v.Workspace, when(v.DateLast), now.Sub(v.DateLast).Truncate(time.Minute))
 					}
 					return next(ctx)
 				}),
@@ -773,10 +775,10 @@ func newCmdGap() *xli.Command {
 
 func printPeriod(self *xli.Command, v admin.Period) {
 	state := "closing"
-	if v.Closed != nil {
-		state = "closed " + when(*v.Closed)
+	if v.DateClosed != nil {
+		state = "closed " + when(*v.DateClosed)
 	}
-	self.Printf("%s\t%s\t%s\t%s\t%s\n", v.Id, when(v.Start), when(v.End), v.Zone, state)
+	self.Printf("%s\t%s\t%s\t%s\t%s\n", v.Id, when(v.DateStart), when(v.DateEnd), v.Zone, state)
 }
 
 func newCmdPeriod() *xli.Command {
@@ -825,7 +827,7 @@ func newCmdPeriod() *xli.Command {
 						if err != nil {
 							return fmt.Errorf("--through: %w", err)
 						}
-						body["through"] = t
+						body["date_through"] = t
 					}
 					var vs []admin.Period
 					if err := c.do(ctx, http.MethodPost, "/admin/products/"+url.PathEscape(argOf(self, "PRODUCT"))+"/periods/close", body, &vs); err != nil {
@@ -846,7 +848,7 @@ func newCmdPeriod() *xli.Command {
 }
 
 func printStatement(self *xli.Command, v admin.Statement) {
-	self.Printf("%s\t%s\t%s\t%s\t%s %s\t%s\n", v.Id, v.Workspace, when(v.Start), when(v.End), v.Channel, v.Currency, money.String(v.Total, v.Currency))
+	self.Printf("%s\t%s\t%s\t%s\t%s %s\t%s\n", v.Id, v.Workspace, when(v.DateStart), when(v.DateEnd), v.Channel, v.Currency, money.String(v.Total, v.Currency))
 }
 
 func newCmdStatement() *xli.Command {
@@ -894,8 +896,8 @@ func newCmdStatement() *xli.Command {
 					printStatement(self, v)
 					for _, l := range v.Lines {
 						what := l.Kind
-						if l.Corrects != nil {
-							what = "corrects " + when(*l.Corrects) + ", billed " + l.Billed
+						if l.DateCorrects != nil {
+							what = "corrects " + when(*l.DateCorrects) + ", billed " + l.Billed
 						}
 						included, billable := l.Included, l.Billable
 						if l.Allowance != "" {
@@ -920,7 +922,7 @@ func printGrant(self *xli.Command, v admin.Grant) {
 	if v.Limit != nil {
 		value = "limit " + strconv.FormatInt(*v.Limit, 10)
 	}
-	until := "until " + when(v.Until)
+	until := "until " + when(v.DateExpires)
 	if v.Renews {
 		until += ", renewed"
 	}
@@ -929,13 +931,13 @@ func printGrant(self *xli.Command, v admin.Grant) {
 		from += " " + v.Rule
 	}
 	extra := ""
-	if v.Erased != nil {
-		extra = "\terased " + when(*v.Erased)
+	if v.DateErased != nil {
+		extra = "\terased " + when(*v.DateErased)
 	}
 	if v.Desc != "" {
 		extra += "\t" + v.Desc
 	}
-	self.Printf("%s\t%s\t%s\t%s\tfrom %s %s\t%s\tv%d%s\n", v.Id, v.Workspace, v.Key, value, when(v.From), until, from, v.Version, extra)
+	self.Printf("%s\t%s\t%s\t%s\tfrom %s %s\t%s\tv%d%s\n", v.Id, v.Workspace, v.Key, value, when(v.DateEffective), until, from, v.Version, extra)
 }
 
 func newCmdGrant() *xli.Command {
@@ -991,13 +993,15 @@ func newCmdGrant() *xli.Command {
 					if v, _ := flg.Find[bool](self, "replace"); v {
 						body["replace"] = true
 					}
-					for _, k := range []string{"from", "until"} {
-						if v := str(self, k); v != "" {
+					// The flag is the word on the command line, and the key the
+					// field the server reads it into, a `date_*` as every time is.
+					for _, k := range [][2]string{{"from", "date_effective"}, {"until", "date_expires"}} {
+						if v := str(self, k[0]); v != "" {
 							t, err := instant(v)
 							if err != nil {
-								return fmt.Errorf("--%s: %w", k, err)
+								return fmt.Errorf("--%s: %w", k[0], err)
 							}
-							body[k] = t
+							body[k[1]] = t
 						}
 					}
 

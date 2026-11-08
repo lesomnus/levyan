@@ -19,7 +19,7 @@ func (x *WorkspaceEvent) Ref() *WorkspaceEventRef {
 	{
 		v1 := x.GetTenant()
 		v2 := x.GetWorkspace()
-		v3 := x.GetHappenedAt()
+		v3 := x.GetDateOccurred()
 		if v1 != nil && v2 != nil && v3 != nil {
 			return WorkspaceEventByHappened(v1.Ref(), v2.Ref(), v3)
 		}
@@ -40,7 +40,7 @@ func (x *WorkspaceEventRef) Picks(v *WorkspaceEvent) bool {
 		x := x.GetHappened()
 		return (x.GetTenant().Picks(v.GetTenant())) &&
 			(x.GetWorkspace().Picks(v.GetWorkspace())) &&
-			(proto.Equal(x.GetHappenedAt(), v.GetHappenedAt()))
+			(proto.Equal(x.GetDateOccurred(), v.GetDateOccurred()))
 	default:
 		return false
 	}
@@ -64,14 +64,14 @@ func WorkspaceEventGetById(v []byte) *WorkspaceEventGetRequest {
 	return WorkspaceEventGetRequest_builder{Ref: WorkspaceEventById(v)}.Build()
 }
 
-func WorkspaceEventByHappened(tenant *TenantRef, workspace *WorkspaceRef, happened_at *timestamppb.Timestamp) *WorkspaceEventRef {
+func WorkspaceEventByHappened(tenant *TenantRef, workspace *WorkspaceRef, date_occurred *timestamppb.Timestamp) *WorkspaceEventRef {
 	x := &WorkspaceEventRefByHappened{}
 	x.SetTenant(tenant)
 	x.SetWorkspace(workspace)
-	x.SetHappenedAt(happened_at)
+	x.SetDateOccurred(date_occurred)
 	return WorkspaceEventRef_builder{Happened: x}.Build()
 }
 
-func WorkspaceEventGetByHappened(tenant *TenantRef, workspace *WorkspaceRef, happened_at *timestamppb.Timestamp) *WorkspaceEventGetRequest {
-	return WorkspaceEventGetRequest_builder{Ref: WorkspaceEventByHappened(tenant, workspace, happened_at)}.Build()
+func WorkspaceEventGetByHappened(tenant *TenantRef, workspace *WorkspaceRef, date_occurred *timestamppb.Timestamp) *WorkspaceEventGetRequest {
+	return WorkspaceEventGetRequest_builder{Ref: WorkspaceEventByHappened(tenant, workspace, date_occurred)}.Build()
 }

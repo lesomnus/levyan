@@ -26,30 +26,30 @@ type PointCreate struct {
 	stored   **Point
 }
 
-// SetStartedAt sets the "started_at" field.
-func (_c *PointCreate) SetStartedAt(v time.Time) *PointCreate {
-	_c.mutation.SetStartedAt(v)
+// SetDateStarted sets the "date_started" field.
+func (_c *PointCreate) SetDateStarted(v time.Time) *PointCreate {
+	_c.mutation.SetDateStarted(v)
 	return _c
 }
 
-// SetNillableStartedAt sets the "started_at" field if the given value is not nil.
-func (_c *PointCreate) SetNillableStartedAt(v *time.Time) *PointCreate {
+// SetNillableDateStarted sets the "date_started" field if the given value is not nil.
+func (_c *PointCreate) SetNillableDateStarted(v *time.Time) *PointCreate {
 	if v != nil {
-		_c.SetStartedAt(*v)
+		_c.SetDateStarted(*v)
 	}
 	return _c
 }
 
-// SetCountedAt sets the "counted_at" field.
-func (_c *PointCreate) SetCountedAt(v time.Time) *PointCreate {
-	_c.mutation.SetCountedAt(v)
+// SetDateCounted sets the "date_counted" field.
+func (_c *PointCreate) SetDateCounted(v time.Time) *PointCreate {
+	_c.mutation.SetDateCounted(v)
 	return _c
 }
 
-// SetNillableCountedAt sets the "counted_at" field if the given value is not nil.
-func (_c *PointCreate) SetNillableCountedAt(v *time.Time) *PointCreate {
+// SetNillableDateCounted sets the "date_counted" field if the given value is not nil.
+func (_c *PointCreate) SetNillableDateCounted(v *time.Time) *PointCreate {
 	if v != nil {
-		_c.SetCountedAt(*v)
+		_c.SetDateCounted(*v)
 	}
 	return _c
 }
@@ -245,13 +245,13 @@ func (_c *PointCreate) createSpec() (*Point, *sqlgraph.CreateSpec) {
 		_node.Id = id
 		_spec.Id.Value = &id
 	}
-	if value, ok := _c.mutation.StartedAt(); ok {
-		_spec.SetField(point.FieldStartedAt, field.TypeTime, value)
-		_node.StartedAt = value
+	if value, ok := _c.mutation.DateStarted(); ok {
+		_spec.SetField(point.FieldDateStarted, field.TypeTime, value)
+		_node.DateStarted = value
 	}
-	if value, ok := _c.mutation.CountedAt(); ok {
-		_spec.SetField(point.FieldCountedAt, field.TypeTime, value)
-		_node.CountedAt = value
+	if value, ok := _c.mutation.DateCounted(); ok {
+		_spec.SetField(point.FieldDateCounted, field.TypeTime, value)
+		_node.DateCounted = value
 	}
 	if value, ok := _c.mutation.Value(); ok {
 		_spec.SetField(point.FieldValue, field.TypeInt64, value)

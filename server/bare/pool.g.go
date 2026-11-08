@@ -220,10 +220,10 @@ func (st PoolServiceServer) create(ctx context.Context, req *levyan.PoolAddReque
 		})
 	}
 	q.SetQuantity(req.GetQuantity())
-	if req.HasValidFrom() {
-		q.SetValidFrom(req.GetValidFrom().AsTime())
+	if req.HasDateEffective() {
+		q.SetDateEffective(req.GetDateEffective().AsTime())
 	} else {
-		q.SetValidFrom(st.now())
+		q.SetDateEffective(st.now())
 	}
 	if req.HasDateExpires() {
 		q.SetDateExpires(req.GetDateExpires().AsTime())
@@ -388,8 +388,8 @@ func PoolSelectedFields(m *levyan.PoolSelect) []string {
 	if m.GetQuantity() {
 		vs = append(vs, pool.FieldQuantity)
 	}
-	if m.GetValidFrom() {
-		vs = append(vs, pool.FieldValidFrom)
+	if m.GetDateEffective() {
+		vs = append(vs, pool.FieldDateEffective)
 	}
 	if m.GetDateExpires() {
 		vs = append(vs, pool.FieldDateExpires)
@@ -512,7 +512,7 @@ func PoolGetKey(ctx context.Context, db *ent.Client, ref *levyan.PoolRef) (uuid.
 var poolOrmEntity = ormpatch.MustEntityOf(levyan.File_levyan_pool_proto, "Pool")
 
 var poolPatchColumns = entpatch.Columns{
-	1: pool.FieldId, 2: pool.TenantColumn, 3: pool.WorkspaceColumn, 8: pool.MeterColumn, 9: pool.FieldQuantity, 10: pool.FieldValidFrom, 11: pool.FieldDateExpires, 12: pool.FieldReason, 13: pool.FieldDateUpdated, 14: pool.FieldDateErased, 15: pool.FieldDateCreated, 16: pool.GrantedByColumn, 17: pool.EndedByColumn, 18: pool.FieldEndReason}
+	1: pool.FieldId, 2: pool.TenantColumn, 3: pool.WorkspaceColumn, 8: pool.MeterColumn, 9: pool.FieldQuantity, 10: pool.FieldDateEffective, 11: pool.FieldDateExpires, 12: pool.FieldReason, 13: pool.FieldDateUpdated, 14: pool.FieldDateErased, 15: pool.FieldDateCreated, 16: pool.GrantedByColumn, 17: pool.EndedByColumn, 18: pool.FieldEndReason}
 
 func (s PoolServiceServer) Apply(ctx context.Context, req *levyan.PoolApplyRequest) (*levyan.Pool, error) {
 	if !req.HasPatch() {

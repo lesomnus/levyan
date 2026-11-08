@@ -27,8 +27,8 @@ type PointAddRequest struct {
 	xxx_hidden_Tenant      *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Workspace   *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
 	xxx_hidden_Series      *SeriesRef             `protobuf:"bytes,8,opt,name=series"`
-	xxx_hidden_StartedAt   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=started_at,json=startedAt"`
-	xxx_hidden_CountedAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=counted_at,json=countedAt"`
+	xxx_hidden_DateStarted *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_started,json=dateStarted"`
+	xxx_hidden_DateCounted *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_counted,json=dateCounted"`
 	xxx_hidden_Value       int64                  `protobuf:"varint,11,opt,name=value"`
 	xxx_hidden_Late        bool                   `protobuf:"varint,12,opt,name=late"`
 	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
@@ -91,16 +91,16 @@ func (x *PointAddRequest) GetSeries() *SeriesRef {
 	return nil
 }
 
-func (x *PointAddRequest) GetStartedAt() *timestamppb.Timestamp {
+func (x *PointAddRequest) GetDateStarted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_StartedAt
+		return x.xxx_hidden_DateStarted
 	}
 	return nil
 }
 
-func (x *PointAddRequest) GetCountedAt() *timestamppb.Timestamp {
+func (x *PointAddRequest) GetDateCounted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_CountedAt
+		return x.xxx_hidden_DateCounted
 	}
 	return nil
 }
@@ -146,12 +146,12 @@ func (x *PointAddRequest) SetSeries(v *SeriesRef) {
 	x.xxx_hidden_Series = v
 }
 
-func (x *PointAddRequest) SetStartedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_StartedAt = v
+func (x *PointAddRequest) SetDateStarted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStarted = v
 }
 
-func (x *PointAddRequest) SetCountedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CountedAt = v
+func (x *PointAddRequest) SetDateCounted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCounted = v
 }
 
 func (x *PointAddRequest) SetValue(v int64) {
@@ -194,18 +194,18 @@ func (x *PointAddRequest) HasSeries() bool {
 	return x.xxx_hidden_Series != nil
 }
 
-func (x *PointAddRequest) HasStartedAt() bool {
+func (x *PointAddRequest) HasDateStarted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_StartedAt != nil
+	return x.xxx_hidden_DateStarted != nil
 }
 
-func (x *PointAddRequest) HasCountedAt() bool {
+func (x *PointAddRequest) HasDateCounted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_CountedAt != nil
+	return x.xxx_hidden_DateCounted != nil
 }
 
 func (x *PointAddRequest) HasDateCreated() bool {
@@ -232,12 +232,12 @@ func (x *PointAddRequest) ClearSeries() {
 	x.xxx_hidden_Series = nil
 }
 
-func (x *PointAddRequest) ClearStartedAt() {
-	x.xxx_hidden_StartedAt = nil
+func (x *PointAddRequest) ClearDateStarted() {
+	x.xxx_hidden_DateStarted = nil
 }
 
-func (x *PointAddRequest) ClearCountedAt() {
-	x.xxx_hidden_CountedAt = nil
+func (x *PointAddRequest) ClearDateCounted() {
+	x.xxx_hidden_DateCounted = nil
 }
 
 func (x *PointAddRequest) ClearDateCreated() {
@@ -251,8 +251,8 @@ type PointAddRequest_builder struct {
 	Tenant      *TenantRef
 	Workspace   *WorkspaceRef
 	Series      *SeriesRef
-	StartedAt   *timestamppb.Timestamp
-	CountedAt   *timestamppb.Timestamp
+	DateStarted *timestamppb.Timestamp
+	DateCounted *timestamppb.Timestamp
 	Value       int64
 	Late        bool
 	DateCreated *timestamppb.Timestamp
@@ -269,8 +269,8 @@ func (b0 PointAddRequest_builder) Build() *PointAddRequest {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Series = b.Series
-	x.xxx_hidden_StartedAt = b.StartedAt
-	x.xxx_hidden_CountedAt = b.CountedAt
+	x.xxx_hidden_DateStarted = b.DateStarted
+	x.xxx_hidden_DateCounted = b.DateCounted
 	x.xxx_hidden_Value = b.Value
 	x.xxx_hidden_Late = b.Late
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -659,12 +659,12 @@ func (*pointRef_Id) isPointRef_Key() {}
 func (*pointRef_Counted) isPointRef_Key() {}
 
 type PointRefByCounted struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Series    *SeriesRef             `protobuf:"bytes,8,opt,name=series"`
-	xxx_hidden_StartedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=started_at,json=startedAt"`
-	xxx_hidden_CountedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=counted_at,json=countedAt"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Series      *SeriesRef             `protobuf:"bytes,8,opt,name=series"`
+	xxx_hidden_DateStarted *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_started,json=dateStarted"`
+	xxx_hidden_DateCounted *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_counted,json=dateCounted"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *PointRefByCounted) Reset() {
@@ -699,16 +699,16 @@ func (x *PointRefByCounted) GetSeries() *SeriesRef {
 	return nil
 }
 
-func (x *PointRefByCounted) GetStartedAt() *timestamppb.Timestamp {
+func (x *PointRefByCounted) GetDateStarted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_StartedAt
+		return x.xxx_hidden_DateStarted
 	}
 	return nil
 }
 
-func (x *PointRefByCounted) GetCountedAt() *timestamppb.Timestamp {
+func (x *PointRefByCounted) GetDateCounted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_CountedAt
+		return x.xxx_hidden_DateCounted
 	}
 	return nil
 }
@@ -717,12 +717,12 @@ func (x *PointRefByCounted) SetSeries(v *SeriesRef) {
 	x.xxx_hidden_Series = v
 }
 
-func (x *PointRefByCounted) SetStartedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_StartedAt = v
+func (x *PointRefByCounted) SetDateStarted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStarted = v
 }
 
-func (x *PointRefByCounted) SetCountedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CountedAt = v
+func (x *PointRefByCounted) SetDateCounted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCounted = v
 }
 
 func (x *PointRefByCounted) HasSeries() bool {
@@ -732,38 +732,38 @@ func (x *PointRefByCounted) HasSeries() bool {
 	return x.xxx_hidden_Series != nil
 }
 
-func (x *PointRefByCounted) HasStartedAt() bool {
+func (x *PointRefByCounted) HasDateStarted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_StartedAt != nil
+	return x.xxx_hidden_DateStarted != nil
 }
 
-func (x *PointRefByCounted) HasCountedAt() bool {
+func (x *PointRefByCounted) HasDateCounted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_CountedAt != nil
+	return x.xxx_hidden_DateCounted != nil
 }
 
 func (x *PointRefByCounted) ClearSeries() {
 	x.xxx_hidden_Series = nil
 }
 
-func (x *PointRefByCounted) ClearStartedAt() {
-	x.xxx_hidden_StartedAt = nil
+func (x *PointRefByCounted) ClearDateStarted() {
+	x.xxx_hidden_DateStarted = nil
 }
 
-func (x *PointRefByCounted) ClearCountedAt() {
-	x.xxx_hidden_CountedAt = nil
+func (x *PointRefByCounted) ClearDateCounted() {
+	x.xxx_hidden_DateCounted = nil
 }
 
 type PointRefByCounted_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Series    *SeriesRef
-	StartedAt *timestamppb.Timestamp
-	CountedAt *timestamppb.Timestamp
+	Series      *SeriesRef
+	DateStarted *timestamppb.Timestamp
+	DateCounted *timestamppb.Timestamp
 }
 
 func (b0 PointRefByCounted_builder) Build() *PointRefByCounted {
@@ -771,8 +771,8 @@ func (b0 PointRefByCounted_builder) Build() *PointRefByCounted {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Series = b.Series
-	x.xxx_hidden_StartedAt = b.StartedAt
-	x.xxx_hidden_CountedAt = b.CountedAt
+	x.xxx_hidden_DateStarted = b.DateStarted
+	x.xxx_hidden_DateCounted = b.DateCounted
 	return m0
 }
 
@@ -782,8 +782,8 @@ type PointSelect struct {
 	xxx_hidden_Tenant      *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Workspace   *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
 	xxx_hidden_Series      *SeriesSelect          `protobuf:"bytes,8,opt,name=series"`
-	xxx_hidden_StartedAt   bool                   `protobuf:"varint,9,opt,name=started_at,json=startedAt"`
-	xxx_hidden_CountedAt   bool                   `protobuf:"varint,10,opt,name=counted_at,json=countedAt"`
+	xxx_hidden_DateStarted bool                   `protobuf:"varint,9,opt,name=date_started,json=dateStarted"`
+	xxx_hidden_DateCounted bool                   `protobuf:"varint,10,opt,name=date_counted,json=dateCounted"`
 	xxx_hidden_Value       bool                   `protobuf:"varint,11,opt,name=value"`
 	xxx_hidden_Late        bool                   `protobuf:"varint,12,opt,name=late"`
 	xxx_hidden_DateErased  bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
@@ -847,16 +847,16 @@ func (x *PointSelect) GetSeries() *SeriesSelect {
 	return nil
 }
 
-func (x *PointSelect) GetStartedAt() bool {
+func (x *PointSelect) GetDateStarted() bool {
 	if x != nil {
-		return x.xxx_hidden_StartedAt
+		return x.xxx_hidden_DateStarted
 	}
 	return false
 }
 
-func (x *PointSelect) GetCountedAt() bool {
+func (x *PointSelect) GetDateCounted() bool {
 	if x != nil {
-		return x.xxx_hidden_CountedAt
+		return x.xxx_hidden_DateCounted
 	}
 	return false
 }
@@ -906,13 +906,13 @@ func (x *PointSelect) SetSeries(v *SeriesSelect) {
 	x.xxx_hidden_Series = v
 }
 
-func (x *PointSelect) SetStartedAt(v bool) {
-	x.xxx_hidden_StartedAt = v
+func (x *PointSelect) SetDateStarted(v bool) {
+	x.xxx_hidden_DateStarted = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
 }
 
-func (x *PointSelect) SetCountedAt(v bool) {
-	x.xxx_hidden_CountedAt = v
+func (x *PointSelect) SetDateCounted(v bool) {
+	x.xxx_hidden_DateCounted = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
 }
 
@@ -964,14 +964,14 @@ func (x *PointSelect) HasSeries() bool {
 	return x.xxx_hidden_Series != nil
 }
 
-func (x *PointSelect) HasStartedAt() bool {
+func (x *PointSelect) HasDateStarted() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *PointSelect) HasCountedAt() bool {
+func (x *PointSelect) HasDateCounted() bool {
 	if x == nil {
 		return false
 	}
@@ -1023,14 +1023,14 @@ func (x *PointSelect) ClearSeries() {
 	x.xxx_hidden_Series = nil
 }
 
-func (x *PointSelect) ClearStartedAt() {
+func (x *PointSelect) ClearDateStarted() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_StartedAt = false
+	x.xxx_hidden_DateStarted = false
 }
 
-func (x *PointSelect) ClearCountedAt() {
+func (x *PointSelect) ClearDateCounted() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_CountedAt = false
+	x.xxx_hidden_DateCounted = false
 }
 
 func (x *PointSelect) ClearValue() {
@@ -1060,8 +1060,8 @@ type PointSelect_builder struct {
 	Tenant      *TenantSelect
 	Workspace   *WorkspaceSelect
 	Series      *SeriesSelect
-	StartedAt   *bool
-	CountedAt   *bool
+	DateStarted *bool
+	DateCounted *bool
 	Value       *bool
 	Late        *bool
 	DateErased  *bool
@@ -1079,13 +1079,13 @@ func (b0 PointSelect_builder) Build() *PointSelect {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Series = b.Series
-	if b.StartedAt != nil {
+	if b.DateStarted != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
-		x.xxx_hidden_StartedAt = *b.StartedAt
+		x.xxx_hidden_DateStarted = *b.DateStarted
 	}
-	if b.CountedAt != nil {
+	if b.DateCounted != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
-		x.xxx_hidden_CountedAt = *b.CountedAt
+		x.xxx_hidden_DateCounted = *b.DateCounted
 	}
 	if b.Value != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
@@ -1372,17 +1372,15 @@ var File_levyan_point_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_point_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x18levyan/point_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x12levyan/point.proto\x1a\x19levyan/series_svc.g.proto\x1a\x1clevyan/workspace_svc.g.proto\"\x98\x03\n" +
+	"\x18levyan/point_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x12levyan/point.proto\x1a\x19levyan/series_svc.g.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xa0\x03\n" +
 	"\x0fPointAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12)\n" +
-	"\x06series\x18\b \x01(\v2\x11.levyan.SeriesRefR\x06series\x129\n" +
-	"\n" +
-	"started_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x129\n" +
-	"\n" +
-	"counted_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcountedAt\x12\x1b\n" +
+	"\x06series\x18\b \x01(\v2\x11.levyan.SeriesRefR\x06series\x12=\n" +
+	"\fdate_started\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vdateStarted\x12=\n" +
+	"\fdate_counted\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\vdateCounted\x12\x1b\n" +
 	"\x05value\x18\v \x01(\x03B\x05\xaa\x01\x02\b\x02R\x05value\x12\x19\n" +
 	"\x04late\x18\f \x01(\bB\x05\xaa\x01\x02\b\x02R\x04late\x12=\n" +
 	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vdateCreated\"D\n" +
@@ -1396,24 +1394,20 @@ const file_levyan_point_svc_g_proto_rawDesc = "" +
 	"\bPointRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02id\x125\n" +
 	"\acounted\x18\b \x01(\v2\x19.levyan.PointRefByCountedH\x00R\acountedB\x05\n" +
-	"\x03key\"\xb4\x01\n" +
+	"\x03key\"\xbc\x01\n" +
 	"\x11PointRefByCounted\x12)\n" +
-	"\x06series\x18\b \x01(\v2\x11.levyan.SeriesRefR\x06series\x129\n" +
-	"\n" +
-	"started_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x129\n" +
-	"\n" +
-	"counted_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcountedAt\"\xde\x02\n" +
+	"\x06series\x18\b \x01(\v2\x11.levyan.SeriesRefR\x06series\x12=\n" +
+	"\fdate_started\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vdateStarted\x12=\n" +
+	"\fdate_counted\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\vdateCounted\"\xe6\x02\n" +
 	"\vPointSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x125\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x17.levyan.WorkspaceSelectR\tworkspace\x12,\n" +
-	"\x06series\x18\b \x01(\v2\x14.levyan.SeriesSelectR\x06series\x12\x1d\n" +
-	"\n" +
-	"started_at\x18\t \x01(\bR\tstartedAt\x12\x1d\n" +
-	"\n" +
-	"counted_at\x18\n" +
-	" \x01(\bR\tcountedAt\x12\x14\n" +
+	"\x06series\x18\b \x01(\v2\x14.levyan.SeriesSelectR\x06series\x12!\n" +
+	"\fdate_started\x18\t \x01(\bR\vdateStarted\x12!\n" +
+	"\fdate_counted\x18\n" +
+	" \x01(\bR\vdateCounted\x12\x14\n" +
 	"\x05value\x18\v \x01(\bR\x05value\x12\x12\n" +
 	"\x04late\x18\f \x01(\bR\x04late\x12\x1f\n" +
 	"\vdate_erased\x18\x0e \x01(\bR\n" +
@@ -1460,8 +1454,8 @@ var file_levyan_point_svc_g_proto_depIdxs = []int32{
 	10, // 0: levyan.PointAddRequest.tenant:type_name -> levyan.TenantRef
 	11, // 1: levyan.PointAddRequest.workspace:type_name -> levyan.WorkspaceRef
 	12, // 2: levyan.PointAddRequest.series:type_name -> levyan.SeriesRef
-	13, // 3: levyan.PointAddRequest.started_at:type_name -> google.protobuf.Timestamp
-	13, // 4: levyan.PointAddRequest.counted_at:type_name -> google.protobuf.Timestamp
+	13, // 3: levyan.PointAddRequest.date_started:type_name -> google.protobuf.Timestamp
+	13, // 4: levyan.PointAddRequest.date_counted:type_name -> google.protobuf.Timestamp
 	13, // 5: levyan.PointAddRequest.date_created:type_name -> google.protobuf.Timestamp
 	0,  // 6: levyan.PointAddManyRequest.items:type_name -> levyan.PointAddRequest
 	14, // 7: levyan.PointAddManyResponse.items:type_name -> levyan.Point
@@ -1469,8 +1463,8 @@ var file_levyan_point_svc_g_proto_depIdxs = []int32{
 	6,  // 9: levyan.PointGetRequest.select:type_name -> levyan.PointSelect
 	5,  // 10: levyan.PointRef.counted:type_name -> levyan.PointRefByCounted
 	12, // 11: levyan.PointRefByCounted.series:type_name -> levyan.SeriesRef
-	13, // 12: levyan.PointRefByCounted.started_at:type_name -> google.protobuf.Timestamp
-	13, // 13: levyan.PointRefByCounted.counted_at:type_name -> google.protobuf.Timestamp
+	13, // 12: levyan.PointRefByCounted.date_started:type_name -> google.protobuf.Timestamp
+	13, // 13: levyan.PointRefByCounted.date_counted:type_name -> google.protobuf.Timestamp
 	15, // 14: levyan.PointSelect.tenant:type_name -> levyan.TenantSelect
 	16, // 15: levyan.PointSelect.workspace:type_name -> levyan.WorkspaceSelect
 	17, // 16: levyan.PointSelect.series:type_name -> levyan.SeriesSelect

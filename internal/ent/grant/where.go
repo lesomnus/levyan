@@ -76,14 +76,14 @@ func Limit(v int64) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldLimit, v))
 }
 
-// ValidFrom applies equality check predicate on the "valid_from" field. It's identical to ValidFromEQ.
-func ValidFrom(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldEQ(FieldValidFrom, v))
+// DateEffective applies equality check predicate on the "date_effective" field. It's identical to DateEffectiveEQ.
+func DateEffective(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldDateEffective, v))
 }
 
-// ValidUntil applies equality check predicate on the "valid_until" field. It's identical to ValidUntilEQ.
-func ValidUntil(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldEQ(FieldValidUntil, v))
+// DateExpires applies equality check predicate on the "date_expires" field. It's identical to DateExpiresEQ.
+func DateExpires(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldDateExpires, v))
 }
 
 // DateUpdated applies equality check predicate on the "date_updated" field. It's identical to DateUpdatedEQ.
@@ -341,104 +341,104 @@ func LimitLTE(v int64) predicate.Grant {
 	return predicate.Grant(sql.FieldLTE(FieldLimit, v))
 }
 
-// ValidFromEQ applies the EQ predicate on the "valid_from" field.
-func ValidFromEQ(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldEQ(FieldValidFrom, v))
+// DateEffectiveEQ applies the EQ predicate on the "date_effective" field.
+func DateEffectiveEQ(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldDateEffective, v))
 }
 
-// ValidFromNEQ applies the NEQ predicate on the "valid_from" field.
-func ValidFromNEQ(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldNEQ(FieldValidFrom, v))
+// DateEffectiveNEQ applies the NEQ predicate on the "date_effective" field.
+func DateEffectiveNEQ(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldNEQ(FieldDateEffective, v))
 }
 
-// ValidFromIn applies the In predicate on the "valid_from" field.
-func ValidFromIn(vs ...time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldIn(FieldValidFrom, vs...))
+// DateEffectiveIn applies the In predicate on the "date_effective" field.
+func DateEffectiveIn(vs ...time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldIn(FieldDateEffective, vs...))
 }
 
-// ValidFromNotIn applies the NotIn predicate on the "valid_from" field.
-func ValidFromNotIn(vs ...time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldNotIn(FieldValidFrom, vs...))
+// DateEffectiveNotIn applies the NotIn predicate on the "date_effective" field.
+func DateEffectiveNotIn(vs ...time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldNotIn(FieldDateEffective, vs...))
 }
 
-// ValidFromGT applies the GT predicate on the "valid_from" field.
-func ValidFromGT(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldGT(FieldValidFrom, v))
+// DateEffectiveGT applies the GT predicate on the "date_effective" field.
+func DateEffectiveGT(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldGT(FieldDateEffective, v))
 }
 
-// ValidFromGTE applies the GTE predicate on the "valid_from" field.
-func ValidFromGTE(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldGTE(FieldValidFrom, v))
+// DateEffectiveGTE applies the GTE predicate on the "date_effective" field.
+func DateEffectiveGTE(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldGTE(FieldDateEffective, v))
 }
 
-// ValidFromLT applies the LT predicate on the "valid_from" field.
-func ValidFromLT(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldLT(FieldValidFrom, v))
+// DateEffectiveLT applies the LT predicate on the "date_effective" field.
+func DateEffectiveLT(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldLT(FieldDateEffective, v))
 }
 
-// ValidFromLTE applies the LTE predicate on the "valid_from" field.
-func ValidFromLTE(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldLTE(FieldValidFrom, v))
+// DateEffectiveLTE applies the LTE predicate on the "date_effective" field.
+func DateEffectiveLTE(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldLTE(FieldDateEffective, v))
 }
 
-// ValidFromIsNil applies the IsNil predicate on the "valid_from" field.
-func ValidFromIsNil() predicate.Grant {
-	return predicate.Grant(sql.FieldIsNull(FieldValidFrom))
+// DateEffectiveIsNil applies the IsNil predicate on the "date_effective" field.
+func DateEffectiveIsNil() predicate.Grant {
+	return predicate.Grant(sql.FieldIsNull(FieldDateEffective))
 }
 
-// ValidFromNotNil applies the NotNil predicate on the "valid_from" field.
-func ValidFromNotNil() predicate.Grant {
-	return predicate.Grant(sql.FieldNotNull(FieldValidFrom))
+// DateEffectiveNotNil applies the NotNil predicate on the "date_effective" field.
+func DateEffectiveNotNil() predicate.Grant {
+	return predicate.Grant(sql.FieldNotNull(FieldDateEffective))
 }
 
-// ValidUntilEQ applies the EQ predicate on the "valid_until" field.
-func ValidUntilEQ(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldEQ(FieldValidUntil, v))
+// DateExpiresEQ applies the EQ predicate on the "date_expires" field.
+func DateExpiresEQ(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldDateExpires, v))
 }
 
-// ValidUntilNEQ applies the NEQ predicate on the "valid_until" field.
-func ValidUntilNEQ(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldNEQ(FieldValidUntil, v))
+// DateExpiresNEQ applies the NEQ predicate on the "date_expires" field.
+func DateExpiresNEQ(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldNEQ(FieldDateExpires, v))
 }
 
-// ValidUntilIn applies the In predicate on the "valid_until" field.
-func ValidUntilIn(vs ...time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldIn(FieldValidUntil, vs...))
+// DateExpiresIn applies the In predicate on the "date_expires" field.
+func DateExpiresIn(vs ...time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldIn(FieldDateExpires, vs...))
 }
 
-// ValidUntilNotIn applies the NotIn predicate on the "valid_until" field.
-func ValidUntilNotIn(vs ...time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldNotIn(FieldValidUntil, vs...))
+// DateExpiresNotIn applies the NotIn predicate on the "date_expires" field.
+func DateExpiresNotIn(vs ...time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldNotIn(FieldDateExpires, vs...))
 }
 
-// ValidUntilGT applies the GT predicate on the "valid_until" field.
-func ValidUntilGT(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldGT(FieldValidUntil, v))
+// DateExpiresGT applies the GT predicate on the "date_expires" field.
+func DateExpiresGT(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldGT(FieldDateExpires, v))
 }
 
-// ValidUntilGTE applies the GTE predicate on the "valid_until" field.
-func ValidUntilGTE(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldGTE(FieldValidUntil, v))
+// DateExpiresGTE applies the GTE predicate on the "date_expires" field.
+func DateExpiresGTE(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldGTE(FieldDateExpires, v))
 }
 
-// ValidUntilLT applies the LT predicate on the "valid_until" field.
-func ValidUntilLT(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldLT(FieldValidUntil, v))
+// DateExpiresLT applies the LT predicate on the "date_expires" field.
+func DateExpiresLT(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldLT(FieldDateExpires, v))
 }
 
-// ValidUntilLTE applies the LTE predicate on the "valid_until" field.
-func ValidUntilLTE(v time.Time) predicate.Grant {
-	return predicate.Grant(sql.FieldLTE(FieldValidUntil, v))
+// DateExpiresLTE applies the LTE predicate on the "date_expires" field.
+func DateExpiresLTE(v time.Time) predicate.Grant {
+	return predicate.Grant(sql.FieldLTE(FieldDateExpires, v))
 }
 
-// ValidUntilIsNil applies the IsNil predicate on the "valid_until" field.
-func ValidUntilIsNil() predicate.Grant {
-	return predicate.Grant(sql.FieldIsNull(FieldValidUntil))
+// DateExpiresIsNil applies the IsNil predicate on the "date_expires" field.
+func DateExpiresIsNil() predicate.Grant {
+	return predicate.Grant(sql.FieldIsNull(FieldDateExpires))
 }
 
-// ValidUntilNotNil applies the NotNil predicate on the "valid_until" field.
-func ValidUntilNotNil() predicate.Grant {
-	return predicate.Grant(sql.FieldNotNull(FieldValidUntil))
+// DateExpiresNotNil applies the NotNil predicate on the "date_expires" field.
+func DateExpiresNotNil() predicate.Grant {
+	return predicate.Grant(sql.FieldNotNull(FieldDateExpires))
 }
 
 // DateUpdatedEQ applies the EQ predicate on the "date_updated" field.

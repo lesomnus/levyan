@@ -113,11 +113,11 @@ func (_u *PointUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if _u.mutation.StartedAtCleared() {
-		_spec.ClearField(point.FieldStartedAt, field.TypeTime)
+	if _u.mutation.DateStartedCleared() {
+		_spec.ClearField(point.FieldDateStarted, field.TypeTime)
 	}
-	if _u.mutation.CountedAtCleared() {
-		_spec.ClearField(point.FieldCountedAt, field.TypeTime)
+	if _u.mutation.DateCountedCleared() {
+		_spec.ClearField(point.FieldDateCounted, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(point.FieldDateErased, field.TypeTime, value)
@@ -267,11 +267,11 @@ func (_u *PointUpdateOne) sqlSave(ctx context.Context) (_node *Point, err error)
 			}
 		}
 	}
-	if _u.mutation.StartedAtCleared() {
-		_spec.ClearField(point.FieldStartedAt, field.TypeTime)
+	if _u.mutation.DateStartedCleared() {
+		_spec.ClearField(point.FieldDateStarted, field.TypeTime)
 	}
-	if _u.mutation.CountedAtCleared() {
-		_spec.ClearField(point.FieldCountedAt, field.TypeTime)
+	if _u.mutation.DateCountedCleared() {
+		_spec.ClearField(point.FieldDateCounted, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(point.FieldDateErased, field.TypeTime, value)

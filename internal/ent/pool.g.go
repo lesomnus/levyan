@@ -34,7 +34,7 @@ func (e *Pool) Proto() *levyan.Pool {
 		x.SetMeter(r)
 	}
 	x.SetQuantity(e.Quantity)
-	x.SetValidFrom(timestamppb.New(e.ValidFrom))
+	x.SetDateEffective(timestamppb.New(e.DateEffective))
 	x.SetDateExpires(timestamppb.New(e.DateExpires))
 	x.SetReason(e.Reason)
 	x.SetDateUpdated(timestamppb.New(e.DateUpdated))

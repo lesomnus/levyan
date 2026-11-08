@@ -157,10 +157,10 @@ func (a Allowances) Give(ctx context.Context, v Give) (*ent.Allowance, error) {
 			GrantedBy: levyan.OperatorRef_builder{Id: who.Bytes()}.Build(),
 		}.Build()
 		if !v.From.IsZero() {
-			req.SetValidFrom(timestamppb.New(ledger.Moment(v.From)))
+			req.SetDateEffective(timestamppb.New(ledger.Moment(v.From)))
 		}
 		if !v.Until.IsZero() {
-			req.SetValidUntil(timestamppb.New(ledger.Moment(v.Until)))
+			req.SetDateExpires(timestamppb.New(ledger.Moment(v.Until)))
 		}
 		_, err := s.Allowance().Add(ctx, req)
 		return err
@@ -197,13 +197,13 @@ func (a Allowances) End(ctx context.Context, id pdid.Id, reason string) (*ent.Al
 		if err != nil {
 			return err
 		}
-		until := latest(a.now(), ledger.Moment(v.ValidFrom))
-		if v.ValidUntil != nil && !ledger.Moment(*v.ValidUntil).After(until) {
-			return status.Errorf(codes.FailedPrecondition, "allowance %s is over already: it ended at %s", id, v.ValidUntil.UTC().Format(time.RFC3339))
+		until := latest(a.now(), ledger.Moment(v.DateEffective))
+		if v.DateExpires != nil && !ledger.Moment(*v.DateExpires).After(until) {
+			return status.Errorf(codes.FailedPrecondition, "allowance %s is over already: it ended at %s", id, v.DateExpires.UTC().Format(time.RFC3339))
 		}
 		_, err = s.Allowance().Patch(ctx, levyan.AllowancePatchRequest_builder{
 			Ref:              levyan.AllowanceRef_builder{Id: id.Bytes()}.Build(),
-			ValidUntil:       timestamppb.New(until),
+			DateExpires:      timestamppb.New(until),
 			EndedBy:          levyan.OperatorRef_builder{Id: who.Bytes()}.Build(),
 			EndReason:        proto.String(reason),
 			DateUpdatedForce: proto.Bool(true),
@@ -262,11 +262,11 @@ func InForce(ctx context.Context, db *ent.Client, product, ws uuid.UUID, from, t
 		Where(
 			entallowance.TenantId(product),
 			entallowance.WorkspaceId(ws),
-			entallowance.ValidFromLT(to),
-			entallowance.Or(entallowance.ValidUntilIsNil(), entallowance.ValidUntilGT(from)),
+			entallowance.DateEffectiveLT(to),
+			entallowance.Or(entallowance.DateExpiresIsNil(), entallowance.DateExpiresGT(from)),
 		).
 		WithMeter().
-		Order(ent.Asc(entallowance.FieldValidFrom), ent.Asc(entallowance.FieldId)).
+		Order(ent.Asc(entallowance.FieldDateEffective), ent.Asc(entallowance.FieldId)).
 		All(ctx)
 }
 

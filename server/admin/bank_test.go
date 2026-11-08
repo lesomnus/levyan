@@ -116,7 +116,7 @@ func TestABankTransferIsInvoicedWithATaxInvoice(t *testing.T) {
 	x.NoError(err)
 	record := func(t time.Time, v int64) {
 		_, err := levyanv1.NewMeteringServiceClient(conn).Record(product, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-			levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(t), Value: v, Unit: "{asset}"}.Build(),
+			levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(t), Value: v, Unit: "{asset}"}.Build(),
 		}}.Build())
 		x.NoError(err)
 	}
@@ -132,7 +132,7 @@ func TestABankTransferIsInvoicedWithATaxInvoice(t *testing.T) {
 	var vs []admin.Invoice
 	d.as(aliceKey, http.MethodGet, "/admin/products/loft/invoices", nil, &vs)
 	x.Len(vs, 1)
-	x.Nil(vs[0].Issued, "not issued yet")
+	x.Nil(vs[0].DateIssued, "not issued yet")
 	x.NoError(d.w.S.Invoices.Run(context.Background()))
 
 	var jan admin.Invoice
@@ -143,9 +143,9 @@ func TestABankTransferIsInvoicedWithATaxInvoice(t *testing.T) {
 	x.Equal(int64(500), jan.Tax)
 	x.Equal("1/10", jan.TaxRate)
 	x.Equal(int64(5500), jan.Due)
-	x.NotNil(jan.DueDate)
-	x.True(jan.DueDate.Sub(*jan.Finalized) == bank.DefaultDue, "due thirty days after")
-	x.NotNil(jan.Issued)
+	x.NotNil(jan.DateDue)
+	x.True(jan.DateDue.Sub(*jan.DateFinalized) == bank.DefaultDue, "due thirty days after")
+	x.NotNil(jan.DateIssued)
 	x.NotEmpty(jan.Document, "the approval number")
 	x.Empty(jan.Attempts, "nothing is sent on a transfer's channel")
 

@@ -573,38 +573,38 @@ func (m *AllowanceMutation) OldQuantity(ctx context.Context) (v int64, err error
 	return oldValue.Quantity, nil
 }
 
-// OldValidFrom returns the old "valid_from" field's value of the Allowance entity.
+// OldDateEffective returns the old "date_effective" field's value of the Allowance entity.
 // If the Allowance object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AllowanceMutation) OldValidFrom(ctx context.Context) (v time.Time, err error) {
+func (m *AllowanceMutation) OldDateEffective(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldValidFrom is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateEffective is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldValidFrom requires an Id field in the mutation")
+		return v, errors.New("OldDateEffective requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldValidFrom: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateEffective: %w", err)
 	}
-	return oldValue.ValidFrom, nil
+	return oldValue.DateEffective, nil
 }
 
-// OldValidUntil returns the old "valid_until" field's value of the Allowance entity.
+// OldDateExpires returns the old "date_expires" field's value of the Allowance entity.
 // If the Allowance object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AllowanceMutation) OldValidUntil(ctx context.Context) (v *time.Time, err error) {
+func (m *AllowanceMutation) OldDateExpires(ctx context.Context) (v *time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldValidUntil is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateExpires is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldValidUntil requires an Id field in the mutation")
+		return v, errors.New("OldDateExpires requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldValidUntil: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateExpires: %w", err)
 	}
-	return oldValue.ValidUntil, nil
+	return oldValue.DateExpires, nil
 }
 
 // OldReason returns the old "reason" field's value of the Allowance entity.
@@ -784,10 +784,10 @@ func (m *AllowanceMutation) OldField(ctx context.Context, name string) (ent.Valu
 	switch name {
 	case allowance.FieldQuantity:
 		return m.OldQuantity(ctx)
-	case allowance.FieldValidFrom:
-		return m.OldValidFrom(ctx)
-	case allowance.FieldValidUntil:
-		return m.OldValidUntil(ctx)
+	case allowance.FieldDateEffective:
+		return m.OldDateEffective(ctx)
+	case allowance.FieldDateExpires:
+		return m.OldDateExpires(ctx)
 	case allowance.FieldReason:
 		return m.OldReason(ctx)
 	case allowance.FieldDateUpdated:
@@ -4041,38 +4041,38 @@ func (m *GrantMutation) OldLimit(ctx context.Context) (v int64, err error) {
 	return oldValue.Limit, nil
 }
 
-// OldValidFrom returns the old "valid_from" field's value of the Grant entity.
+// OldDateEffective returns the old "date_effective" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldValidFrom(ctx context.Context) (v time.Time, err error) {
+func (m *GrantMutation) OldDateEffective(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldValidFrom is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateEffective is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldValidFrom requires an Id field in the mutation")
+		return v, errors.New("OldDateEffective requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldValidFrom: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateEffective: %w", err)
 	}
-	return oldValue.ValidFrom, nil
+	return oldValue.DateEffective, nil
 }
 
-// OldValidUntil returns the old "valid_until" field's value of the Grant entity.
+// OldDateExpires returns the old "date_expires" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldValidUntil(ctx context.Context) (v time.Time, err error) {
+func (m *GrantMutation) OldDateExpires(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldValidUntil is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateExpires is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldValidUntil requires an Id field in the mutation")
+		return v, errors.New("OldDateExpires requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldValidUntil: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateExpires: %w", err)
 	}
-	return oldValue.ValidUntil, nil
+	return oldValue.DateExpires, nil
 }
 
 // OldDateUpdated returns the old "date_updated" field's value of the Grant entity.
@@ -4241,10 +4241,10 @@ func (m *GrantMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldValue(ctx)
 	case grant.FieldLimit:
 		return m.OldLimit(ctx)
-	case grant.FieldValidFrom:
-		return m.OldValidFrom(ctx)
-	case grant.FieldValidUntil:
-		return m.OldValidUntil(ctx)
+	case grant.FieldDateEffective:
+		return m.OldDateEffective(ctx)
+	case grant.FieldDateExpires:
+		return m.OldDateExpires(ctx)
 	case grant.FieldDateUpdated:
 		return m.OldDateUpdated(ctx)
 	case grant.FieldDateErased:
@@ -8788,38 +8788,38 @@ func (m *PointMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
 	}
 }
 
-// OldStartedAt returns the old "started_at" field's value of the Point entity.
+// OldDateStarted returns the old "date_started" field's value of the Point entity.
 // If the Point object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PointMutation) OldStartedAt(ctx context.Context) (v time.Time, err error) {
+func (m *PointMutation) OldDateStarted(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateStarted is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldStartedAt requires an Id field in the mutation")
+		return v, errors.New("OldDateStarted requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateStarted: %w", err)
 	}
-	return oldValue.StartedAt, nil
+	return oldValue.DateStarted, nil
 }
 
-// OldCountedAt returns the old "counted_at" field's value of the Point entity.
+// OldDateCounted returns the old "date_counted" field's value of the Point entity.
 // If the Point object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PointMutation) OldCountedAt(ctx context.Context) (v time.Time, err error) {
+func (m *PointMutation) OldDateCounted(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldCountedAt is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateCounted is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldCountedAt requires an Id field in the mutation")
+		return v, errors.New("OldDateCounted requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCountedAt: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateCounted: %w", err)
 	}
-	return oldValue.CountedAt, nil
+	return oldValue.DateCounted, nil
 }
 
 // OldValue returns the old "value" field's value of the Point entity.
@@ -8946,10 +8946,10 @@ func (m *PointMutation) OldSeriesId(ctx context.Context) (v uuid.UUID, err error
 // database failed.
 func (m *PointMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case point.FieldStartedAt:
-		return m.OldStartedAt(ctx)
-	case point.FieldCountedAt:
-		return m.OldCountedAt(ctx)
+	case point.FieldDateStarted:
+		return m.OldDateStarted(ctx)
+	case point.FieldDateCounted:
+		return m.OldDateCounted(ctx)
 	case point.FieldValue:
 		return m.OldValue(ctx)
 	case point.FieldLate:
@@ -9096,21 +9096,21 @@ func (m *PoolMutation) OldQuantity(ctx context.Context) (v int64, err error) {
 	return oldValue.Quantity, nil
 }
 
-// OldValidFrom returns the old "valid_from" field's value of the Pool entity.
+// OldDateEffective returns the old "date_effective" field's value of the Pool entity.
 // If the Pool object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PoolMutation) OldValidFrom(ctx context.Context) (v time.Time, err error) {
+func (m *PoolMutation) OldDateEffective(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldValidFrom is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateEffective is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldValidFrom requires an Id field in the mutation")
+		return v, errors.New("OldDateEffective requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldValidFrom: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateEffective: %w", err)
 	}
-	return oldValue.ValidFrom, nil
+	return oldValue.DateEffective, nil
 }
 
 // OldDateExpires returns the old "date_expires" field's value of the Pool entity.
@@ -9307,8 +9307,8 @@ func (m *PoolMutation) OldField(ctx context.Context, name string) (ent.Value, er
 	switch name {
 	case pool.FieldQuantity:
 		return m.OldQuantity(ctx)
-	case pool.FieldValidFrom:
-		return m.OldValidFrom(ctx)
+	case pool.FieldDateEffective:
+		return m.OldDateEffective(ctx)
 	case pool.FieldDateExpires:
 		return m.OldDateExpires(ctx)
 	case pool.FieldReason:
@@ -9813,21 +9813,21 @@ func (m *ReadingMutation) Ids(ctx context.Context) ([]uuid.UUID, error) {
 	}
 }
 
-// OldMeasuredAt returns the old "measured_at" field's value of the Reading entity.
+// OldDateMeasured returns the old "date_measured" field's value of the Reading entity.
 // If the Reading object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ReadingMutation) OldMeasuredAt(ctx context.Context) (v time.Time, err error) {
+func (m *ReadingMutation) OldDateMeasured(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldMeasuredAt is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateMeasured is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldMeasuredAt requires an Id field in the mutation")
+		return v, errors.New("OldDateMeasured requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMeasuredAt: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateMeasured: %w", err)
 	}
-	return oldValue.MeasuredAt, nil
+	return oldValue.DateMeasured, nil
 }
 
 // OldValue returns the old "value" field's value of the Reading entity.
@@ -9954,8 +9954,8 @@ func (m *ReadingMutation) OldMeterId(ctx context.Context) (v uuid.UUID, err erro
 // database failed.
 func (m *ReadingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case reading.FieldMeasuredAt:
-		return m.OldMeasuredAt(ctx)
+	case reading.FieldDateMeasured:
+		return m.OldDateMeasured(ctx)
 	case reading.FieldValue:
 		return m.OldValue(ctx)
 	case reading.FieldLate:
@@ -12272,38 +12272,38 @@ func (m *WorkspaceEventMutation) OldKind(ctx context.Context) (v int32, err erro
 	return oldValue.Kind, nil
 }
 
-// OldHappenedAt returns the old "happened_at" field's value of the WorkspaceEvent entity.
+// OldDateOccurred returns the old "date_occurred" field's value of the WorkspaceEvent entity.
 // If the WorkspaceEvent object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkspaceEventMutation) OldHappenedAt(ctx context.Context) (v time.Time, err error) {
+func (m *WorkspaceEventMutation) OldDateOccurred(ctx context.Context) (v time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldHappenedAt is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateOccurred is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldHappenedAt requires an Id field in the mutation")
+		return v, errors.New("OldDateOccurred requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldHappenedAt: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateOccurred: %w", err)
 	}
-	return oldValue.HappenedAt, nil
+	return oldValue.DateOccurred, nil
 }
 
-// OldLateThrough returns the old "late_through" field's value of the WorkspaceEvent entity.
+// OldDateLateThrough returns the old "date_late_through" field's value of the WorkspaceEvent entity.
 // If the WorkspaceEvent object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkspaceEventMutation) OldLateThrough(ctx context.Context) (v *time.Time, err error) {
+func (m *WorkspaceEventMutation) OldDateLateThrough(ctx context.Context) (v *time.Time, err error) {
 	if !m.Op().Is(OpUpdateOne) {
-		return v, errors.New("OldLateThrough is only allowed on UpdateOne operations")
+		return v, errors.New("OldDateLateThrough is only allowed on UpdateOne operations")
 	}
 	if _, exists := m.Id(); !exists || m.oldValue == nil {
-		return v, errors.New("OldLateThrough requires an Id field in the mutation")
+		return v, errors.New("OldDateLateThrough requires an Id field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLateThrough: %w", err)
+		return v, fmt.Errorf("querying old value for OldDateLateThrough: %w", err)
 	}
-	return oldValue.LateThrough, nil
+	return oldValue.DateLateThrough, nil
 }
 
 // OldDateErased returns the old "date_erased" field's value of the WorkspaceEvent entity.
@@ -12381,10 +12381,10 @@ func (m *WorkspaceEventMutation) OldField(ctx context.Context, name string) (ent
 	switch name {
 	case workspaceevent.FieldKind:
 		return m.OldKind(ctx)
-	case workspaceevent.FieldHappenedAt:
-		return m.OldHappenedAt(ctx)
-	case workspaceevent.FieldLateThrough:
-		return m.OldLateThrough(ctx)
+	case workspaceevent.FieldDateOccurred:
+		return m.OldDateOccurred(ctx)
+	case workspaceevent.FieldDateLateThrough:
+		return m.OldDateLateThrough(ctx)
 	case workspaceevent.FieldDateErased:
 		return m.OldDateErased(ctx)
 	case workspaceevent.FieldDateCreated:

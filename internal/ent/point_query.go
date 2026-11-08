@@ -373,12 +373,12 @@ func (_q *PointQuery) WithSeries(opts ...func(*SeriesQuery)) *PointQuery {
 // Example:
 //
 //	var v []struct {
-//		StartedAt time.Time `json:"started_at,omitempty"`
+//		DateStarted time.Time `json:"date_started,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Point.Query().
-//		GroupBy(point.FieldStartedAt).
+//		GroupBy(point.FieldDateStarted).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *PointQuery) GroupBy(field string, fields ...string) *PointGroupBy {
@@ -396,11 +396,11 @@ func (_q *PointQuery) GroupBy(field string, fields ...string) *PointGroupBy {
 // Example:
 //
 //	var v []struct {
-//		StartedAt time.Time `json:"started_at,omitempty"`
+//		DateStarted time.Time `json:"date_started,omitempty"`
 //	}
 //
 //	client.Point.Query().
-//		Select(point.FieldStartedAt).
+//		Select(point.FieldDateStarted).
 //		Scan(ctx, &v)
 func (_q *PointQuery) Select(fields ...string) *PointSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

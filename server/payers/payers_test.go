@@ -291,7 +291,7 @@ func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
 	vs = restricted()
 	x.Len(vs, 1)
 	x.False(vs[0].Renews, "ended: somebody will pay")
-	x.False(vs[0].ValidUntil.After(w.S.Clock()))
+	x.False(vs[0].DateExpires.After(w.S.Clock()))
 
 	// A workspace levyan never heard of a payer of is not restricted.
 	key, err := grants.Restricted("loft")
@@ -302,7 +302,7 @@ func TestAWorkspaceWithNoPayerIsRestrictedAfterItsGrace(t *testing.T) {
 }
 
 // A workspace nobody pays for is read-only sixty days after it last had a
-// payer -- from `payerless_since`, as its grace is -- the second stage of
+// payer -- from `date_payerless`, as its grace is -- the second stage of
 // its restriction, by a rule of its own (`payers.readonly`), beside the
 // restriction thirty days after; and both end once somebody accepts to pay.
 // What the product is told says when each comes.
@@ -326,9 +326,9 @@ func TestAWorkspaceWithNoPayerIsReadonlySixtyDaysAfterItsLastPayer(t *testing.T)
 	x.Equal(on(1, 20).Add(60*24*time.Hour), st.Readonly, "from when it last had a payer, not from its restriction")
 	got, err := levyanv1.NewWorkspaceServiceClient(conn).GetPayer(levyantest.As(w.ctx, key), levyanv1.GetPayerRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
-	x.True(on(1, 20).Equal(got.GetPayer().GetPayerlessSince().AsTime()))
-	x.True(st.Restricted.Equal(got.GetPayer().GetRestrictedFrom().AsTime()))
-	x.True(st.Readonly.Equal(got.GetPayer().GetReadonlyFrom().AsTime()))
+	x.True(on(1, 20).Equal(got.GetPayer().GetDatePayerless().AsTime()))
+	x.True(st.Restricted.Equal(got.GetPayer().GetDateRestricted().AsTime()))
+	x.True(st.Readonly.Equal(got.GetPayer().GetDateReadonly().AsTime()))
 
 	of := func(key string) []*ent.Grant {
 		vs, err := w.S.Ent.Grant.Query().Where(entgrant.Key(key)).All(w.ctx)
@@ -367,7 +367,7 @@ func TestAWorkspaceWithNoPayerIsReadonlySixtyDaysAfterItsLastPayer(t *testing.T)
 		vs := of(k)
 		x.Len(vs, 1, k)
 		x.False(vs[0].Renews, "%s ended: somebody will pay", k)
-		x.False(vs[0].ValidUntil.After(w.S.Clock()), k)
+		x.False(vs[0].DateExpires.After(w.S.Clock()), k)
 	}
 	x.False(w.state(ws).Payerless())
 

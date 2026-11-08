@@ -61,7 +61,7 @@ message Allowance {
 
   // When it begins: unset is the moment it is given. Never in a period whose
   // close has begun.
-  google.protobuf.Timestamp valid_from = 10 [(orm.field) = {
+  google.protobuf.Timestamp date_effective = 10 [(orm.field) = {
     immutable: true
     default: ""
   }];
@@ -69,7 +69,7 @@ message Allowance {
   // When it ends, the moment it is in force no longer; unset is never, until
   // it is ended. Ending it moves it to now -- or to when it begins, for one
   // that has not -- and never later, nor into a period whose close has begun.
-  google.protobuf.Timestamp valid_until = 11 [(orm.field) = {nullable: true}];
+  google.protobuf.Timestamp date_expires = 11 [(orm.field) = {nullable: true}];
 
   // Why it was given, in the operator's words: "2027 봄 프로모션".
   string reason = 12 [
@@ -139,7 +139,7 @@ message Allowance {
             number: 8
           },
           {
-            name: "valid_from"
+            name: "date_effective"
             number: 10
           }
         ]

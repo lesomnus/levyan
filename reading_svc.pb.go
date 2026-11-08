@@ -22,19 +22,19 @@ const (
 )
 
 type ReadingAddRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *MeterRef              `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_MeasuredAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=measured_at,json=measuredAt"`
-	xxx_hidden_Value       int64                  `protobuf:"varint,10,opt,name=value"`
-	xxx_hidden_Late        bool                   `protobuf:"varint,11,opt,name=late"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id           []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant       *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace    *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter        *MeterRef              `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_DateMeasured *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_measured,json=dateMeasured"`
+	xxx_hidden_Value        int64                  `protobuf:"varint,10,opt,name=value"`
+	xxx_hidden_Late         bool                   `protobuf:"varint,11,opt,name=late"`
+	xxx_hidden_DateCreated  *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ReadingAddRequest) Reset() {
@@ -90,9 +90,9 @@ func (x *ReadingAddRequest) GetMeter() *MeterRef {
 	return nil
 }
 
-func (x *ReadingAddRequest) GetMeasuredAt() *timestamppb.Timestamp {
+func (x *ReadingAddRequest) GetDateMeasured() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_MeasuredAt
+		return x.xxx_hidden_DateMeasured
 	}
 	return nil
 }
@@ -138,8 +138,8 @@ func (x *ReadingAddRequest) SetMeter(v *MeterRef) {
 	x.xxx_hidden_Meter = v
 }
 
-func (x *ReadingAddRequest) SetMeasuredAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_MeasuredAt = v
+func (x *ReadingAddRequest) SetDateMeasured(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateMeasured = v
 }
 
 func (x *ReadingAddRequest) SetValue(v int64) {
@@ -182,11 +182,11 @@ func (x *ReadingAddRequest) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *ReadingAddRequest) HasMeasuredAt() bool {
+func (x *ReadingAddRequest) HasDateMeasured() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_MeasuredAt != nil
+	return x.xxx_hidden_DateMeasured != nil
 }
 
 func (x *ReadingAddRequest) HasDateCreated() bool {
@@ -213,8 +213,8 @@ func (x *ReadingAddRequest) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *ReadingAddRequest) ClearMeasuredAt() {
-	x.xxx_hidden_MeasuredAt = nil
+func (x *ReadingAddRequest) ClearDateMeasured() {
+	x.xxx_hidden_DateMeasured = nil
 }
 
 func (x *ReadingAddRequest) ClearDateCreated() {
@@ -224,14 +224,14 @@ func (x *ReadingAddRequest) ClearDateCreated() {
 type ReadingAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id          []byte
-	Tenant      *TenantRef
-	Workspace   *WorkspaceRef
-	Meter       *MeterRef
-	MeasuredAt  *timestamppb.Timestamp
-	Value       int64
-	Late        bool
-	DateCreated *timestamppb.Timestamp
+	Id           []byte
+	Tenant       *TenantRef
+	Workspace    *WorkspaceRef
+	Meter        *MeterRef
+	DateMeasured *timestamppb.Timestamp
+	Value        int64
+	Late         bool
+	DateCreated  *timestamppb.Timestamp
 }
 
 func (b0 ReadingAddRequest_builder) Build() *ReadingAddRequest {
@@ -245,7 +245,7 @@ func (b0 ReadingAddRequest_builder) Build() *ReadingAddRequest {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
-	x.xxx_hidden_MeasuredAt = b.MeasuredAt
+	x.xxx_hidden_DateMeasured = b.DateMeasured
 	x.xxx_hidden_Value = b.Value
 	x.xxx_hidden_Late = b.Late
 	x.xxx_hidden_DateCreated = b.DateCreated
@@ -634,13 +634,13 @@ func (*readingRef_Id) isReadingRef_Key() {}
 func (*readingRef_Measured) isReadingRef_Key() {}
 
 type ReadingRefByMeasured struct {
-	state                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Tenant     *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace  *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter      *MeterRef              `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_MeasuredAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=measured_at,json=measuredAt"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Tenant       *TenantRef             `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace    *WorkspaceRef          `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter        *MeterRef              `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_DateMeasured *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_measured,json=dateMeasured"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ReadingRefByMeasured) Reset() {
@@ -689,9 +689,9 @@ func (x *ReadingRefByMeasured) GetMeter() *MeterRef {
 	return nil
 }
 
-func (x *ReadingRefByMeasured) GetMeasuredAt() *timestamppb.Timestamp {
+func (x *ReadingRefByMeasured) GetDateMeasured() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_MeasuredAt
+		return x.xxx_hidden_DateMeasured
 	}
 	return nil
 }
@@ -708,8 +708,8 @@ func (x *ReadingRefByMeasured) SetMeter(v *MeterRef) {
 	x.xxx_hidden_Meter = v
 }
 
-func (x *ReadingRefByMeasured) SetMeasuredAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_MeasuredAt = v
+func (x *ReadingRefByMeasured) SetDateMeasured(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateMeasured = v
 }
 
 func (x *ReadingRefByMeasured) HasTenant() bool {
@@ -733,11 +733,11 @@ func (x *ReadingRefByMeasured) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *ReadingRefByMeasured) HasMeasuredAt() bool {
+func (x *ReadingRefByMeasured) HasDateMeasured() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_MeasuredAt != nil
+	return x.xxx_hidden_DateMeasured != nil
 }
 
 func (x *ReadingRefByMeasured) ClearTenant() {
@@ -752,17 +752,17 @@ func (x *ReadingRefByMeasured) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *ReadingRefByMeasured) ClearMeasuredAt() {
-	x.xxx_hidden_MeasuredAt = nil
+func (x *ReadingRefByMeasured) ClearDateMeasured() {
+	x.xxx_hidden_DateMeasured = nil
 }
 
 type ReadingRefByMeasured_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Tenant     *TenantRef
-	Workspace  *WorkspaceRef
-	Meter      *MeterRef
-	MeasuredAt *timestamppb.Timestamp
+	Tenant       *TenantRef
+	Workspace    *WorkspaceRef
+	Meter        *MeterRef
+	DateMeasured *timestamppb.Timestamp
 }
 
 func (b0 ReadingRefByMeasured_builder) Build() *ReadingRefByMeasured {
@@ -772,25 +772,25 @@ func (b0 ReadingRefByMeasured_builder) Build() *ReadingRefByMeasured {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
-	x.xxx_hidden_MeasuredAt = b.MeasuredAt
+	x.xxx_hidden_DateMeasured = b.DateMeasured
 	return m0
 }
 
 type ReadingSelect struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_All         bool                   `protobuf:"varint,1,opt,name=all"`
-	xxx_hidden_Tenant      *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *MeterSelect           `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_MeasuredAt  bool                   `protobuf:"varint,9,opt,name=measured_at,json=measuredAt"`
-	xxx_hidden_Value       bool                   `protobuf:"varint,10,opt,name=value"`
-	xxx_hidden_Late        bool                   `protobuf:"varint,11,opt,name=late"`
-	xxx_hidden_DateErased  bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_All          bool                   `protobuf:"varint,1,opt,name=all"`
+	xxx_hidden_Tenant       *TenantSelect          `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace    *WorkspaceSelect       `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter        *MeterSelect           `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_DateMeasured bool                   `protobuf:"varint,9,opt,name=date_measured,json=dateMeasured"`
+	xxx_hidden_Value        bool                   `protobuf:"varint,10,opt,name=value"`
+	xxx_hidden_Late         bool                   `protobuf:"varint,11,opt,name=late"`
+	xxx_hidden_DateErased   bool                   `protobuf:"varint,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated  bool                   `protobuf:"varint,15,opt,name=date_created,json=dateCreated"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ReadingSelect) Reset() {
@@ -846,9 +846,9 @@ func (x *ReadingSelect) GetMeter() *MeterSelect {
 	return nil
 }
 
-func (x *ReadingSelect) GetMeasuredAt() bool {
+func (x *ReadingSelect) GetDateMeasured() bool {
 	if x != nil {
-		return x.xxx_hidden_MeasuredAt
+		return x.xxx_hidden_DateMeasured
 	}
 	return false
 }
@@ -898,8 +898,8 @@ func (x *ReadingSelect) SetMeter(v *MeterSelect) {
 	x.xxx_hidden_Meter = v
 }
 
-func (x *ReadingSelect) SetMeasuredAt(v bool) {
-	x.xxx_hidden_MeasuredAt = v
+func (x *ReadingSelect) SetDateMeasured(v bool) {
+	x.xxx_hidden_DateMeasured = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
 }
 
@@ -951,7 +951,7 @@ func (x *ReadingSelect) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *ReadingSelect) HasMeasuredAt() bool {
+func (x *ReadingSelect) HasDateMeasured() bool {
 	if x == nil {
 		return false
 	}
@@ -1003,9 +1003,9 @@ func (x *ReadingSelect) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *ReadingSelect) ClearMeasuredAt() {
+func (x *ReadingSelect) ClearDateMeasured() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_MeasuredAt = false
+	x.xxx_hidden_DateMeasured = false
 }
 
 func (x *ReadingSelect) ClearValue() {
@@ -1031,15 +1031,15 @@ func (x *ReadingSelect) ClearDateCreated() {
 type ReadingSelect_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	All         *bool
-	Tenant      *TenantSelect
-	Workspace   *WorkspaceSelect
-	Meter       *MeterSelect
-	MeasuredAt  *bool
-	Value       *bool
-	Late        *bool
-	DateErased  *bool
-	DateCreated *bool
+	All          *bool
+	Tenant       *TenantSelect
+	Workspace    *WorkspaceSelect
+	Meter        *MeterSelect
+	DateMeasured *bool
+	Value        *bool
+	Late         *bool
+	DateErased   *bool
+	DateCreated  *bool
 }
 
 func (b0 ReadingSelect_builder) Build() *ReadingSelect {
@@ -1053,9 +1053,9 @@ func (b0 ReadingSelect_builder) Build() *ReadingSelect {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
-	if b.MeasuredAt != nil {
+	if b.DateMeasured != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
-		x.xxx_hidden_MeasuredAt = *b.MeasuredAt
+		x.xxx_hidden_DateMeasured = *b.DateMeasured
 	}
 	if b.Value != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
@@ -1342,14 +1342,13 @@ var File_levyan_reading_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_reading_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1alevyan/reading_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18levyan/meter_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x14levyan/reading.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xde\x02\n" +
+	"\x1alevyan/reading_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18levyan/meter_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x14levyan/reading.proto\x1a\x1clevyan/workspace_svc.g.proto\"\xe2\x02\n" +
 	"\x11ReadingAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12&\n" +
-	"\x05meter\x18\b \x01(\v2\x10.levyan.MeterRefR\x05meter\x12;\n" +
-	"\vmeasured_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"measuredAt\x12\x1b\n" +
+	"\x05meter\x18\b \x01(\v2\x10.levyan.MeterRefR\x05meter\x12?\n" +
+	"\rdate_measured\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\fdateMeasured\x12\x1b\n" +
 	"\x05value\x18\n" +
 	" \x01(\x03B\x05\xaa\x01\x02\b\x02R\x05value\x12\x19\n" +
 	"\x04late\x18\v \x01(\bB\x05\xaa\x01\x02\b\x02R\x04late\x12=\n" +
@@ -1365,20 +1364,18 @@ const file_levyan_reading_svc_g_proto_rawDesc = "" +
 	"ReadingRef\x12\x10\n" +
 	"\x02id\x18\x01 \x01(\fH\x00R\x02id\x12:\n" +
 	"\bmeasured\x18\x02 \x01(\v2\x1c.levyan.ReadingRefByMeasuredH\x00R\bmeasuredB\x05\n" +
-	"\x03key\"\xda\x01\n" +
+	"\x03key\"\xde\x01\n" +
 	"\x14ReadingRefByMeasured\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x14.levyan.WorkspaceRefR\tworkspace\x12&\n" +
-	"\x05meter\x18\b \x01(\v2\x10.levyan.MeterRefR\x05meter\x12;\n" +
-	"\vmeasured_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"measuredAt\"\xc0\x02\n" +
+	"\x05meter\x18\b \x01(\v2\x10.levyan.MeterRefR\x05meter\x12?\n" +
+	"\rdate_measured\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\fdateMeasured\"\xc4\x02\n" +
 	"\rReadingSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x14.levyan.TenantSelectR\x06tenant\x125\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x17.levyan.WorkspaceSelectR\tworkspace\x12)\n" +
-	"\x05meter\x18\b \x01(\v2\x13.levyan.MeterSelectR\x05meter\x12\x1f\n" +
-	"\vmeasured_at\x18\t \x01(\bR\n" +
-	"measuredAt\x12\x14\n" +
+	"\x05meter\x18\b \x01(\v2\x13.levyan.MeterSelectR\x05meter\x12#\n" +
+	"\rdate_measured\x18\t \x01(\bR\fdateMeasured\x12\x14\n" +
 	"\x05value\x18\n" +
 	" \x01(\bR\x05value\x12\x12\n" +
 	"\x04late\x18\v \x01(\bR\x04late\x12\x1f\n" +
@@ -1426,7 +1423,7 @@ var file_levyan_reading_svc_g_proto_depIdxs = []int32{
 	10, // 0: levyan.ReadingAddRequest.tenant:type_name -> levyan.TenantRef
 	11, // 1: levyan.ReadingAddRequest.workspace:type_name -> levyan.WorkspaceRef
 	12, // 2: levyan.ReadingAddRequest.meter:type_name -> levyan.MeterRef
-	13, // 3: levyan.ReadingAddRequest.measured_at:type_name -> google.protobuf.Timestamp
+	13, // 3: levyan.ReadingAddRequest.date_measured:type_name -> google.protobuf.Timestamp
 	13, // 4: levyan.ReadingAddRequest.date_created:type_name -> google.protobuf.Timestamp
 	0,  // 5: levyan.ReadingAddManyRequest.items:type_name -> levyan.ReadingAddRequest
 	14, // 6: levyan.ReadingAddManyResponse.items:type_name -> levyan.Reading
@@ -1436,7 +1433,7 @@ var file_levyan_reading_svc_g_proto_depIdxs = []int32{
 	10, // 10: levyan.ReadingRefByMeasured.tenant:type_name -> levyan.TenantRef
 	11, // 11: levyan.ReadingRefByMeasured.workspace:type_name -> levyan.WorkspaceRef
 	12, // 12: levyan.ReadingRefByMeasured.meter:type_name -> levyan.MeterRef
-	13, // 13: levyan.ReadingRefByMeasured.measured_at:type_name -> google.protobuf.Timestamp
+	13, // 13: levyan.ReadingRefByMeasured.date_measured:type_name -> google.protobuf.Timestamp
 	15, // 14: levyan.ReadingSelect.tenant:type_name -> levyan.TenantSelect
 	16, // 15: levyan.ReadingSelect.workspace:type_name -> levyan.WorkspaceSelect
 	17, // 16: levyan.ReadingSelect.meter:type_name -> levyan.MeterSelect

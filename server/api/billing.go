@@ -95,7 +95,7 @@ func (b Billing) GetUsage(ctx context.Context, req *levyanv1.GetUsageRequest) (*
 	u := levyanv1.Usage_builder{
 		Workspace: key.String(),
 		Period:    period(p.Start, p.End, terms.Zone.String()),
-		AsOf:      timestamppb.New(now),
+		DateAsOf:  timestamppb.New(now),
 		Total:     st.Total,
 	}.Build()
 	if terms.Priced() {
@@ -231,17 +231,17 @@ func (b Billing) ListStatements(ctx context.Context, req *levyanv1.ListStatement
 }
 
 func period(start, end time.Time, zone string) *levyanv1.Period {
-	return levyanv1.Period_builder{Start: timestamppb.New(start), End: timestamppb.New(end), Zone: zone}.Build()
+	return levyanv1.Period_builder{DateStart: timestamppb.New(start), DateEnd: timestamppb.New(end), Zone: zone}.Build()
 }
 
 func statement(v *levyan.Statement, ws pdid.Id, zone string) *levyanv1.Statement {
 	out := levyanv1.Statement_builder{
-		Id:        text(v.GetId()),
-		Workspace: ws.String(),
-		Period:    period(v.GetDateStart().AsTime(), v.GetDateEnd().AsTime(), zone),
-		Currency:  v.GetCurrency(),
-		Total:     v.GetTotal(),
-		Closed:    stamp(v.GetDateCreated()),
+		Id:         text(v.GetId()),
+		Workspace:  ws.String(),
+		Period:     period(v.GetDateStart().AsTime(), v.GetDateEnd().AsTime(), zone),
+		Currency:   v.GetCurrency(),
+		Total:      v.GetTotal(),
+		DateClosed: stamp(v.GetDateCreated()),
 	}.Build()
 	if c, err := billing.Channel(v.GetChannel()); err == nil {
 		out.SetChannel(levyanv1.Channel(c))
@@ -277,15 +277,15 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 		out.SetPools(append(out.GetPools(), levyanv1.LinePool_builder{Pool: text(t.GetPool()), Taken: decimal(t.GetTaken())}.Build()))
 	}
 	if l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION {
-		out.SetCorrects(period(l.GetCorrectsStart().AsTime(), l.GetCorrectsEnd().AsTime(), zone))
+		out.SetCorrects(period(l.GetDateCorrectsStart().AsTime(), l.GetDateCorrectsEnd().AsTime(), zone))
 		out.SetBilled(decimal(l.GetBilled()))
 	}
 
 	for _, p := range l.GetParts() {
 		part := levyanv1.LinePart_builder{
 			Price:     text(p.GetPrice()),
-			From:      stamp(p.GetFrom()),
-			To:        stamp(p.GetTo()),
+			DateStart: stamp(p.GetDateStart()),
+			DateEnd:   stamp(p.GetDateEnd()),
 			Share:     decimal(p.GetShare()),
 			Included:  p.GetIncluded(),
 			Allowance: p.GetAllowance(),
@@ -310,7 +310,7 @@ func line(l *levyan.StatementLine, zone string) *levyanv1.Line {
 		out.SetParts(append(out.GetParts(), part))
 	}
 	for _, s := range l.GetUnpriced() {
-		out.SetUnpriced(append(out.GetUnpriced(), levyanv1.Stretch_builder{From: stamp(s.GetFrom()), To: stamp(s.GetTo())}.Build()))
+		out.SetUnpriced(append(out.GetUnpriced(), levyanv1.Stretch_builder{DateStart: stamp(s.GetDateStart()), DateEnd: stamp(s.GetDateEnd())}.Build()))
 	}
 
 	return out

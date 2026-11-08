@@ -78,8 +78,8 @@ func (h Workspaces) Arrive(ctx context.Context, req *levyanv1.ArriveRequest) (*l
 		return nil, err
 	}
 	var created time.Time
-	if req.HasCreated() {
-		created = req.GetCreated().AsTime()
+	if req.HasDateCreated() {
+		created = req.GetDateCreated().AsTime()
 	}
 
 	st, err := h.P.On(h.S).Arrive(ctx, product, ws, creator, created)
@@ -143,10 +143,10 @@ func (h Workspaces) Offer(ctx context.Context, req *levyanv1.OfferRequest) (*lev
 	}
 
 	return levyanv1.OfferResponse_builder{Offer: levyanv1.Offer_builder{
-		Id:        text(o.GetId()),
-		Workspace: ws.String(),
-		Account:   a.String(),
-		Offered:   stamp(o.GetDateCreated()),
+		Id:          text(o.GetId()),
+		Workspace:   ws.String(),
+		Account:     a.String(),
+		DateOffered: stamp(o.GetDateCreated()),
 	}.Build()}.Build(), nil
 }
 
@@ -176,7 +176,7 @@ func (h Workspaces) GetPayer(ctx context.Context, req *levyanv1.GetPayerRequest)
 // product says (#14): kept once of a moment, read in the order of their
 // moments, and written through the walled stack as the product.
 func (h Workspaces) Close(ctx context.Context, req *levyanv1.CloseRequest) (*levyanv1.CloseResponse, error) {
-	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasAt(), req.GetAt().AsTime(), payers.Payers.Close)
+	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasDateOccurred(), req.GetDateOccurred().AsTime(), payers.Payers.Close)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (h Workspaces) Close(ctx context.Context, req *levyanv1.CloseRequest) (*lev
 }
 
 func (h Workspaces) Restore(ctx context.Context, req *levyanv1.RestoreRequest) (*levyanv1.RestoreResponse, error) {
-	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasAt(), req.GetAt().AsTime(), payers.Payers.Restore)
+	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasDateOccurred(), req.GetDateOccurred().AsTime(), payers.Payers.Restore)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (h Workspaces) Restore(ctx context.Context, req *levyanv1.RestoreRequest) (
 }
 
 func (h Workspaces) Destroy(ctx context.Context, req *levyanv1.DestroyRequest) (*levyanv1.DestroyResponse, error) {
-	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasAt(), req.GetAt().AsTime(), payers.Payers.Destroy)
+	ws, said, err := h.say(ctx, req.GetWorkspace(), req.HasDateOccurred(), req.GetDateOccurred().AsTime(), payers.Payers.Destroy)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (h Workspaces) say(ctx context.Context, workspace string, has bool, at time
 	if !has {
 		// No moment is none, and never now: what is said late is said of
 		// when it happened, and a retry said of now would be another event.
-		return pdid.Nil, payers.Said{}, status.Error(codes.InvalidArgument, "at: when it happened, which the product's own record of it says")
+		return pdid.Nil, payers.Said{}, status.Error(codes.InvalidArgument, "date_occurred: when it happened, which the product's own record of it says")
 	}
 
 	said, err := f(h.P.On(h.S), ctx, product, ws, at)
@@ -243,10 +243,10 @@ func (h Workspaces) say(ctx context.Context, workspace string, has bool, at time
 func lifecycleOf(ws pdid.Id, l rating.Life) *levyanv1.Lifecycle {
 	out := levyanv1.Lifecycle_builder{Workspace: ws.String()}.Build()
 	if !l.Closed.IsZero() {
-		out.SetClosedSince(timestamppb.New(l.Closed))
+		out.SetDateClosed(timestamppb.New(l.Closed))
 	}
 	if !l.Destroyed.IsZero() {
-		out.SetDestroyed(timestamppb.New(l.Destroyed))
+		out.SetDateDestroyed(timestamppb.New(l.Destroyed))
 	}
 
 	return out
@@ -317,9 +317,9 @@ func payerOf(st payers.State) *levyanv1.Payer {
 		out.SetOffer(v)
 	}
 	if st.Payerless() {
-		out.SetPayerlessSince(timestamppb.New(st.Since))
-		out.SetRestrictedFrom(timestamppb.New(st.Restricted))
-		out.SetReadonlyFrom(timestamppb.New(st.Readonly))
+		out.SetDatePayerless(timestamppb.New(st.Since))
+		out.SetDateRestricted(timestamppb.New(st.Restricted))
+		out.SetDateReadonly(timestamppb.New(st.Readonly))
 	}
 
 	return out

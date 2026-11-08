@@ -42,11 +42,11 @@ func at(days, hours int) time.Time {
 
 func reading(ws pdid.Id, meter, unit string, t time.Time, v int64) *levyanv1.Reading {
 	return levyanv1.Reading_builder{
-		Workspace:  ws.String(),
-		Meter:      meter,
-		MeasuredAt: timestamppb.New(t),
-		Value:      v,
-		Unit:       unit,
+		Workspace:    ws.String(),
+		Meter:        meter,
+		DateMeasured: timestamppb.New(t),
+		Value:        v,
+		Unit:         unit,
 	}.Build()
 }
 
@@ -88,7 +88,7 @@ func rows(t *testing.T, w *levyantest.World, product *levyan.Tenant) []*ent.Read
 	t.Helper()
 	pid, err := pdid.From(product.GetId())
 	w.X.NoError(err)
-	vs, err := w.S.Ent.Reading.Query().Where(entreading.TenantId(pid.Uuid())).Order(ent.Asc(entreading.FieldMeasuredAt)).All(context.Background())
+	vs, err := w.S.Ent.Reading.Query().Where(entreading.TenantId(pid.Uuid())).Order(ent.Asc(entreading.FieldDateMeasured)).All(context.Background())
 	w.X.NoError(err)
 	return vs
 }
@@ -161,7 +161,7 @@ func TestWhatIsNotAReadingOfTheProductIsRefused(t *testing.T) {
 
 	ahead := time.Now().Add(time.Hour)
 	noMoment := reading(ws, "loft.assets.active", "{asset}", at(0, 0), 1)
-	noMoment.ClearMeasuredAt()
+	noMoment.ClearDateMeasured()
 
 	rs := p.record(
 		reading(ws, "loft.assets.active", "{asset}", at(0, 0), 10),
@@ -170,7 +170,7 @@ func TestWhatIsNotAReadingOfTheProductIsRefused(t *testing.T) {
 		reading(ws, "loft.assets.active", "{assets}", at(0, 0), 10),
 		reading(ws, "loft.assets.active", "1", at(0, 0), 10),
 		reading(pdid.New(pd.HolderDomain), "loft.assets.active", "{asset}", at(0, 0), 10),
-		levyanv1.Reading_builder{Workspace: "loft", Meter: "loft.assets.active", MeasuredAt: timestamppb.New(at(0, 0)), Value: 1, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: "loft", Meter: "loft.assets.active", DateMeasured: timestamppb.New(at(0, 0)), Value: 1, Unit: "{asset}"}.Build(),
 		reading(ws, "loft.assets.active", "{asset}", ahead, 10),
 		noMoment,
 		reading(ws, "loft.assets.active", "{asset}", at(1, 0), -1),

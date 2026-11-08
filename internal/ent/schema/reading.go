@@ -21,7 +21,7 @@ func (Reading) Fields() []ent.Field {
 		field.Uuid("id").
 			Unique().
 			Immutable(),
-		field.Time("measured_at").
+		field.Time("date_measured").
 			Immutable().
 			Optional(),
 		field.Int64("value").
@@ -67,13 +67,13 @@ func (Reading) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tenant_id", "date_created", "id").
 			StorageKey("reading_page"),
-		index.Fields("tenant_id", "workspace_id", "meter_id", "measured_at").
+		index.Fields("tenant_id", "workspace_id", "meter_id", "date_measured").
 			StorageKey("reading_measured").
 			Unique().
 			Annotations(entsql.IndexWhere("date_erased IS NULL")),
-		index.Fields("tenant_id", "meter_id", "measured_at").
+		index.Fields("tenant_id", "meter_id", "date_measured").
 			StorageKey("reading_recent"),
-		index.Fields("late", "workspace_id", "measured_at").
+		index.Fields("late", "workspace_id", "date_measured").
 			StorageKey("reading_late"),
 	}
 }

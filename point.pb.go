@@ -44,8 +44,8 @@ type Point struct {
 	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
 	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
 	xxx_hidden_Series      *Series                `protobuf:"bytes,8,opt,name=series"`
-	xxx_hidden_StartedAt   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=started_at,json=startedAt"`
-	xxx_hidden_CountedAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=counted_at,json=countedAt"`
+	xxx_hidden_DateStarted *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=date_started,json=dateStarted"`
+	xxx_hidden_DateCounted *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_counted,json=dateCounted"`
 	xxx_hidden_Value       int64                  `protobuf:"varint,11,opt,name=value"`
 	xxx_hidden_Late        bool                   `protobuf:"varint,12,opt,name=late"`
 	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
@@ -107,16 +107,16 @@ func (x *Point) GetSeries() *Series {
 	return nil
 }
 
-func (x *Point) GetStartedAt() *timestamppb.Timestamp {
+func (x *Point) GetDateStarted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_StartedAt
+		return x.xxx_hidden_DateStarted
 	}
 	return nil
 }
 
-func (x *Point) GetCountedAt() *timestamppb.Timestamp {
+func (x *Point) GetDateCounted() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_CountedAt
+		return x.xxx_hidden_DateCounted
 	}
 	return nil
 }
@@ -168,12 +168,12 @@ func (x *Point) SetSeries(v *Series) {
 	x.xxx_hidden_Series = v
 }
 
-func (x *Point) SetStartedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_StartedAt = v
+func (x *Point) SetDateStarted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStarted = v
 }
 
-func (x *Point) SetCountedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CountedAt = v
+func (x *Point) SetDateCounted(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCounted = v
 }
 
 func (x *Point) SetValue(v int64) {
@@ -213,18 +213,18 @@ func (x *Point) HasSeries() bool {
 	return x.xxx_hidden_Series != nil
 }
 
-func (x *Point) HasStartedAt() bool {
+func (x *Point) HasDateStarted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_StartedAt != nil
+	return x.xxx_hidden_DateStarted != nil
 }
 
-func (x *Point) HasCountedAt() bool {
+func (x *Point) HasDateCounted() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_CountedAt != nil
+	return x.xxx_hidden_DateCounted != nil
 }
 
 func (x *Point) HasDateErased() bool {
@@ -253,12 +253,12 @@ func (x *Point) ClearSeries() {
 	x.xxx_hidden_Series = nil
 }
 
-func (x *Point) ClearStartedAt() {
-	x.xxx_hidden_StartedAt = nil
+func (x *Point) ClearDateStarted() {
+	x.xxx_hidden_DateStarted = nil
 }
 
-func (x *Point) ClearCountedAt() {
-	x.xxx_hidden_CountedAt = nil
+func (x *Point) ClearDateCounted() {
+	x.xxx_hidden_DateCounted = nil
 }
 
 func (x *Point) ClearDateErased() {
@@ -281,10 +281,10 @@ type Point_builder struct {
 	Series *Series
 	// When the count it is part of began: OpenTelemetry's start time, to the
 	// microsecond.
-	StartedAt *timestamppb.Timestamp
+	DateStarted *timestamppb.Timestamp
 	// When it was counted to: OpenTelemetry's time, to the microsecond.
-	CountedAt *timestamppb.Timestamp
-	// How much its series had counted from `started_at` to `counted_at`, in
+	DateCounted *timestamppb.Timestamp
+	// How much its series had counted from `date_started` to `date_counted`, in
 	// the meter's unit.
 	Value int64
 	// Counted to a moment of a period of the product's that was closed by the
@@ -305,8 +305,8 @@ func (b0 Point_builder) Build() *Point {
 	x.xxx_hidden_Tenant = b.Tenant
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Series = b.Series
-	x.xxx_hidden_StartedAt = b.StartedAt
-	x.xxx_hidden_CountedAt = b.CountedAt
+	x.xxx_hidden_DateStarted = b.DateStarted
+	x.xxx_hidden_DateCounted = b.DateCounted
 	x.xxx_hidden_Value = b.Value
 	x.xxx_hidden_Late = b.Late
 	x.xxx_hidden_DateErased = b.DateErased
@@ -318,41 +318,35 @@ var File_levyan_point_proto protoreflect.FileDescriptor
 
 const file_levyan_point_proto_rawDesc = "" +
 	"\n" +
-	"\x12levyan/point.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/series.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xcb\x06\n" +
+	"\x12levyan/point.proto\x12\x06levyan\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/series.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xdb\x06\n" +
 	"\x05Point\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x11.levyan.WorkspaceB\x06\xf2\x82\x16\x02@\x01R\tworkspace\x12.\n" +
-	"\x06series\x18\b \x01(\v2\x0e.levyan.SeriesB\x06\xf2\x82\x16\x02@\x01R\x06series\x12D\n" +
-	"\n" +
-	"started_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tstartedAt\x12D\n" +
-	"\n" +
-	"counted_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tcountedAt\x12\x1c\n" +
+	"\x06series\x18\b \x01(\v2\x0e.levyan.SeriesB\x06\xf2\x82\x16\x02@\x01R\x06series\x12H\n" +
+	"\fdate_started\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateStarted\x12H\n" +
+	"\fdate_counted\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCounted\x12\x1c\n" +
 	"\x05value\x18\v \x01(\x03B\x06\xea\x82\x16\x02@\x01R\x05value\x12\x1a\n" +
 	"\x04late\x18\f \x01(\bB\x06\xea\x82\x16\x02@\x01R\x04late\x12D\n" +
 	"\vdate_erased\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x92\x01\x00R\n" +
 	"dateErased\x12H\n" +
-	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\xb5\x02\xca\xfc\x15\xd7\x01\x12\x11\x10\x01\x82\x01\x02\x12\x00\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
+	"\fdate_created\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\vdateCreated:\xbd\x02\xca\xfc\x15\xdf\x01\x12\x11\x10\x01\x82\x01\x02\x12\x00\x92\x01\x02\b\x01\x9a\x01\x02\b\x01\x1a,\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x10\n" +
 	"\fdate_created\x10\x0f\x1a\x06\n" +
-	"\x02id\x10\x01\x1a7\x12\acounted\x1a\n" +
+	"\x02id\x10\x01\x1a;\x12\acounted\x1a\n" +
 	"\n" +
-	"\x06series\x10\b\x1a\x0e\n" +
-	"\n" +
-	"started_at\x10\t\x1a\x0e\n" +
-	"\n" +
-	"counted_at\x10\n" +
-	"0\x01\x1a*\x12\tworkspace\x1a\r\n" +
-	"\tworkspace\x10\x03\x1a\x0e\n" +
-	"\n" +
-	"counted_at\x10\n" +
-	"\x1a/\x12\x04late\x1a\b\n" +
+	"\x06series\x10\b\x1a\x10\n" +
+	"\fdate_started\x10\t\x1a\x10\n" +
+	"\fdate_counted\x10\n" +
+	"0\x01\x1a,\x12\tworkspace\x1a\r\n" +
+	"\tworkspace\x10\x03\x1a\x10\n" +
+	"\fdate_counted\x10\n" +
+	"\x1a1\x12\x04late\x1a\b\n" +
 	"\x04late\x10\f\x1a\r\n" +
-	"\tworkspace\x10\x03\x1a\x0e\n" +
-	"\n" +
-	"counted_at\x10\n" +
+	"\tworkspace\x10\x03\x1a\x10\n" +
+	"\fdate_counted\x10\n" +
 	"\x8a\xbb\x16U\b\x0f2&\n" +
 	"\x10\n" +
 	"\x0e\n" +
@@ -375,8 +369,8 @@ var file_levyan_point_proto_depIdxs = []int32{
 	1, // 0: levyan.Point.tenant:type_name -> levyan.Tenant
 	2, // 1: levyan.Point.workspace:type_name -> levyan.Workspace
 	3, // 2: levyan.Point.series:type_name -> levyan.Series
-	4, // 3: levyan.Point.started_at:type_name -> google.protobuf.Timestamp
-	4, // 4: levyan.Point.counted_at:type_name -> google.protobuf.Timestamp
+	4, // 3: levyan.Point.date_started:type_name -> google.protobuf.Timestamp
+	4, // 4: levyan.Point.date_counted:type_name -> google.protobuf.Timestamp
 	4, // 5: levyan.Point.date_erased:type_name -> google.protobuf.Timestamp
 	4, // 6: levyan.Point.date_created:type_name -> google.protobuf.Timestamp
 	7, // [7:7] is the sub-list for method output_type

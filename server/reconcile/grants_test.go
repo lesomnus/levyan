@@ -43,7 +43,7 @@ func TestAGrantARuleWantsIsThere(t *testing.T) {
 	x.Equal("loft.restricted", g.Key)
 
 	// Ended by hand, past the servers.
-	x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetValidUntil(w.srv.Now()).SetRenews(false).Exec(w.ctx))
+	x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetDateExpires(w.srv.Now()).SetRenews(false).Exec(w.ctx))
 	w.reconcile()
 	w.nothing()
 
@@ -146,7 +146,7 @@ func TestTheDunningRuleIsHeldToToo(t *testing.T) {
 	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING))
 	x.Empty(w.of(levyan.FindingKind_FINDING_KIND_GRANT_LEFT))
 
-	x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetValidUntil(w.srv.Now()).SetRenews(false).Exec(w.ctx))
+	x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetDateExpires(w.srv.Now()).SetRenews(false).Exec(w.ctx))
 	w.to(w.srv.Now().Add(reconcile.Lag(time.Hour)))
 	w.reconcile()
 	fs := w.of(levyan.FindingKind_FINDING_KIND_GRANT_MISSING)
@@ -225,7 +225,7 @@ func TestTheReadonlyRulesAreHeldToToo(t *testing.T) {
 
 	// Ended by hand, past the servers: found missing, each of its rule.
 	for _, g := range by {
-		x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetValidUntil(w.srv.Now()).SetRenews(false).Exec(w.ctx))
+		x.NoError(w.S.Ent.Grant.UpdateOneId(g.Id).SetDateExpires(w.srv.Now()).SetRenews(false).Exec(w.ctx))
 	}
 	w.to(w.srv.Now().Add(reconcile.Lag(time.Hour)))
 	w.reconcile()

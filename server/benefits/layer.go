@@ -110,19 +110,19 @@ func (s layerAllowance) admit(ctx context.Context, req *levyan.AllowanceAddReque
 	// To the microsecond, which is what PostgreSQL keeps of a time.
 	req = proto.CloneOf(req)
 	from := s.now().UTC().Truncate(time.Microsecond)
-	if req.HasValidFrom() {
-		from = req.GetValidFrom().AsTime().UTC().Truncate(time.Microsecond)
+	if req.HasDateEffective() {
+		from = req.GetDateEffective().AsTime().UTC().Truncate(time.Microsecond)
 	}
-	req.SetValidFrom(timestamppb.New(from))
-	if req.HasValidUntil() {
-		until := req.GetValidUntil().AsTime().UTC().Truncate(time.Microsecond)
+	req.SetDateEffective(timestamppb.New(from))
+	if req.HasDateExpires() {
+		until := req.GetDateExpires().AsTime().UTC().Truncate(time.Microsecond)
 		if !until.After(from) {
-			return nil, pderr.Invalidf("valid_until", "an allowance ends after it begins")
+			return nil, pderr.Invalidf("date_expires", "an allowance ends after it begins")
 		}
-		req.SetValidUntil(timestamppb.New(until))
+		req.SetDateExpires(timestamppb.New(until))
 	}
 
-	if err := s.unclosed(ctx, req.GetTenant().GetId(), from, "valid_from"); err != nil {
+	if err := s.unclosed(ctx, req.GetTenant().GetId(), from, "date_effective"); err != nil {
 		return nil, err
 	}
 
@@ -231,14 +231,14 @@ func (s layerAllowance) Patch(ctx context.Context, req *levyan.AllowancePatchReq
 	rest.ClearRef()
 	rest.ClearDateUpdated()
 	rest.ClearDateUpdatedForce()
-	rest.ClearValidUntil()
+	rest.ClearDateExpires()
 	rest.ClearEndedBy()
 	rest.ClearEndReason()
 	switch {
 	case proto.Size(rest) > 0:
 		return nil, status.Error(codes.FailedPrecondition, "an allowance is what it was given as: only its end moves, as it is ended")
-	case !req.HasValidUntil():
-		return nil, pderr.Invalidf("valid_until", "an allowance is ended at a moment")
+	case !req.HasDateExpires():
+		return nil, pderr.Invalidf("date_expires", "an allowance is ended at a moment")
 	}
 
 	was, err := s.Next().Allowance().Get(ctx, levyan.AllowanceGetRequest_builder{
@@ -252,19 +252,19 @@ func (s layerAllowance) Patch(ctx context.Context, req *levyan.AllowancePatchReq
 		return nil, err
 	}
 
-	until := req.GetValidUntil().AsTime().UTC().Truncate(time.Microsecond)
+	until := req.GetDateExpires().AsTime().UTC().Truncate(time.Microsecond)
 	switch {
-	case until.Before(was.GetValidFrom().AsTime()):
-		return nil, pderr.Invalidf("valid_until", "an allowance ends no earlier than it begins")
-	case was.HasValidUntil() && until.After(was.GetValidUntil().AsTime()):
+	case until.Before(was.GetDateEffective().AsTime()):
+		return nil, pderr.Invalidf("date_expires", "an allowance ends no earlier than it begins")
+	case was.HasDateExpires() && until.After(was.GetDateExpires().AsTime()):
 		return nil, status.Error(codes.FailedPrecondition, "an allowance's end moves no later: another is given for longer")
 	}
-	if err := s.unclosed(ctx, was.GetTenant().GetId(), until, "valid_until"); err != nil {
+	if err := s.unclosed(ctx, was.GetTenant().GetId(), until, "date_expires"); err != nil {
 		return nil, err
 	}
 
 	req = proto.CloneOf(req)
-	req.SetValidUntil(timestamppb.New(until))
+	req.SetDateExpires(timestamppb.New(until))
 	return s.AllowanceServiceServer.Patch(ctx, req)
 }
 
@@ -302,17 +302,17 @@ func (s layerPool) admit(ctx context.Context, req *levyan.PoolAddRequest) (*levy
 
 	req = proto.CloneOf(req)
 	from := s.now().UTC().Truncate(time.Microsecond)
-	if req.HasValidFrom() {
-		from = req.GetValidFrom().AsTime().UTC().Truncate(time.Microsecond)
+	if req.HasDateEffective() {
+		from = req.GetDateEffective().AsTime().UTC().Truncate(time.Microsecond)
 	}
-	req.SetValidFrom(timestamppb.New(from))
+	req.SetDateEffective(timestamppb.New(from))
 	expires := req.GetDateExpires().AsTime().UTC().Truncate(time.Microsecond)
 	if !expires.After(from) {
 		return nil, pderr.Invalidf("date_expires", "a pool expires after it is in force from")
 	}
 	req.SetDateExpires(timestamppb.New(expires))
 
-	if err := s.unclosed(ctx, req.GetTenant().GetId(), from, "valid_from"); err != nil {
+	if err := s.unclosed(ctx, req.GetTenant().GetId(), from, "date_effective"); err != nil {
 		return nil, err
 	}
 
@@ -350,7 +350,7 @@ func (s layerPool) Patch(ctx context.Context, req *levyan.PoolPatchRequest) (*le
 
 	expires := req.GetDateExpires().AsTime().UTC().Truncate(time.Microsecond)
 	switch {
-	case expires.Before(was.GetValidFrom().AsTime()):
+	case expires.Before(was.GetDateEffective().AsTime()):
 		return nil, pderr.Invalidf("date_expires", "a pool expires no earlier than it is in force from")
 	case expires.After(was.GetDateExpires().AsTime()):
 		return nil, status.Error(codes.FailedPrecondition, "a pool's expiry moves no later: another is given for longer")

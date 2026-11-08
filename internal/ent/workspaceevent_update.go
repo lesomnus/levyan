@@ -110,11 +110,11 @@ func (_u *WorkspaceEventUpdate) sqlSave(ctx context.Context) (_node int, err err
 			}
 		}
 	}
-	if _u.mutation.HappenedAtCleared() {
-		_spec.ClearField(workspaceevent.FieldHappenedAt, field.TypeTime)
+	if _u.mutation.DateOccurredCleared() {
+		_spec.ClearField(workspaceevent.FieldDateOccurred, field.TypeTime)
 	}
-	if _u.mutation.LateThroughCleared() {
-		_spec.ClearField(workspaceevent.FieldLateThrough, field.TypeTime)
+	if _u.mutation.DateLateThroughCleared() {
+		_spec.ClearField(workspaceevent.FieldDateLateThrough, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(workspaceevent.FieldDateErased, field.TypeTime, value)
@@ -261,11 +261,11 @@ func (_u *WorkspaceEventUpdateOne) sqlSave(ctx context.Context) (_node *Workspac
 			}
 		}
 	}
-	if _u.mutation.HappenedAtCleared() {
-		_spec.ClearField(workspaceevent.FieldHappenedAt, field.TypeTime)
+	if _u.mutation.DateOccurredCleared() {
+		_spec.ClearField(workspaceevent.FieldDateOccurred, field.TypeTime)
 	}
-	if _u.mutation.LateThroughCleared() {
-		_spec.ClearField(workspaceevent.FieldLateThrough, field.TypeTime)
+	if _u.mutation.DateLateThroughCleared() {
+		_spec.ClearField(workspaceevent.FieldDateLateThrough, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(workspaceevent.FieldDateErased, field.TypeTime, value)

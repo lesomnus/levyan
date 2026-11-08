@@ -115,7 +115,7 @@ func TestAProductsUserAnswersAsItself(t *testing.T) {
 	acc, err := p.payers().Accept(p.as(other), levyanv1.AcceptRequest_builder{Offer: o.GetOffer().GetId(), BillingAccount: ba.GetBillingAccount().GetId()}.Build())
 	x.NoError(err)
 	x.Equal(ws.String(), acc.GetLink().GetWorkspace())
-	x.Equal(time.Date(2027, 2, 1, 0, 0, 0, 0, time.UTC), acc.GetLink().GetStart().AsTime())
+	x.Equal(time.Date(2027, 2, 1, 0, 0, 0, 0, time.UTC), acc.GetLink().GetDateStart().AsTime())
 
 	got2, err := p.workspaces().GetPayer(p.product, levyanv1.GetPayerRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
@@ -134,11 +134,11 @@ func TestAProductsUserAnswersAsItself(t *testing.T) {
 	p.w.At(time.Date(2027, 1, 20, 0, 0, 0, 0, time.UTC))
 	left, err := p.workspaces().Leave(p.product, levyanv1.LeaveRequest_builder{Workspace: ws.String(), Account: creator.String()}.Build())
 	x.NoError(err)
-	x.NotNil(left.GetPayer().GetPayerlessSince(), "nobody pays for it, now or next")
-	x.NotNil(left.GetPayer().GetRestrictedFrom())
-	since := left.GetPayer().GetPayerlessSince().AsTime()
-	x.True(since.Add(30*24*time.Hour).Equal(left.GetPayer().GetRestrictedFrom().AsTime()), "thirty days after")
-	x.True(since.Add(60*24*time.Hour).Equal(left.GetPayer().GetReadonlyFrom().AsTime()), "and read-only sixty days after")
+	x.NotNil(left.GetPayer().GetDatePayerless(), "nobody pays for it, now or next")
+	x.NotNil(left.GetPayer().GetDateRestricted())
+	since := left.GetPayer().GetDatePayerless().AsTime()
+	x.True(since.Add(30*24*time.Hour).Equal(left.GetPayer().GetDateRestricted().AsTime()), "thirty days after")
+	x.True(since.Add(60*24*time.Hour).Equal(left.GetPayer().GetDateReadonly().AsTime()), "and read-only sixty days after")
 }
 
 // An account is served only as roster says it may be now: refused when

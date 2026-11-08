@@ -35,8 +35,8 @@ func Line(l rating.Line) *levyan.StatementLine {
 	for _, p := range l.Parts {
 		part := levyan.StatementPart_builder{
 			Price:     p.Version.Bytes(),
-			From:      timestamppb.New(p.From),
-			To:        timestamppb.New(p.To),
+			DateStart: timestamppb.New(p.From),
+			DateEnd:   timestamppb.New(p.To),
 			Share:     fraction(p.Share),
 			Included:  p.Included,
 			Allowance: p.Allowance,
@@ -60,8 +60,8 @@ func Line(l rating.Line) *levyan.StatementLine {
 	}
 	for _, s := range l.Unpriced {
 		out.SetUnpriced(append(out.GetUnpriced(), levyan.StatementUnpriced_builder{
-			From: timestamppb.New(s.From),
-			To:   timestamppb.New(s.To),
+			DateStart: timestamppb.New(s.From),
+			DateEnd:   timestamppb.New(s.To),
 		}.Build()))
 	}
 
@@ -74,8 +74,8 @@ func Line(l rating.Line) *levyan.StatementLine {
 func Corrects(c Correction) *levyan.StatementLine {
 	out := Line(c.Now)
 	out.SetKind(levyan.LineKind_LINE_KIND_CORRECTION)
-	out.SetCorrectsStart(timestamppb.New(c.Period.DateStart))
-	out.SetCorrectsEnd(timestamppb.New(c.Period.DateEnd))
+	out.SetDateCorrectsStart(timestamppb.New(c.Period.DateStart))
+	out.SetDateCorrectsEnd(timestamppb.New(c.Period.DateEnd))
 	if c.Statement != nil {
 		out.SetCorrects(c.Statement.Id[:])
 	}

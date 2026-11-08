@@ -166,7 +166,7 @@ func (g Grants) follow(ctx context.Context, product uuid.UUID, r Rule) error {
 			entgrant.Source(int32(levyan.GrantSource_GRANT_SOURCE_RULE)),
 			entgrant.Rule(r.Name()),
 			entgrant.DateErasedIsNil(),
-			entgrant.Or(entgrant.Renews(true), entgrant.ValidUntilGT(now)),
+			entgrant.Or(entgrant.Renews(true), entgrant.DateExpiresGT(now)),
 		).
 		All(ctx)
 	if err != nil {

@@ -70,7 +70,7 @@ func (g Grants) Again(ctx context.Context, product pdid.Id, rule string) error {
 				entgrant.Source(int32(levyan.GrantSource_GRANT_SOURCE_RULE)),
 				entgrant.Rule(n),
 				entgrant.DateErasedIsNil(),
-				entgrant.Or(entgrant.Renews(true), entgrant.ValidUntilGT(now)),
+				entgrant.Or(entgrant.Renews(true), entgrant.DateExpiresGT(now)),
 			).
 			Ids(ctx)
 		if err != nil {
@@ -100,7 +100,7 @@ func (g Grants) Gone(ctx context.Context, product uuid.UUID) ([]string, error) {
 			entgrant.TenantId(product),
 			entgrant.Source(int32(levyan.GrantSource_GRANT_SOURCE_RULE)),
 			entgrant.DateErasedIsNil(),
-			entgrant.Or(entgrant.Renews(true), entgrant.ValidUntilGT(g.now())),
+			entgrant.Or(entgrant.Renews(true), entgrant.DateExpiresGT(g.now())),
 		).
 		Select(entgrant.FieldRule).
 		All(ctx)

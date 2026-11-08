@@ -29,15 +29,15 @@ func printFinding(self *xli.Command, v admin.Finding) {
 
 func printFindingShown(self *xli.Command, v admin.Finding) {
 	printFinding(self, v)
-	self.Printf("  subject %s, found %s, last changed %s\n", v.Subject, when(v.Found), when(v.Updated))
+	self.Printf("  subject %s, found %s, last changed %s\n", v.Subject, when(v.DateFound), when(v.DateUpdated))
 	for _, r := range v.Rows {
 		self.Printf("  row\t%s\t%s\n", r.Entity, r.Ref)
 	}
-	if v.Accepted != nil {
-		self.Printf("  accepted %s by %s: %s\n", when(*v.Accepted), v.AcceptedBy, v.Reason)
+	if v.DateAccepted != nil {
+		self.Printf("  accepted %s by %s: %s\n", when(*v.DateAccepted), v.AcceptedBy, v.Reason)
 	}
-	if v.Resolved != nil {
-		self.Printf("  resolved %s: %s\n", when(*v.Resolved), v.Resolution)
+	if v.DateResolved != nil {
+		self.Printf("  resolved %s: %s\n", when(*v.DateResolved), v.Resolution)
 	}
 	self.Printf("  correction: %s\n", v.Correction)
 	if v.Command != "" {

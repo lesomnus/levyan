@@ -56,7 +56,7 @@ type WorkspaceServiceClient interface {
 	// GetPayer is who pays for a workspace now and next, what is offered, and
 	// since when it has had no payer.
 	GetPayer(ctx context.Context, in *GetPayerRequest, opts ...grpc.CallOption) (*GetPayerResponse, error)
-	// Close says a workspace was closed at `at`: from then, while nothing
+	// Close says a workspace was closed at `date_occurred`: from then, while nothing
 	// restores it, it is no customer, and what it holds is billed for none of
 	// that stretch. Its readings are still sent, and kept. Its payer stays its
 	// payer.
@@ -66,22 +66,22 @@ type WorkspaceServiceClient interface {
 	// their coming, so one sent late takes its place and an older one never
 	// undoes what a newer one says; and one that comes after a period it
 	// reaches into was closed is corrected on a later statement, as a late
-	// reading is. `at` is never ahead of now, nor before the workspace arrived
+	// reading is. `date_occurred` is never ahead of now, nor before the workspace arrived
 	// (InvalidArgument); a workspace levyan has heard nothing of -- no Arrive,
 	// no reading -- has nothing to close (NotFound); and another thing said of
 	// a moment one was said of already is refused (FailedPrecondition).
 	Close(ctx context.Context, in *CloseRequest, opts ...grpc.CallOption) (*CloseResponse, error)
-	// Restore says a closed workspace was opened again at `at`: it is billed
+	// Restore says a closed workspace was opened again at `date_occurred`: it is billed
 	// for the stretch it was closed for, as for any open time, and from then
 	// on as it was before it was closed. What a period closed since its close
 	// was billed without that stretch is corrected on a later statement: a
 	// restore reaches back to the close it ends.
 	Restore(ctx context.Context, in *RestoreRequest, opts ...grpc.CallOption) (*RestoreResponse, error)
-	// Destroy says a workspace was destroyed at `at`, for good: it is billed
+	// Destroy says a workspace was destroyed at `date_occurred`, for good: it is billed
 	// for nothing after it -- nor for the stretch it was closed for, if it was
 	// closed -- its last reading holds to that moment and no further, its
 	// payer pays for it no longer (`LINK_ENDED_DESTROYED`), and what was
-	// offered of it is withdrawn. A reading measured at `at` or after is
+	// offered of it is withdrawn. A reading measured at `date_occurred` or after is
 	// refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of its
 	// moment or after it (FailedPrecondition). Its final reading, measured
 	// before it went, is sent first.
@@ -202,7 +202,7 @@ type WorkspaceServiceServer interface {
 	// GetPayer is who pays for a workspace now and next, what is offered, and
 	// since when it has had no payer.
 	GetPayer(context.Context, *GetPayerRequest) (*GetPayerResponse, error)
-	// Close says a workspace was closed at `at`: from then, while nothing
+	// Close says a workspace was closed at `date_occurred`: from then, while nothing
 	// restores it, it is no customer, and what it holds is billed for none of
 	// that stretch. Its readings are still sent, and kept. Its payer stays its
 	// payer.
@@ -212,22 +212,22 @@ type WorkspaceServiceServer interface {
 	// their coming, so one sent late takes its place and an older one never
 	// undoes what a newer one says; and one that comes after a period it
 	// reaches into was closed is corrected on a later statement, as a late
-	// reading is. `at` is never ahead of now, nor before the workspace arrived
+	// reading is. `date_occurred` is never ahead of now, nor before the workspace arrived
 	// (InvalidArgument); a workspace levyan has heard nothing of -- no Arrive,
 	// no reading -- has nothing to close (NotFound); and another thing said of
 	// a moment one was said of already is refused (FailedPrecondition).
 	Close(context.Context, *CloseRequest) (*CloseResponse, error)
-	// Restore says a closed workspace was opened again at `at`: it is billed
+	// Restore says a closed workspace was opened again at `date_occurred`: it is billed
 	// for the stretch it was closed for, as for any open time, and from then
 	// on as it was before it was closed. What a period closed since its close
 	// was billed without that stretch is corrected on a later statement: a
 	// restore reaches back to the close it ends.
 	Restore(context.Context, *RestoreRequest) (*RestoreResponse, error)
-	// Destroy says a workspace was destroyed at `at`, for good: it is billed
+	// Destroy says a workspace was destroyed at `date_occurred`, for good: it is billed
 	// for nothing after it -- nor for the stretch it was closed for, if it was
 	// closed -- its last reading holds to that moment and no further, its
 	// payer pays for it no longer (`LINK_ENDED_DESTROYED`), and what was
-	// offered of it is withdrawn. A reading measured at `at` or after is
+	// offered of it is withdrawn. A reading measured at `date_occurred` or after is
 	// refused (`REFUSAL_DESTROYED`), and so is a close or a restore said of its
 	// moment or after it (FailedPrecondition). Its final reading, measured
 	// before it went, is sent first.

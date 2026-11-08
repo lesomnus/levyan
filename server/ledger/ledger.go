@@ -414,7 +414,7 @@ func Destroyed(ctx context.Context, db *ent.Client, product uuid.UUID, ws ...uui
 		return nil, err
 	}
 	for _, v := range vs {
-		at := Moment(v.HappenedAt)
+		at := Moment(v.DateOccurred)
 		if was, ok := out[v.WorkspaceId]; !ok || at.Before(was) {
 			out[v.WorkspaceId] = at
 		}

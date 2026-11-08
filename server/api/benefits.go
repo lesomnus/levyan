@@ -28,15 +28,15 @@ import (
 // allowanceOf is an allowance as the API says it.
 func allowanceOf(v *ent.Allowance) *levyanv1.Allowance {
 	out := levyanv1.Allowance_builder{
-		Id:       pdid.Id(v.Id).String(),
-		Quantity: v.Quantity,
-		From:     timestamppb.New(v.ValidFrom),
+		Id:            pdid.Id(v.Id).String(),
+		Quantity:      v.Quantity,
+		DateEffective: timestamppb.New(v.DateEffective),
 	}.Build()
 	if m := v.Edges.Meter; m != nil {
 		out.SetMeter(m.Key)
 	}
-	if v.ValidUntil != nil {
-		out.SetUntil(timestamppb.New(*v.ValidUntil))
+	if v.DateExpires != nil {
+		out.SetDateExpires(timestamppb.New(*v.DateExpires))
 	}
 
 	return out
@@ -45,12 +45,12 @@ func allowanceOf(v *ent.Allowance) *levyanv1.Allowance {
 // poolOf is a pool, of the meter keyed `meter`, as the API says it.
 func poolOf(v billing.PoolLeft, meter string) *levyanv1.Pool {
 	return levyanv1.Pool_builder{
-		Id:      pdid.Id(v.Row.Id).String(),
-		Meter:   meter,
-		Granted: v.Row.Quantity,
-		Left:    decimal(v.Left.RatString()),
-		From:    timestamppb.New(v.Row.ValidFrom),
-		Expires: timestamppb.New(v.Row.DateExpires),
+		Id:            pdid.Id(v.Row.Id).String(),
+		Meter:         meter,
+		Granted:       v.Row.Quantity,
+		Left:          decimal(v.Left.RatString()),
+		DateEffective: timestamppb.New(v.Row.DateEffective),
+		DateExpires:   timestamppb.New(v.Row.DateExpires),
 	}.Build()
 }
 
@@ -58,12 +58,12 @@ func poolOf(v billing.PoolLeft, meter string) *levyanv1.Pool {
 // the product's name of it in `keys`.
 func creditOf(l invoices.Lot, keys map[uuid.UUID]string) *levyanv1.Credit {
 	out := levyanv1.Credit_builder{
-		Id:       pdid.Id(l.Row.Id).String(),
-		Granted:  l.Row.Amount,
-		Left:     max(l.Left, 0),
-		Currency: l.Row.Currency,
-		Expires:  timestamppb.New(l.Expires()),
-		Created:  timestamppb.New(l.Row.DateCreated),
+		Id:          pdid.Id(l.Row.Id).String(),
+		Granted:     l.Row.Amount,
+		Left:        max(l.Left, 0),
+		Currency:    l.Row.Currency,
+		DateExpires: timestamppb.New(l.Expires()),
+		DateCreated: timestamppb.New(l.Row.DateCreated),
 	}.Build()
 	if ws := l.Workspace(); ws != (uuid.UUID{}) {
 		out.SetWorkspace(keys[ws])
@@ -134,9 +134,9 @@ func paidWith(ctx context.Context, db *ent.Client, product uuid.UUID, inv uuid.U
 	out := []*levyanv1.InvoiceCredit{}
 	for _, l := range lots {
 		c := levyanv1.InvoiceCredit_builder{
-			Credit:  pdid.Id(l.Row.Id).String(),
-			Amount:  paid[l.Row.Id],
-			Expires: timestamppb.New(l.Expires()),
+			Credit:      pdid.Id(l.Row.Id).String(),
+			Amount:      paid[l.Row.Id],
+			DateExpires: timestamppb.New(l.Expires()),
 		}.Build()
 		if ws := l.Workspace(); ws != (uuid.UUID{}) {
 			c.SetWorkspace(keys[ws])

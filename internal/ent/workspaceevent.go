@@ -22,10 +22,10 @@ type WorkspaceEvent struct {
 	Id uuid.UUID `json:"id,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind int32 `json:"kind,omitempty"`
-	// HappenedAt holds the value of the "happened_at" field.
-	HappenedAt time.Time `json:"happened_at,omitempty"`
-	// LateThrough holds the value of the "late_through" field.
-	LateThrough *time.Time `json:"late_through,omitempty"`
+	// DateOccurred holds the value of the "date_occurred" field.
+	DateOccurred time.Time `json:"date_occurred,omitempty"`
+	// DateLateThrough holds the value of the "date_late_through" field.
+	DateLateThrough *time.Time `json:"date_late_through,omitempty"`
 	// DateErased holds the value of the "date_erased" field.
 	DateErased *time.Time `json:"date_erased,omitempty"`
 	// DateCreated holds the value of the "date_created" field.
@@ -80,7 +80,7 @@ func (*WorkspaceEvent) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case workspaceevent.FieldKind:
 			values[i] = new(sql.NullInt64)
-		case workspaceevent.FieldHappenedAt, workspaceevent.FieldLateThrough, workspaceevent.FieldDateErased, workspaceevent.FieldDateCreated:
+		case workspaceevent.FieldDateOccurred, workspaceevent.FieldDateLateThrough, workspaceevent.FieldDateErased, workspaceevent.FieldDateCreated:
 			values[i] = new(sql.NullTime)
 		case workspaceevent.FieldId, workspaceevent.FieldTenantId, workspaceevent.FieldWorkspaceId:
 			values[i] = new(uuid.UUID)
@@ -111,18 +111,18 @@ func (_m *WorkspaceEvent) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Kind = int32(value.Int64)
 			}
-		case workspaceevent.FieldHappenedAt:
+		case workspaceevent.FieldDateOccurred:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field happened_at", values[i])
+				return fmt.Errorf("unexpected type %T for field date_occurred", values[i])
 			} else if value.Valid {
-				_m.HappenedAt = value.Time
+				_m.DateOccurred = value.Time
 			}
-		case workspaceevent.FieldLateThrough:
+		case workspaceevent.FieldDateLateThrough:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field late_through", values[i])
+				return fmt.Errorf("unexpected type %T for field date_late_through", values[i])
 			} else if value.Valid {
-				_m.LateThrough = new(time.Time)
-				*_m.LateThrough = value.Time
+				_m.DateLateThrough = new(time.Time)
+				*_m.DateLateThrough = value.Time
 			}
 		case workspaceevent.FieldDateErased:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -198,11 +198,11 @@ func (_m *WorkspaceEvent) String() string {
 	builder.WriteString("kind=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Kind))
 	builder.WriteString(", ")
-	builder.WriteString("happened_at=")
-	builder.WriteString(_m.HappenedAt.Format(time.ANSIC))
+	builder.WriteString("date_occurred=")
+	builder.WriteString(_m.DateOccurred.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := _m.LateThrough; v != nil {
-		builder.WriteString("late_through=")
+	if v := _m.DateLateThrough; v != nil {
+		builder.WriteString("date_late_through=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

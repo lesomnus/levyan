@@ -268,11 +268,11 @@ func (a *Routes) authorized(next http.Handler) http.Handler {
 
 // Product is a product as an operator finds it.
 type Product struct {
-	Id      string    `json:"id"`
-	Alias   string    `json:"alias"`
-	Name    string    `json:"name"`
-	Desc    string    `json:"desc,omitempty"`
-	Created time.Time `json:"created"`
+	Id          string    `json:"id"`
+	Alias       string    `json:"alias"`
+	Name        string    `json:"name"`
+	Desc        string    `json:"desc,omitempty"`
+	DateCreated time.Time `json:"date_created"`
 
 	// Its terms: the zone its periods are months in, and the channel and
 	// currency its statements are priced on and in.
@@ -290,12 +290,12 @@ type Detail struct {
 
 // Key is one of a product's keys, and never the key itself.
 type Key struct {
-	Id      string     `json:"id"`
-	Alias   string     `json:"alias"`
-	Desc    string     `json:"desc,omitempty"`
-	Expires *time.Time `json:"expires,omitempty"`
-	Created time.Time  `json:"created"`
-	Revoked *time.Time `json:"revoked,omitempty"`
+	Id          string     `json:"id"`
+	Alias       string     `json:"alias"`
+	Desc        string     `json:"desc,omitempty"`
+	DateExpires *time.Time `json:"date_expires,omitempty"`
+	DateCreated time.Time  `json:"date_created"`
+	DateRevoked *time.Time `json:"date_revoked,omitempty"`
 }
 
 // Issued is a key just issued, and the one time it is said.
@@ -314,23 +314,23 @@ type Meter struct {
 	Kind          string    `json:"kind"`
 	Aggregation   string    `json:"aggregation"`
 	UnboundedZero bool      `json:"unbounded_zero,omitempty"`
-	Created       time.Time `json:"created"`
+	DateCreated   time.Time `json:"date_created"`
 }
 
 // Price is one version of what a meter costs.
 type Price struct {
-	Id        string    `json:"id"`
-	Meter     string    `json:"meter"`
-	Channel   string    `json:"channel"`
-	Currency  string    `json:"currency"`
-	Included  int64     `json:"included,omitempty"`
-	UnitPrice int64     `json:"unit_price,omitempty"`
-	Per       int64     `json:"per,omitempty"`
-	Bands     []Band    `json:"bands,omitempty"`
-	Effective time.Time `json:"effective"`
-	Existing  time.Time `json:"existing"`
-	Published time.Time `json:"published"`
-	Desc      string    `json:"desc,omitempty"`
+	Id            string    `json:"id"`
+	Meter         string    `json:"meter"`
+	Channel       string    `json:"channel"`
+	Currency      string    `json:"currency"`
+	Included      int64     `json:"included,omitempty"`
+	UnitPrice     int64     `json:"unit_price,omitempty"`
+	Per           int64     `json:"per,omitempty"`
+	Bands         []Band    `json:"bands,omitempty"`
+	DateEffective time.Time `json:"date_effective"`
+	DateExisting  time.Time `json:"date_existing"`
+	DatePublished time.Time `json:"date_published"`
+	Desc          string    `json:"desc,omitempty"`
 }
 
 // Band is one band of a banded price; the last has no bound.
@@ -342,14 +342,14 @@ type Band struct {
 // Segment is a stretch of time, and the version in force through it -- or
 // none.
 type Segment struct {
-	From  time.Time `json:"from"`
-	To    time.Time `json:"to"`
-	Price *Price    `json:"price,omitempty"`
+	DateStart time.Time `json:"date_start"`
+	DateEnd   time.Time `json:"date_end"`
+	Price     *Price    `json:"price,omitempty"`
 }
 
 func productOf(t *ent.Tenant) Product {
 	return Product{
-		Id: pdid.Id(t.Id).String(), Alias: t.Alias, Name: t.Name, Desc: t.Desc, Created: t.DateCreated,
+		Id: pdid.Id(t.Id).String(), Alias: t.Alias, Name: t.Name, Desc: t.Desc, DateCreated: t.DateCreated,
 		Zone: t.Zone, Channel: named(t.Channel, "CHANNEL_"), Currency: t.Currency,
 	}
 }
@@ -357,7 +357,7 @@ func productOf(t *ent.Tenant) Product {
 func keyOf(v *ent.ServiceKey) Key {
 	return Key{
 		Id: pdid.Id(v.Id).String(), Alias: v.Alias, Desc: v.Desc,
-		Expires: v.DateExpires, Created: v.DateCreated, Revoked: v.DateErased,
+		DateExpires: v.DateExpires, DateCreated: v.DateCreated, DateRevoked: v.DateErased,
 	}
 }
 
@@ -367,23 +367,23 @@ func meterOf(v *ent.Meter) Meter {
 		Kind:          named(levyan.MeterKind(v.Kind).String(), "METER_KIND_"),
 		Aggregation:   named(levyan.Aggregation(v.Aggregation).String(), "AGGREGATION_"),
 		UnboundedZero: v.UnboundedZero,
-		Created:       v.DateCreated,
+		DateCreated:   v.DateCreated,
 	}
 }
 
 func priceOf(v *levyan.Price, meter string) Price {
 	p := Price{
-		Id:        text(v.GetId()),
-		Meter:     meter,
-		Channel:   named(v.GetChannel().String(), "CHANNEL_"),
-		Currency:  v.GetCurrency(),
-		Included:  v.GetIncluded(),
-		UnitPrice: v.GetUnitPrice(),
-		Per:       v.GetPer(),
-		Effective: v.GetDateEffective().AsTime(),
-		Existing:  v.GetDateExisting().AsTime(),
-		Published: v.GetDateCreated().AsTime(),
-		Desc:      v.GetDesc(),
+		Id:            text(v.GetId()),
+		Meter:         meter,
+		Channel:       named(v.GetChannel().String(), "CHANNEL_"),
+		Currency:      v.GetCurrency(),
+		Included:      v.GetIncluded(),
+		UnitPrice:     v.GetUnitPrice(),
+		Per:           v.GetPer(),
+		DateEffective: v.GetDateEffective().AsTime(),
+		DateExisting:  v.GetDateExisting().AsTime(),
+		DatePublished: v.GetDateCreated().AsTime(),
+		Desc:          v.GetDesc(),
 	}
 	for _, b := range v.GetBands().GetBands() {
 		band := Band{Fee: b.GetFee()}
@@ -504,9 +504,9 @@ func (a *Routes) issue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Alias   string     `json:"alias"`
-		Desc    string     `json:"desc"`
-		Expires *time.Time `json:"expires"`
+		Alias       string     `json:"alias"`
+		Desc        string     `json:"desc"`
+		DateExpires *time.Time `json:"date_expires"`
 	}
 	if !read(w, r, &in) {
 		return
@@ -516,7 +516,7 @@ func (a *Routes) issue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, v, err := keys.Issue(ctx, a.S.Ungated, levyan.TenantRef_builder{Id: t.Id[:]}.Build(), strings.TrimSpace(in.Alias), strings.TrimSpace(in.Desc), in.Expires)
+	token, v, err := keys.Issue(ctx, a.S.Ungated, levyan.TenantRef_builder{Id: t.Id[:]}.Build(), strings.TrimSpace(in.Alias), strings.TrimSpace(in.Desc), in.DateExpires)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -619,16 +619,16 @@ func (a *Routes) publish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Meter     string     `json:"meter"`
-		Channel   string     `json:"channel"`
-		Currency  string     `json:"currency"`
-		Included  int64      `json:"included"`
-		UnitPrice int64      `json:"unit_price"`
-		Per       int64      `json:"per"`
-		Bands     []Band     `json:"bands"`
-		Effective *time.Time `json:"effective"`
-		Existing  *time.Time `json:"existing"`
-		Desc      string     `json:"desc"`
+		Meter         string     `json:"meter"`
+		Channel       string     `json:"channel"`
+		Currency      string     `json:"currency"`
+		Included      int64      `json:"included"`
+		UnitPrice     int64      `json:"unit_price"`
+		Per           int64      `json:"per"`
+		Bands         []Band     `json:"bands"`
+		DateEffective *time.Time `json:"date_effective"`
+		DateExisting  *time.Time `json:"date_existing"`
+		Desc          string     `json:"desc"`
 	}
 	if !read(w, r, &in) {
 		return
@@ -663,11 +663,11 @@ func (a *Routes) publish(w http.ResponseWriter, r *http.Request) {
 		}
 		req.SetBands(levyan.PriceBands_builder{Bands: bands}.Build())
 	}
-	if in.Effective != nil {
-		req.SetDateEffective(timestamppb.New(*in.Effective))
+	if in.DateEffective != nil {
+		req.SetDateEffective(timestamppb.New(*in.DateEffective))
 	}
-	if in.Existing != nil {
-		req.SetDateExisting(timestamppb.New(*in.Existing))
+	if in.DateExisting != nil {
+		req.SetDateExisting(timestamppb.New(*in.DateExisting))
 	}
 
 	v, err := a.S.Ungated.Price().Add(ctx, req)
@@ -811,7 +811,7 @@ func (a *Routes) timeline(w http.ResponseWriter, r *http.Request) {
 	line := pricing.Line{Meter: pdid.Id(m.Id), Channel: levyan.Channel(channel), Currency: strings.TrimSpace(q.Get("currency"))}
 	out := []Segment{}
 	for _, s := range book.Timeline(line, since, from, to) {
-		v := Segment{From: s.From, To: s.To}
+		v := Segment{DateStart: s.From, DateEnd: s.To}
 		if s.Priced {
 			p := priceOf(byId[s.Version.Id], key)
 			v.Price = &p
@@ -828,7 +828,7 @@ type Gap struct {
 	Product   string    `json:"product"`
 	Workspace string    `json:"workspace"`
 	Meter     string    `json:"meter"`
-	Last      time.Time `json:"last"`
+	DateLast  time.Time `json:"date_last"`
 }
 
 // gaps is every workspace without a reading for longer than it should have
@@ -847,7 +847,7 @@ func (a *Routes) gaps(w http.ResponseWriter, r *http.Request) {
 		if product != "" && v.Product != product {
 			continue
 		}
-		out = append(out, Gap{Product: v.Product, Workspace: v.Workspace.String(), Meter: v.Meter, Last: v.Last})
+		out = append(out, Gap{Product: v.Product, Workspace: v.Workspace.String(), Meter: v.Meter, DateLast: v.Last})
 	}
 
 	answer(w, http.StatusOK, out)

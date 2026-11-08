@@ -42,7 +42,7 @@ func Lives(ctx context.Context, db *ent.Client, product uuid.UUID, ws ...uuid.UU
 }
 
 func eventOf(v *ent.WorkspaceEvent) rating.Event {
-	return rating.Event{Kind: levyan.WorkspaceEventKind(v.Kind), At: ledger.Moment(v.HappenedAt)}
+	return rating.Event{Kind: levyan.WorkspaceEventKind(v.Kind), At: ledger.Moment(v.DateOccurred)}
 }
 
 // Events is everything `product` said became of workspace `ws`.
@@ -91,10 +91,10 @@ func (r Rater) lateFor(ctx context.Context, product, ws uuid.UUID, periods []*en
 		es[i] = eventOf(v)
 	}
 	for _, v := range vs {
-		if v.LateThrough == nil {
+		if v.DateLateThrough == nil {
 			continue
 		}
-		from, through := rating.Reach(es, eventOf(v)), ledger.Moment(*v.LateThrough)
+		from, through := rating.Reach(es, eventOf(v)), ledger.Moment(*v.DateLateThrough)
 		for _, p := range periods {
 			if end := ledger.Moment(p.DateEnd); end.After(from) && !end.After(through) {
 				out[p.Id] = true

@@ -31,23 +31,23 @@ func (_u *AllowanceUpdate) Where(ps ...predicate.Allowance) *AllowanceUpdate {
 	return _u
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (_u *AllowanceUpdate) SetValidUntil(v time.Time) *AllowanceUpdate {
-	_u.mutation.SetValidUntil(v)
+// SetDateExpires sets the "date_expires" field.
+func (_u *AllowanceUpdate) SetDateExpires(v time.Time) *AllowanceUpdate {
+	_u.mutation.SetDateExpires(v)
 	return _u
 }
 
-// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
-func (_u *AllowanceUpdate) SetNillableValidUntil(v *time.Time) *AllowanceUpdate {
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_u *AllowanceUpdate) SetNillableDateExpires(v *time.Time) *AllowanceUpdate {
 	if v != nil {
-		_u.SetValidUntil(*v)
+		_u.SetDateExpires(*v)
 	}
 	return _u
 }
 
-// ClearValidUntil clears the value of the "valid_until" field.
-func (_u *AllowanceUpdate) ClearValidUntil() *AllowanceUpdate {
-	_u.mutation.ClearValidUntil()
+// ClearDateExpires clears the value of the "date_expires" field.
+func (_u *AllowanceUpdate) ClearDateExpires() *AllowanceUpdate {
+	_u.mutation.ClearDateExpires()
 	return _u
 }
 
@@ -194,17 +194,17 @@ func (_u *AllowanceUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if _u.mutation.ValidFromCleared() {
-		_spec.ClearField(allowance.FieldValidFrom, field.TypeTime)
+	if _u.mutation.DateEffectiveCleared() {
+		_spec.ClearField(allowance.FieldDateEffective, field.TypeTime)
 	}
-	if value, ok := _u.mutation.ValidUntil(); ok {
-		_spec.SetField(allowance.FieldValidUntil, field.TypeTime, value)
+	if value, ok := _u.mutation.DateExpires(); ok {
+		_spec.SetField(allowance.FieldDateExpires, field.TypeTime, value)
 	}
-	if e, ok := _u.mutation.FieldExpr(allowance.FieldValidUntil); ok {
-		_spec.SetField(allowance.FieldValidUntil, field.TypeTime, e)
+	if e, ok := _u.mutation.FieldExpr(allowance.FieldDateExpires); ok {
+		_spec.SetField(allowance.FieldDateExpires, field.TypeTime, e)
 	}
-	if _u.mutation.ValidUntilCleared() {
-		_spec.ClearField(allowance.FieldValidUntil, field.TypeTime)
+	if _u.mutation.DateExpiresCleared() {
+		_spec.ClearField(allowance.FieldDateExpires, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(allowance.FieldDateUpdated, field.TypeTime, value)
@@ -281,23 +281,23 @@ type AllowanceUpdateOne struct {
 	modifiers []func(*sql.UpdateBuilder)
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (_u *AllowanceUpdateOne) SetValidUntil(v time.Time) *AllowanceUpdateOne {
-	_u.mutation.SetValidUntil(v)
+// SetDateExpires sets the "date_expires" field.
+func (_u *AllowanceUpdateOne) SetDateExpires(v time.Time) *AllowanceUpdateOne {
+	_u.mutation.SetDateExpires(v)
 	return _u
 }
 
-// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
-func (_u *AllowanceUpdateOne) SetNillableValidUntil(v *time.Time) *AllowanceUpdateOne {
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_u *AllowanceUpdateOne) SetNillableDateExpires(v *time.Time) *AllowanceUpdateOne {
 	if v != nil {
-		_u.SetValidUntil(*v)
+		_u.SetDateExpires(*v)
 	}
 	return _u
 }
 
-// ClearValidUntil clears the value of the "valid_until" field.
-func (_u *AllowanceUpdateOne) ClearValidUntil() *AllowanceUpdateOne {
-	_u.mutation.ClearValidUntil()
+// ClearDateExpires clears the value of the "date_expires" field.
+func (_u *AllowanceUpdateOne) ClearDateExpires() *AllowanceUpdateOne {
+	_u.mutation.ClearDateExpires()
 	return _u
 }
 
@@ -474,17 +474,17 @@ func (_u *AllowanceUpdateOne) sqlSave(ctx context.Context) (_node *Allowance, er
 			}
 		}
 	}
-	if _u.mutation.ValidFromCleared() {
-		_spec.ClearField(allowance.FieldValidFrom, field.TypeTime)
+	if _u.mutation.DateEffectiveCleared() {
+		_spec.ClearField(allowance.FieldDateEffective, field.TypeTime)
 	}
-	if value, ok := _u.mutation.ValidUntil(); ok {
-		_spec.SetField(allowance.FieldValidUntil, field.TypeTime, value)
+	if value, ok := _u.mutation.DateExpires(); ok {
+		_spec.SetField(allowance.FieldDateExpires, field.TypeTime, value)
 	}
-	if e, ok := _u.mutation.FieldExpr(allowance.FieldValidUntil); ok {
-		_spec.SetField(allowance.FieldValidUntil, field.TypeTime, e)
+	if e, ok := _u.mutation.FieldExpr(allowance.FieldDateExpires); ok {
+		_spec.SetField(allowance.FieldDateExpires, field.TypeTime, e)
 	}
-	if _u.mutation.ValidUntilCleared() {
-		_spec.ClearField(allowance.FieldValidUntil, field.TypeTime)
+	if _u.mutation.DateExpiresCleared() {
+		_spec.ClearField(allowance.FieldDateExpires, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(allowance.FieldDateUpdated, field.TypeTime, value)

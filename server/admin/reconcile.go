@@ -34,13 +34,13 @@ type Finding struct {
 	Correction string `json:"correction"`
 	Command    string `json:"command,omitempty"`
 
-	Found      time.Time  `json:"found"`
-	Updated    time.Time  `json:"updated"`
-	Resolved   *time.Time `json:"resolved,omitempty"`
-	Resolution string     `json:"resolution,omitempty"`
-	Accepted   *time.Time `json:"accepted,omitempty"`
-	AcceptedBy string     `json:"accepted_by,omitempty"`
-	Reason     string     `json:"reason,omitempty"`
+	DateFound    time.Time  `json:"date_found"`
+	DateUpdated  time.Time  `json:"date_updated"`
+	DateResolved *time.Time `json:"date_resolved,omitempty"`
+	Resolution   string     `json:"resolution,omitempty"`
+	DateAccepted *time.Time `json:"date_accepted,omitempty"`
+	AcceptedBy   string     `json:"accepted_by,omitempty"`
+	Reason       string     `json:"reason,omitempty"`
 }
 
 // FindingRow is a row a finding is about.
@@ -51,14 +51,14 @@ type FindingRow struct {
 
 // Pass is what a pass of reconciliation found, and did of it.
 type Pass struct {
-	At         time.Time  `json:"at"`
-	Checks     []Check    `json:"checks"`
-	Found      int        `json:"found"`
-	Open       int        `json:"open"`
-	New        int        `json:"new"`
-	Changed    int        `json:"changed"`
-	Resolved   int        `json:"resolved"`
-	Statements Statements `json:"statements"`
+	DateOccurred time.Time  `json:"date_occurred"`
+	Checks       []Check    `json:"checks"`
+	Found        int        `json:"found"`
+	Open         int        `json:"open"`
+	New          int        `json:"new"`
+	Changed      int        `json:"changed"`
+	Resolved     int        `json:"resolved"`
+	Statements   Statements `json:"statements"`
 
 	// Findings is every finding that is open as it ends.
 	Findings []Finding `json:"findings"`
@@ -91,9 +91,9 @@ func findingOf(v *ent.Finding) Finding {
 		Subject:  v.Subject, Summary: v.Summary,
 		Amount: v.Amount, Currency: v.Currency,
 		Correction: named(levyan.FindingCorrection(v.Correction).String(), "FINDING_CORRECTION_"),
-		Found:      v.DateCreated.UTC(), Updated: v.DateUpdated.UTC(),
-		Resolved: v.DateResolved, Resolution: v.Resolution,
-		Accepted: v.DateAccepted, Reason: v.Reason,
+		DateFound:  v.DateCreated.UTC(), DateUpdated: v.DateUpdated.UTC(),
+		DateResolved: v.DateResolved, Resolution: v.Resolution,
+		DateAccepted: v.DateAccepted, Reason: v.Reason,
 	}
 	if t := v.Edges.Product; t != nil {
 		out.Product = t.Alias
@@ -149,7 +149,7 @@ func (a *Routes) reconcile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := Pass{
-		At: rep.At, Found: rep.Found, Open: rep.Open, New: rep.New, Changed: rep.Changed, Resolved: rep.Resolved,
+		DateOccurred: rep.At, Found: rep.Found, Open: rep.Open, New: rep.New, Changed: rep.Changed, Resolved: rep.Resolved,
 		Statements: Statements{WithAccount: rep.Statements.WithAccount, OnOne: rep.Statements.OnOne, OnNone: rep.Statements.OnNone, OnMore: rep.Statements.OnMore},
 		Findings:   []Finding{},
 	}

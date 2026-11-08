@@ -30,8 +30,8 @@ func (e *Grant) Proto() *levyan.Grant {
 	x.SetKey(e.Key)
 	x.SetValue(levyan.GrantValue(e.Value))
 	x.SetLimit(e.Limit)
-	x.SetValidFrom(timestamppb.New(e.ValidFrom))
-	x.SetValidUntil(timestamppb.New(e.ValidUntil))
+	x.SetDateEffective(timestamppb.New(e.DateEffective))
+	x.SetDateExpires(timestamppb.New(e.DateExpires))
 	x.SetDateUpdated(timestamppb.New(e.DateUpdated))
 	if e.DateErased != nil {
 		x.SetDateErased(timestamppb.New(*e.DateErased))

@@ -109,8 +109,8 @@ message Invoice {
   InvoiceState state = 3;
 
   // From the first moment it covers to the first after.
-  google.protobuf.Timestamp start = 4;
-  google.protobuf.Timestamp end = 5;
+  google.protobuf.Timestamp date_start = 4;
+  google.protobuf.Timestamp date_end = 5;
 
   Channel channel = 6;
   string currency = 7;
@@ -139,9 +139,9 @@ message Invoice {
 
   // When it was finalized, when it is due where its channel says one, and
   // when it was settled.
-  google.protobuf.Timestamp finalized = 17;
-  google.protobuf.Timestamp due_date = 18;
-  google.protobuf.Timestamp settled = 19;
+  google.protobuf.Timestamp date_finalized = 17;
+  google.protobuf.Timestamp date_due = 18;
+  google.protobuf.Timestamp date_settled = 19;
 
   // On a merchant of record, its invoice number once it collected.
   string channel_number = 20;
@@ -167,7 +167,7 @@ message InvoiceCredit {
   // The workspace whose lines alone it paid, for a workspace's; and when it
   // expires.
   string workspace = 3;
-  google.protobuf.Timestamp expires = 4;
+  google.protobuf.Timestamp date_expires = 4;
 }
 
 // Credit is money an operator granted -- of a promotion, of a contract --
@@ -193,8 +193,8 @@ message Credit {
   string currency = 6;
 
   // When it expires, and when it was granted.
-  google.protobuf.Timestamp expires = 7;
-  google.protobuf.Timestamp created = 8;
+  google.protobuf.Timestamp date_expires = 7;
+  google.protobuf.Timestamp date_created = 8;
 }
 
 // InvoiceState is where an invoice is, value for value levyan's own.
@@ -237,7 +237,7 @@ message Dunning {
   DeclineKind kind = 3;
 
   // When its first charge failed: what every time below is measured from.
-  google.protobuf.Timestamp failed = 4;
+  google.protobuf.Timestamp date_failed = 4;
 
   // When it is charged next: a retry its row schedules, or the moment its
   // billing account became collectable again. One already past is due, and
@@ -245,20 +245,20 @@ message Dunning {
   // when no retry is to come: then it is charged as soon as its billing
   // account is collectable again, and never else -- a method to replace is
   // never tried again as it is.
-  google.protobuf.Timestamp next_retry = 5;
+  google.protobuf.Timestamp date_next_retry = 5;
 
   // When its grace ends, and from when what it bills -- every workspace of
   // its lines -- is restricted (`<product>.restricted`): as its grace ends,
   // or at once, from its first failure. It is restricted from then until it
   // is paid.
-  google.protobuf.Timestamp grace_ends = 6;
-  google.protobuf.Timestamp restricted_from = 7;
+  google.protobuf.Timestamp date_grace_ends = 6;
+  google.protobuf.Timestamp date_restricted = 7;
 
   // From when what it bills is read-only (`<product>.readonly`), the second
   // stage of its restriction: sixty days after its first failure, by
-  // default, and never sooner than `restricted_from`. It is read-only from
+  // default, and never sooner than `date_restricted`. It is read-only from
   // then until it is paid, when both stages end at once.
-  google.protobuf.Timestamp readonly_from = 8;
+  google.protobuf.Timestamp date_readonly = 8;
 }
 
 // DeclineKind is which kind of decline a payer's method refused a charge as,
@@ -321,7 +321,7 @@ message CreditNote {
   // Its number, on a channel levyan sells on itself; 0 on any other.
   int64 number = 10;
 
-  google.protobuf.Timestamp created = 11;
+  google.protobuf.Timestamp date_created = 11;
 }
 
 // CreditNoteReason is why a credit note takes back, value for value levyan's

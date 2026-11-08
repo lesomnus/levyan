@@ -12,8 +12,8 @@ const (
 	Label = "reading"
 	// FieldId holds the string denoting the id field in the database.
 	FieldId = "id"
-	// FieldMeasuredAt holds the string denoting the measured_at field in the database.
-	FieldMeasuredAt = "measured_at"
+	// FieldDateMeasured holds the string denoting the date_measured field in the database.
+	FieldDateMeasured = "date_measured"
 	// FieldValue holds the string denoting the value field in the database.
 	FieldValue = "value"
 	// FieldLate holds the string denoting the late field in the database.
@@ -62,7 +62,7 @@ const (
 // Columns holds all SQL columns for reading fields.
 var Columns = []string{
 	FieldId,
-	FieldMeasuredAt,
+	FieldDateMeasured,
 	FieldValue,
 	FieldLate,
 	FieldDateErased,
@@ -90,9 +90,9 @@ func ById(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldId, opts...).ToFunc()
 }
 
-// ByMeasuredAt orders the results by the measured_at field.
-func ByMeasuredAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMeasuredAt, opts...).ToFunc()
+// ByDateMeasured orders the results by the date_measured field.
+func ByDateMeasured(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDateMeasured, opts...).ToFunc()
 }
 
 // ByValue orders the results by the value field.

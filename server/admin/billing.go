@@ -21,40 +21,40 @@ import (
 
 // Period is one period of a product's billing, closed or being.
 type Period struct {
-	Id     string     `json:"id"`
-	Start  time.Time  `json:"start"`
-	End    time.Time  `json:"end"`
-	Zone   string     `json:"zone"`
-	Closed *time.Time `json:"closed,omitempty"`
+	Id         string     `json:"id"`
+	DateStart  time.Time  `json:"date_start"`
+	DateEnd    time.Time  `json:"date_end"`
+	Zone       string     `json:"zone"`
+	DateClosed *time.Time `json:"date_closed,omitempty"`
 }
 
 // Statement is what one workspace came to over one closed period. Its
 // amounts are fractions, exactly as the statement keeps them, and its total
 // is what they come to rounded once, down.
 type Statement struct {
-	Id        string    `json:"id"`
-	Workspace string    `json:"workspace"`
-	Start     time.Time `json:"start"`
-	End       time.Time `json:"end"`
-	Channel   string    `json:"channel"`
-	Currency  string    `json:"currency"`
-	Total     int64     `json:"total"`
-	Exact     string    `json:"exact"`
-	Rating    uint32    `json:"rating"`
-	Closed    time.Time `json:"closed"`
-	Lines     []Line    `json:"lines,omitempty"`
+	Id         string    `json:"id"`
+	Workspace  string    `json:"workspace"`
+	DateStart  time.Time `json:"date_start"`
+	DateEnd    time.Time `json:"date_end"`
+	Channel    string    `json:"channel"`
+	Currency   string    `json:"currency"`
+	Total      int64     `json:"total"`
+	Exact      string    `json:"exact"`
+	Rating     uint32    `json:"rating"`
+	DateClosed time.Time `json:"date_closed"`
+	Lines      []Line    `json:"lines,omitempty"`
 }
 
 // Line is one line of a statement.
 type Line struct {
-	Meter    string     `json:"meter"`
-	Unit     string     `json:"unit"`
-	Kind     string     `json:"kind"`
-	Corrects *time.Time `json:"corrects,omitempty"`
-	Usage    string     `json:"usage"`
-	Included string     `json:"included"`
-	Billable string     `json:"billable"`
-	Amount   string     `json:"amount"`
+	Meter        string     `json:"meter"`
+	Unit         string     `json:"unit"`
+	Kind         string     `json:"kind"`
+	DateCorrects *time.Time `json:"date_corrects,omitempty"`
+	Usage        string     `json:"usage"`
+	Included     string     `json:"included"`
+	Billable     string     `json:"billable"`
+	Amount       string     `json:"amount"`
 
 	// What of included the workspace's allowances gave, and what of billable
 	// its pools took (#43): empty for none.
@@ -65,15 +65,15 @@ type Line struct {
 }
 
 func periodOf(v *ent.Period) Period {
-	return Period{Id: pdid.Id(v.Id).String(), Start: v.DateStart.UTC(), End: v.DateEnd.UTC(), Zone: v.Zone, Closed: v.DateClosed}
+	return Period{Id: pdid.Id(v.Id).String(), DateStart: v.DateStart.UTC(), DateEnd: v.DateEnd.UTC(), Zone: v.Zone, DateClosed: v.DateClosed}
 }
 
 func statementOf(v *ent.Statement, ws pdid.Id, lines bool) Statement {
 	out := Statement{
 		Id: pdid.Id(v.Id).String(), Workspace: ws.String(),
-		Start: v.DateStart.UTC(), End: v.DateEnd.UTC(),
+		DateStart: v.DateStart.UTC(), DateEnd: v.DateEnd.UTC(),
 		Channel: named(v.Channel, "CHANNEL_"), Currency: v.Currency,
-		Total: v.Total, Exact: v.Exact, Rating: v.Rating, Closed: v.DateCreated,
+		Total: v.Total, Exact: v.Exact, Rating: v.Rating, DateClosed: v.DateCreated,
 	}
 	if !lines {
 		return out
@@ -85,8 +85,8 @@ func statementOf(v *ent.Statement, ws pdid.Id, lines bool) Statement {
 			Allowance: l.GetAllowance(), Pooled: l.GetPooled(),
 		}
 		if l.GetKind() == levyan.LineKind_LINE_KIND_CORRECTION {
-			at := l.GetCorrectsStart().AsTime()
-			line.Corrects = &at
+			at := l.GetDateCorrectsStart().AsTime()
+			line.DateCorrects = &at
 			line.Billed = l.GetBilled()
 		}
 		for _, p := range l.GetParts() {
@@ -171,7 +171,7 @@ func (a *Routes) closePeriods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Through *time.Time `json:"through"`
+		DateThrough *time.Time `json:"date_through"`
 	}
 	if !read(w, r, &in) {
 		return
@@ -179,12 +179,12 @@ func (a *Routes) closePeriods(w http.ResponseWriter, r *http.Request) {
 
 	now := ledger.Moment(a.S.Clock())
 	through := now
-	if in.Through != nil {
-		if in.Through.After(now) {
-			http.Error(w, "through: a period is closed once it has ended, and "+in.Through.UTC().Format(time.RFC3339)+" is ahead of now", http.StatusBadRequest)
+	if in.DateThrough != nil {
+		if in.DateThrough.After(now) {
+			http.Error(w, "through: a period is closed once it has ended, and "+in.DateThrough.UTC().Format(time.RFC3339)+" is ahead of now", http.StatusBadRequest)
 			return
 		}
-		through = *in.Through
+		through = *in.DateThrough
 	}
 
 	vs, err := a.S.Closer.Close(r.Context(), t, through)

@@ -31,30 +31,30 @@ func (_c *WorkspaceEventCreate) SetKind(v int32) *WorkspaceEventCreate {
 	return _c
 }
 
-// SetHappenedAt sets the "happened_at" field.
-func (_c *WorkspaceEventCreate) SetHappenedAt(v time.Time) *WorkspaceEventCreate {
-	_c.mutation.SetHappenedAt(v)
+// SetDateOccurred sets the "date_occurred" field.
+func (_c *WorkspaceEventCreate) SetDateOccurred(v time.Time) *WorkspaceEventCreate {
+	_c.mutation.SetDateOccurred(v)
 	return _c
 }
 
-// SetNillableHappenedAt sets the "happened_at" field if the given value is not nil.
-func (_c *WorkspaceEventCreate) SetNillableHappenedAt(v *time.Time) *WorkspaceEventCreate {
+// SetNillableDateOccurred sets the "date_occurred" field if the given value is not nil.
+func (_c *WorkspaceEventCreate) SetNillableDateOccurred(v *time.Time) *WorkspaceEventCreate {
 	if v != nil {
-		_c.SetHappenedAt(*v)
+		_c.SetDateOccurred(*v)
 	}
 	return _c
 }
 
-// SetLateThrough sets the "late_through" field.
-func (_c *WorkspaceEventCreate) SetLateThrough(v time.Time) *WorkspaceEventCreate {
-	_c.mutation.SetLateThrough(v)
+// SetDateLateThrough sets the "date_late_through" field.
+func (_c *WorkspaceEventCreate) SetDateLateThrough(v time.Time) *WorkspaceEventCreate {
+	_c.mutation.SetDateLateThrough(v)
 	return _c
 }
 
-// SetNillableLateThrough sets the "late_through" field if the given value is not nil.
-func (_c *WorkspaceEventCreate) SetNillableLateThrough(v *time.Time) *WorkspaceEventCreate {
+// SetNillableDateLateThrough sets the "date_late_through" field if the given value is not nil.
+func (_c *WorkspaceEventCreate) SetNillableDateLateThrough(v *time.Time) *WorkspaceEventCreate {
 	if v != nil {
-		_c.SetLateThrough(*v)
+		_c.SetDateLateThrough(*v)
 	}
 	return _c
 }
@@ -222,13 +222,13 @@ func (_c *WorkspaceEventCreate) createSpec() (*WorkspaceEvent, *sqlgraph.CreateS
 		_spec.SetField(workspaceevent.FieldKind, field.TypeInt32, value)
 		_node.Kind = value
 	}
-	if value, ok := _c.mutation.HappenedAt(); ok {
-		_spec.SetField(workspaceevent.FieldHappenedAt, field.TypeTime, value)
-		_node.HappenedAt = value
+	if value, ok := _c.mutation.DateOccurred(); ok {
+		_spec.SetField(workspaceevent.FieldDateOccurred, field.TypeTime, value)
+		_node.DateOccurred = value
 	}
-	if value, ok := _c.mutation.LateThrough(); ok {
-		_spec.SetField(workspaceevent.FieldLateThrough, field.TypeTime, value)
-		_node.LateThrough = &value
+	if value, ok := _c.mutation.DateLateThrough(); ok {
+		_spec.SetField(workspaceevent.FieldDateLateThrough, field.TypeTime, value)
+		_node.DateLateThrough = &value
 	}
 	if value, ok := _c.mutation.DateErased(); ok {
 		_spec.SetField(workspaceevent.FieldDateErased, field.TypeTime, value)

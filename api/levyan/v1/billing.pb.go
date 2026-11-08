@@ -204,7 +204,7 @@ type Usage struct {
 	state                 protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Workspace  string                 `protobuf:"bytes,1,opt,name=workspace"`
 	xxx_hidden_Period     *Period                `protobuf:"bytes,2,opt,name=period"`
-	xxx_hidden_AsOf       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=as_of,json=asOf"`
+	xxx_hidden_DateAsOf   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_as_of,json=dateAsOf"`
 	xxx_hidden_Channel    Channel                `protobuf:"varint,4,opt,name=channel,enum=levyan.v1.Channel"`
 	xxx_hidden_Currency   string                 `protobuf:"bytes,5,opt,name=currency"`
 	xxx_hidden_Lines      *[]*Line               `protobuf:"bytes,6,rep,name=lines"`
@@ -254,9 +254,9 @@ func (x *Usage) GetPeriod() *Period {
 	return nil
 }
 
-func (x *Usage) GetAsOf() *timestamppb.Timestamp {
+func (x *Usage) GetDateAsOf() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_AsOf
+		return x.xxx_hidden_DateAsOf
 	}
 	return nil
 }
@@ -317,8 +317,8 @@ func (x *Usage) SetPeriod(v *Period) {
 	x.xxx_hidden_Period = v
 }
 
-func (x *Usage) SetAsOf(v *timestamppb.Timestamp) {
-	x.xxx_hidden_AsOf = v
+func (x *Usage) SetDateAsOf(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateAsOf = v
 }
 
 func (x *Usage) SetChannel(v Channel) {
@@ -352,19 +352,19 @@ func (x *Usage) HasPeriod() bool {
 	return x.xxx_hidden_Period != nil
 }
 
-func (x *Usage) HasAsOf() bool {
+func (x *Usage) HasDateAsOf() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_AsOf != nil
+	return x.xxx_hidden_DateAsOf != nil
 }
 
 func (x *Usage) ClearPeriod() {
 	x.xxx_hidden_Period = nil
 }
 
-func (x *Usage) ClearAsOf() {
-	x.xxx_hidden_AsOf = nil
+func (x *Usage) ClearDateAsOf() {
+	x.xxx_hidden_DateAsOf = nil
 }
 
 type Usage_builder struct {
@@ -374,7 +374,7 @@ type Usage_builder struct {
 	Workspace string
 	Period    *Period
 	// The moment the ledger was read as of.
-	AsOf *timestamppb.Timestamp
+	DateAsOf *timestamppb.Timestamp
 	// What it is priced on and in; unset for a product nothing is priced for
 	// yet, whose lines have their usage and no amounts.
 	Channel  Channel
@@ -399,7 +399,7 @@ func (b0 Usage_builder) Build() *Usage {
 	_, _ = b, x
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Period = b.Period
-	x.xxx_hidden_AsOf = b.AsOf
+	x.xxx_hidden_DateAsOf = b.DateAsOf
 	x.xxx_hidden_Channel = b.Channel
 	x.xxx_hidden_Currency = b.Currency
 	x.xxx_hidden_Lines = &b.Lines
@@ -418,15 +418,15 @@ func (b0 Usage_builder) Build() *Usage {
 // goes; and what it took stays taken, a correction of the period taking what
 // it takes then of what the others left.
 type Pool struct {
-	state              protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id      string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Meter   string                 `protobuf:"bytes,2,opt,name=meter"`
-	xxx_hidden_Granted int64                  `protobuf:"varint,3,opt,name=granted"`
-	xxx_hidden_Left    string                 `protobuf:"bytes,4,opt,name=left"`
-	xxx_hidden_From    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=from"`
-	xxx_hidden_Expires *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=expires"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Meter         string                 `protobuf:"bytes,2,opt,name=meter"`
+	xxx_hidden_Granted       int64                  `protobuf:"varint,3,opt,name=granted"`
+	xxx_hidden_Left          string                 `protobuf:"bytes,4,opt,name=left"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_expires,json=dateExpires"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Pool) Reset() {
@@ -482,16 +482,16 @@ func (x *Pool) GetLeft() string {
 	return ""
 }
 
-func (x *Pool) GetFrom() *timestamppb.Timestamp {
+func (x *Pool) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_From
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
 
-func (x *Pool) GetExpires() *timestamppb.Timestamp {
+func (x *Pool) GetDateExpires() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Expires
+		return x.xxx_hidden_DateExpires
 	}
 	return nil
 }
@@ -512,34 +512,34 @@ func (x *Pool) SetLeft(v string) {
 	x.xxx_hidden_Left = v
 }
 
-func (x *Pool) SetFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_From = v
+func (x *Pool) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
-func (x *Pool) SetExpires(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Expires = v
+func (x *Pool) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
 }
 
-func (x *Pool) HasFrom() bool {
+func (x *Pool) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_From != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
-func (x *Pool) HasExpires() bool {
+func (x *Pool) HasDateExpires() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Expires != nil
+	return x.xxx_hidden_DateExpires != nil
 }
 
-func (x *Pool) ClearFrom() {
-	x.xxx_hidden_From = nil
+func (x *Pool) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
-func (x *Pool) ClearExpires() {
-	x.xxx_hidden_Expires = nil
+func (x *Pool) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
 }
 
 type Pool_builder struct {
@@ -553,10 +553,10 @@ type Pool_builder struct {
 	// took of it: the period now open takes of what is left.
 	Granted int64
 	Left    string
-	// In force from `from`; no period that begins from `expires` on takes
-	// from it.
-	From    *timestamppb.Timestamp
-	Expires *timestamppb.Timestamp
+	// In force from `date_effective`; no period that begins from
+	// `date_expires` on takes from it.
+	DateEffective *timestamppb.Timestamp
+	DateExpires   *timestamppb.Timestamp
 }
 
 func (b0 Pool_builder) Build() *Pool {
@@ -567,8 +567,8 @@ func (b0 Pool_builder) Build() *Pool {
 	x.xxx_hidden_Meter = b.Meter
 	x.xxx_hidden_Granted = b.Granted
 	x.xxx_hidden_Left = b.Left
-	x.xxx_hidden_From = b.From
-	x.xxx_hidden_Expires = b.Expires
+	x.xxx_hidden_DateEffective = b.DateEffective
+	x.xxx_hidden_DateExpires = b.DateExpires
 	return m0
 }
 
@@ -580,14 +580,14 @@ func (b0 Pool_builder) Build() *Pool {
 // of it. A period's line of its meter is given its share of the period: one
 // in force for a third of the period gives a third of its quantity.
 type Allowance struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id       string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Meter    string                 `protobuf:"bytes,2,opt,name=meter"`
-	xxx_hidden_Quantity int64                  `protobuf:"varint,3,opt,name=quantity"`
-	xxx_hidden_From     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=from"`
-	xxx_hidden_Until    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=until"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Meter         string                 `protobuf:"bytes,2,opt,name=meter"`
+	xxx_hidden_Quantity      int64                  `protobuf:"varint,3,opt,name=quantity"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_expires,json=dateExpires"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Allowance) Reset() {
@@ -636,16 +636,16 @@ func (x *Allowance) GetQuantity() int64 {
 	return 0
 }
 
-func (x *Allowance) GetFrom() *timestamppb.Timestamp {
+func (x *Allowance) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_From
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
 
-func (x *Allowance) GetUntil() *timestamppb.Timestamp {
+func (x *Allowance) GetDateExpires() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Until
+		return x.xxx_hidden_DateExpires
 	}
 	return nil
 }
@@ -662,34 +662,34 @@ func (x *Allowance) SetQuantity(v int64) {
 	x.xxx_hidden_Quantity = v
 }
 
-func (x *Allowance) SetFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_From = v
+func (x *Allowance) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
-func (x *Allowance) SetUntil(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Until = v
+func (x *Allowance) SetDateExpires(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateExpires = v
 }
 
-func (x *Allowance) HasFrom() bool {
+func (x *Allowance) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_From != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
-func (x *Allowance) HasUntil() bool {
+func (x *Allowance) HasDateExpires() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Until != nil
+	return x.xxx_hidden_DateExpires != nil
 }
 
-func (x *Allowance) ClearFrom() {
-	x.xxx_hidden_From = nil
+func (x *Allowance) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
-func (x *Allowance) ClearUntil() {
-	x.xxx_hidden_Until = nil
+func (x *Allowance) ClearDateExpires() {
+	x.xxx_hidden_DateExpires = nil
 }
 
 type Allowance_builder struct {
@@ -701,10 +701,10 @@ type Allowance_builder struct {
 	Meter string
 	// How much more each period includes, in the meter's unit.
 	Quantity int64
-	// In force from `from`, and until `until` when it says one: unset is
-	// until an operator ends it.
-	From  *timestamppb.Timestamp
-	Until *timestamppb.Timestamp
+	// In force from `date_effective`, and until `date_expires` when it says
+	// one: unset is until an operator ends it.
+	DateEffective *timestamppb.Timestamp
+	DateExpires   *timestamppb.Timestamp
 }
 
 func (b0 Allowance_builder) Build() *Allowance {
@@ -714,19 +714,19 @@ func (b0 Allowance_builder) Build() *Allowance {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_Meter = b.Meter
 	x.xxx_hidden_Quantity = b.Quantity
-	x.xxx_hidden_From = b.From
-	x.xxx_hidden_Until = b.Until
+	x.xxx_hidden_DateEffective = b.DateEffective
+	x.xxx_hidden_DateExpires = b.DateExpires
 	return m0
 }
 
 // Period is one period of a product's billing: a calendar month in its zone.
 type Period struct {
-	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Start *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start"`
-	xxx_hidden_End   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end"`
-	xxx_hidden_Zone  string                 `protobuf:"bytes,3,opt,name=zone"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DateStart *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_end,json=dateEnd"`
+	xxx_hidden_Zone      string                 `protobuf:"bytes,3,opt,name=zone"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Period) Reset() {
@@ -754,16 +754,16 @@ func (x *Period) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *Period) GetStart() *timestamppb.Timestamp {
+func (x *Period) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Start
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *Period) GetEnd() *timestamppb.Timestamp {
+func (x *Period) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_End
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
@@ -775,46 +775,46 @@ func (x *Period) GetZone() string {
 	return ""
 }
 
-func (x *Period) SetStart(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Start = v
+func (x *Period) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *Period) SetEnd(v *timestamppb.Timestamp) {
-	x.xxx_hidden_End = v
+func (x *Period) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
 func (x *Period) SetZone(v string) {
 	x.xxx_hidden_Zone = v
 }
 
-func (x *Period) HasStart() bool {
+func (x *Period) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Start != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *Period) HasEnd() bool {
+func (x *Period) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_End != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *Period) ClearStart() {
-	x.xxx_hidden_Start = nil
+func (x *Period) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *Period) ClearEnd() {
-	x.xxx_hidden_End = nil
+func (x *Period) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
 type Period_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// Its first moment, and the first after it.
-	Start *timestamppb.Timestamp
-	End   *timestamppb.Timestamp
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
 	// The zone it is a month in, as an IANA name.
 	Zone string
 }
@@ -823,8 +823,8 @@ func (b0 Period_builder) Build() *Period {
 	m0 := &Period{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_Start = b.Start
-	x.xxx_hidden_End = b.End
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	x.xxx_hidden_Zone = b.Zone
 	return m0
 }
@@ -1121,17 +1121,17 @@ func (b0 ListStatementsResponse_builder) Build() *ListStatementsResponse {
 // written when the period was closed: never changed after. What it should
 // have said and did not is a correction on a later one.
 type Statement struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id        string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Workspace string                 `protobuf:"bytes,2,opt,name=workspace"`
-	xxx_hidden_Period    *Period                `protobuf:"bytes,3,opt,name=period"`
-	xxx_hidden_Channel   Channel                `protobuf:"varint,4,opt,name=channel,enum=levyan.v1.Channel"`
-	xxx_hidden_Currency  string                 `protobuf:"bytes,5,opt,name=currency"`
-	xxx_hidden_Lines     *[]*Line               `protobuf:"bytes,6,rep,name=lines"`
-	xxx_hidden_Total     int64                  `protobuf:"varint,7,opt,name=total"`
-	xxx_hidden_Closed    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=closed"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id         string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Workspace  string                 `protobuf:"bytes,2,opt,name=workspace"`
+	xxx_hidden_Period     *Period                `protobuf:"bytes,3,opt,name=period"`
+	xxx_hidden_Channel    Channel                `protobuf:"varint,4,opt,name=channel,enum=levyan.v1.Channel"`
+	xxx_hidden_Currency   string                 `protobuf:"bytes,5,opt,name=currency"`
+	xxx_hidden_Lines      *[]*Line               `protobuf:"bytes,6,rep,name=lines"`
+	xxx_hidden_Total      int64                  `protobuf:"varint,7,opt,name=total"`
+	xxx_hidden_DateClosed *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=date_closed,json=dateClosed"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Statement) Reset() {
@@ -1210,9 +1210,9 @@ func (x *Statement) GetTotal() int64 {
 	return 0
 }
 
-func (x *Statement) GetClosed() *timestamppb.Timestamp {
+func (x *Statement) GetDateClosed() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_Closed
+		return x.xxx_hidden_DateClosed
 	}
 	return nil
 }
@@ -1245,8 +1245,8 @@ func (x *Statement) SetTotal(v int64) {
 	x.xxx_hidden_Total = v
 }
 
-func (x *Statement) SetClosed(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Closed = v
+func (x *Statement) SetDateClosed(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateClosed = v
 }
 
 func (x *Statement) HasPeriod() bool {
@@ -1256,19 +1256,19 @@ func (x *Statement) HasPeriod() bool {
 	return x.xxx_hidden_Period != nil
 }
 
-func (x *Statement) HasClosed() bool {
+func (x *Statement) HasDateClosed() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Closed != nil
+	return x.xxx_hidden_DateClosed != nil
 }
 
 func (x *Statement) ClearPeriod() {
 	x.xxx_hidden_Period = nil
 }
 
-func (x *Statement) ClearClosed() {
-	x.xxx_hidden_Closed = nil
+func (x *Statement) ClearDateClosed() {
+	x.xxx_hidden_DateClosed = nil
 }
 
 type Statement_builder struct {
@@ -1287,7 +1287,7 @@ type Statement_builder struct {
 	// added, exactly, and rounded once, down.
 	Total int64
 	// When it was written, which is when the period was closed for it.
-	Closed *timestamppb.Timestamp
+	DateClosed *timestamppb.Timestamp
 }
 
 func (b0 Statement_builder) Build() *Statement {
@@ -1301,7 +1301,7 @@ func (b0 Statement_builder) Build() *Statement {
 	x.xxx_hidden_Currency = b.Currency
 	x.xxx_hidden_Lines = &b.Lines
 	x.xxx_hidden_Total = b.Total
-	x.xxx_hidden_Closed = b.Closed
+	x.xxx_hidden_DateClosed = b.DateClosed
 	return m0
 }
 
@@ -1659,13 +1659,14 @@ func (b0 LinePool_builder) Build() *LinePool {
 	return m0
 }
 
-// Stretch is a stretch of time, from `from` to the moment before `to`.
+// Stretch is a stretch of time, from `date_start` to the moment before
+// `date_end`.
 type Stretch struct {
-	state           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_From *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=from"`
-	xxx_hidden_To   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=to"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DateStart *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_end,json=dateEnd"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Stretch) Reset() {
@@ -1693,63 +1694,63 @@ func (x *Stretch) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *Stretch) GetFrom() *timestamppb.Timestamp {
+func (x *Stretch) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_From
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *Stretch) GetTo() *timestamppb.Timestamp {
+func (x *Stretch) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_To
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
 
-func (x *Stretch) SetFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_From = v
+func (x *Stretch) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *Stretch) SetTo(v *timestamppb.Timestamp) {
-	x.xxx_hidden_To = v
+func (x *Stretch) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
-func (x *Stretch) HasFrom() bool {
+func (x *Stretch) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_From != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *Stretch) HasTo() bool {
+func (x *Stretch) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_To != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *Stretch) ClearFrom() {
-	x.xxx_hidden_From = nil
+func (x *Stretch) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *Stretch) ClearTo() {
-	x.xxx_hidden_To = nil
+func (x *Stretch) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
 type Stretch_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	From *timestamppb.Timestamp
-	To   *timestamppb.Timestamp
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
 }
 
 func (b0 Stretch_builder) Build() *Stretch {
 	m0 := &Stretch{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_From = b.From
-	x.xxx_hidden_To = b.To
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	return m0
 }
 
@@ -1757,8 +1758,8 @@ func (b0 Stretch_builder) Build() *Stretch {
 type LinePart struct {
 	state                 protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Price      string                 `protobuf:"bytes,1,opt,name=price"`
-	xxx_hidden_From       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from"`
-	xxx_hidden_To         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to"`
+	xxx_hidden_DateStart  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_end,json=dateEnd"`
 	xxx_hidden_Share      string                 `protobuf:"bytes,4,opt,name=share"`
 	xxx_hidden_Included   int64                  `protobuf:"varint,5,opt,name=included"`
 	xxx_hidden_Billable   string                 `protobuf:"bytes,6,opt,name=billable"`
@@ -1803,16 +1804,16 @@ func (x *LinePart) GetPrice() string {
 	return ""
 }
 
-func (x *LinePart) GetFrom() *timestamppb.Timestamp {
+func (x *LinePart) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_From
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *LinePart) GetTo() *timestamppb.Timestamp {
+func (x *LinePart) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_To
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
@@ -1879,12 +1880,12 @@ func (x *LinePart) SetPrice(v string) {
 	x.xxx_hidden_Price = v
 }
 
-func (x *LinePart) SetFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_From = v
+func (x *LinePart) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *LinePart) SetTo(v *timestamppb.Timestamp) {
-	x.xxx_hidden_To = v
+func (x *LinePart) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
 func (x *LinePart) SetShare(v string) {
@@ -1919,35 +1920,35 @@ func (x *LinePart) SetPooled(v string) {
 	x.xxx_hidden_Pooled = v
 }
 
-func (x *LinePart) HasFrom() bool {
+func (x *LinePart) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_From != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *LinePart) HasTo() bool {
+func (x *LinePart) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_To != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *LinePart) ClearFrom() {
-	x.xxx_hidden_From = nil
+func (x *LinePart) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *LinePart) ClearTo() {
-	x.xxx_hidden_To = nil
+func (x *LinePart) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
 type LinePart_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The version, by its identifier as `PriceBookService.ListPrices` says it.
-	Price string
-	From  *timestamppb.Timestamp
-	To    *timestamppb.Timestamp
+	Price     string
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
 	// The share of the period it is charged by.
 	Share string
 	// By the unit: what the version includes, and what is billable past it.
@@ -1973,8 +1974,8 @@ func (b0 LinePart_builder) Build() *LinePart {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Price = b.Price
-	x.xxx_hidden_From = b.From
-	x.xxx_hidden_To = b.To
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	x.xxx_hidden_Share = b.Share
 	x.xxx_hidden_Included = b.Included
 	x.xxx_hidden_Billable = b.Billable
@@ -2114,11 +2115,12 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\x0fGetUsageRequest\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\":\n" +
 	"\x10GetUsageResponse\x12&\n" +
-	"\x05usage\x18\x01 \x01(\v2\x10.levyan.v1.UsageR\x05usage\"\xe5\x02\n" +
+	"\x05usage\x18\x01 \x01(\v2\x10.levyan.v1.UsageR\x05usage\"\xee\x02\n" +
 	"\x05Usage\x12\x1c\n" +
 	"\tworkspace\x18\x01 \x01(\tR\tworkspace\x12)\n" +
-	"\x06period\x18\x02 \x01(\v2\x11.levyan.v1.PeriodR\x06period\x12/\n" +
-	"\x05as_of\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04asOf\x12,\n" +
+	"\x06period\x18\x02 \x01(\v2\x11.levyan.v1.PeriodR\x06period\x128\n" +
+	"\n" +
+	"date_as_of\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bdateAsOf\x12,\n" +
 	"\achannel\x18\x04 \x01(\x0e2\x12.levyan.v1.ChannelR\achannel\x12\x1a\n" +
 	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12%\n" +
 	"\x05lines\x18\x06 \x03(\v2\x0f.levyan.v1.LineR\x05lines\x12\x14\n" +
@@ -2126,23 +2128,24 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\n" +
 	"allowances\x18\b \x03(\v2\x14.levyan.v1.AllowanceR\n" +
 	"allowances\x12%\n" +
-	"\x05pools\x18\t \x03(\v2\x0f.levyan.v1.PoolR\x05pools\"\xc0\x01\n" +
+	"\x05pools\x18\t \x03(\v2\x0f.levyan.v1.PoolR\x05pools\"\xdc\x01\n" +
 	"\x04Pool\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05meter\x18\x02 \x01(\tR\x05meter\x12\x18\n" +
 	"\agranted\x18\x03 \x01(\x03R\agranted\x12\x12\n" +
-	"\x04left\x18\x04 \x01(\tR\x04left\x12.\n" +
-	"\x04from\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x124\n" +
-	"\aexpires\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\aexpires\"\xaf\x01\n" +
+	"\x04left\x18\x04 \x01(\tR\x04left\x12A\n" +
+	"\x0edate_effective\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rdateEffective\x12=\n" +
+	"\fdate_expires\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vdateExpires\"\xcf\x01\n" +
 	"\tAllowance\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05meter\x18\x02 \x01(\tR\x05meter\x12\x1a\n" +
-	"\bquantity\x18\x03 \x01(\x03R\bquantity\x12.\n" +
-	"\x04from\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x120\n" +
-	"\x05until\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x05until\"|\n" +
-	"\x06Period\x120\n" +
-	"\x05start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
-	"\x03end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\x12\x12\n" +
+	"\bquantity\x18\x03 \x01(\x03R\bquantity\x12A\n" +
+	"\x0edate_effective\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\rdateEffective\x12=\n" +
+	"\fdate_expires\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vdateExpires\"\x8e\x01\n" +
+	"\x06Period\x129\n" +
+	"\n" +
+	"date_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\x12\x12\n" +
 	"\x04zone\x18\x03 \x01(\tR\x04zone\"%\n" +
 	"\x13GetStatementRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"J\n" +
@@ -2157,7 +2160,7 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\n" +
 	"statements\x18\x01 \x03(\v2\x14.levyan.v1.StatementR\n" +
 	"statements\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x9f\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa8\x02\n" +
 	"\tStatement\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
 	"\tworkspace\x18\x02 \x01(\tR\tworkspace\x12)\n" +
@@ -2165,8 +2168,9 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\achannel\x18\x04 \x01(\x0e2\x12.levyan.v1.ChannelR\achannel\x12\x1a\n" +
 	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12%\n" +
 	"\x05lines\x18\x06 \x03(\v2\x0f.levyan.v1.LineR\x05lines\x12\x14\n" +
-	"\x05total\x18\a \x01(\x03R\x05total\x122\n" +
-	"\x06closed\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x06closed\"\xc2\x03\n" +
+	"\x05total\x18\a \x01(\x03R\x05total\x12;\n" +
+	"\vdate_closed\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"dateClosed\"\xc2\x03\n" +
 	"\x04Line\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\tR\x05meter\x12\x12\n" +
 	"\x04unit\x18\x02 \x01(\tR\x04unit\x12'\n" +
@@ -2185,14 +2189,16 @@ const file_levyan_v1_billing_proto_rawDesc = "" +
 	"\x05pools\x18\x0e \x03(\v2\x13.levyan.v1.LinePoolR\x05pools\"4\n" +
 	"\bLinePool\x12\x12\n" +
 	"\x04pool\x18\x01 \x01(\tR\x04pool\x12\x14\n" +
-	"\x05taken\x18\x02 \x01(\tR\x05taken\"e\n" +
-	"\aStretch\x12.\n" +
-	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xe4\x02\n" +
+	"\x05taken\x18\x02 \x01(\tR\x05taken\"{\n" +
+	"\aStretch\x129\n" +
+	"\n" +
+	"date_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\"\xfa\x02\n" +
 	"\bLinePart\x12\x14\n" +
-	"\x05price\x18\x01 \x01(\tR\x05price\x12.\n" +
-	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x14\n" +
+	"\x05price\x18\x01 \x01(\tR\x05price\x129\n" +
+	"\n" +
+	"date_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\x12\x14\n" +
 	"\x05share\x18\x04 \x01(\tR\x05share\x12\x1a\n" +
 	"\bincluded\x18\x05 \x01(\x03R\bincluded\x12\x1a\n" +
 	"\bbillable\x18\x06 \x01(\tR\bbillable\x12\x16\n" +
@@ -2244,32 +2250,32 @@ var file_levyan_v1_billing_proto_goTypes = []any{
 var file_levyan_v1_billing_proto_depIdxs = []int32{
 	3,  // 0: levyan.v1.GetUsageResponse.usage:type_name -> levyan.v1.Usage
 	6,  // 1: levyan.v1.Usage.period:type_name -> levyan.v1.Period
-	17, // 2: levyan.v1.Usage.as_of:type_name -> google.protobuf.Timestamp
+	17, // 2: levyan.v1.Usage.date_as_of:type_name -> google.protobuf.Timestamp
 	18, // 3: levyan.v1.Usage.channel:type_name -> levyan.v1.Channel
 	12, // 4: levyan.v1.Usage.lines:type_name -> levyan.v1.Line
 	5,  // 5: levyan.v1.Usage.allowances:type_name -> levyan.v1.Allowance
 	4,  // 6: levyan.v1.Usage.pools:type_name -> levyan.v1.Pool
-	17, // 7: levyan.v1.Pool.from:type_name -> google.protobuf.Timestamp
-	17, // 8: levyan.v1.Pool.expires:type_name -> google.protobuf.Timestamp
-	17, // 9: levyan.v1.Allowance.from:type_name -> google.protobuf.Timestamp
-	17, // 10: levyan.v1.Allowance.until:type_name -> google.protobuf.Timestamp
-	17, // 11: levyan.v1.Period.start:type_name -> google.protobuf.Timestamp
-	17, // 12: levyan.v1.Period.end:type_name -> google.protobuf.Timestamp
+	17, // 7: levyan.v1.Pool.date_effective:type_name -> google.protobuf.Timestamp
+	17, // 8: levyan.v1.Pool.date_expires:type_name -> google.protobuf.Timestamp
+	17, // 9: levyan.v1.Allowance.date_effective:type_name -> google.protobuf.Timestamp
+	17, // 10: levyan.v1.Allowance.date_expires:type_name -> google.protobuf.Timestamp
+	17, // 11: levyan.v1.Period.date_start:type_name -> google.protobuf.Timestamp
+	17, // 12: levyan.v1.Period.date_end:type_name -> google.protobuf.Timestamp
 	11, // 13: levyan.v1.GetStatementResponse.statement:type_name -> levyan.v1.Statement
 	11, // 14: levyan.v1.ListStatementsResponse.statements:type_name -> levyan.v1.Statement
 	6,  // 15: levyan.v1.Statement.period:type_name -> levyan.v1.Period
 	18, // 16: levyan.v1.Statement.channel:type_name -> levyan.v1.Channel
 	12, // 17: levyan.v1.Statement.lines:type_name -> levyan.v1.Line
-	17, // 18: levyan.v1.Statement.closed:type_name -> google.protobuf.Timestamp
+	17, // 18: levyan.v1.Statement.date_closed:type_name -> google.protobuf.Timestamp
 	0,  // 19: levyan.v1.Line.kind:type_name -> levyan.v1.LineKind
 	6,  // 20: levyan.v1.Line.corrects:type_name -> levyan.v1.Period
 	15, // 21: levyan.v1.Line.parts:type_name -> levyan.v1.LinePart
 	14, // 22: levyan.v1.Line.unpriced:type_name -> levyan.v1.Stretch
 	13, // 23: levyan.v1.Line.pools:type_name -> levyan.v1.LinePool
-	17, // 24: levyan.v1.Stretch.from:type_name -> google.protobuf.Timestamp
-	17, // 25: levyan.v1.Stretch.to:type_name -> google.protobuf.Timestamp
-	17, // 26: levyan.v1.LinePart.from:type_name -> google.protobuf.Timestamp
-	17, // 27: levyan.v1.LinePart.to:type_name -> google.protobuf.Timestamp
+	17, // 24: levyan.v1.Stretch.date_start:type_name -> google.protobuf.Timestamp
+	17, // 25: levyan.v1.Stretch.date_end:type_name -> google.protobuf.Timestamp
+	17, // 26: levyan.v1.LinePart.date_start:type_name -> google.protobuf.Timestamp
+	17, // 27: levyan.v1.LinePart.date_end:type_name -> google.protobuf.Timestamp
 	16, // 28: levyan.v1.LinePart.bands:type_name -> levyan.v1.BandShare
 	1,  // 29: levyan.v1.BillingService.GetUsage:input_type -> levyan.v1.GetUsageRequest
 	7,  // 30: levyan.v1.BillingService.GetStatement:input_type -> levyan.v1.GetStatementRequest

@@ -52,7 +52,10 @@ scripts/api.sh --breaking origin/main
 ```
 
 - Add fields; never renumber, rename or retype one. CI runs `buf breaking`
-  against the base of every pull request.
+  against the base of every pull request. Once, on the owner's word, a field
+  was renamed: every time the API keeps became a `date_*` at the number it
+  had (2026-11-08, 대표: "비슷한거 전부 다"), so the binary wire stayed and
+  JSON names moved. That is the one exception, not a precedent.
 - `server/api` maps between the API's messages and the schema's, and reads
   through the **walled** stack with the caller's frame. Never hand it
   `Ungated`.
@@ -243,7 +246,7 @@ a stock's **readings** (`levyan.v1.MeteringService/Record`) and a flow's
 **points** (OpenTelemetry's `MetricsService/Export`, `server/otlp`). Both are
 rows that are never changed: every field immutable, no Patch, no Erase.
 
-- **Kept once.** A reading is (product, workspace, meter, measured_at) and a
+- **Kept once.** A reading is (product, workspace, meter, date_measured) and a
   point (series, start, time), each a unique index. The same again is
   `Already`; the same key with another value is refused (`Conflict`) and said
   in the log -- never one of the two values picked. A point that counts no
@@ -456,7 +459,7 @@ decides (payday#185). levyan is the source; the contract is payday's
   greater `version`, which the layer (`grants.Layer`, on both stacks) says --
   1 on Add, the row's plus one on Patch -- and no request does. What changes
   is its end and whether it renews, nothing else: another value is another
-  grant. A grant is taken away by ending it (`valid_until` now), never by
+  grant. A grant is taken away by ending it (`date_expires` now), never by
   deleting it; one over for `grants.Listed` is soft-erased out of every list.
 - **Every write of a grant holds its row first** (`FOR UPDATE` on PostgreSQL),
   and a grant given holds its workspace's (`ledger.Lock`): the layer reads the
@@ -570,7 +573,7 @@ product in a transaction holding the workspace's row (`payers.Payers.Close`,
   `rating.Lived` the amounts are: one closed through a period and restored
   since counts in it.
 - **Late**: an event written after a period it reaches into began to close
-  says through which period's end it is late (`late_through`), and
+  says through which period's end it is late (`date_late_through`), and
   `Rater.marked` rates again the periods from its reach through there; a
   correction made already comes to nothing. Its reach (`rating.Reach`) is
   its moment, but for a restore -- and a destruction that ends a stretch a

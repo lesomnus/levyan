@@ -14,6 +14,7 @@ package cli
 
 import (
 	"context"
+	"slices"
 
 	"github.com/lesomnus/xli"
 	"github.com/lesomnus/xli/cfg"
@@ -76,16 +77,22 @@ func Cmd(c *cmd.Config) *xli.Command {
 // `levyan migrate`, which a deployment runs before it serves a build, and the
 // one binary that alters tables.
 //
-// The indexes an earlier build made under another name are moved to this
-// build's first: a migration finds an index by its name, and one it does not
-// find it makes again, from every row, beside the old one, which it leaves --
-// it drops no index. See `rename`.
+// The columns and indexes an earlier build made under another name are moved
+// to this build's first: a migration finds both by name and drops neither. A
+// column it does not find it adds, empty, beside the old one -- every row
+// written before then reads as never having had a value, and on SQLite a
+// table whose index names the column is made again without the old one at
+// all -- and an index it makes again, from every row, beside the old one. See
+// `rename`, and [columnRenames] for levyan's own.
 //
 // And for the same reason an index this build declares that PostgreSQL left
 // invalid -- a build of it `CONCURRENTLY` that did not finish -- is refused
 // before anything is made: found by its name, it would be taken for made, and
 // read by nothing from then on. See `valid`.
 func Migrate(ctx context.Context, s *cmd.Server) error {
+	if err := rename.Columns(ctx, s.Db, s.Dialect, slices.Concat(pd.ColumnRenames, columnRenames)); err != nil {
+		return err
+	}
 	if err := rename.Indexes(ctx, s.Db, s.Dialect, pd.IndexRenames); err != nil {
 		return err
 	}
@@ -94,4 +101,24 @@ func Migrate(ctx context.Context, s *cmd.Server) error {
 	}
 
 	return entmigrate.NewSchema(s.Drv).Create(ctx)
+}
+
+// columnRenames are levyan's own columns that an earlier build stored under
+// another name, for [Migrate] to move before the migration, beside payday's
+// own (`pd.ColumnRenames`). Only ever added to: a deployment may migrate from
+// any build before the one that renamed it.
+//
+// Every time levyan keeps is a `date_*`, as payday's are (2026-11-08, 대표:
+// "비슷한거 전부 다"), at the number it had.
+var columnRenames = []rename.Column{
+	{Table: "allowance", From: "valid_from", To: "date_effective"},
+	{Table: "allowance", From: "valid_until", To: "date_expires"},
+	{Table: "grant", From: "valid_from", To: "date_effective"},
+	{Table: "grant", From: "valid_until", To: "date_expires"},
+	{Table: "point", From: "started_at", To: "date_started"},
+	{Table: "point", From: "counted_at", To: "date_counted"},
+	{Table: "pool", From: "valid_from", To: "date_effective"},
+	{Table: "reading", From: "measured_at", To: "date_measured"},
+	{Table: "workspaceevent", From: "happened_at", To: "date_occurred"},
+	{Table: "workspaceevent", From: "late_through", To: "date_late_through"},
 }

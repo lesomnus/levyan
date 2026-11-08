@@ -29,23 +29,23 @@ func (_u *GrantUpdate) Where(ps ...predicate.Grant) *GrantUpdate {
 	return _u
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (_u *GrantUpdate) SetValidUntil(v time.Time) *GrantUpdate {
-	_u.mutation.SetValidUntil(v)
+// SetDateExpires sets the "date_expires" field.
+func (_u *GrantUpdate) SetDateExpires(v time.Time) *GrantUpdate {
+	_u.mutation.SetDateExpires(v)
 	return _u
 }
 
-// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
-func (_u *GrantUpdate) SetNillableValidUntil(v *time.Time) *GrantUpdate {
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_u *GrantUpdate) SetNillableDateExpires(v *time.Time) *GrantUpdate {
 	if v != nil {
-		_u.SetValidUntil(*v)
+		_u.SetDateExpires(*v)
 	}
 	return _u
 }
 
-// ClearValidUntil clears the value of the "valid_until" field.
-func (_u *GrantUpdate) ClearValidUntil() *GrantUpdate {
-	_u.mutation.ClearValidUntil()
+// ClearDateExpires clears the value of the "date_expires" field.
+func (_u *GrantUpdate) ClearDateExpires() *GrantUpdate {
+	_u.mutation.ClearDateExpires()
 	return _u
 }
 
@@ -179,17 +179,17 @@ func (_u *GrantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if _u.mutation.ValidFromCleared() {
-		_spec.ClearField(grant.FieldValidFrom, field.TypeTime)
+	if _u.mutation.DateEffectiveCleared() {
+		_spec.ClearField(grant.FieldDateEffective, field.TypeTime)
 	}
-	if value, ok := _u.mutation.ValidUntil(); ok {
-		_spec.SetField(grant.FieldValidUntil, field.TypeTime, value)
+	if value, ok := _u.mutation.DateExpires(); ok {
+		_spec.SetField(grant.FieldDateExpires, field.TypeTime, value)
 	}
-	if e, ok := _u.mutation.FieldExpr(grant.FieldValidUntil); ok {
-		_spec.SetField(grant.FieldValidUntil, field.TypeTime, e)
+	if e, ok := _u.mutation.FieldExpr(grant.FieldDateExpires); ok {
+		_spec.SetField(grant.FieldDateExpires, field.TypeTime, e)
 	}
-	if _u.mutation.ValidUntilCleared() {
-		_spec.ClearField(grant.FieldValidUntil, field.TypeTime)
+	if _u.mutation.DateExpiresCleared() {
+		_spec.ClearField(grant.FieldDateExpires, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(grant.FieldDateUpdated, field.TypeTime, value)
@@ -246,23 +246,23 @@ type GrantUpdateOne struct {
 	modifiers []func(*sql.UpdateBuilder)
 }
 
-// SetValidUntil sets the "valid_until" field.
-func (_u *GrantUpdateOne) SetValidUntil(v time.Time) *GrantUpdateOne {
-	_u.mutation.SetValidUntil(v)
+// SetDateExpires sets the "date_expires" field.
+func (_u *GrantUpdateOne) SetDateExpires(v time.Time) *GrantUpdateOne {
+	_u.mutation.SetDateExpires(v)
 	return _u
 }
 
-// SetNillableValidUntil sets the "valid_until" field if the given value is not nil.
-func (_u *GrantUpdateOne) SetNillableValidUntil(v *time.Time) *GrantUpdateOne {
+// SetNillableDateExpires sets the "date_expires" field if the given value is not nil.
+func (_u *GrantUpdateOne) SetNillableDateExpires(v *time.Time) *GrantUpdateOne {
 	if v != nil {
-		_u.SetValidUntil(*v)
+		_u.SetDateExpires(*v)
 	}
 	return _u
 }
 
-// ClearValidUntil clears the value of the "valid_until" field.
-func (_u *GrantUpdateOne) ClearValidUntil() *GrantUpdateOne {
-	_u.mutation.ClearValidUntil()
+// ClearDateExpires clears the value of the "date_expires" field.
+func (_u *GrantUpdateOne) ClearDateExpires() *GrantUpdateOne {
+	_u.mutation.ClearDateExpires()
 	return _u
 }
 
@@ -426,17 +426,17 @@ func (_u *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error)
 			}
 		}
 	}
-	if _u.mutation.ValidFromCleared() {
-		_spec.ClearField(grant.FieldValidFrom, field.TypeTime)
+	if _u.mutation.DateEffectiveCleared() {
+		_spec.ClearField(grant.FieldDateEffective, field.TypeTime)
 	}
-	if value, ok := _u.mutation.ValidUntil(); ok {
-		_spec.SetField(grant.FieldValidUntil, field.TypeTime, value)
+	if value, ok := _u.mutation.DateExpires(); ok {
+		_spec.SetField(grant.FieldDateExpires, field.TypeTime, value)
 	}
-	if e, ok := _u.mutation.FieldExpr(grant.FieldValidUntil); ok {
-		_spec.SetField(grant.FieldValidUntil, field.TypeTime, e)
+	if e, ok := _u.mutation.FieldExpr(grant.FieldDateExpires); ok {
+		_spec.SetField(grant.FieldDateExpires, field.TypeTime, e)
 	}
-	if _u.mutation.ValidUntilCleared() {
-		_spec.ClearField(grant.FieldValidUntil, field.TypeTime)
+	if _u.mutation.DateExpiresCleared() {
+		_spec.ClearField(grant.FieldDateExpires, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateUpdated(); ok {
 		_spec.SetField(grant.FieldDateUpdated, field.TypeTime, value)

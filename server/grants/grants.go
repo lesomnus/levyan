@@ -249,7 +249,7 @@ func (g Grants) give(ctx context.Context, v Give, ws uuid.UUID) (*levyan.Grant, 
 			entgrant.WorkspaceId(ws),
 			entgrant.Key(v.Key),
 			entgrant.DateErasedIsNil(),
-			entgrant.Or(entgrant.Renews(true), entgrant.ValidUntilGT(now)),
+			entgrant.Or(entgrant.Renews(true), entgrant.DateExpiresGT(now)),
 		)
 		if v.Source == levyan.GrantSource_GRANT_SOURCE_RULE {
 			q.Where(entgrant.Source(int32(v.Source)), entgrant.Rule(v.Rule))
@@ -276,7 +276,7 @@ func (g Grants) give(ctx context.Context, v Give, ws uuid.UUID) (*levyan.Grant, 
 			// this one: it lasts, or will, into this one's window.
 			overlaps := live[:0]
 			for _, l := range live {
-				if (l.Renews || Moment(l.ValidUntil).After(from)) && Moment(l.ValidFrom).Before(until) {
+				if (l.Renews || Moment(l.DateExpires).After(from)) && Moment(l.DateEffective).Before(until) {
 					overlaps = append(overlaps, l)
 				}
 			}
@@ -284,7 +284,7 @@ func (g Grants) give(ctx context.Context, v Give, ws uuid.UUID) (*levyan.Grant, 
 				l := overlaps[0]
 				return status.Errorf(codes.FailedPrecondition,
 					"%s of this workspace is given by grant %s until %s: end it, or replace it with this one",
-					v.Key, pdid.Id(l.Id), l.ValidUntil.UTC().Format(time.RFC3339))
+					v.Key, pdid.Id(l.Id), l.DateExpires.UTC().Format(time.RFC3339))
 			}
 
 			// Replaced where the new one begins, so that one ends as the
@@ -299,17 +299,17 @@ func (g Grants) give(ctx context.Context, v Give, ws uuid.UUID) (*levyan.Grant, 
 		}
 
 		out, err = s.Grant().Add(ctx, levyan.GrantAddRequest_builder{
-			Tenant:     levyan.TenantRef_builder{Id: v.Product.Bytes()}.Build(),
-			Workspace:  levyan.WorkspaceRef_builder{Id: ws[:]}.Build(),
-			Desc:       v.Desc,
-			Key:        v.Key,
-			Value:      value,
-			Limit:      limit,
-			ValidFrom:  timestamppb.New(from),
-			ValidUntil: timestamppb.New(until),
-			Source:     v.Source,
-			Rule:       v.Rule,
-			Renews:     renews,
+			Tenant:        levyan.TenantRef_builder{Id: v.Product.Bytes()}.Build(),
+			Workspace:     levyan.WorkspaceRef_builder{Id: ws[:]}.Build(),
+			Desc:          v.Desc,
+			Key:           v.Key,
+			Value:         value,
+			Limit:         limit,
+			DateEffective: timestamppb.New(from),
+			DateExpires:   timestamppb.New(until),
+			Source:        v.Source,
+			Rule:          v.Rule,
+			Renews:        renews,
 		}.Build())
 		return err
 	})
@@ -365,18 +365,18 @@ func (g Grants) end(ctx context.Context, s levyan.Server, db *ent.Client, id uui
 	if err != nil {
 		return nil, err
 	}
-	if !v.Renews && !Moment(v.ValidUntil).After(at) {
+	if !v.Renews && !Moment(v.DateExpires).After(at) {
 		return v.Proto(), nil
 	}
 
-	until := Moment(v.ValidUntil)
+	until := Moment(v.DateExpires)
 	if until.After(at) || v.Renews {
 		until = at
 	}
 
 	return s.Grant().Patch(ctx, levyan.GrantPatchRequest_builder{
 		Ref:              levyan.GrantRef_builder{Id: id[:]}.Build(),
-		ValidUntil:       timestamppb.New(until),
+		DateExpires:      timestamppb.New(until),
 		Renews:           proto.Bool(false),
 		DateUpdatedForce: proto.Bool(true),
 	}.Build())
@@ -401,7 +401,7 @@ func (g Grants) Renew(ctx context.Context) (int, error) {
 	)
 	for {
 		ids, err := db.Grant.Query().
-			Where(entgrant.Renews(true), entgrant.ValidUntilLT(due), entgrant.DateErasedIsNil(), entgrant.IdGT(after)).
+			Where(entgrant.Renews(true), entgrant.DateExpiresLT(due), entgrant.DateErasedIsNil(), entgrant.IdGT(after)).
 			Order(ent.Asc(entgrant.FieldId)).
 			Limit(page).
 			Ids(ctx)
@@ -445,7 +445,7 @@ func (g Grants) renew(ctx context.Context, id uuid.UUID, now, due time.Time) (bo
 		if err != nil {
 			return err
 		}
-		if !v.Renews || v.DateErased != nil || !Moment(v.ValidUntil).Before(due) {
+		if !v.Renews || v.DateErased != nil || !Moment(v.DateExpires).Before(due) {
 			return nil
 		}
 		d, err := ledger.Destroyed(ctx, db, v.TenantId, v.WorkspaceId)
@@ -459,7 +459,7 @@ func (g Grants) renew(ctx context.Context, id uuid.UUID, now, due time.Time) (bo
 
 		_, err = s.Grant().Patch(ctx, levyan.GrantPatchRequest_builder{
 			Ref:              levyan.GrantRef_builder{Id: id[:]}.Build(),
-			ValidUntil:       timestamppb.New(latest(now, Moment(v.ValidFrom)).Add(g.horizon())),
+			DateExpires:      timestamppb.New(latest(now, Moment(v.DateEffective)).Add(g.horizon())),
 			DateUpdatedForce: proto.Bool(true),
 		}.Build())
 		ok = err == nil
@@ -482,7 +482,7 @@ func (g Grants) Retire(ctx context.Context) (int, error) {
 	)
 	for {
 		ids, err := db.Grant.Query().
-			Where(entgrant.Renews(false), entgrant.ValidUntilLT(before), entgrant.DateErasedIsNil(), entgrant.IdGT(after)).
+			Where(entgrant.Renews(false), entgrant.DateExpiresLT(before), entgrant.DateErasedIsNil(), entgrant.IdGT(after)).
 			Order(ent.Asc(entgrant.FieldId)).
 			Limit(page).
 			Ids(ctx)

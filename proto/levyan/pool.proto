@@ -61,7 +61,7 @@ message Pool {
 
   // From when it is in force: unset is the moment it is given. Never in a
   // period whose close has begun.
-  google.protobuf.Timestamp valid_from = 10 [(orm.field) = {
+  google.protobuf.Timestamp date_effective = 10 [(orm.field) = {
     immutable: true
     default: ""
   }];

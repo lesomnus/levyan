@@ -78,10 +78,10 @@ func Gaps(ctx context.Context, db *ent.Client, now time.Time, e Expect) ([]Gap, 
 			Where(
 				entreading.TenantId(m.TenantId),
 				entreading.MeterId(m.Id),
-				entreading.MeasuredAtGTE(now.Add(-e.Recent)),
+				entreading.DateMeasuredGTE(now.Add(-e.Recent)),
 			).
 			GroupBy(entreading.FieldWorkspaceId).
-			Aggregate(ent.As(ent.Max(entreading.FieldMeasuredAt), "last")).
+			Aggregate(ent.As(ent.Max(entreading.FieldDateMeasured), "last")).
 			Scan(ctx, &vs)
 		if err != nil {
 			return nil, nil, err

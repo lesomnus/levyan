@@ -30,7 +30,7 @@ message PoolAddRequest {
   WorkspaceRef workspace = 3;
   MeterRef meter = 8;
   int64 quantity = 9 [features.field_presence = IMPLICIT];
-  google.protobuf.Timestamp valid_from = 10;
+  google.protobuf.Timestamp date_effective = 10;
   google.protobuf.Timestamp date_expires = 11;
   string reason = 12 [features.field_presence = IMPLICIT];
   google.protobuf.Timestamp date_created = 15;
@@ -56,7 +56,7 @@ message PoolSelect {
   WorkspaceSelect workspace = 3;
   MeterSelect meter = 8;
   bool quantity = 9;
-  bool valid_from = 10;
+  bool date_effective = 10;
   bool date_expires = 11;
   bool reason = 12;
   bool date_updated = 13;

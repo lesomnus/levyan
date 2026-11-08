@@ -26,15 +26,15 @@ message WorkspaceEventAddRequest {
 	WorkspaceEventKind kind = 8 [
 		features.field_presence = IMPLICIT
 	];
-	google.protobuf.Timestamp happened_at = 9;
-	google.protobuf.Timestamp late_through = 10;
+	google.protobuf.Timestamp date_occurred = 9;
+	google.protobuf.Timestamp date_late_through = 10;
 	google.protobuf.Timestamp date_created = 15;
 }
 
 message WorkspaceEventRefByHappened {
 	TenantRef tenant = 2;
 	WorkspaceRef workspace = 3;
-	google.protobuf.Timestamp happened_at = 9;
+	google.protobuf.Timestamp date_occurred = 9;
 }
 
 message WorkspaceEventRef {
@@ -49,8 +49,8 @@ message WorkspaceEventSelect {
 	TenantSelect tenant = 2;
 	WorkspaceSelect workspace = 3;
 	bool kind = 8;
-	bool happened_at = 9;
-	bool late_through = 10;
+	bool date_occurred = 9;
+	bool date_late_through = 10;
 	bool date_erased = 14;
 	bool date_created = 15;
 }

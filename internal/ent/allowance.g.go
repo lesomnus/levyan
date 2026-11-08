@@ -34,9 +34,9 @@ func (e *Allowance) Proto() *levyan.Allowance {
 		x.SetMeter(r)
 	}
 	x.SetQuantity(e.Quantity)
-	x.SetValidFrom(timestamppb.New(e.ValidFrom))
-	if e.ValidUntil != nil {
-		x.SetValidUntil(timestamppb.New(*e.ValidUntil))
+	x.SetDateEffective(timestamppb.New(e.DateEffective))
+	if e.DateExpires != nil {
+		x.SetDateExpires(timestamppb.New(*e.DateExpires))
 	}
 	x.SetReason(e.Reason)
 	x.SetDateUpdated(timestamppb.New(e.DateUpdated))

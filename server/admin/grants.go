@@ -27,29 +27,29 @@ type Grant struct {
 	Value string `json:"value"`
 	Limit *int64 `json:"limit,omitempty"`
 
-	From  time.Time `json:"from"`
-	Until time.Time `json:"until"`
+	DateEffective time.Time `json:"date_effective"`
+	DateExpires   time.Time `json:"date_expires"`
 
 	// Renews is a grant whose end is moved on while it lasts.
 	Renews bool `json:"renews,omitempty"`
 
-	Version uint64     `json:"version"`
-	Source  string     `json:"source"`
-	Rule    string     `json:"rule,omitempty"`
-	Desc    string     `json:"desc,omitempty"`
-	Given   time.Time  `json:"given"`
-	Erased  *time.Time `json:"erased,omitempty"`
+	Version    uint64     `json:"version"`
+	Source     string     `json:"source"`
+	Rule       string     `json:"rule,omitempty"`
+	Desc       string     `json:"desc,omitempty"`
+	DateGiven  time.Time  `json:"date_given"`
+	DateErased *time.Time `json:"date_erased,omitempty"`
 }
 
 func grantOf(v *ent.Grant) (Grant, error) {
 	out := Grant{
-		Id:    pdid.Id(v.Id).String(),
-		Key:   v.Key,
-		Value: named(levyan.GrantValue(v.Value).String(), "GRANT_VALUE_"),
-		From:  v.ValidFrom.UTC(), Until: v.ValidUntil.UTC(), Renews: v.Renews,
+		Id:            pdid.Id(v.Id).String(),
+		Key:           v.Key,
+		Value:         named(levyan.GrantValue(v.Value).String(), "GRANT_VALUE_"),
+		DateEffective: v.DateEffective.UTC(), DateExpires: v.DateExpires.UTC(), Renews: v.Renews,
 		Version: v.Version,
 		Source:  named(levyan.GrantSource(v.Source).String(), "GRANT_SOURCE_"),
-		Rule:    v.Rule, Desc: v.Desc, Given: v.DateCreated.UTC(), Erased: v.DateErased,
+		Rule:    v.Rule, Desc: v.Desc, DateGiven: v.DateCreated.UTC(), DateErased: v.DateErased,
 	}
 	if v.Value == int32(levyan.GrantValue_GRANT_VALUE_LIMIT) {
 		out.Limit = &v.Limit
@@ -90,15 +90,15 @@ func (a *Routes) give(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Workspace string     `json:"workspace"`
-		Key       string     `json:"key"`
-		Value     string     `json:"value"`
-		Limit     *int64     `json:"limit"`
-		From      *time.Time `json:"from"`
-		Until     *time.Time `json:"until"`
-		Source    string     `json:"source"`
-		Desc      string     `json:"desc"`
-		Replace   bool       `json:"replace"`
+		Workspace     string     `json:"workspace"`
+		Key           string     `json:"key"`
+		Value         string     `json:"value"`
+		Limit         *int64     `json:"limit"`
+		DateEffective *time.Time `json:"date_effective"`
+		DateExpires   *time.Time `json:"date_expires"`
+		Source        string     `json:"source"`
+		Desc          string     `json:"desc"`
+		Replace       bool       `json:"replace"`
 	}
 	if !read(w, r, &in) {
 		return
@@ -154,11 +154,11 @@ func (a *Routes) give(w http.ResponseWriter, r *http.Request) {
 		Desc:      strings.TrimSpace(in.Desc),
 		Replace:   in.Replace,
 	}
-	if in.From != nil {
-		give.From = *in.From
+	if in.DateEffective != nil {
+		give.From = *in.DateEffective
 	}
-	if in.Until != nil {
-		give.Until = *in.Until
+	if in.DateExpires != nil {
+		give.Until = *in.DateExpires
 	}
 
 	v, err := a.S.Grants.Give(r.Context(), give)

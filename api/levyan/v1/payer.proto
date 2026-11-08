@@ -288,10 +288,10 @@ message Checkout {
   string billing_account = 2;
   CheckoutState state = 3;
 
-  google.protobuf.Timestamp started = 4;
+  google.protobuf.Timestamp date_started = 4;
 
   // When the merchant said it was finished, or that it never will be.
-  google.protobuf.Timestamp done = 5;
+  google.protobuf.Timestamp date_done = 5;
 
   // What a page opens it with: answered by `StartCheckout`, and unset
   // elsewhere.
@@ -355,13 +355,13 @@ message Collection {
   CollectionState state = 1;
 
   // Since when it has been so.
-  google.protobuf.Timestamp since = 2;
+  google.protobuf.Timestamp date_since = 2;
 
   // When the merchant of record will end, or pause, the subscription it is
   // collected through, as somebody scheduled it there -- the payer, in the
   // merchant's own pages, among them -- from when it is not collectable;
   // unset for nothing scheduled.
-  google.protobuf.Timestamp ends = 3;
+  google.protobuf.Timestamp date_ends = 3;
 }
 
 // CollectionState is whether what a billing account is billed can be
@@ -407,15 +407,15 @@ message Subscription {
 
   // The billing period the merchant is in, and when it bills it next:
   // unset when it will not.
-  google.protobuf.Timestamp period_start = 5;
-  google.protobuf.Timestamp period_end = 6;
-  google.protobuf.Timestamp next_billed = 7;
+  google.protobuf.Timestamp date_period_start = 5;
+  google.protobuf.Timestamp date_period_end = 6;
+  google.protobuf.Timestamp date_next_billed = 7;
 
   // What the merchant will do to it, and when; unspecified for nothing.
   SubscriptionChange change = 8;
-  google.protobuf.Timestamp change_at = 9;
+  google.protobuf.Timestamp date_change = 9;
 
-  google.protobuf.Timestamp canceled = 10;
+  google.protobuf.Timestamp date_canceled = 10;
 
   // How the payer pays, as the newest payment levyan was told of says;
   // unset until one says.
@@ -423,8 +423,8 @@ message Subscription {
 
   // When the merchant last changed it, by its own clock, and when levyan
   // last asked it.
-  google.protobuf.Timestamp updated = 12;
-  google.protobuf.Timestamp checked = 13;
+  google.protobuf.Timestamp date_updated = 12;
+  google.protobuf.Timestamp date_checked = 13;
 }
 
 // SubscriptionStatus is where a subscription is, value for value levyan's
@@ -475,7 +475,7 @@ message BillingAccount {
   Recipient recipient = 6;
   Business business = 7;
 
-  google.protobuf.Timestamp created = 8;
+  google.protobuf.Timestamp date_created = 8;
 }
 
 // Recipient is who receives what a billing account is billed.
@@ -512,7 +512,7 @@ message Offer {
   // The account it is made to.
   string account = 3;
 
-  google.protobuf.Timestamp offered = 4;
+  google.protobuf.Timestamp date_offered = 4;
 }
 
 // Link is an account paying for a workspace, from when to when.
@@ -524,9 +524,9 @@ message Link {
   // The billing account it pays with; empty for none yet.
   string billing_account = 4;
 
-  // In force from `start`, and until `end` when it says one.
-  google.protobuf.Timestamp start = 5;
-  google.protobuf.Timestamp end = 6;
+  // In force from `date_start`, and until `date_end` when it says one.
+  google.protobuf.Timestamp date_start = 5;
+  google.protobuf.Timestamp date_end = 6;
 
   LinkBegan began = 7;
   LinkEnded ended = 8;

@@ -565,26 +565,26 @@ func (b0 StatementLines_builder) Build() *StatementLines {
 // Every number but the meter's own is a fraction written exactly, as
 // `num/den` or a whole number: `110/3`, `100`.
 type StatementLine struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Meter         []byte                 `protobuf:"bytes,1,opt,name=meter"`
-	xxx_hidden_Key           string                 `protobuf:"bytes,2,opt,name=key"`
-	xxx_hidden_Unit          string                 `protobuf:"bytes,3,opt,name=unit"`
-	xxx_hidden_Kind          LineKind               `protobuf:"varint,4,opt,name=kind,enum=levyan.LineKind"`
-	xxx_hidden_CorrectsStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=corrects_start,json=correctsStart"`
-	xxx_hidden_CorrectsEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=corrects_end,json=correctsEnd"`
-	xxx_hidden_Corrects      []byte                 `protobuf:"bytes,7,opt,name=corrects"`
-	xxx_hidden_Usage         string                 `protobuf:"bytes,8,opt,name=usage"`
-	xxx_hidden_Included      string                 `protobuf:"bytes,9,opt,name=included"`
-	xxx_hidden_Billable      string                 `protobuf:"bytes,10,opt,name=billable"`
-	xxx_hidden_Amount        string                 `protobuf:"bytes,11,opt,name=amount"`
-	xxx_hidden_Billed        string                 `protobuf:"bytes,12,opt,name=billed"`
-	xxx_hidden_Parts         *[]*StatementPart      `protobuf:"bytes,13,rep,name=parts"`
-	xxx_hidden_Unpriced      *[]*StatementUnpriced  `protobuf:"bytes,14,rep,name=unpriced"`
-	xxx_hidden_Allowance     string                 `protobuf:"bytes,15,opt,name=allowance"`
-	xxx_hidden_Pooled        string                 `protobuf:"bytes,16,opt,name=pooled"`
-	xxx_hidden_Pools         *[]*StatementPool      `protobuf:"bytes,17,rep,name=pools"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Meter             []byte                 `protobuf:"bytes,1,opt,name=meter"`
+	xxx_hidden_Key               string                 `protobuf:"bytes,2,opt,name=key"`
+	xxx_hidden_Unit              string                 `protobuf:"bytes,3,opt,name=unit"`
+	xxx_hidden_Kind              LineKind               `protobuf:"varint,4,opt,name=kind,enum=levyan.LineKind"`
+	xxx_hidden_DateCorrectsStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_corrects_start,json=correctsStart"`
+	xxx_hidden_DateCorrectsEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_corrects_end,json=correctsEnd"`
+	xxx_hidden_Corrects          []byte                 `protobuf:"bytes,7,opt,name=corrects"`
+	xxx_hidden_Usage             string                 `protobuf:"bytes,8,opt,name=usage"`
+	xxx_hidden_Included          string                 `protobuf:"bytes,9,opt,name=included"`
+	xxx_hidden_Billable          string                 `protobuf:"bytes,10,opt,name=billable"`
+	xxx_hidden_Amount            string                 `protobuf:"bytes,11,opt,name=amount"`
+	xxx_hidden_Billed            string                 `protobuf:"bytes,12,opt,name=billed"`
+	xxx_hidden_Parts             *[]*StatementPart      `protobuf:"bytes,13,rep,name=parts"`
+	xxx_hidden_Unpriced          *[]*StatementUnpriced  `protobuf:"bytes,14,rep,name=unpriced"`
+	xxx_hidden_Allowance         string                 `protobuf:"bytes,15,opt,name=allowance"`
+	xxx_hidden_Pooled            string                 `protobuf:"bytes,16,opt,name=pooled"`
+	xxx_hidden_Pools             *[]*StatementPool      `protobuf:"bytes,17,rep,name=pools"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *StatementLine) Reset() {
@@ -640,16 +640,16 @@ func (x *StatementLine) GetKind() LineKind {
 	return LineKind_LINE_KIND_UNSPECIFIED
 }
 
-func (x *StatementLine) GetCorrectsStart() *timestamppb.Timestamp {
+func (x *StatementLine) GetDateCorrectsStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_CorrectsStart
+		return x.xxx_hidden_DateCorrectsStart
 	}
 	return nil
 }
 
-func (x *StatementLine) GetCorrectsEnd() *timestamppb.Timestamp {
+func (x *StatementLine) GetDateCorrectsEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_CorrectsEnd
+		return x.xxx_hidden_DateCorrectsEnd
 	}
 	return nil
 }
@@ -756,12 +756,12 @@ func (x *StatementLine) SetKind(v LineKind) {
 	x.xxx_hidden_Kind = v
 }
 
-func (x *StatementLine) SetCorrectsStart(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CorrectsStart = v
+func (x *StatementLine) SetDateCorrectsStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCorrectsStart = v
 }
 
-func (x *StatementLine) SetCorrectsEnd(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CorrectsEnd = v
+func (x *StatementLine) SetDateCorrectsEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateCorrectsEnd = v
 }
 
 func (x *StatementLine) SetCorrects(v []byte) {
@@ -811,26 +811,26 @@ func (x *StatementLine) SetPools(v []*StatementPool) {
 	x.xxx_hidden_Pools = &v
 }
 
-func (x *StatementLine) HasCorrectsStart() bool {
+func (x *StatementLine) HasDateCorrectsStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_CorrectsStart != nil
+	return x.xxx_hidden_DateCorrectsStart != nil
 }
 
-func (x *StatementLine) HasCorrectsEnd() bool {
+func (x *StatementLine) HasDateCorrectsEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_CorrectsEnd != nil
+	return x.xxx_hidden_DateCorrectsEnd != nil
 }
 
-func (x *StatementLine) ClearCorrectsStart() {
-	x.xxx_hidden_CorrectsStart = nil
+func (x *StatementLine) ClearDateCorrectsStart() {
+	x.xxx_hidden_DateCorrectsStart = nil
 }
 
-func (x *StatementLine) ClearCorrectsEnd() {
-	x.xxx_hidden_CorrectsEnd = nil
+func (x *StatementLine) ClearDateCorrectsEnd() {
+	x.xxx_hidden_DateCorrectsEnd = nil
 }
 
 type StatementLine_builder struct {
@@ -843,9 +843,9 @@ type StatementLine_builder struct {
 	Kind  LineKind
 	// For a correction: the period it corrects, and that period's statement
 	// of this workspace when it had one.
-	CorrectsStart *timestamppb.Timestamp
-	CorrectsEnd   *timestamppb.Timestamp
-	Corrects      []byte
+	DateCorrectsStart *timestamppb.Timestamp
+	DateCorrectsEnd   *timestamppb.Timestamp
+	Corrects          []byte
 	// What was used, as the meter's aggregation says, in its unit: for a
 	// correction, what it comes to now.
 	Usage string
@@ -890,8 +890,8 @@ func (b0 StatementLine_builder) Build() *StatementLine {
 	x.xxx_hidden_Key = b.Key
 	x.xxx_hidden_Unit = b.Unit
 	x.xxx_hidden_Kind = b.Kind
-	x.xxx_hidden_CorrectsStart = b.CorrectsStart
-	x.xxx_hidden_CorrectsEnd = b.CorrectsEnd
+	x.xxx_hidden_DateCorrectsStart = b.DateCorrectsStart
+	x.xxx_hidden_DateCorrectsEnd = b.DateCorrectsEnd
 	x.xxx_hidden_Corrects = b.Corrects
 	x.xxx_hidden_Usage = b.Usage
 	x.xxx_hidden_Included = b.Included
@@ -986,11 +986,11 @@ func (b0 StatementPool_builder) Build() *StatementPool {
 // StatementUnpriced is a stretch of a line's period its meter was priced on
 // another channel or currency than the statement's, and on its own on none.
 type StatementUnpriced struct {
-	state           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_From *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=from"`
-	xxx_hidden_To   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=to"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DateStart *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=date_start,json=from"`
+	xxx_hidden_DateEnd   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_end,json=to"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *StatementUnpriced) Reset() {
@@ -1018,63 +1018,63 @@ func (x *StatementUnpriced) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *StatementUnpriced) GetFrom() *timestamppb.Timestamp {
+func (x *StatementUnpriced) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_From
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *StatementUnpriced) GetTo() *timestamppb.Timestamp {
+func (x *StatementUnpriced) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_To
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
 
-func (x *StatementUnpriced) SetFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_From = v
+func (x *StatementUnpriced) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *StatementUnpriced) SetTo(v *timestamppb.Timestamp) {
-	x.xxx_hidden_To = v
+func (x *StatementUnpriced) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
-func (x *StatementUnpriced) HasFrom() bool {
+func (x *StatementUnpriced) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_From != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *StatementUnpriced) HasTo() bool {
+func (x *StatementUnpriced) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_To != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *StatementUnpriced) ClearFrom() {
-	x.xxx_hidden_From = nil
+func (x *StatementUnpriced) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *StatementUnpriced) ClearTo() {
-	x.xxx_hidden_To = nil
+func (x *StatementUnpriced) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
 type StatementUnpriced_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	From *timestamppb.Timestamp
-	To   *timestamppb.Timestamp
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
 }
 
 func (b0 StatementUnpriced_builder) Build() *StatementUnpriced {
 	m0 := &StatementUnpriced{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_From = b.From
-	x.xxx_hidden_To = b.To
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	return m0
 }
 
@@ -1083,8 +1083,8 @@ func (b0 StatementUnpriced_builder) Build() *StatementUnpriced {
 type StatementPart struct {
 	state                 protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Price      []byte                 `protobuf:"bytes,1,opt,name=price"`
-	xxx_hidden_From       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from"`
-	xxx_hidden_To         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to"`
+	xxx_hidden_DateStart  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_start,json=from"`
+	xxx_hidden_DateEnd    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_end,json=to"`
 	xxx_hidden_Share      string                 `protobuf:"bytes,4,opt,name=share"`
 	xxx_hidden_Included   int64                  `protobuf:"varint,5,opt,name=included"`
 	xxx_hidden_Billable   string                 `protobuf:"bytes,6,opt,name=billable"`
@@ -1129,16 +1129,16 @@ func (x *StatementPart) GetPrice() []byte {
 	return nil
 }
 
-func (x *StatementPart) GetFrom() *timestamppb.Timestamp {
+func (x *StatementPart) GetDateStart() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_From
+		return x.xxx_hidden_DateStart
 	}
 	return nil
 }
 
-func (x *StatementPart) GetTo() *timestamppb.Timestamp {
+func (x *StatementPart) GetDateEnd() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_To
+		return x.xxx_hidden_DateEnd
 	}
 	return nil
 }
@@ -1208,12 +1208,12 @@ func (x *StatementPart) SetPrice(v []byte) {
 	x.xxx_hidden_Price = v
 }
 
-func (x *StatementPart) SetFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_From = v
+func (x *StatementPart) SetDateStart(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateStart = v
 }
 
-func (x *StatementPart) SetTo(v *timestamppb.Timestamp) {
-	x.xxx_hidden_To = v
+func (x *StatementPart) SetDateEnd(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEnd = v
 }
 
 func (x *StatementPart) SetShare(v string) {
@@ -1248,35 +1248,35 @@ func (x *StatementPart) SetPooled(v string) {
 	x.xxx_hidden_Pooled = v
 }
 
-func (x *StatementPart) HasFrom() bool {
+func (x *StatementPart) HasDateStart() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_From != nil
+	return x.xxx_hidden_DateStart != nil
 }
 
-func (x *StatementPart) HasTo() bool {
+func (x *StatementPart) HasDateEnd() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_To != nil
+	return x.xxx_hidden_DateEnd != nil
 }
 
-func (x *StatementPart) ClearFrom() {
-	x.xxx_hidden_From = nil
+func (x *StatementPart) ClearDateStart() {
+	x.xxx_hidden_DateStart = nil
 }
 
-func (x *StatementPart) ClearTo() {
-	x.xxx_hidden_To = nil
+func (x *StatementPart) ClearDateEnd() {
+	x.xxx_hidden_DateEnd = nil
 }
 
 type StatementPart_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The version of the price, and the stretch it was in force.
-	Price []byte
-	From  *timestamppb.Timestamp
-	To    *timestamppb.Timestamp
+	Price     []byte
+	DateStart *timestamppb.Timestamp
+	DateEnd   *timestamppb.Timestamp
 	// The stretch's share of the period it is charged by.
 	Share string
 	// By the unit: what the version includes, and what is billable past it.
@@ -1302,8 +1302,8 @@ func (b0 StatementPart_builder) Build() *StatementPart {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Price = b.Price
-	x.xxx_hidden_From = b.From
-	x.xxx_hidden_To = b.To
+	x.xxx_hidden_DateStart = b.DateStart
+	x.xxx_hidden_DateEnd = b.DateEnd
 	x.xxx_hidden_Share = b.Share
 	x.xxx_hidden_Included = b.Included
 	x.xxx_hidden_Billable = b.Billable
@@ -1495,14 +1495,14 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x0fbilling_account \x14(d\")\n" +
 	"\x06tenant\"\x10workspace.tenant\"\rperiod.tenant\"=\n" +
 	"\x0eStatementLines\x12+\n" +
-	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xd4\x04\n" +
+	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xde\x04\n" +
 	"\rStatementLine\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\fR\x05meter\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
 	"\x04unit\x18\x03 \x01(\tR\x04unit\x12$\n" +
-	"\x04kind\x18\x04 \x01(\x0e2\x10.levyan.LineKindR\x04kind\x12A\n" +
-	"\x0ecorrects_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rcorrectsStart\x12=\n" +
-	"\fcorrects_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcorrectsEnd\x12\x1a\n" +
+	"\x04kind\x18\x04 \x01(\x0e2\x10.levyan.LineKindR\x04kind\x12F\n" +
+	"\x13date_corrects_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rcorrectsStart\x12B\n" +
+	"\x11date_corrects_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcorrectsEnd\x12\x1a\n" +
 	"\bcorrects\x18\a \x01(\fR\bcorrects\x12\x14\n" +
 	"\x05usage\x18\b \x01(\tR\x05usage\x12\x1a\n" +
 	"\bincluded\x18\t \x01(\tR\bincluded\x12\x1a\n" +
@@ -1517,14 +1517,16 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x05pools\x18\x11 \x03(\v2\x15.levyan.StatementPoolR\x05pools\"9\n" +
 	"\rStatementPool\x12\x12\n" +
 	"\x04pool\x18\x01 \x01(\fR\x04pool\x12\x14\n" +
-	"\x05taken\x18\x02 \x01(\tR\x05taken\"o\n" +
-	"\x11StatementUnpriced\x12.\n" +
-	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xea\x02\n" +
+	"\x05taken\x18\x02 \x01(\tR\x05taken\"{\n" +
+	"\x11StatementUnpriced\x124\n" +
+	"\n" +
+	"date_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x120\n" +
+	"\bdate_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xf6\x02\n" +
 	"\rStatementPart\x12\x14\n" +
-	"\x05price\x18\x01 \x01(\fR\x05price\x12.\n" +
-	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x14\n" +
+	"\x05price\x18\x01 \x01(\fR\x05price\x124\n" +
+	"\n" +
+	"date_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x120\n" +
+	"\bdate_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x14\n" +
 	"\x05share\x18\x04 \x01(\tR\x05share\x12\x1a\n" +
 	"\bincluded\x18\x05 \x01(\x03R\bincluded\x12\x1a\n" +
 	"\bbillable\x18\x06 \x01(\tR\bbillable\x12\x16\n" +
@@ -1575,15 +1577,15 @@ var file_levyan_statement_proto_depIdxs = []int32{
 	12, // 8: levyan.Statement.billing_account:type_name -> levyan.BillingAccount
 	3,  // 9: levyan.StatementLines.lines:type_name -> levyan.StatementLine
 	0,  // 10: levyan.StatementLine.kind:type_name -> levyan.LineKind
-	11, // 11: levyan.StatementLine.corrects_start:type_name -> google.protobuf.Timestamp
-	11, // 12: levyan.StatementLine.corrects_end:type_name -> google.protobuf.Timestamp
+	11, // 11: levyan.StatementLine.date_corrects_start:type_name -> google.protobuf.Timestamp
+	11, // 12: levyan.StatementLine.date_corrects_end:type_name -> google.protobuf.Timestamp
 	6,  // 13: levyan.StatementLine.parts:type_name -> levyan.StatementPart
 	5,  // 14: levyan.StatementLine.unpriced:type_name -> levyan.StatementUnpriced
 	4,  // 15: levyan.StatementLine.pools:type_name -> levyan.StatementPool
-	11, // 16: levyan.StatementUnpriced.from:type_name -> google.protobuf.Timestamp
-	11, // 17: levyan.StatementUnpriced.to:type_name -> google.protobuf.Timestamp
-	11, // 18: levyan.StatementPart.from:type_name -> google.protobuf.Timestamp
-	11, // 19: levyan.StatementPart.to:type_name -> google.protobuf.Timestamp
+	11, // 16: levyan.StatementUnpriced.date_start:type_name -> google.protobuf.Timestamp
+	11, // 17: levyan.StatementUnpriced.date_end:type_name -> google.protobuf.Timestamp
+	11, // 18: levyan.StatementPart.date_start:type_name -> google.protobuf.Timestamp
+	11, // 19: levyan.StatementPart.date_end:type_name -> google.protobuf.Timestamp
 	7,  // 20: levyan.StatementPart.bands:type_name -> levyan.StatementBand
 	21, // [21:21] is the sub-list for method output_type
 	21, // [21:21] is the sub-list for method input_type

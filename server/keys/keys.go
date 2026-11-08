@@ -147,7 +147,7 @@ func Store(s levyan.Server, now func() time.Time) auth.TokenStore {
 		}
 		if u := v.GetDateExpires(); u != nil {
 			// So that a stream is cut when the key runs out.
-			out.Expires = u.AsTime()
+			out.DateExpires = u.AsTime()
 		}
 
 		return out, nil

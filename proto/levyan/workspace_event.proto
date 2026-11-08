@@ -50,7 +50,7 @@ message WorkspaceEvent {
 
   // When, in UTC, to the microsecond, as the product says it happened: never
   // ahead of when it came, nor before the workspace arrived.
-  google.protobuf.Timestamp happened_at = 9 [(orm.field) = {
+  google.protobuf.Timestamp date_occurred = 9 [(orm.field) = {
     immutable: true
     default: ""
   }];
@@ -64,7 +64,7 @@ message WorkspaceEvent {
   // billed is its end's to say. Unset for one that came before any close it
   // reaches. Said as it is written, under the workspace's lock, so that a
   // close and an event never both take the other to have come first.
-  google.protobuf.Timestamp late_through = 10 [(orm.field) = {
+  google.protobuf.Timestamp date_late_through = 10 [(orm.field) = {
     nullable: true
     immutable: true
   }];
@@ -116,7 +116,7 @@ message WorkspaceEvent {
             number: 3
           },
           {
-            name: "happened_at"
+            name: "date_occurred"
             number: 9
           }
         ]

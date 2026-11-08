@@ -29,10 +29,10 @@ func (Grant) Fields() []ent.Field {
 			Immutable(),
 		field.Int64("limit").
 			Immutable(),
-		field.Time("valid_from").
+		field.Time("date_effective").
 			Immutable().
 			Optional(),
-		field.Time("valid_until").
+		field.Time("date_expires").
 			Optional(),
 		field.Time("date_updated"),
 		field.Time("date_erased").
@@ -75,7 +75,7 @@ func (Grant) Indexes() []ent.Index {
 			StorageKey("grant_page"),
 		index.Fields("workspace_id", "date_created", "id").
 			StorageKey("grant_workspace"),
-		index.Fields("renews", "valid_until").
+		index.Fields("renews", "date_expires").
 			StorageKey("grant_renewal"),
 		index.Fields("tenant_id", "rule", "key").
 			StorageKey("grant_rule"),

@@ -19,7 +19,7 @@ type Mutation struct {
 	typ               string
 	quantity          *int64
 	addquantity       *int64
-	valid_from        *time.Time
+	date_effective    *time.Time
 	date_expires      *time.Time
 	reason            *string
 	date_updated      *time.Time
@@ -94,37 +94,37 @@ func (m *Mutation) ResetQuantity() {
 	m.addquantity = nil
 }
 
-// SetValidFrom sets the "valid_from" field.
-func (m *Mutation) SetValidFrom(t time.Time) {
-	m.valid_from = &t
-	delete(m.clearedFields, FieldValidFrom)
+// SetDateEffective sets the "date_effective" field.
+func (m *Mutation) SetDateEffective(t time.Time) {
+	m.date_effective = &t
+	delete(m.clearedFields, FieldDateEffective)
 }
 
-// ValidFrom returns the value of the "valid_from" field in the mutation.
-func (m *Mutation) ValidFrom() (r time.Time, exists bool) {
-	v := m.valid_from
+// DateEffective returns the value of the "date_effective" field in the mutation.
+func (m *Mutation) DateEffective() (r time.Time, exists bool) {
+	v := m.date_effective
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// ClearValidFrom clears the value of the "valid_from" field.
-func (m *Mutation) ClearValidFrom() {
-	m.valid_from = nil
-	m.clearedFields[FieldValidFrom] = struct{}{}
+// ClearDateEffective clears the value of the "date_effective" field.
+func (m *Mutation) ClearDateEffective() {
+	m.date_effective = nil
+	m.clearedFields[FieldDateEffective] = struct{}{}
 }
 
-// ValidFromCleared returns if the "valid_from" field was cleared in this mutation.
-func (m *Mutation) ValidFromCleared() bool {
-	_, ok := m.clearedFields[FieldValidFrom]
+// DateEffectiveCleared returns if the "date_effective" field was cleared in this mutation.
+func (m *Mutation) DateEffectiveCleared() bool {
+	_, ok := m.clearedFields[FieldDateEffective]
 	return ok
 }
 
-// ResetValidFrom resets all changes to the "valid_from" field.
-func (m *Mutation) ResetValidFrom() {
-	m.valid_from = nil
-	delete(m.clearedFields, FieldValidFrom)
+// ResetDateEffective resets all changes to the "date_effective" field.
+func (m *Mutation) ResetDateEffective() {
+	m.date_effective = nil
+	delete(m.clearedFields, FieldDateEffective)
 }
 
 // SetDateExpires sets the "date_expires" field.
@@ -589,8 +589,8 @@ func (m *Mutation) Fields() []string {
 	if m.quantity != nil {
 		fields = append(fields, FieldQuantity)
 	}
-	if m.valid_from != nil {
-		fields = append(fields, FieldValidFrom)
+	if m.date_effective != nil {
+		fields = append(fields, FieldDateEffective)
 	}
 	if m.date_expires != nil || m.exprs[FieldDateExpires] != nil {
 		fields = append(fields, FieldDateExpires)
@@ -641,8 +641,8 @@ func (m *Mutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case FieldQuantity:
 		return m.Quantity()
-	case FieldValidFrom:
-		return m.ValidFrom()
+	case FieldDateEffective:
+		return m.DateEffective()
 	case FieldDateExpires:
 		return m.DateExpires()
 	case FieldReason:
@@ -694,7 +694,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetQuantity(v)
 		return nil
-	case FieldValidFrom:
+	case FieldDateEffective:
 		v, ok := value.(time.Time)
 		if !ok {
 			if e, ok := value.(sql.Querier); ok {
@@ -702,7 +702,7 @@ func (m *Mutation) SetField(name string, value ent.Value) error {
 			}
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetValidFrom(v)
+		m.SetDateEffective(v)
 		return nil
 	case FieldDateExpires:
 		v, ok := value.(time.Time)
@@ -838,7 +838,7 @@ func (m *Mutation) SetFieldExpr(name string, expr sql.Querier) error {
 	switch name {
 	case FieldQuantity:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
-	case FieldValidFrom:
+	case FieldDateEffective:
 		return fmt.Errorf("field %s cannot be assigned an expression: it is immutable, and an expression is written only by an update", name)
 	case FieldDateExpires:
 		m.ResetDateExpires()
@@ -939,8 +939,8 @@ func (m *Mutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *Mutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(FieldValidFrom) {
-		fields = append(fields, FieldValidFrom)
+	if m.FieldCleared(FieldDateEffective) {
+		fields = append(fields, FieldDateEffective)
 	}
 	if m.FieldCleared(FieldDateExpires) {
 		fields = append(fields, FieldDateExpires)
@@ -971,8 +971,8 @@ func (m *Mutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *Mutation) ClearField(name string) error {
 	switch name {
-	case FieldValidFrom:
-		m.ClearValidFrom()
+	case FieldDateEffective:
+		m.ClearDateEffective()
 		return nil
 	case FieldDateExpires:
 		m.ClearDateExpires()
@@ -1000,8 +1000,8 @@ func (m *Mutation) ResetField(name string) error {
 	case FieldQuantity:
 		m.ResetQuantity()
 		return nil
-	case FieldValidFrom:
-		m.ResetValidFrom()
+	case FieldDateEffective:
+		m.ResetDateEffective()
 		return nil
 	case FieldDateExpires:
 		m.ResetDateExpires()

@@ -17,7 +17,7 @@ option go_package = "github.com/lesomnus/levyan";
 // transaction of the write it decides (payday#185, #7).
 //
 // It is **state**: every change to a grant is the whole of it again at a
-// greater `version`, and a grant is taken away by ending it -- `valid_until`
+// greater `version`, and a grant is taken away by ending it -- `date_expires`
 // moved to now -- never by deleting it. So the product applies what it hears
 // once, in any order, and a copy that missed something is put right by the
 // next thing it hears of the grant. Its identifier is never another grant's:
@@ -77,7 +77,7 @@ message Grant {
   int64 limit = 10 [(orm.field) = {immutable: true}];
 
   // When it begins: unset is the moment it is given.
-  google.protobuf.Timestamp valid_from = 11 [(orm.field) = {
+  google.protobuf.Timestamp date_effective = 11 [(orm.field) = {
     immutable: true
     default: ""
   }];
@@ -88,7 +88,7 @@ message Grant {
   // time, which is renewed when it can be. An Add says it: the server
   // refuses one that does not, rather than letting the default end a grant
   // as it is given (`server/grants`).
-  google.protobuf.Timestamp valid_until = 12 [(orm.field) = {default: ""}];
+  google.protobuf.Timestamp date_expires = 12 [(orm.field) = {default: ""}];
 
   // Stamped with every change, as `version` is moved on.
   google.protobuf.Timestamp date_updated = 13 [(orm.field) = {version: {}}];
@@ -169,7 +169,7 @@ message Grant {
             number: 19
           },
           {
-            name: "valid_until"
+            name: "date_expires"
             number: 12
           }
         ]

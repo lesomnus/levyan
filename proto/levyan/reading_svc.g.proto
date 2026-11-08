@@ -25,7 +25,7 @@ message ReadingAddRequest {
   TenantRef tenant = 2;
   WorkspaceRef workspace = 3;
   MeterRef meter = 8;
-  google.protobuf.Timestamp measured_at = 9;
+  google.protobuf.Timestamp date_measured = 9;
   int64 value = 10 [features.field_presence = IMPLICIT];
   bool late = 11 [features.field_presence = IMPLICIT];
   google.protobuf.Timestamp date_created = 15;
@@ -55,7 +55,7 @@ message ReadingRefByMeasured {
   TenantRef tenant = 2;
   WorkspaceRef workspace = 3;
   MeterRef meter = 8;
-  google.protobuf.Timestamp measured_at = 9;
+  google.protobuf.Timestamp date_measured = 9;
 }
 
 message ReadingSelect {
@@ -63,7 +63,7 @@ message ReadingSelect {
   TenantSelect tenant = 2;
   WorkspaceSelect workspace = 3;
   MeterSelect meter = 8;
-  bool measured_at = 9;
+  bool date_measured = 9;
   bool value = 10;
   bool late = 11;
   bool date_erased = 14;

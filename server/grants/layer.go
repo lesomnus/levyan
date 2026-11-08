@@ -117,22 +117,22 @@ func (s layerGrant) admit(ctx context.Context, req *levyan.GrantAddRequest) (*le
 	req = proto.CloneOf(req)
 
 	from := now
-	if req.HasValidFrom() {
-		from = Moment(req.GetValidFrom().AsTime())
+	if req.HasDateEffective() {
+		from = Moment(req.GetDateEffective().AsTime())
 		if from.Before(now.Add(-Lag)) {
-			return nil, pderr.Invalidf("valid_from", "%s is before now: a grant does not reach back", from.Format(time.RFC3339))
+			return nil, pderr.Invalidf("date_effective", "%s is before now: a grant does not reach back", from.Format(time.RFC3339))
 		}
 	}
-	if !req.HasValidUntil() {
-		return nil, pderr.Invalidf("valid_until", "every grant says when it ends, so that a product that stops hearing from levyan does not keep it forever")
+	if !req.HasDateExpires() {
+		return nil, pderr.Invalidf("date_expires", "every grant says when it ends, so that a product that stops hearing from levyan does not keep it forever")
 	}
-	until := Moment(req.GetValidUntil().AsTime())
+	until := Moment(req.GetDateExpires().AsTime())
 	if !until.After(from) || !until.After(now.Add(-Lag)) {
-		return nil, pderr.Invalidf("valid_until", "%s is not after its beginning and now: a grant is given to be in force", until.Format(time.RFC3339))
+		return nil, pderr.Invalidf("date_expires", "%s is not after its beginning and now: a grant is given to be in force", until.Format(time.RFC3339))
 	}
 
-	req.SetValidFrom(timestamppb.New(from))
-	req.SetValidUntil(timestamppb.New(until))
+	req.SetDateEffective(timestamppb.New(from))
+	req.SetDateExpires(timestamppb.New(until))
 	req.SetVersion(1)
 
 	return req, nil
@@ -154,16 +154,16 @@ func (s layerGrant) Patch(ctx context.Context, req *levyan.GrantPatchRequest) (*
 	if req.GetRenews() && !was.GetRenews() {
 		return nil, pderr.Invalidf("renews", "a grant renews from when it is given, or not at all")
 	}
-	if req.HasValidUntil() {
-		until := Moment(req.GetValidUntil().AsTime())
-		ended := !now.Before(was.GetValidUntil().AsTime())
+	if req.HasDateExpires() {
+		until := Moment(req.GetDateExpires().AsTime())
+		ended := !now.Before(was.GetDateExpires().AsTime())
 		switch {
 		case until.Before(now.Add(-Lag)):
-			return nil, pderr.Invalidf("valid_until", "%s is before now: a grant is ended now, and never before", until.Format(time.RFC3339))
-		case ended && !was.GetRenews() && until.After(was.GetValidUntil().AsTime()):
-			return nil, status.Errorf(codes.FailedPrecondition, "the grant ended at %s and stays ended: give another", was.GetValidUntil().AsTime().Format(time.RFC3339))
+			return nil, pderr.Invalidf("date_expires", "%s is before now: a grant is ended now, and never before", until.Format(time.RFC3339))
+		case ended && !was.GetRenews() && until.After(was.GetDateExpires().AsTime()):
+			return nil, status.Errorf(codes.FailedPrecondition, "the grant ended at %s and stays ended: give another", was.GetDateExpires().AsTime().Format(time.RFC3339))
 		}
-		req.SetValidUntil(timestamppb.New(until))
+		req.SetDateExpires(timestamppb.New(until))
 	}
 
 	// The version is the server's: one more than the row's, whatever was
@@ -183,7 +183,7 @@ func (s layerGrant) Apply(ctx context.Context, req *levyan.GrantApplyRequest) (*
 func (s layerGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levyan.GrantEraseResponse, error) {
 	was, err := s.Next().Grant().Get(ctx, levyan.GrantGetRequest_builder{
 		Ref:    req,
-		Select: levyan.GrantSelect_builder{ValidUntil: proto.Bool(true), Renews: proto.Bool(true)}.Build(),
+		Select: levyan.GrantSelect_builder{DateExpires: proto.Bool(true), Renews: proto.Bool(true)}.Build(),
 	}.Build())
 	if status.Code(err) == codes.NotFound {
 		return s.GrantServiceServer.Erase(ctx, req)
@@ -191,7 +191,7 @@ func (s layerGrant) Erase(ctx context.Context, req *levyan.GrantRef) (*levyan.Gr
 	if err != nil {
 		return nil, err
 	}
-	if was.GetRenews() || s.at().Before(was.GetValidUntil().AsTime().Add(Listed)) {
+	if was.GetRenews() || s.at().Before(was.GetDateExpires().AsTime().Add(Listed)) {
 		return nil, status.Errorf(codes.FailedPrecondition, "a grant is erased once it has been over for %s, and this one has not: end it", Listed)
 	}
 

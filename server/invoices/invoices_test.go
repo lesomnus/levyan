@@ -107,7 +107,7 @@ func (w world) daily(ws pdid.Id, from, to time.Time, v int64) {
 	w.t.Helper()
 	rs := []*levyanv1.Reading{}
 	for d := from; d.Before(to); d = d.AddDate(0, 0, 1) {
-		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(d), Value: v, Unit: "{asset}"}.Build())
+		rs = append(rs, levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(d), Value: v, Unit: "{asset}"}.Build())
 	}
 	w.record(rs...)
 }
@@ -494,7 +494,7 @@ func TestWhatIsOwedBackIsCreditTakenOffTheNextInvoice(t *testing.T) {
 	// Half a day of nothing that should have been in January: January held
 	// 200 for twelve hours less, which is 5,000/31 less.
 	w.At(on(2, 12))
-	w.record(levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(on(1, 15).Add(12 * time.Hour)), Value: 0, Unit: "{asset}"}.Build())
+	w.record(levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(on(1, 15).Add(12 * time.Hour)), Value: 0, Unit: "{asset}"}.Build())
 
 	// February uses nothing past what is included.
 	w.At(on(3, 10))
@@ -543,7 +543,7 @@ func TestAFinalizedInvoiceStaysWhatItWas(t *testing.T) {
 	// Half a day of 400 that should have been in January, sent in February:
 	// the correction is on February's statement, and its invoice.
 	w.At(on(2, 12))
-	w.record(levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(on(1, 15).Add(12 * time.Hour)), Value: 400, Unit: "{asset}"}.Build())
+	w.record(levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(on(1, 15).Add(12 * time.Hour)), Value: 400, Unit: "{asset}"}.Build())
 	w.At(on(3, 10))
 	w.daily(ws, on(2, 1), on(3, 1), 200)
 	w.close(on(3, 10))

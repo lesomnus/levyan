@@ -126,10 +126,10 @@ message ListPricesResponse {
 // currency.
 //
 // Of the versions of a meter on a channel in a currency, the one in force for
-// a customer at a moment is the one with the latest `effective` of those that
-// apply to them by then -- `effective` for a customer who started on it or
-// later, `existing` for one who was there before -- and of two with the same
-// `effective`, the one published last.
+// a customer at a moment is the one with the latest `date_effective` of those that
+// apply to them by then -- `date_effective` for a customer who started on it or
+// later, `date_existing` for one who was there before -- and of two with the same
+// `date_effective`, the one published last.
 message Price {
   // Its identifier, as text.
   string id = 1;
@@ -150,14 +150,14 @@ message Price {
   }
 
   // From when it applies to a customer who starts on it or later.
-  google.protobuf.Timestamp effective = 7;
+  google.protobuf.Timestamp date_effective = 7;
 
-  // From when it applies to the customers who were there before `effective`:
+  // From when it applies to the customers who were there before `date_effective`:
   // the same moment or later, which is the notice a rise gives.
-  google.protobuf.Timestamp existing = 8;
+  google.protobuf.Timestamp date_existing = 8;
 
   // When it was published.
-  google.protobuf.Timestamp published = 9;
+  google.protobuf.Timestamp date_published = 9;
 
   // Why it was published, as the operator who published it said.
   string desc = 10;

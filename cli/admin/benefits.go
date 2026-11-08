@@ -23,14 +23,14 @@ import (
 
 func printAllowance(self *xli.Command, v admin.Allowance) {
 	until := "until ended"
-	if v.Until != nil {
-		until = "until " + when(*v.Until)
+	if v.DateExpires != nil {
+		until = "until " + when(*v.DateExpires)
 	}
 	extra := ""
 	if v.EndedBy != "" {
 		extra = "\tended by " + v.EndedBy + ": " + v.EndReason
 	}
-	self.Printf("%s\t%s\t%s\t+%d\tfrom %s %s\tby %s: %s%s\n", v.Id, v.Workspace, v.Meter, v.Quantity, when(v.From), until, v.GrantedBy, v.Reason, extra)
+	self.Printf("%s\t%s\t%s\t+%d\tfrom %s %s\tby %s: %s%s\n", v.Id, v.Workspace, v.Meter, v.Quantity, when(v.DateEffective), until, v.GrantedBy, v.Reason, extra)
 }
 
 func newCmdAllowance() *xli.Command {
@@ -66,13 +66,15 @@ func newCmdAllowance() *xli.Command {
 						"workspace": str(self, "workspace"), "meter": argOf(self, "METER"),
 						"quantity": quantity, "reason": str(self, "reason"),
 					}
-					for _, k := range []string{"from", "until"} {
-						if v := str(self, k); v != "" {
+					// The flag is the word on the command line, and the key the
+					// field the server reads it into, a `date_*` as every time is.
+					for _, k := range [][2]string{{"from", "date_effective"}, {"until", "date_expires"}} {
+						if v := str(self, k[0]); v != "" {
 							t, err := instant(v)
 							if err != nil {
-								return fmt.Errorf("--%s: %w", k, err)
+								return fmt.Errorf("--%s: %w", k[0], err)
 							}
-							body[k] = t
+							body[k[1]] = t
 						}
 					}
 
@@ -149,7 +151,7 @@ func printCredit(self *xli.Command, v admin.Credit) {
 		to = "billing account " + v.BillingAccount
 	}
 	self.Printf("%s\t%s\t%s of %s left\texpires %s\tby %s: %s\n",
-		v.Id, to, money.String(v.Left, v.Currency), money.String(v.Granted, v.Currency), when(v.Expires), v.GrantedBy, v.Reason)
+		v.Id, to, money.String(v.Left, v.Currency), money.String(v.Granted, v.Currency), when(v.DateExpires), v.GrantedBy, v.Reason)
 }
 
 func newCmdCredit() *xli.Command {
@@ -191,7 +193,7 @@ func newCmdCredit() *xli.Command {
 						if err != nil {
 							return fmt.Errorf("--expires: %w", err)
 						}
-						body["expires"] = t
+						body["date_expires"] = t
 					}
 
 					var v admin.Credit
@@ -271,7 +273,7 @@ func printPool(self *xli.Command, v admin.Pool) {
 		extra = "\tended by " + v.EndedBy + ": " + v.EndReason
 	}
 	self.Printf("%s\t%s\t%s\t%s of %d left\tfrom %s, expires %s\tby %s: %s%s\n",
-		v.Id, v.Workspace, v.Meter, v.Left, v.Granted, when(v.From), when(v.Expires), v.GrantedBy, v.Reason, extra)
+		v.Id, v.Workspace, v.Meter, v.Left, v.Granted, when(v.DateEffective), when(v.DateExpires), v.GrantedBy, v.Reason, extra)
 }
 
 func newCmdPool() *xli.Command {
@@ -307,13 +309,15 @@ func newCmdPool() *xli.Command {
 						"workspace": str(self, "workspace"), "meter": argOf(self, "METER"),
 						"quantity": quantity, "reason": str(self, "reason"),
 					}
-					for _, k := range []string{"from", "expires"} {
-						if v := str(self, k); v != "" {
+					// The flag is the word on the command line, and the key the
+					// field the server reads it into, a `date_*` as every time is.
+					for _, k := range [][2]string{{"from", "date_effective"}, {"expires", "date_expires"}} {
+						if v := str(self, k[0]); v != "" {
 							t, err := instant(v)
 							if err != nil {
-								return fmt.Errorf("--%s: %w", k, err)
+								return fmt.Errorf("--%s: %w", k[0], err)
 							}
-							body[k] = t
+							body[k[1]] = t
 						}
 					}
 

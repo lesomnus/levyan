@@ -44,13 +44,13 @@ func (w world) said(method string, ws pdid.Id, at time.Time) (*levyanv1.Lifecycl
 	c := levyanv1.NewWorkspaceServiceClient(w.conn)
 	switch method {
 	case "close":
-		res, err := c.Close(w.ctx, levyanv1.CloseRequest_builder{Workspace: ws.String(), At: timestamppb.New(at)}.Build())
+		res, err := c.Close(w.ctx, levyanv1.CloseRequest_builder{Workspace: ws.String(), DateOccurred: timestamppb.New(at)}.Build())
 		return res.GetLifecycle(), res.GetLate(), err
 	case "restore":
-		res, err := c.Restore(w.ctx, levyanv1.RestoreRequest_builder{Workspace: ws.String(), At: timestamppb.New(at)}.Build())
+		res, err := c.Restore(w.ctx, levyanv1.RestoreRequest_builder{Workspace: ws.String(), DateOccurred: timestamppb.New(at)}.Build())
 		return res.GetLifecycle(), res.GetLate(), err
 	case "destroy":
-		res, err := c.Destroy(w.ctx, levyanv1.DestroyRequest_builder{Workspace: ws.String(), At: timestamppb.New(at)}.Build())
+		res, err := c.Destroy(w.ctx, levyanv1.DestroyRequest_builder{Workspace: ws.String(), DateOccurred: timestamppb.New(at)}.Build())
 		return res.GetLifecycle(), res.GetLate(), err
 	}
 	w.t.Fatalf("no method %q", method)
@@ -70,7 +70,7 @@ func (w world) say(method string, ws pdid.Id, at time.Time) *levyanv1.Lifecycle 
 func (w world) record(ws pdid.Id, at time.Time, v int64) *levyanv1.Recorded {
 	w.t.Helper()
 	res, err := levyanv1.NewMeteringServiceClient(w.conn).Record(w.ctx, levyanv1.RecordRequest_builder{Readings: []*levyanv1.Reading{
-		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", MeasuredAt: timestamppb.New(at), Value: v, Unit: "{asset}"}.Build(),
+		levyanv1.Reading_builder{Workspace: ws.String(), Meter: "loft.assets.active", DateMeasured: timestamppb.New(at), Value: v, Unit: "{asset}"}.Build(),
 	}}.Build())
 	w.X.NoError(err)
 	w.X.Len(res.GetResults(), 1)
@@ -95,8 +95,8 @@ func TestAWorkspaceClosedAndRestoredInAPeriodIsBilledAsIfOpen(t *testing.T) {
 
 	w.At(on(1, 11))
 	l := w.say("close", ws, on(1, 11))
-	x.True(l.GetClosedSince().AsTime().Equal(on(1, 11)))
-	x.Nil(l.GetDestroyed())
+	x.True(l.GetDateClosed().AsTime().Equal(on(1, 11)))
+	x.Nil(l.GetDateDestroyed())
 
 	// Four days into it: ten days of 1000 so far, and nothing after the
 	// close carried to the end of the month -- (10000/31 - 100) * 50.
@@ -108,7 +108,7 @@ func TestAWorkspaceClosedAndRestoredInAPeriodIsBilledAsIfOpen(t *testing.T) {
 
 	w.At(on(1, 21))
 	l = w.say("restore", ws, on(1, 21))
-	x.Nil(l.GetClosedSince(), "open again")
+	x.Nil(l.GetDateClosed(), "open again")
 	u, err = levyanv1.NewBillingServiceClient(w.conn).GetUsage(w.ctx, levyanv1.GetUsageRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
 	x.Equal(int64(45000), u.GetUsage().GetTotal(), "restored: its latest reading carried through the month, the closed stretch billed")
@@ -134,7 +134,7 @@ func TestAWorkspaceClosedAndRestoredInAPeriodIsBilledAsIfOpen(t *testing.T) {
 	got, err := levyanv1.NewWorkspaceServiceClient(w.conn).GetLifecycle(w.ctx, levyanv1.GetLifecycleRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
 	x.Equal(ws.String(), got.GetLifecycle().GetWorkspace())
-	x.Nil(got.GetLifecycle().GetClosedSince())
+	x.Nil(got.GetLifecycle().GetDateClosed())
 }
 
 // A workspace closed still when a period is rated is billed for none of the
@@ -303,7 +303,7 @@ func TestAWorkspaceClosedAndDestroyedIsBilledNothingOfItsClose(t *testing.T) {
 	w.close(on(2, 10))
 	w.At(on(3, 5))
 	l := w.say("destroy", a, on(3, 5))
-	x.True(l.GetClosedSince().AsTime().Equal(on(1, 20)), "the closure it was destroyed in")
+	x.True(l.GetDateClosed().AsTime().Equal(on(1, 20)), "the closure it was destroyed in")
 	w.At(on(3, 10))
 	w.close(on(3, 10))
 	w.At(on(4, 10))
@@ -360,7 +360,7 @@ func TestADestroyedWorkspaceIsBilledForNothingAfter(t *testing.T) {
 	w.At(on(1, 15).Add(6 * time.Hour))
 	w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(1, 16), 1000)
 	l := w.say("destroy", ws, on(1, 15).Add(6*time.Hour))
-	x.True(l.GetDestroyed().AsTime().Equal(on(1, 15).Add(6 * time.Hour)))
+	x.True(l.GetDateDestroyed().AsTime().Equal(on(1, 15).Add(6 * time.Hour)))
 	_, err = w.S.Payers.Leave(ctx, w.product(), left, owner)
 	x.NoError(err)
 
@@ -371,7 +371,7 @@ func TestADestroyedWorkspaceIsBilledForNothingAfter(t *testing.T) {
 
 	// Said again, later, it is as it was: destroyed when it first was.
 	l = w.say("destroy", ws, on(1, 18))
-	x.True(l.GetDestroyed().AsTime().Equal(on(1, 15).Add(6 * time.Hour)))
+	x.True(l.GetDateDestroyed().AsTime().Equal(on(1, 15).Add(6 * time.Hour)))
 	_, _, err = w.said("restore", ws, on(1, 19))
 	x.Equal(codes.FailedPrecondition, status.Code(err), "nothing is restored after")
 	_, _, err = w.said("close", ws, on(1, 19))
@@ -401,7 +401,7 @@ func TestADestroyedWorkspaceIsBilledForNothingAfter(t *testing.T) {
 	p, err := levyanv1.NewWorkspaceServiceClient(w.conn).GetPayer(w.ctx, levyanv1.GetPayerRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
 	x.Nil(p.GetPayer().GetCurrent())
-	x.Nil(p.GetPayer().GetPayerlessSince())
+	x.Nil(p.GetPayer().GetDatePayerless())
 	x.NoError(w.S.Grants.Follow(ctx))
 	gs, err := w.S.Ent.Grant.Query().Where(entgrant.HasWorkspaceWith(entworkspace.KeyIn(ws.Bytes(), left.Bytes()))).WithWorkspace().All(ctx)
 	x.NoError(err)
@@ -441,16 +441,16 @@ func TestWhatIsSaidIsReadInTheOrderOfItsMoments(t *testing.T) {
 
 	// The restore first, then the close, each twice.
 	w.At(on(1, 25))
-	x.Nil(w.say("restore", early, on(1, 21)).GetClosedSince(), "a restore of what is open changes nothing yet")
-	x.Nil(w.say("restore", early, on(1, 21)).GetClosedSince())
-	x.Nil(w.say("close", early, on(1, 11)).GetClosedSince(), "restored since")
-	x.Nil(w.say("close", early, on(1, 11)).GetClosedSince())
+	x.Nil(w.say("restore", early, on(1, 21)).GetDateClosed(), "a restore of what is open changes nothing yet")
+	x.Nil(w.say("restore", early, on(1, 21)).GetDateClosed())
+	x.Nil(w.say("close", early, on(1, 11)).GetDateClosed(), "restored since")
+	x.Nil(w.say("close", early, on(1, 11)).GetDateClosed())
 
 	// Closed and restored, and then a close older than both: closed from
 	// the 5th to the 21st, and open after it still.
 	w.say("close", older, on(1, 11))
 	w.say("restore", older, on(1, 21))
-	x.Nil(w.say("close", older, on(1, 5)).GetClosedSince(), "the restore stands")
+	x.Nil(w.say("close", older, on(1, 5)).GetDateClosed(), "the restore stands")
 
 	_, err := levyanv1.NewWorkspaceServiceClient(w.conn).Close(w.ctx, levyanv1.CloseRequest_builder{Workspace: late.String()}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "no moment")
@@ -462,7 +462,7 @@ func TestWhatIsSaidIsReadInTheOrderOfItsMoments(t *testing.T) {
 	x.Equal(codes.NotFound, status.Code(err), "never arrived")
 	_, _, err = w.said("restore", early, on(1, 11))
 	x.Equal(codes.FailedPrecondition, status.Code(err), "closed then, and not restored")
-	_, err = levyanv1.NewWorkspaceServiceClient(w.conn).Close(w.ctx, levyanv1.CloseRequest_builder{Workspace: "loft", At: timestamppb.New(on(1, 20))}.Build())
+	_, err = levyanv1.NewWorkspaceServiceClient(w.conn).Close(w.ctx, levyanv1.CloseRequest_builder{Workspace: "loft", DateOccurred: timestamppb.New(on(1, 20))}.Build())
 	x.Equal(codes.InvalidArgument, status.Code(err), "no workspace")
 
 	w.At(on(2, 10))
@@ -502,21 +502,21 @@ func TestAnEventOfAnotherProductsWorkspaceIsRefused(t *testing.T) {
 
 	w.At(on(1, 11))
 	c := levyanv1.NewWorkspaceServiceClient(w.conn)
-	_, err = c.Close(as, levyanv1.CloseRequest_builder{Workspace: ws.String(), At: timestamppb.New(on(1, 11))}.Build())
+	_, err = c.Close(as, levyanv1.CloseRequest_builder{Workspace: ws.String(), DateOccurred: timestamppb.New(on(1, 11))}.Build())
 	x.Equal(codes.NotFound, status.Code(err), "loft's, which the other has heard nothing of")
-	_, err = c.Destroy(as, levyanv1.DestroyRequest_builder{Workspace: ws.String(), At: timestamppb.New(on(1, 11))}.Build())
+	_, err = c.Destroy(as, levyanv1.DestroyRequest_builder{Workspace: ws.String(), DateOccurred: timestamppb.New(on(1, 11))}.Build())
 	x.Equal(codes.NotFound, status.Code(err))
 
 	// The same workspace, arrived at the other product too: closing it there
 	// closes it there.
 	_, err = w.S.Payers.Arrive(ctx, theirs, ws, owner, on(1, 1))
 	x.NoError(err)
-	res, err := c.Close(as, levyanv1.CloseRequest_builder{Workspace: ws.String(), At: timestamppb.New(on(1, 11))}.Build())
+	res, err := c.Close(as, levyanv1.CloseRequest_builder{Workspace: ws.String(), DateOccurred: timestamppb.New(on(1, 11))}.Build())
 	x.NoError(err)
-	x.NotNil(res.GetLifecycle().GetClosedSince())
+	x.NotNil(res.GetLifecycle().GetDateClosed())
 	got, err := c.GetLifecycle(w.ctx, levyanv1.GetLifecycleRequest_builder{Workspace: ws.String()}.Build())
 	x.NoError(err)
-	x.Nil(got.GetLifecycle().GetClosedSince(), "and open at loft")
+	x.Nil(got.GetLifecycle().GetDateClosed(), "and open at loft")
 
 	w.At(on(2, 10))
 	w.daily(ws, "loft.assets.active", "{asset}", on(1, 1), on(2, 1), 1000)
@@ -565,7 +565,7 @@ func TestAnEventSaidLateIsACorrection(t *testing.T) {
 	feb := w.statement(ws, on(2, 1))
 	x.Len(feb.GetLines(), 1)
 	x.Equal(levyanv1.LineKind_LINE_KIND_CORRECTION, feb.GetLines()[0].GetKind())
-	x.True(feb.GetLines()[0].GetCorrects().GetStart().AsTime().Equal(on(1, 1)))
+	x.True(feb.GetLines()[0].GetCorrects().GetDateStart().AsTime().Equal(on(1, 1)))
 	x.Equal(int64(-17742), feb.GetTotal())
 
 	// Restored on February 15th, said on March 12th.

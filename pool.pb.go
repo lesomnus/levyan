@@ -50,23 +50,23 @@ const (
 // Written through the servers by an operator (`levyan-admin pool`), so the
 // trail says who gave it and who ended it; never deleted: there is no Erase.
 type Pool struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          []byte                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Tenant      *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
-	xxx_hidden_Workspace   *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
-	xxx_hidden_Meter       *Meter                 `protobuf:"bytes,8,opt,name=meter"`
-	xxx_hidden_Quantity    int64                  `protobuf:"varint,9,opt,name=quantity"`
-	xxx_hidden_ValidFrom   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=valid_from,json=validFrom"`
-	xxx_hidden_DateExpires *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_expires,json=dateExpires"`
-	xxx_hidden_Reason      string                 `protobuf:"bytes,12,opt,name=reason"`
-	xxx_hidden_DateUpdated *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
-	xxx_hidden_DateErased  *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
-	xxx_hidden_DateCreated *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
-	xxx_hidden_GrantedBy   *Operator              `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
-	xxx_hidden_EndedBy     *Operator              `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
-	xxx_hidden_EndReason   string                 `protobuf:"bytes,18,opt,name=end_reason,json=endReason"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            []byte                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Tenant        *Tenant                `protobuf:"bytes,2,opt,name=tenant"`
+	xxx_hidden_Workspace     *Workspace             `protobuf:"bytes,3,opt,name=workspace"`
+	xxx_hidden_Meter         *Meter                 `protobuf:"bytes,8,opt,name=meter"`
+	xxx_hidden_Quantity      int64                  `protobuf:"varint,9,opt,name=quantity"`
+	xxx_hidden_DateEffective *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=date_effective,json=dateEffective"`
+	xxx_hidden_DateExpires   *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=date_expires,json=dateExpires"`
+	xxx_hidden_Reason        string                 `protobuf:"bytes,12,opt,name=reason"`
+	xxx_hidden_DateUpdated   *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=date_updated,json=dateUpdated"`
+	xxx_hidden_DateErased    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=date_erased,json=dateErased"`
+	xxx_hidden_DateCreated   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=date_created,json=dateCreated"`
+	xxx_hidden_GrantedBy     *Operator              `protobuf:"bytes,16,opt,name=granted_by,json=grantedBy"`
+	xxx_hidden_EndedBy       *Operator              `protobuf:"bytes,17,opt,name=ended_by,json=endedBy"`
+	xxx_hidden_EndReason     string                 `protobuf:"bytes,18,opt,name=end_reason,json=endReason"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *Pool) Reset() {
@@ -129,9 +129,9 @@ func (x *Pool) GetQuantity() int64 {
 	return 0
 }
 
-func (x *Pool) GetValidFrom() *timestamppb.Timestamp {
+func (x *Pool) GetDateEffective() *timestamppb.Timestamp {
 	if x != nil {
-		return x.xxx_hidden_ValidFrom
+		return x.xxx_hidden_DateEffective
 	}
 	return nil
 }
@@ -215,8 +215,8 @@ func (x *Pool) SetQuantity(v int64) {
 	x.xxx_hidden_Quantity = v
 }
 
-func (x *Pool) SetValidFrom(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ValidFrom = v
+func (x *Pool) SetDateEffective(v *timestamppb.Timestamp) {
+	x.xxx_hidden_DateEffective = v
 }
 
 func (x *Pool) SetDateExpires(v *timestamppb.Timestamp) {
@@ -272,11 +272,11 @@ func (x *Pool) HasMeter() bool {
 	return x.xxx_hidden_Meter != nil
 }
 
-func (x *Pool) HasValidFrom() bool {
+func (x *Pool) HasDateEffective() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_ValidFrom != nil
+	return x.xxx_hidden_DateEffective != nil
 }
 
 func (x *Pool) HasDateExpires() bool {
@@ -333,8 +333,8 @@ func (x *Pool) ClearMeter() {
 	x.xxx_hidden_Meter = nil
 }
 
-func (x *Pool) ClearValidFrom() {
-	x.xxx_hidden_ValidFrom = nil
+func (x *Pool) ClearDateEffective() {
+	x.xxx_hidden_DateEffective = nil
 }
 
 func (x *Pool) ClearDateExpires() {
@@ -376,7 +376,7 @@ type Pool_builder struct {
 	Quantity int64
 	// From when it is in force: unset is the moment it is given. Never in a
 	// period whose close has begun.
-	ValidFrom *timestamppb.Timestamp
+	DateEffective *timestamppb.Timestamp
 	// When it expires, which every pool says: no period that begins from then
 	// on takes from it. An operator ending it moves it to the start of the
 	// period now open, and never later, nor into a period whose close has
@@ -407,7 +407,7 @@ func (b0 Pool_builder) Build() *Pool {
 	x.xxx_hidden_Workspace = b.Workspace
 	x.xxx_hidden_Meter = b.Meter
 	x.xxx_hidden_Quantity = b.Quantity
-	x.xxx_hidden_ValidFrom = b.ValidFrom
+	x.xxx_hidden_DateEffective = b.DateEffective
 	x.xxx_hidden_DateExpires = b.DateExpires
 	x.xxx_hidden_Reason = b.Reason
 	x.xxx_hidden_DateUpdated = b.DateUpdated
@@ -423,16 +423,15 @@ var File_levyan_pool_proto protoreflect.FileDescriptor
 
 const file_levyan_pool_proto_rawDesc = "" +
 	"\n" +
-	"\x11levyan/pool.proto\x12\x06levyan\x1a\x12levyan/meter.proto\x1a\x15levyan/operator.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xdc\a\n" +
+	"\x11levyan/pool.proto\x12\x06levyan\x1a\x12levyan/meter.proto\x1a\x15levyan/operator.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xe4\a\n" +
 	"\x04Pool\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
 	"\tworkspace\x18\x03 \x01(\v2\x11.levyan.WorkspaceB\x06\xf2\x82\x16\x02@\x01R\tworkspace\x12+\n" +
 	"\x05meter\x18\b \x01(\v2\r.levyan.MeterB\x06\xf2\x82\x16\x02@\x01R\x05meter\x12\"\n" +
-	"\bquantity\x18\t \x01(\x03B\x06\xea\x82\x16\x02@\x01R\bquantity\x12D\n" +
-	"\n" +
-	"valid_from\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tvalidFrom\x12F\n" +
+	"\bquantity\x18\t \x01(\x03B\x06\xea\x82\x16\x02@\x01R\bquantity\x12L\n" +
+	"\x0edate_effective\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\rdateEffective\x12F\n" +
 	"\fdate_expires\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x82\x01\x00R\vdateExpires\x12$\n" +
 	"\x06reason\x18\f \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x01R\x06reason\x12F\n" +
 	"\fdate_updated\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\a\xea\x82\x16\x03\x8a\x01\x00R\vdateUpdated\x12D\n" +
@@ -474,7 +473,7 @@ var file_levyan_pool_proto_depIdxs = []int32{
 	1,  // 0: levyan.Pool.tenant:type_name -> levyan.Tenant
 	2,  // 1: levyan.Pool.workspace:type_name -> levyan.Workspace
 	3,  // 2: levyan.Pool.meter:type_name -> levyan.Meter
-	4,  // 3: levyan.Pool.valid_from:type_name -> google.protobuf.Timestamp
+	4,  // 3: levyan.Pool.date_effective:type_name -> google.protobuf.Timestamp
 	4,  // 4: levyan.Pool.date_expires:type_name -> google.protobuf.Timestamp
 	4,  // 5: levyan.Pool.date_updated:type_name -> google.protobuf.Timestamp
 	4,  // 6: levyan.Pool.date_erased:type_name -> google.protobuf.Timestamp

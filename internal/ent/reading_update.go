@@ -113,8 +113,8 @@ func (_u *ReadingUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
-	if _u.mutation.MeasuredAtCleared() {
-		_spec.ClearField(reading.FieldMeasuredAt, field.TypeTime)
+	if _u.mutation.DateMeasuredCleared() {
+		_spec.ClearField(reading.FieldDateMeasured, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(reading.FieldDateErased, field.TypeTime, value)
@@ -264,8 +264,8 @@ func (_u *ReadingUpdateOne) sqlSave(ctx context.Context) (_node *Reading, err er
 			}
 		}
 	}
-	if _u.mutation.MeasuredAtCleared() {
-		_spec.ClearField(reading.FieldMeasuredAt, field.TypeTime)
+	if _u.mutation.DateMeasuredCleared() {
+		_spec.ClearField(reading.FieldDateMeasured, field.TypeTime)
 	}
 	if value, ok := _u.mutation.DateErased(); ok {
 		_spec.SetField(reading.FieldDateErased, field.TypeTime, value)

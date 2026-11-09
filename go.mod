@@ -28,7 +28,7 @@ tool (
 
 require (
 	github.com/lesomnus/levyan/api v0.0.0-00010101000000-000000000000
-	github.com/lesomnus/mkot/otlp v0.0.0-20261017184153-a69c4c1f08ca
+	github.com/lesomnus/mkot/otlp v0.0.0-20261102031530-c2e07a0dfebd
 	github.com/lesomnus/otx v0.0.0-20261017184159-4cba7a26b155
 	github.com/lesomnus/payday v0.0.0-20261108053336-3eb8cfbd2d45
 	github.com/lesomnus/protobuf-patch v0.0.0-20260907061053-07bbf2b842da
@@ -48,14 +48,14 @@ require (
 	go.opentelemetry.io/proto/otlp v1.11.1
 	golang.org/x/sync v0.24.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b
-	google.golang.org/grpc v1.84.0
+	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 )
 
 require (
 	ariga.io/atlas v1.3.0 // indirect
 	cel.dev/cel-go v0.32.0 // indirect
-	cel.dev/expr v0.25.2 // indirect
+	cel.dev/expr v0.25.3 // indirect
 	connectrpc.com/connect v1.20.0 // indirect
 	connectrpc.com/cors v0.1.0 // indirect
 	connectrpc.com/vanguard v0.4.0 // indirect
@@ -85,7 +85,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lesomnus/flob v0.0.0-20261010120939-21f89e60609e // indirect
-	github.com/lesomnus/mkot v0.0.0-20261013182918-46d8b05a79b3 // indirect
+	github.com/lesomnus/mkot v0.0.0-20261017184153-a69c4c1f08ca // indirect
 	github.com/lesomnus/mkot/mkotx v0.0.0-20261013182918-46d8b05a79b3 // indirect
 	github.com/lesomnus/mkot/pretty v0.0.0-20261013182918-46d8b05a79b3 // indirect
 	github.com/lesomnus/otx/otxgrpc v0.0.0-20261017184159-4cba7a26b155 // indirect
@@ -123,7 +123,7 @@ require (
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect

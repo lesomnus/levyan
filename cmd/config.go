@@ -542,10 +542,6 @@ type PayersConfig struct {
 	// the first unit. Zero is written `0` and is none.
 	Free *int `yaml:"free"`
 
-	// How long a workspace may go with nobody paying for it before it is
-	// restricted was `payers.grace`, and is the policy table's row of it now,
-	// `dunning.kinds.payerless` (#11): one table.
-
 	// Settle is how often what roster said of an erased account is asked
 	// again, and acted on once roster has nobody by them: an hour when unset.
 	Settle time.Duration `yaml:"settle"`

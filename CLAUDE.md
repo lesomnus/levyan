@@ -57,7 +57,7 @@ exits 0. `pd gen` fetches the buf it pins; there is no page and no `--ts`.
 
 The API (`api/`) is a module of its own, which `pd gen` and `pd gen --check`
 leave alone (payday#189): `scripts/api.sh` is its generation, and runs the buf
-`pd gen` fetched.
+`pd gen` runs, through `go tool pd buf`.
 
 ## The API apps call (`api/`)
 

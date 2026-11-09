@@ -10,21 +10,17 @@
 #                                  (a commit, a branch); nothing to break when
 #                                  REF has no API
 #
-# buf is $PD_BUF, or the one `go tool pd gen` fetched and checked against its
-# release when it last ran, so that one buf, the one payday pins, generates
-# both halves: run `go tool pd gen .` once first.
+# buf is the one payday pins, run by `go tool pd buf` as `pd gen` runs it:
+# from pd's cache, fetched and checked against its release the first time,
+# or the one PD_BUF names. So one buf generates both halves -- and not the
+# highest version in the cache, which on a machine that has run more than
+# one payday is the newest payday's buf, whichever this module is on.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-buf="${PD_BUF:-}"
-if [ -z "${buf}" ]; then
-	cache="${XDG_CACHE_HOME:-${HOME}/.cache}/payday/buf"
-	buf="$(ls -d "${cache}"/*/buf 2>/dev/null | sort -V | tail -n 1 || true)"
-fi
-if [ -z "${buf}" ] || [ ! -x "${buf}" ]; then
-	echo "scripts/api.sh: no buf; run \`go tool pd gen .\` once, which fetches the one payday pins, or name one in PD_BUF" >&2
-	exit 1
-fi
+buf() {
+	go tool pd buf "$@"
+}
 
 if [ "${1:-}" = "--breaking" ]; then
 	ref="${2:?scripts/api.sh --breaking REF}"
@@ -35,12 +31,12 @@ if [ "${1:-}" = "--breaking" ]; then
 	was="$(mktemp -d)"
 	trap 'rm -rf "${was}"' EXIT
 	git archive "${ref}" api | tar -x -C "${was}"
-	"${buf}" breaking api --against "${was}/api"
+	buf breaking api --against "${was}/api"
 	exit 0
 fi
 
-"${buf}" lint api
-"${buf}" generate --template api/buf.gen.yaml
+buf lint api
+buf generate --template api/buf.gen.yaml
 (cd api && go mod tidy)
 
 if [ "${1:-}" != "--check" ]; then

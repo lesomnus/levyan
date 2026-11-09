@@ -96,20 +96,12 @@ import (
 // for ([usage.Hold]) -- that a statement says it was rated by. A change that
 // moves what any usage comes to is a new version.
 //
-// 2 is a workspace away -- closed, or destroyed -- being no customer, and its
-// last reading holding no further than its destruction (#14). A workspace
-// nothing was said of comes to what it came to by 1.
-//
-// 3 is a stretch closed and then restored being billed as any open time is
-// (the owner's, 2026-11-01): away is only what is closed still, or ended in a
-// destruction, and what follows a destruction. A workspace never restored
-// comes to what it came to by 2.
-//
-// 4 is a workspace's allowances added to what its prices include (#43). A
-// workspace given none comes to what it came to by 3.
-//
-// 5 is what is billable taken out of a workspace's pools before it is priced
-// (#43). A workspace given none comes to what it came to by 4.
+// 5 is the rules above: a workspace away -- closed with nothing restoring
+// it, or destroyed -- is no customer, and its last reading holds no further
+// than its destruction (#14); a stretch closed and then restored is billed
+// as any open time is (the owner's, 2026-11-01); and a workspace's
+// allowances are added to what its prices include, and what is billable is
+// taken out of its pools before it is priced (#43).
 const Version = 5
 
 // Meter is a meter as it is rated.

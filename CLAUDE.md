@@ -587,10 +587,7 @@ product in a transaction holding the workspace's row (`payers.Payers.Close`,
   `Rater.Usage` cuts it out of what the ledger says (`usage.Cut`,
   `usage.Open`), and `rating.Rate` weighs the versions in force by the time
   it was a customer (`rating.Customer`). What it holds while closed is
-  still sent and kept, and billed once it is restored. This is rating
-  version 3; a workspace never restored comes to what it did by 2, and one
-  with no events to what it did by 1. Version 4 is a workspace's allowances,
-  and 5 its pools (below, "Benefits and credits").
+  still sent and kept, and billed once it is restored.
 - **Destroyed**: the ledger refuses a reading or point of a moment at or
   after it (`ledger.Destroyed`, `REFUSAL_DESTROYED`), its links end there
   (`LINK_ENDED_DESTROYED`) and its offers are withdrawn, and nothing is
@@ -786,8 +783,8 @@ carried out: write it as Claude's, never as the owner's.
   changed changes nothing of it -- never makes billable less than nothing,
   and a meter priced by bands (or `unbounded_zero`) is refused one. The
   statement's line says it (`allowance`; `included` is the price's and the
-  allowance's together), and its parts which (`allowances`). Rating version
-  4. **No allowance or pool reaches into a period whose close has begun**
+  allowance's together), and its parts which (`allowances`).
+  **No allowance or pool reaches into a period whose close has begun**
   (`benefits.Layer`, read under the workspace's lock), so a period corrected
   later is given what it was given when it closed.
 - **A pool** (`Pool`, `server/benefits`) is a bundle of a meter in its unit
@@ -795,7 +792,7 @@ carried out: write it as Claude's, never as the owner's.
   taken out of the pools in force at any moment of the period -- the whole
   of it, never prorated -- the soonest to expire first, and only the rest is
   priced, each part priced by the unit for its share in proportion to what it
-  is billable for. Rating version 5. **What each period took is on its
+  is billable for. **What each period took is on its
   statements, nowhere else**: the line's `pools`, and each correction of the
   period since says what it takes then (absolute, not a delta); a period's
   draw is the latest of those (`billing.Taps`), and what is left of a pool is

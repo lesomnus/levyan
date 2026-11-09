@@ -3,8 +3,8 @@
 # (api/levyan/v1/*.proto): `go tool pd gen .`, and then the API's Go.
 #
 # Two generations, because the API is a module of its own (api/go.mod) that
-# `pd gen` leaves alone (payday#189). The API's second only because
-# `scripts/api.sh` runs the buf that `pd gen` fetched.
+# `pd gen` leaves alone (payday#189). Both run the buf payday pins:
+# `scripts/api.sh` asks for it with `go tool pd buf`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

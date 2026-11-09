@@ -257,8 +257,8 @@ message StatementLine {
 
   // For a correction: the period it corrects, and that period's statement
   // of this workspace when it had one.
-  google.protobuf.Timestamp date_corrects_start = 5 [json_name = "correctsStart"];
-  google.protobuf.Timestamp date_corrects_end = 6 [json_name = "correctsEnd"];
+  google.protobuf.Timestamp date_corrects_start = 5;
+  google.protobuf.Timestamp date_corrects_end = 6;
   bytes corrects = 7;
 
   // What was used, as the meter's aggregation says, in its unit: for a
@@ -314,8 +314,8 @@ message StatementPool {
 // StatementUnpriced is a stretch of a line's period its meter was priced on
 // another channel or currency than the statement's, and on its own on none.
 message StatementUnpriced {
-  google.protobuf.Timestamp date_start = 1 [json_name = "from"];
-  google.protobuf.Timestamp date_end = 2 [json_name = "to"];
+  google.protobuf.Timestamp date_start = 1;
+  google.protobuf.Timestamp date_end = 2;
 }
 
 // LineKind is what a statement's line is.
@@ -334,8 +334,8 @@ enum LineKind {
 message StatementPart {
   // The version of the price, and the stretch it was in force.
   bytes price = 1;
-  google.protobuf.Timestamp date_start = 2 [json_name = "from"];
-  google.protobuf.Timestamp date_end = 3 [json_name = "to"];
+  google.protobuf.Timestamp date_start = 2;
+  google.protobuf.Timestamp date_end = 3;
 
   // The stretch's share of the period it is charged by.
   string share = 4;

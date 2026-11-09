@@ -570,8 +570,8 @@ type StatementLine struct {
 	xxx_hidden_Key               string                 `protobuf:"bytes,2,opt,name=key"`
 	xxx_hidden_Unit              string                 `protobuf:"bytes,3,opt,name=unit"`
 	xxx_hidden_Kind              LineKind               `protobuf:"varint,4,opt,name=kind,enum=levyan.LineKind"`
-	xxx_hidden_DateCorrectsStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_corrects_start,json=correctsStart"`
-	xxx_hidden_DateCorrectsEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_corrects_end,json=correctsEnd"`
+	xxx_hidden_DateCorrectsStart *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=date_corrects_start,json=dateCorrectsStart"`
+	xxx_hidden_DateCorrectsEnd   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=date_corrects_end,json=dateCorrectsEnd"`
 	xxx_hidden_Corrects          []byte                 `protobuf:"bytes,7,opt,name=corrects"`
 	xxx_hidden_Usage             string                 `protobuf:"bytes,8,opt,name=usage"`
 	xxx_hidden_Included          string                 `protobuf:"bytes,9,opt,name=included"`
@@ -987,8 +987,8 @@ func (b0 StatementPool_builder) Build() *StatementPool {
 // another channel or currency than the statement's, and on its own on none.
 type StatementUnpriced struct {
 	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_DateStart *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=date_start,json=from"`
-	xxx_hidden_DateEnd   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_end,json=to"`
+	xxx_hidden_DateStart *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_end,json=dateEnd"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1083,8 +1083,8 @@ func (b0 StatementUnpriced_builder) Build() *StatementUnpriced {
 type StatementPart struct {
 	state                 protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Price      []byte                 `protobuf:"bytes,1,opt,name=price"`
-	xxx_hidden_DateStart  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_start,json=from"`
-	xxx_hidden_DateEnd    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_end,json=to"`
+	xxx_hidden_DateStart  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=date_start,json=dateStart"`
+	xxx_hidden_DateEnd    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=date_end,json=dateEnd"`
 	xxx_hidden_Share      string                 `protobuf:"bytes,4,opt,name=share"`
 	xxx_hidden_Included   int64                  `protobuf:"varint,5,opt,name=included"`
 	xxx_hidden_Billable   string                 `protobuf:"bytes,6,opt,name=billable"`
@@ -1495,14 +1495,14 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x0fbilling_account \x14(d\")\n" +
 	"\x06tenant\"\x10workspace.tenant\"\rperiod.tenant\"=\n" +
 	"\x0eStatementLines\x12+\n" +
-	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xde\x04\n" +
+	"\x05lines\x18\x01 \x03(\v2\x15.levyan.StatementLineR\x05lines\"\xe6\x04\n" +
 	"\rStatementLine\x12\x14\n" +
 	"\x05meter\x18\x01 \x01(\fR\x05meter\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
 	"\x04unit\x18\x03 \x01(\tR\x04unit\x12$\n" +
-	"\x04kind\x18\x04 \x01(\x0e2\x10.levyan.LineKindR\x04kind\x12F\n" +
-	"\x13date_corrects_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rcorrectsStart\x12B\n" +
-	"\x11date_corrects_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vcorrectsEnd\x12\x1a\n" +
+	"\x04kind\x18\x04 \x01(\x0e2\x10.levyan.LineKindR\x04kind\x12J\n" +
+	"\x13date_corrects_start\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x11dateCorrectsStart\x12F\n" +
+	"\x11date_corrects_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0fdateCorrectsEnd\x12\x1a\n" +
 	"\bcorrects\x18\a \x01(\fR\bcorrects\x12\x14\n" +
 	"\x05usage\x18\b \x01(\tR\x05usage\x12\x1a\n" +
 	"\bincluded\x18\t \x01(\tR\bincluded\x12\x1a\n" +
@@ -1517,16 +1517,16 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x05pools\x18\x11 \x03(\v2\x15.levyan.StatementPoolR\x05pools\"9\n" +
 	"\rStatementPool\x12\x12\n" +
 	"\x04pool\x18\x01 \x01(\fR\x04pool\x12\x14\n" +
-	"\x05taken\x18\x02 \x01(\tR\x05taken\"{\n" +
-	"\x11StatementUnpriced\x124\n" +
+	"\x05taken\x18\x02 \x01(\tR\x05taken\"\x85\x01\n" +
+	"\x11StatementUnpriced\x129\n" +
 	"\n" +
-	"date_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x120\n" +
-	"\bdate_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xf6\x02\n" +
+	"date_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\"\x80\x03\n" +
 	"\rStatementPart\x12\x14\n" +
-	"\x05price\x18\x01 \x01(\fR\x05price\x124\n" +
+	"\x05price\x18\x01 \x01(\fR\x05price\x129\n" +
 	"\n" +
-	"date_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x120\n" +
-	"\bdate_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x14\n" +
+	"date_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tdateStart\x125\n" +
+	"\bdate_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\adateEnd\x12\x14\n" +
 	"\x05share\x18\x04 \x01(\tR\x05share\x12\x1a\n" +
 	"\bincluded\x18\x05 \x01(\x03R\bincluded\x12\x1a\n" +
 	"\bbillable\x18\x06 \x01(\tR\bbillable\x12\x16\n" +

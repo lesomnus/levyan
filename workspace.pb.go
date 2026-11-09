@@ -195,12 +195,9 @@ type Workspace_builder struct {
 	// What the product calls it, for a bill to name it by: its name there, as
 	// the product says it as the workspace arrives (#9). An invoice keeps the
 	// label each of its lines was written with. Empty is a workspace named by
-	// its identifier. It is an organisation's name and nobody's, as payday's
-	// own tenant's name is.
-	//
-	// A column added to a table with rows in it (#9): defaulted, so that a
-	// workspace written before it is named by its identifier. With no
-	// default, PostgreSQL refuses to add it (scripts/upgrade.sh).
+	// its identifier, as every workspace is until its product says what it
+	// calls it. It is an organisation's name and nobody's, as payday's own
+	// tenant's name is.
 	Label string
 	// Never stamped: there is no Erase. The rows of its ledger and its
 	// statements name it for as long as they are kept.

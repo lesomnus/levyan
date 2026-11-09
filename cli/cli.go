@@ -14,7 +14,6 @@ package cli
 
 import (
 	"context"
-	"slices"
 
 	"github.com/lesomnus/xli"
 	"github.com/lesomnus/xli/cfg"
@@ -83,7 +82,9 @@ func Cmd(c *cmd.Config) *xli.Command {
 // written before then reads as never having had a value, and on SQLite a
 // table whose index names the column is made again without the old one at
 // all -- and an index it makes again, from every row, beside the old one. See
-// `rename`, and [columnRenames] for levyan's own.
+// `rename`. The lists are what `pd gen` writes (`pd.ColumnRenames`,
+// `pd.IndexRenames`); levyan has none of its own to hand over, since until
+// launch nothing is kept for an earlier build (CLAUDE.md).
 //
 // Before both, the tables of the entities the schema renamed and says it did
 // (`formerly`, `pd.TableRenames`): a table it does not find, a migration makes
@@ -101,7 +102,7 @@ func Migrate(ctx context.Context, s *cmd.Server) error {
 	if err := rename.Tables(ctx, s.Db, s.Dialect, pd.TableRenames); err != nil {
 		return err
 	}
-	if err := rename.Columns(ctx, s.Db, s.Dialect, slices.Concat(pd.ColumnRenames, columnRenames)); err != nil {
+	if err := rename.Columns(ctx, s.Db, s.Dialect, pd.ColumnRenames); err != nil {
 		return err
 	}
 	if err := rename.Indexes(ctx, s.Db, s.Dialect, pd.IndexRenames); err != nil {
@@ -112,24 +113,4 @@ func Migrate(ctx context.Context, s *cmd.Server) error {
 	}
 
 	return entmigrate.NewSchema(s.Drv).Create(ctx)
-}
-
-// columnRenames are levyan's own columns that an earlier build stored under
-// another name, for [Migrate] to move before the migration, beside payday's
-// own (`pd.ColumnRenames`). Only ever added to: a deployment may migrate from
-// any build before the one that renamed it.
-//
-// Every time levyan keeps is a `date_*`, as payday's are (2026-11-08, 대표:
-// "비슷한거 전부 다"), at the number it had.
-var columnRenames = []rename.Column{
-	{Table: "allowance", From: "valid_from", To: "date_effective"},
-	{Table: "allowance", From: "valid_until", To: "date_expires"},
-	{Table: "grant", From: "valid_from", To: "date_effective"},
-	{Table: "grant", From: "valid_until", To: "date_expires"},
-	{Table: "point", From: "started_at", To: "date_started"},
-	{Table: "point", From: "counted_at", To: "date_counted"},
-	{Table: "pool", From: "valid_from", To: "date_effective"},
-	{Table: "reading", From: "measured_at", To: "date_measured"},
-	{Table: "workspaceevent", From: "happened_at", To: "date_occurred"},
-	{Table: "workspaceevent", From: "late_through", To: "date_late_through"},
 }

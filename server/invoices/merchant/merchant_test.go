@@ -880,11 +880,11 @@ func TestAShadowDraftIsNeverCharged(t *testing.T) {
 }
 
 // A draft a deployment gathered while nothing collected on the merchant's
-// channel -- a build before this one, or one that named no merchant -- holds
-// every period since its first. Once a merchant is named, it is decided by
-// its first period: begun before collection began, it is a shadow whatever it
-// holds, and what it holds of periods after is not collected; begun from
-// then on, it is charged, all of it.
+// channel -- one that named no merchant -- holds every period since its
+// first. Once a merchant is named, it is decided by its first period: begun
+// before collection began, it is a shadow whatever it holds, and what it
+// holds of periods after is not collected; begun from then on, it is
+// charged, all of it.
 func TestADraftGatheredBeforeCollectionIsDecidedByItsFirstPeriod(t *testing.T) {
 	for _, tc := range []struct {
 		name  string

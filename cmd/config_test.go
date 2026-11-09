@@ -254,8 +254,8 @@ dunning:
 // after the grace nor at once, a kind there is no row of, a row read-only
 // sooner than it is restricted -- what it says with its defaults, of
 // `other` with what `temporary` came to -- and retries of a workspace nobody
-// pays for, which nothing is charged of. `payers.grace` is the table's row
-// now. And Build refuses a table made in code before it opens anything.
+// pays for, which nothing is charged of. And Build refuses a table made in
+// code before it opens anything.
 func TestADunningTableThatSaysNoScheduleIsRefused(t *testing.T) {
 	x := require.New(t)
 
@@ -268,7 +268,6 @@ func TestADunningTableThatSaysNoScheduleIsRefused(t *testing.T) {
 		"dunning:\n  kinds:\n    payerless:\n      restrict: later":      {"levyan.yaml:4:", `dunning.kinds.payerless.restrict: "later" is neither`},
 		"dunning:\n  kinds:\n    fruad: {grace: 0s}":                     {"levyan.yaml:3:", "fruad", `"fraud"`},
 		"dunning:\n  kinds:\n    payerless:\n      retries: [24h]":       {"levyan.yaml:4:", "retries"},
-		"payers:\n  grace: 720h":                                         {"levyan.yaml:2:", "grace"},
 		"dunning:\n  kinds:\n    temporary:\n      readonly_after: -1h":  {"levyan.yaml:4:", "dunning.kinds.temporary.readonly_after: -1h0m0s is less than nothing"},
 		"dunning:\n  kinds:\n    replace:\n      readonly_after: 100h":   {"dunning.kinds: replace: readonly_after: 100h0m0s is sooner than the restriction, 336h0m0s after the failure"},
 		"dunning:\n  kinds:\n    temporary:\n      grace: 2000h":         {"dunning.kinds: temporary: readonly_after: 1440h0m0s is sooner than the restriction, 2000h0m0s after the failure"},

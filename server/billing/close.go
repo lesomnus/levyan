@@ -365,7 +365,7 @@ func (c Closer) workspace(ctx context.Context, product *ent.Tenant, row *ent.Per
 		Total:     st.Total,
 		Exact:     fraction(st.Exact),
 		Rating:    rating.Version,
-		FirstUnit: proto.Bool(t.FirstUnit),
+		FirstUnit: t.FirstUnit,
 	}.Build()
 	if who.Link != nil {
 		req.SetPayer(who.Link.Payer[:])

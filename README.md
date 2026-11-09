@@ -249,7 +249,7 @@ payers:
     default: {channel: MOR, currency: USD}   # 적지 않은 모든 나라
 ```
 
-지불자 없이 얼마나 지나면 제한하는지는 연체의 정책 표의 `payerless` 행이다(아래 "연체", 기본 30일, 읽기 전용은 60일). 전에는 `payers.grace`였고, 그 키를 적은 설정으로는 뜨지 않는다.
+지불자 없이 얼마나 지나면 제한하는지는 연체의 정책 표의 `payerless` 행이다(아래 "연체", 기본 30일, 읽기 전용은 60일).
 
 결제 계정의 채널과 통화는 그 나라로, 결제 계정을 만들 때 `payers.channels`가 정한다. 국내 PG로 팔려면 `KR: {channel: PG_KR, currency: KRW}`다. 지도를 바꿔도 이미 있는 결제 계정은 그대로다. 옮기는 것은 기간 경계의 채널 전환이고, 아직 없다. 잘못 적은 지도(소문자 나라, 없는 채널, levyan이 받지 않는 통화)로는 뜨지 않는다.
 
@@ -431,7 +431,9 @@ go test ./...                                             # SQLite
 PDTEST_POSTGRES='postgres://…?sslmode=disable' go test ./... # PostgreSQL
 ```
 
-main에 이미 있는 엔티티에 필드를 더할 때는 기본값을 주거나 NULL을 허용한다(Claude, 2026-10-31). 행이 있는 테이블에는 그런 열만 더할 수 있다. 확인은 `scripts/upgrade.sh BEFORE NOW`가 한다(CI의 `upgrade`). 앞 빌드가 데이터를 쓰고, 이 빌드가 그 DB를 마이그레이션한 뒤 다시 읽는다. `BEFORE`와 `NOW`는 각 빌드의 `levyan`, `levyan-admin`이 든 디렉터리다(`go build -o <디렉터리>/ ./cmd/levyan ./cmd/levyan-admin`). PostgreSQL에서도 보려면 빈 DB를 `UPGRADE_POSTGRES`에 준다.
+출시 전에는 앞 빌드가 저장하고 내보내고 설정받은 것을 남기지 않는다(대표, 2026-11-09). 그것을 깨는 변경은 옮겨 주는 길 없이 호환 epoch(`.github/compat-epoch`)를 하나 올리고, 스테이징은 처음부터 다시 만든다. CI는 다른 epoch의 빌드를 짓지도 마이그레이션하지도 않고, 그렇다고 알린다(`CLAUDE.md`).
+
+출시부터는 main에 이미 있는 엔티티에 필드를 더할 때 기본값을 주거나 NULL을 허용한다(Claude, 2026-10-31). 행이 있는 테이블에는 그런 열만 더할 수 있다. 출시 전에는 둘 다 없는 필드가 epoch를 올린다. 확인은 `scripts/upgrade.sh BEFORE NOW`가 한다(CI의 `upgrade`). 같은 epoch의 앞 빌드가 데이터를 쓰고, 이 빌드가 그 DB를 마이그레이션한 뒤 다시 읽는다. `BEFORE`와 `NOW`는 각 빌드의 `levyan`, `levyan-admin`이 든 디렉터리다(`go build -o <디렉터리>/ ./cmd/levyan ./cmd/levyan-admin`). PostgreSQL에서도 보려면 빈 DB를 `UPGRADE_POSTGRES`에 준다.
 
 `pd gen`은 자기가 고정한 buf를 받아서 쓰고, `scripts/api.sh`도 그 buf를 쓴다. API(`api/`)는 따로 된 모듈이라 `pd gen`이 건드리지 않는다(payday#189). `scripts/gen.sh`가 둘을 차례로 한다. 이 저장소에는 페이지(TS)가 없으므로 node는 필요 없다.
 

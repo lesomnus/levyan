@@ -38,9 +38,7 @@ type Payerless struct {
 
 var _ grants.Rule = Payerless{}
 
-// RuleName is what its grants say they come from: the name it had before its
-// row was the table's, which it keeps, since a grant of another name is
-// another rule's.
+// RuleName is what its grants say they come from.
 const RuleName = "payers.grace"
 
 func (Payerless) Name() string { return RuleName }

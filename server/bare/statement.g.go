@@ -244,11 +244,7 @@ func (st StatementServiceServer) create(ctx context.Context, req *levyan.Stateme
 			})
 		}
 	}
-	if req.HasFirstUnit() {
-		q.SetFirstUnit(req.GetFirstUnit())
-	} else {
-		q.SetFirstUnit(false)
-	}
+	q.SetFirstUnit(req.GetFirstUnit())
 	return q, ds, nil
 }
 

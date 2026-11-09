@@ -10,8 +10,9 @@
 // rather than generated from levyan's schema, so that an app's client is made
 // of these messages and nothing of levyan's own: an app is never held to the
 // payday levyan is built with (docs/design.md, "앱이 levyan을 부르는 길").
-// Fields are added and never renumbered, renamed or retyped; `buf breaking`
-// holds every change to that.
+// From launch, fields are added and never renumbered, renamed or retyped,
+// and `buf breaking` holds every change to that; until then an app that
+// calls levyan changes with it.
 
 package levyanv1
 

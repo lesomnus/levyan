@@ -426,12 +426,12 @@ func (v Invoices) shadowed(ctx context.Context, db *ent.Client, inv *ent.Invoice
 // its channel, nothing taken of its billing account's credit, and its payer
 // shown nothing of it.
 //
-// A draft a build before this one gathered while nothing collected on the
-// channel holds every period since its first, and may hold periods that
-// ended after collection began: it is a shadow's all the same, since a line
-// is never moved to another invoice -- what it holds of those periods is not
-// collected, and said in the log (implementation decision: billed less,
-// rather than a shadow's period charged).
+// A draft gathered while nothing collected on the channel -- before the
+// deployment named a merchant -- holds every period since its first, and
+// may hold periods that ended after collection began: it is a shadow's all
+// the same, since a line is never moved to another invoice -- what it holds
+// of those periods is not collected, and said in the log (implementation
+// decision: billed less, rather than a shadow's period charged).
 func (v Invoices) shade(ctx context.Context, s levyan.Server, db *ent.Client, inv *ent.Invoice, channel levyan.Channel, now time.Time) error {
 	from := v.LiveFrom[channel]
 	if !inv.DateEnd.Before(from) {

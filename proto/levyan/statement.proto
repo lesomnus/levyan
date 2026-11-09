@@ -95,8 +95,7 @@ message Statement {
 
   // Who paid for the workspace over the period, and with which billing
   // account: the link in force through it, of which a period has one at most.
-  // Unset for a workspace with no payer, and on a statement written before
-  // payers were (#4).
+  // Unset for a workspace with no payer.
   bytes payer = 20 [
     (orm.field) = {
       type: TYPE_UUID
@@ -112,16 +111,9 @@ message Statement {
 
   // Rated from the first unit: what its prices include was not this
   // workspace's, which is none of its payer's first `payers.free`. Unset on a
-  // workspace whose allowances its prices include -- every workspace with no
-  // payer, and every statement written before payers were counted (#4).
-  //
-  // A column added to a table with rows in it (#4): defaulted, so that a
-  // statement written before it is unset, as it was. With no default,
-  // PostgreSQL refuses to add it (scripts/upgrade.sh).
-  bool first_unit = 22 [(orm.field) = {
-    immutable: true
-    default: ""
-  }];
+  // workspace whose allowances its prices include, every workspace with no
+  // payer among them.
+  bool first_unit = 22 [(orm.field) = {immutable: true}];
 
   option (orm.message) = {
     // Patch is generated though nothing here may change -- every field is
@@ -257,8 +249,8 @@ message StatementLine {
 
   // For a correction: the period it corrects, and that period's statement
   // of this workspace when it had one.
-  google.protobuf.Timestamp date_corrects_start = 5 [json_name = "correctsStart"];
-  google.protobuf.Timestamp date_corrects_end = 6 [json_name = "correctsEnd"];
+  google.protobuf.Timestamp date_corrects_start = 5;
+  google.protobuf.Timestamp date_corrects_end = 6;
   bytes corrects = 7;
 
   // What was used, as the meter's aggregation says, in its unit: for a
@@ -290,15 +282,13 @@ message StatementLine {
 
   // What of `included` the workspace's allowances gave, on top of what its
   // prices include, each part weighed by its share of the period (#43).
-  // Empty on a line no allowance was in force for, and on every line written
-  // before rating version 4.
+  // Empty on a line no allowance was in force for.
   string allowance = 15;
 
   // What of `billable` the workspace's pools took (#43), and of which: what
   // is priced is what is billable past it. For a correction, what the
   // period it corrects takes now -- which is what each pool's draw of that
-  // period is from then on. Empty on a line no pool was taken from, and on
-  // every line written before rating version 5.
+  // period is from then on. Empty on a line no pool was taken from.
   string pooled = 16;
   repeated StatementPool pools = 17;
 }
@@ -314,8 +304,8 @@ message StatementPool {
 // StatementUnpriced is a stretch of a line's period its meter was priced on
 // another channel or currency than the statement's, and on its own on none.
 message StatementUnpriced {
-  google.protobuf.Timestamp date_start = 1 [json_name = "from"];
-  google.protobuf.Timestamp date_end = 2 [json_name = "to"];
+  google.protobuf.Timestamp date_start = 1;
+  google.protobuf.Timestamp date_end = 2;
 }
 
 // LineKind is what a statement's line is.
@@ -334,8 +324,8 @@ enum LineKind {
 message StatementPart {
   // The version of the price, and the stretch it was in force.
   bytes price = 1;
-  google.protobuf.Timestamp date_start = 2 [json_name = "from"];
-  google.protobuf.Timestamp date_end = 3 [json_name = "to"];
+  google.protobuf.Timestamp date_start = 2;
+  google.protobuf.Timestamp date_end = 3;
 
   // The stretch's share of the period it is charged by.
   string share = 4;

@@ -1617,7 +1617,7 @@ var (
 		{Name: "exact", Type: field.TypeString},
 		{Name: "rating", Type: field.TypeUint32},
 		{Name: "payer", Type: field.TypeUuid, Nullable: true},
-		{Name: "first_unit", Type: field.TypeBool, Nullable: true, Default: false},
+		{Name: "first_unit", Type: field.TypeBool},
 		{Name: "tenant_id", Type: field.TypeUuid},
 		{Name: "workspace_id", Type: field.TypeUuid},
 		{Name: "period_id", Type: field.TypeUuid},

@@ -20,6 +20,29 @@ comments -- with one of three labels, and never more than it was:
   may overturn it, and it is never written as the owner's.
 - **구현에서 정한 것**: what the agent implementing a sub-issue chose.
 
+## Until launch, nothing is kept for an earlier build
+
+levyan has no users yet, and until it launches a change that breaks what an
+earlier build stored, exported or was configured with carries no way from
+it: no column moved for it, no JSON name kept, no setting read under its old
+name, no note of what it was (대표, 2026-11-09, docs/design.md §2: "더이상
+사용되지 않는 설정이나 코드에 대한 호환, 문서 등을 그냥 지우는게 어떨까").
+
+Such a change moves the **compatibility epoch**, `.github/compat-epoch`, one
+up, and staging is made again from nothing. CI holds a build to nothing of
+another epoch: `upgrade` neither builds nor migrates the build before or
+`OLDEST` when it is of another, and `buf breaking` is not run against a base
+of another; each says so in a notice and passes. `OLDEST` moves to the first
+build of the new epoch once staging runs it. A change that breaks nothing
+leaves the epoch where it is, and `upgrade` holds it to that. The epoch,
+and that `buf breaking` follows it too, are Claude's: a break meant before
+launch is said by moving the epoch.
+
+From launch the epoch stays where it is, and the rules below that keep an
+earlier build's data or callers working apply, each saying so: the API's
+fields, a field added to an entity that has shipped, a grants rule's name,
+and `OLDEST`.
+
 ## Regenerate after touching the schema
 
 ```sh
@@ -51,11 +74,11 @@ scripts/api.sh --check    # what CI runs: generated Go current, nothing of payda
 scripts/api.sh --breaking origin/main
 ```
 
-- Add fields; never renumber, rename or retype one. CI runs `buf breaking`
-  against the base of every pull request. Once, on the owner's word, a field
-  was renamed: every time the API keeps became a `date_*` at the number it
-  had (2026-11-08, 대표: "비슷한거 전부 다"), so the binary wire stayed and
-  JSON names moved. That is the one exception, not a precedent.
+- From launch, add fields; never renumber, rename or retype one. CI runs
+  `buf breaking` against the base of every pull request of this build's
+  epoch (above). Until then loft and levyan change together -- loft mirrors
+  levyan's messages, and its `TestTheMessagesAreLevyans` holds it to them --
+  and a change that breaks the API moves the epoch.
 - `server/api` maps between the API's messages and the schema's, and reads
   through the **walled** stack with the caller's frame. Never hand it
   `Ungated`.
@@ -114,35 +137,40 @@ one when payers come (#4).
 
 ## Adding a field to an entity that has shipped
 
-A field added to an entity that is on `main` already has a **default** the
-database fills the rows it has with -- `(orm.field) = {default: ""}`, the
-field's zero -- or is **nullable**. A column that may
+From launch, a field added to an entity that is on `main` already has a
+**default** the database fills the rows it has with -- `(orm.field) =
+{default: ""}`, the field's zero -- or is **nullable**. A column that may
 not be NULL and has no default cannot be added to a table with rows in it:
 PostgreSQL refuses it (`column "label" of relation "workspace" contains null
 values`), and SQLite too. This is Claude's rule (2026-10-31), after
 `Workspace.label` (#25) stopped staging's migration; `Statement.first_unit`
 (#22) was the same. A default gives the generated Add request's field
 explicit presence, so a builder sets it with `proto.Bool`, `proto.String`.
+Until launch, a field with neither breaks what an earlier build stored, and
+moves the epoch (above).
 
 No test says so -- every one starts from an empty database. `scripts/upgrade.sh
 BEFORE NOW` does, and CI runs it (`upgrade`): the build before, and `OLDEST`,
 the build staging runs (pinned in the workflow; move it when staging moves),
 write what a product and an operator write, and this build migrates it and
-reads it back. A feature that writes rows reachable without a roster or a
-merchant of record is written there too, and read back.
+reads it back -- each only when it is of this build's epoch. From launch
+`OLDEST` is the oldest build any deployment runs, and is never of another
+epoch; until then, when the epoch moves, it moves to the first build of the
+new one once staging runs it. A feature that writes rows reachable without
+a roster or a merchant of record is written there too, and read back.
 
 What the seed needs a loop to have done, it drives: the operator's command
 that makes the loop's pass (`period close`, `invoice collect`, `reconcile
-run`), which is done when it answers -- never a wait on the loop's clock. A
-build too old for the command is said, and waited for. And never pipe a
-build's output, under `pipefail`, into what stops reading once it has its
-answer -- `grep -q`, `head`: the build is killed by SIGPIPE now and then,
-and the pipe says "no". Read it whole first. This is the implementation's
-rule (2026-11-02), after `reads` said so of a setting on CI (2026-11-01).
+run`), which is done when it answers -- never a wait on the loop's clock.
+And never pipe a build's output, under `pipefail`, into what stops reading
+once it has its answer -- `grep -q`, `head`: the build is killed by SIGPIPE
+now and then, and the pipe says "no". Read it whole first. This is the
+implementation's rule (2026-11-02), after `reads` said so of a setting on
+CI (2026-11-01).
 
 ```sh
 go build -o /tmp/now/ ./cmd/levyan ./cmd/levyan-admin
-git worktree add --detach /tmp/before-src origin/main
+git worktree add --detach /tmp/before-src origin/main   # when it is of this build's epoch
 (cd /tmp/before-src && go build -o /tmp/before/ ./cmd/levyan ./cmd/levyan-admin)
 scripts/upgrade.sh /tmp/before /tmp/now   # and UPGRADE_POSTGRES=postgres://…/<empty db>
 ```
@@ -485,7 +513,8 @@ decides (payday#185). levyan is the source; the contract is payday's
   `--replace`) and a rule's (`grants.Rule`, the hook billing state plugs
   into: `cmd.Server.Grants.Rules`). A rule's grants are its own by its name:
   kept while wanted, given again when the value changes, ended when no longer
-  wanted, and never an operator's to end.
+  wanted, and never an operator's to end. From launch a rule's name never
+  changes, since a grant of another name is another rule's.
 
 ## Payers
 
@@ -559,10 +588,7 @@ product in a transaction holding the workspace's row (`payers.Payers.Close`,
   `Rater.Usage` cuts it out of what the ledger says (`usage.Cut`,
   `usage.Open`), and `rating.Rate` weighs the versions in force by the time
   it was a customer (`rating.Customer`). What it holds while closed is
-  still sent and kept, and billed once it is restored. This is rating
-  version 3; a workspace never restored comes to what it did by 2, and one
-  with no events to what it did by 1. Version 4 is a workspace's allowances,
-  and 5 its pools (below, "Benefits and credits").
+  still sent and kept, and billed once it is restored.
 - **Destroyed**: the ledger refuses a reading or point of a moment at or
   after it (`ledger.Destroyed`, `REFUSAL_DESTROYED`), its links end there
   (`LINK_ENDED_DESTROYED`) and its offers are withdrawn, and nothing is
@@ -758,8 +784,8 @@ carried out: write it as Claude's, never as the owner's.
   changed changes nothing of it -- never makes billable less than nothing,
   and a meter priced by bands (or `unbounded_zero`) is refused one. The
   statement's line says it (`allowance`; `included` is the price's and the
-  allowance's together), and its parts which (`allowances`). Rating version
-  4. **No allowance or pool reaches into a period whose close has begun**
+  allowance's together), and its parts which (`allowances`).
+  **No allowance or pool reaches into a period whose close has begun**
   (`benefits.Layer`, read under the workspace's lock), so a period corrected
   later is given what it was given when it closed.
 - **A pool** (`Pool`, `server/benefits`) is a bundle of a meter in its unit
@@ -767,7 +793,7 @@ carried out: write it as Claude's, never as the owner's.
   taken out of the pools in force at any moment of the period -- the whole
   of it, never prorated -- the soonest to expire first, and only the rest is
   priced, each part priced by the unit for its share in proportion to what it
-  is billable for. Rating version 5. **What each period took is on its
+  is billable for. **What each period took is on its
   statements, nowhere else**: the line's `pools`, and each correction of the
   period since says what it takes then (absolute, not a delta); a period's
   draw is the latest of those (`billing.Taps`), and what is left of a pool is

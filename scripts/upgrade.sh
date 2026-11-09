@@ -8,7 +8,10 @@
 #   scripts/upgrade.sh BEFORE NOW
 #
 # BEFORE and NOW are directories, each with the `levyan` and `levyan-admin` of
-# one build: `go build -o DIR/ ./cmd/levyan ./cmd/levyan-admin`.
+# one build: `go build -o DIR/ ./cmd/levyan ./cmd/levyan-admin`. BEFORE is of
+# NOW's compatibility epoch (`.github/compat-epoch`): until launch nothing is
+# kept for a build of another (CLAUDE.md), and CI does not run this across
+# one.
 #
 # Every test starts from an empty database, which takes any column the schema
 # adds. Only one with rows in it says whether the column can be added to it: a
@@ -27,9 +30,10 @@
 # into its invoice (`invoice collect`, the loop's pass made by hand, so that
 # what is written does not wait on the loop's clock); and the second
 # workspace closed in the month before this one, said after that month was
-# closed, so that it is late (#14); and, by a build that reconciles, what
-# that found (#13). What a build does not have yet -- a command, a method, a
-# setting -- it is not asked, and that is said. Nothing here reaches a roster
+# closed, so that it is late (#14); and what its reconciliation found of all
+# that (#13). Every build of the epoch has each of these. What a build before
+# does not have yet -- a command, a method, a setting this one adds -- it is
+# not asked (`has`, `reads`), and that is said. Nothing here reaches a roster
 # or a merchant of record, so what only they make happen is not made: an
 # account's own billing accounts and what it answers, a departure, a
 # checkout, a subscription, its notices, and an invoice finalized and paid.
@@ -44,7 +48,7 @@
 # workspace's payer and what became of it, and what this month's readings come
 # to so far -- nothing, of the workspace closed -- and what the build before's
 # reconciliation found. And if it has `levyan trail rows`, every row is what
-# the trail says of it; and if it reconciles, a pass of it over all of that
+# the trail says of it; and a pass of its reconciliation over all of that
 # makes every check (#13).
 #
 # Every server this starts is stopped by its PID before this exits. What it
@@ -273,31 +277,19 @@ other=0190c0de-0000-8000-8002-0000000000c2
 
 # seed: what BEFORE writes, up and then stopped.
 seed() {
-	local b="${before}" out id ws extra=() billing="" began
+	local b="${before}" out id ws billing began closed
 	began="$(date -u +%Y-%m)"
 	if ! "${b}/levyan" migrate >>"${log}" 2>&1; then
 		fail "${log}" "the build before did not migrate an empty database"
 	fi
-	# What the close writes is invoiced by an operator's pass of the loop
-	# that invoices (`invoice collect`), made once the close is done. A build
-	# without it is invoiced by its loop, every second, while this waits.
-	if ! has "${b}" invoice collect && reads "${b}" LEVYAN_INVOICES_EVERY; then
-		extra+=(LEVYAN_INVOICES_EVERY=1s)
-	fi
 	# The months are closed by hand (`period close`), and never by the loop
 	# that closes them, whenever its first pass comes: what has ended waits a
 	# century for it. Its pass made late, after the readings, would have closed
-	# them first and left the operator's close nothing to close.
-	if reads "${b}" LEVYAN_PERIODS_GRACE; then
-		extra+=(LEVYAN_PERIODS_GRACE=876000h)
-	fi
-	# And so that the draft of the billing account paid by transfer -- a
-	# channel nothing collects on here -- is one its reconciliation finds
-	# left undecided, at once rather than a day after its period closed.
-	if reads "${b}" LEVYAN_RECONCILE_STALE_DRAFT; then
-		extra+=(LEVYAN_RECONCILE_STALE_DRAFT=1ns)
-	fi
-	serve "${b}" before "${extra[@]}"
+	# them first and left the operator's close nothing to close. And the draft
+	# of the billing account paid by transfer -- a channel nothing collects on
+	# here -- is one its reconciliation finds left undecided at once, rather
+	# than a day after its period closed.
+	serve "${b}" before LEVYAN_PERIODS_GRACE=876000h LEVYAN_RECONCILE_STALE_DRAFT=1ns
 
 	# The price book, as an operator writes it.
 	out="$(admin "${b}" product add --name Loft --yes loft)"
@@ -319,41 +311,27 @@ seed() {
 
 	# A billing account paid by transfer, which an operator opens: the one an
 	# account of roster's needs no roster for.
-	if has "${b}" billing-account add; then
-		out="$(admin "${b}" billing-account add --channel bank_kr --owner "${payer}" --name HQ \
-			--registration 123-45-67890 --business-name 'Upgrade Co.' --tax-email tax@example.com --yes)"
-		billing="$(cut -f1 <<<"${out}")"
-	else
-		say "the build before has no \`billing-account add\`: no billing account, and so no invoice"
-	fi
+	out="$(admin "${b}" billing-account add --channel bank_kr --owner "${payer}" --name HQ \
+		--registration 123-45-67890 --business-name 'Upgrade Co.' --tax-email tax@example.com --yes)"
+	billing="$(cut -f1 <<<"${out}")"
 
 	# Two workspaces made two months ago, the first by the account with the
 	# billing account, and an offer to it of the second.
-	#
-	# A time the API renamed (every one is a `date_*` since 2026-11-08) is
-	# sent under both names, here and below: Connect's JSON drops a name the
-	# build does not know, so the build before reads the one it has, whichever
-	# side of the rename it is.
-	if out="$(call levyan.v1.WorkspaceService/Arrive \
-		"{\"workspace\":\"${ws1}\",\"creator\":\"${payer}\",\"created\":\"$(month 2)\",\"dateCreated\":\"$(month 2)\",\"label\":\"Upgrade lab\"}")"; then
-		call levyan.v1.WorkspaceService/Arrive \
-			"{\"workspace\":\"${ws2}\",\"creator\":\"${other}\",\"created\":\"$(month 2)\",\"dateCreated\":\"$(month 2)\"}" >/dev/null
-		call levyan.v1.WorkspaceService/Offer "{\"workspace\":\"${ws2}\",\"account\":\"${payer}\"}" >/dev/null
-		for ws in "${ws1}" "${ws2}"; do
-			ask "payer-${ws}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws}\"}" \
-				'.payer | {link: .current.id, account: .current.account, billing: .current.billingAccount, start: (.current.dateStart // .current.start), offer: .offer.id}'
-		done
-	elif [ $? -eq 3 ]; then
-		say "the build before has no \`WorkspaceService/Arrive\`: no payers"
-	else
-		exit 1
-	fi
+	call levyan.v1.WorkspaceService/Arrive \
+		"{\"workspace\":\"${ws1}\",\"creator\":\"${payer}\",\"dateCreated\":\"$(month 2)\",\"label\":\"Upgrade lab\"}" >/dev/null
+	call levyan.v1.WorkspaceService/Arrive \
+		"{\"workspace\":\"${ws2}\",\"creator\":\"${other}\",\"dateCreated\":\"$(month 2)\"}" >/dev/null
+	call levyan.v1.WorkspaceService/Offer "{\"workspace\":\"${ws2}\",\"account\":\"${payer}\"}" >/dev/null
+	for ws in "${ws1}" "${ws2}"; do
+		ask "payer-${ws}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws}\"}" \
+			'.payer | {link: .current.id, account: .current.account, billing: .current.billingAccount, start: .current.dateStart, offer: .offer.id}'
+	done
 
 	# A stock's readings at the start of each of the three months, and a
 	# flow's points in them.
 	out="$(call levyan.v1.MeteringService/Record "$(jq -cn --arg w1 "${ws1}" --arg w2 "${ws2}" \
 		--arg m2 "$(month 2)" --arg m1 "$(month 1)" --arg m0 "$(month 0)" '
-		def r($ws; $at; $v): {workspace: $ws, meter: "loft.assets.active", measuredAt: $at, dateMeasured: $at, value: $v, unit: "{asset}"};
+		def r($ws; $at; $v): {workspace: $ws, meter: "loft.assets.active", dateMeasured: $at, value: $v, unit: "{asset}"};
 		{readings: [r($w1; $m2; 100), r($w1; $m1; 110), r($w1; $m0; 120), r($w2; $m2; 200), r($w2; $m1; 210), r($w2; $m0; 220)]}')")"
 	jq -e 'all(.results[]; .outcome == "OUTCOME_KEPT")' <<<"${out}" >/dev/null || fail "${log}" "readings were refused"
 	out="$(call opentelemetry.proto.collector.metrics.v1.MetricsService/Export "$(jq -cn --arg ws "${ws1}" \
@@ -378,20 +356,11 @@ seed() {
 	# before this one, and said after that month was closed, as an event
 	# that comes late is. Read back as it is, and in what this month comes
 	# to so far, which its close takes it out of.
-	local rc=0
-	local closed
 	closed="$(after "$(month 1)" 864000)"
-	call levyan.v1.WorkspaceService/Close "{\"workspace\":\"${ws2}\",\"at\":\"${closed}\",\"dateOccurred\":\"${closed}\"}" >/dev/null || rc=$?
-	case "${rc}" in
-	0)
-		for ws in "${ws1}" "${ws2}"; do
-			ask "life-${ws}" levyan.v1.WorkspaceService/GetLifecycle "{\"workspace\":\"${ws}\"}" \
-				'.lifecycle | with_entries(.key |= ({closedSince: "dateClosed", destroyed: "dateDestroyed"}[.] // .))'
-		done
-		;;
-	3) say "the build before has no \`WorkspaceService/Close\`: no workspace closed" ;;
-	*) exit 1 ;;
-	esac
+	call levyan.v1.WorkspaceService/Close "{\"workspace\":\"${ws2}\",\"dateOccurred\":\"${closed}\"}" >/dev/null
+	for ws in "${ws1}" "${ws2}"; do
+		ask "life-${ws}" levyan.v1.WorkspaceService/GetLifecycle "{\"workspace\":\"${ws}\"}" '.lifecycle'
+	done
 
 	out="$(admin "${b}" statement ls loft)"
 	[ -n "${out}" ] || fail "${log}" "the close wrote no statement"
@@ -401,96 +370,59 @@ seed() {
 	done < <(cut -f1 <<<"${out}")
 	for ws in "${ws1}" "${ws2}"; do
 		ask "statements-${ws}" levyan.v1.BillingService/ListStatements "{\"workspace\":\"${ws}\"}" \
-			'[.statements[] | {id, start: (.period.dateStart // .period.start), total, lines: [.lines[] | {meter, kind, usage, included, billable, amount}]}]'
+			'[.statements[] | {id, start: .period.dateStart, total, lines: [.lines[] | {meter, kind, usage, included, billable, amount}]}]'
 		ask "usage-${ws}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws}\"}" \
-			'.usage | {period: (.period.dateStart // .period.start), lines: [.lines[] | {meter, usage}]}'
+			'.usage | {period: .period.dateStart, lines: [.lines[] | {meter, usage}]}'
 	done
 
 	# What the statements of the billing account came to, gathered onto its
-	# draft: by a pass made now, which has gathered both months' when it
-	# answers -- or, by a build before `invoice collect`, by its loop's next
-	# pass, which this waits for.
-	if [ -n "${billing}" ] && has "${b}" invoice ls; then
-		if has "${b}" invoice collect; then
-			admin "${b}" invoice collect --yes >/dev/null
-			out="$(admin "${b}" invoice ls loft)"
-			[ -n "${out}" ] || fail "${log}" "levyan-admin invoice collect: nothing the close wrote was invoiced"
-		else
-			say "the build before has no \`invoice collect\`: what the close wrote is invoiced by its loop, every second, while this waits"
-			for _ in $(seq 1 60); do
-				out="$(admin "${b}" invoice ls loft)"
-				[ -z "${out}" ] || break
-				sleep 0.5
-			done
-			[ -n "${out}" ] || fail "${log}" "nothing the close wrote was invoiced within half a minute"
-		fi
-		while read -r id; do
-			expect "${id}" invoice ls loft
-			expect "${id}" invoice show "${id}"
-		done < <(cut -f1 <<<"${out}")
-	fi
+	# draft by a pass made now, which has gathered both months' when it
+	# answers.
+	admin "${b}" invoice collect --yes >/dev/null
+	out="$(admin "${b}" invoice ls loft)"
+	[ -n "${out}" ] || fail "${log}" "levyan-admin invoice collect: nothing the close wrote was invoiced"
+	while read -r id; do
+		expect "${id}" invoice ls loft
+		expect "${id}" invoice show "${id}"
+	done < <(cut -f1 <<<"${out}")
 
-	if has "${b}" grant add; then
-		out="$(admin "${b}" grant add --workspace "${ws1}" --on --source trial --desc pilot --yes loft loft.export)"
-		expect "$(cut -f1 <<<"${out}")" grant ls loft
-		out="$(admin "${b}" grant add --workspace "${ws2}" --limit 20 --until 2099-01-01 --source contract --yes loft loft.seats)"
-		expect "$(cut -f1 <<<"${out}")" grant ls loft
-		ask grants payday.GrantService/List '{}' \
-			'[.items[] | {id, tenantId, key, version, on, limit, unlimited, dateEffective: (.dateEffective // .validFrom), dateExpires: (.dateExpires // .validUntil)}] | sort_by(.id)'
-	else
-		say "the build before has no \`grant add\`: no grants"
-	fi
+	out="$(admin "${b}" grant add --workspace "${ws1}" --on --source trial --desc pilot --yes loft loft.export)"
+	expect "$(cut -f1 <<<"${out}")" grant ls loft
+	out="$(admin "${b}" grant add --workspace "${ws2}" --limit 20 --until 2099-01-01 --source contract --yes loft loft.seats)"
+	expect "$(cut -f1 <<<"${out}")" grant ls loft
+	ask grants payday.GrantService/List '{}' \
+		'[.items[] | {id, tenantId, key, version, on, limit, unlimited, dateEffective, dateExpires}] | sort_by(.id)'
 
 	# What an operator gives a workspace beyond its prices (#43): more of a
 	# meter each period, from now, and credit -- of the workspace, and of the
 	# billing account paid by transfer -- read back as an operator lists them
-	# and as the product reads them.
-	if has "${b}" allowance add; then
-		# Until a year from this month, so that its end is a value the
-		# migration keeps and not the null of one that never ends.
-		out="$(admin "${b}" allowance add --workspace "${ws1}" --quantity 50 --until "$(after "$(month 0)" 31536000)" --reason pilot --yes loft loft.assets.active)"
-		expect "$(cut -f1 <<<"${out}")" allowance ls loft
-		ask "allowances-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
-			'[.usage.allowances[] | {id, meter, quantity, dateEffective: (.dateEffective // .from), dateExpires: (.dateExpires // .until)}]'
-	else
-		say "the build before has no \`allowance add\`: no allowance"
-	fi
-	if has "${b}" pool grant; then
-		out="$(admin "${b}" pool grant --workspace "${ws1}" --quantity 1000 --reason pilot --yes loft loft.assets.active)"
-		expect "$(cut -f1 <<<"${out}")" pool ls loft
-		ask "pools-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
-			'[.usage.pools[] | {id, meter, granted, left, dateEffective: (.dateEffective // .from), dateExpires: (.dateExpires // .expires)}]'
-	else
-		say "the build before has no \`pool grant\`: no pool"
-	fi
-	if has "${b}" credit grant; then
-		out="$(admin "${b}" credit grant --workspace "${ws1}" --amount 1000 --currency KRW --reason pilot --yes loft)"
-		expect "$(cut -f1 <<<"${out}")" credit ls loft
-		if [ -n "${billing}" ]; then
-			out="$(admin "${b}" credit grant --billing-account "${billing}" --amount 2000 --reason contract --yes loft)"
-			expect "$(cut -f1 <<<"${out}")" credit ls loft
-		fi
-		ask "credits-${ws1}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws1}\"}" \
-			'[.payer.credits[] | {id, workspace, granted, left, currency, dateExpires: (.dateExpires // .expires)}]'
-	else
-		say "the build before has no \`credit grant\`: no credit granted"
-	fi
+	# and as the product reads them. The allowance lasts until a year from
+	# this month, so that its end is a value the migration keeps and not the
+	# null of one that never ends.
+	out="$(admin "${b}" allowance add --workspace "${ws1}" --quantity 50 --until "$(after "$(month 0)" 31536000)" --reason pilot --yes loft loft.assets.active)"
+	expect "$(cut -f1 <<<"${out}")" allowance ls loft
+	ask "allowances-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
+		'[.usage.allowances[] | {id, meter, quantity, dateEffective, dateExpires}]'
+	out="$(admin "${b}" pool grant --workspace "${ws1}" --quantity 1000 --reason pilot --yes loft loft.assets.active)"
+	expect "$(cut -f1 <<<"${out}")" pool ls loft
+	ask "pools-${ws1}" levyan.v1.BillingService/GetUsage "{\"workspace\":\"${ws1}\"}" \
+		'[.usage.pools[] | {id, meter, granted, left, dateEffective, dateExpires}]'
+	out="$(admin "${b}" credit grant --workspace "${ws1}" --amount 1000 --currency KRW --reason pilot --yes loft)"
+	expect "$(cut -f1 <<<"${out}")" credit ls loft
+	out="$(admin "${b}" credit grant --billing-account "${billing}" --amount 2000 --reason contract --yes loft)"
+	expect "$(cut -f1 <<<"${out}")" credit ls loft
+	ask "credits-${ws1}" levyan.v1.WorkspaceService/GetPayer "{\"workspace\":\"${ws1}\"}" \
+		'[.payer.credits[] | {id, workspace, granted, left, currency, dateExpires}]'
 
-	# What its reconciliation found of all that, by a build that has it --
-	# the draft nothing decides, at least -- kept, and listed again by this
-	# one.
-	if has "${b}" reconcile run; then
-		admin "${b}" reconcile run >/dev/null
-		out="$(admin "${b}" reconcile ls --state all)"
-		if [ -n "${billing}" ] && ! grep -q $'\tdraft_stale\t' <<<"${out}"; then
-			fail "${log}" "levyan-admin reconcile run: the draft nothing collects on was not found"
-		fi
-		while read -r id; do
-			[ -z "${id}" ] || expect "${id}" reconcile ls --state all
-		done < <(cut -f1 <<<"${out}")
-	else
-		say "the build before has no \`reconcile run\`: nothing found to read again"
-	fi
+	# What its reconciliation found of all that -- the draft nothing decides,
+	# at least -- kept, and listed again by this one.
+	admin "${b}" reconcile run >/dev/null
+	out="$(admin "${b}" reconcile ls --state all)"
+	grep -q $'\tdraft_stale\t' <<<"${out}" ||
+		fail "${log}" "levyan-admin reconcile run: the draft nothing collects on was not found"
+	while read -r id; do
+		[ -z "${id}" ] || expect "${id}" reconcile ls --state all
+	done < <(cut -f1 <<<"${out}")
 
 	stop
 }
@@ -565,10 +497,6 @@ reread() {
 # being none -- and none failed of rows a build before wrote.
 reconcile() {
 	local out
-	if ! has "${now}" reconcile run; then
-		say "this build has no \`reconcile run\`"
-		return
-	fi
 	out="$(admin "${now}" reconcile run)"
 	if grep -q $'^check\t[a-z]*\tnot made' <<<"${out}"; then
 		fail "${log}" "levyan-admin reconcile run: a check could not be made of what the build before wrote"

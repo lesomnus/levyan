@@ -72,10 +72,22 @@ jobs:
       # .proto says, and requiring nothing of levyan's or of payday's.
       - name: the API's code matches its .proto
         run: scripts/api.sh --check
+      # Against the base of the pull request, when it is of this build's
+      # compatibility epoch (.github/compat-epoch, CLAUDE.md): until launch a
+      # change that breaks the API on purpose moves the epoch, and loft moves
+      # with it.
       - name: the API breaks nothing it promised
         if: github.event_name == 'pull_request'
         run: |
           git fetch --depth=1 origin "${GITHUB_BASE_REF}"
+          was="$({ git show FETCH_HEAD:.github/compat-epoch 2>/dev/null || echo 0; } | tr -d '[:space:]')"
+          now="$(tr -d '[:space:]' < .github/compat-epoch)"
+          if [ "${was}" != "${now}" ]; then
+            msg="The base, $(git rev-parse --short FETCH_HEAD), is of compatibility epoch ${was} and this build of ${now}, so the API is not held to what it was there: the epoch moved on purpose. Until launch nothing is kept for an earlier build (대표, 2026-11-09)."
+            echo "::notice title=Compatibility epoch::${msg}"
+            printf '%s\n\n' "${msg}" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
           scripts/api.sh --breaking FETCH_HEAD
       # What would go wrong before it does: a layer that cannot join a
       # transaction, a field that may hold a person and says nothing, ...
@@ -163,6 +175,14 @@ jobs:
   # from the build just before is one step, and a deployment that skipped some
   # takes several at once. What a build from before a feature does not have,
   # it is not asked to write.
+  #
+  # Neither of them when it is of another compatibility epoch than this build
+  # (.github/compat-epoch; a tree without one is of 0). Until launch nothing
+  # is kept for an earlier build (대표, 2026-11-09): a change that breaks what
+  # one stored, exported or was configured with moves the epoch rather than
+  # carrying a way from it. Such a build is neither built nor migrated, and
+  # the run says so; staging is made again from nothing, and OLDEST moves to
+  # the first build of the new epoch once staging runs it (CLAUDE.md).
   upgrade:
     runs-on: ubuntu-26.04
     steps:
@@ -189,6 +209,7 @@ jobs:
             go-${{ runner.os }}-${{ hashFiles('go.sum', 'api/go.sum') }}-
             go-${{ runner.os }}-
       - name: this build, the one it comes after, and the oldest a deployment runs
+        id: builds
         env:
           BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
           # The build staging runs, 3242dcf (#56, #57). It moves when staging
@@ -196,29 +217,51 @@ jobs:
           OLDEST: 3242dcf35600fecff6c964b2eb7738bee8741447
         run: |
           go build -o "${RUNNER_TEMP}/now/" ./cmd/levyan ./cmd/levyan-admin
-          # old NAME COMMIT: the build at COMMIT, its binaries in $RUNNER_TEMP/NAME.
+          now="$(tr -d '[:space:]' < .github/compat-epoch)"
+          case "${now}" in
+          '' | *[!0-9]*)
+            echo "::error file=.github/compat-epoch::the compatibility epoch is a whole number, not \"${now}\""
+            exit 1
+            ;;
+          esac
+          # old NAME COMMIT: the build at COMMIT, its binaries in
+          # $RUNNER_TEMP/NAME and NAME=built in this step's outputs -- or, of
+          # another compatibility epoch than this build's, nothing, and why.
           old() {
+            local was msg
+            git rev-parse --verify --quiet "$2^{commit}" >/dev/null || { echo "no commit $2" >&2; return 1; }
+            was="$({ git show "$2:.github/compat-epoch" 2>/dev/null || echo 0; } | tr -d '[:space:]')"
+            if [ "${was}" != "${now}" ]; then
+              msg="${1^^}, $(git rev-parse --short "$2"), is of compatibility epoch ${was} and this build of ${now}, so it is neither built nor migrated: the epoch moved on purpose. Until launch nothing is kept for an earlier build (대표, 2026-11-09), so staging is made again from nothing, and OLDEST moves to the first build of epoch ${now} once staging runs it."
+              echo "::notice title=Compatibility epoch::${msg}"
+              printf '%s\n\n' "${msg}" >> "${GITHUB_STEP_SUMMARY}"
+              return
+            fi
             git worktree add --detach "${RUNNER_TEMP}/$1-src" "$2"
             (cd "${RUNNER_TEMP}/$1-src" && go build -o "${RUNNER_TEMP}/$1/" ./cmd/levyan ./cmd/levyan-admin)
+            echo "$1=built" >> "${GITHUB_OUTPUT}"
           }
           old before "${BEFORE}"
           old oldest "${OLDEST}"
       - name: PostgreSQL is up
+        if: steps.builds.outputs.before == 'built' || steps.builds.outputs.oldest == 'built'
         run: |
           for _ in $(seq 1 60); do docker exec postgres pg_isready -h 127.0.0.1 -U levyan && exit 0; sleep 1; done
           docker logs postgres; exit 1
       - name: what the build before made, migrated by this one
+        if: steps.builds.outputs.before == 'built'
         env:
           UPGRADE_POSTGRES: postgres://levyan:levyan@localhost:5432/levyan_upgrade?sslmode=disable
         run: |
           docker exec postgres psql -U levyan -qc 'create database levyan_upgrade'
           scripts/upgrade.sh "${RUNNER_TEMP}/before" "${RUNNER_TEMP}/now"
       - name: what the oldest build a deployment runs made, migrated by this one
+        if: steps.builds.outputs.oldest == 'built'
         env:
           UPGRADE_POSTGRES: postgres://levyan:levyan@localhost:5432/levyan_upgrade?sslmode=disable
         run: |
-          # The step before made it, and wrote in it.
-          docker exec postgres psql -U levyan -qc 'drop database levyan_upgrade' -c 'create database levyan_upgrade'
+          # The step before made it and wrote in it, when it ran.
+          docker exec postgres psql -U levyan -qc 'drop database if exists levyan_upgrade' -c 'create database levyan_upgrade'
           scripts/upgrade.sh "${RUNNER_TEMP}/oldest" "${RUNNER_TEMP}/now"
 
   # What the Go vulnerability database says of the code this calls: a known

@@ -85,11 +85,22 @@ func Cmd(c *cmd.Config) *xli.Command {
 // all -- and an index it makes again, from every row, beside the old one. See
 // `rename`, and [columnRenames] for levyan's own.
 //
+// Before both, the tables of the entities the schema renamed and says it did
+// (`formerly`, `pd.TableRenames`): a table it does not find, a migration makes
+// again, empty, beside the one with the rows. levyan has renamed no entity, so
+// the list is empty, and the call is here for the day it does (payday#212,
+// payday's docs/migrating.md). First, because the other two look for a column
+// and an index on a table by the name it has now, and find nothing on one
+// still under its old name.
+//
 // And for the same reason an index this build declares that PostgreSQL left
 // invalid -- a build of it `CONCURRENTLY` that did not finish -- is refused
 // before anything is made: found by its name, it would be taken for made, and
 // read by nothing from then on. See `valid`.
 func Migrate(ctx context.Context, s *cmd.Server) error {
+	if err := rename.Tables(ctx, s.Db, s.Dialect, pd.TableRenames); err != nil {
+		return err
+	}
 	if err := rename.Columns(ctx, s.Db, s.Dialect, slices.Concat(pd.ColumnRenames, columnRenames)); err != nil {
 		return err
 	}

@@ -34,8 +34,9 @@ import (
 // what it wants -- its reads failed -- answers an error, and nothing of its
 // grants is ended for it: not knowing is not wanting nothing.
 type Rule interface {
-	// Name is what its grants say they come from: `payers.grace`. It never
-	// changes, since a grant of another name is another rule's.
+	// Name is what its grants say they come from: `payers.grace`. From
+	// launch it never changes, since a grant of another name is another
+	// rule's (CLAUDE.md, "Until launch").
 	Name() string
 
 	// Want is every grant the rule wants `product`'s workspaces to have at

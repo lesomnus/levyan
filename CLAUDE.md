@@ -39,7 +39,8 @@ Claude's; that `buf breaking` follows it too, the implementation's.
 
 From launch the epoch stays where it is, and the rules below that keep an
 earlier build's data or callers working apply, each saying so: the API's
-fields, a field added to an entity that has shipped, and `OLDEST`.
+fields, a field added to an entity that has shipped, a grants rule's name,
+and `OLDEST`.
 
 ## Regenerate after touching the schema
 
@@ -511,7 +512,8 @@ decides (payday#185). levyan is the source; the contract is payday's
   `--replace`) and a rule's (`grants.Rule`, the hook billing state plugs
   into: `cmd.Server.Grants.Rules`). A rule's grants are its own by its name:
   kept while wanted, given again when the value changes, ended when no longer
-  wanted, and never an operator's to end.
+  wanted, and never an operator's to end. From launch a rule's name never
+  changes, since a grant of another name is another rule's.
 
 ## Payers
 

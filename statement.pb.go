@@ -460,18 +460,13 @@ type Statement_builder struct {
 	Rating uint32
 	// Who paid for the workspace over the period, and with which billing
 	// account: the link in force through it, of which a period has one at most.
-	// Unset for a workspace with no payer, and on a statement written before
-	// payers were (#4).
+	// Unset for a workspace with no payer.
 	Payer          []byte
 	BillingAccount *BillingAccount
 	// Rated from the first unit: what its prices include was not this
 	// workspace's, which is none of its payer's first `payers.free`. Unset on a
-	// workspace whose allowances its prices include -- every workspace with no
-	// payer, and every statement written before payers were counted (#4).
-	//
-	// A column added to a table with rows in it (#4): defaulted, so that a
-	// statement written before it is unset, as it was. With no default,
-	// PostgreSQL refuses to add it (scripts/upgrade.sh).
+	// workspace whose allowances its prices include, every workspace with no
+	// payer among them.
 	FirstUnit bool
 }
 
@@ -870,14 +865,12 @@ type StatementLine_builder struct {
 	Unpriced []*StatementUnpriced
 	// What of `included` the workspace's allowances gave, on top of what its
 	// prices include, each part weighed by its share of the period (#43).
-	// Empty on a line no allowance was in force for, and on every line written
-	// before rating version 4.
+	// Empty on a line no allowance was in force for.
 	Allowance string
 	// What of `billable` the workspace's pools took (#43), and of which: what
 	// is priced is what is billable past it. For a correction, what the
 	// period it corrects takes now -- which is what each pool's draw of that
-	// period is from then on. Empty on a line no pool was taken from, and on
-	// every line written before rating version 5.
+	// period is from then on. Empty on a line no pool was taken from.
 	Pooled string
 	Pools  []*StatementPool
 }
@@ -1440,7 +1433,7 @@ var File_levyan_statement_proto protoreflect.FileDescriptor
 
 const file_levyan_statement_proto_rawDesc = "" +
 	"\n" +
-	"\x16levyan/statement.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/period.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xbe\t\n" +
+	"\x16levyan/statement.proto\x12\x06levyan\x1a\x1clevyan/billing_account.proto\x1a\x1alevyan/payday/tenant.proto\x1a\x13levyan/period.proto\x1a\x16levyan/workspace.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\torm.proto\x1a\fpayday.proto\"\xbb\t\n" +
 	"\tStatement\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12.\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0e.levyan.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x127\n" +
@@ -1460,9 +1453,9 @@ const file_levyan_statement_proto_rawDesc = "" +
 	"\x05exact\x18\x12 \x01(\tB\f\xea\x82\x16\x02@\x01\xaa\xc1\x16\x02\x18\x00R\x05exact\x12\x1e\n" +
 	"\x06rating\x18\x13 \x01(\rB\x06\xea\x82\x16\x02@\x01R\x06rating\x12&\n" +
 	"\x05payer\x18\x14 \x01(\fB\x10\xea\x82\x16\x06\x10@8\x01@\x01\xaa\xc1\x16\x02\x18\x00R\x05payer\x12I\n" +
-	"\x0fbilling_account\x18\x15 \x01(\v2\x16.levyan.BillingAccountB\b\xf2\x82\x16\x048\x01@\x01R\x0ebillingAccount\x12(\n" +
+	"\x0fbilling_account\x18\x15 \x01(\v2\x16.levyan.BillingAccountB\b\xf2\x82\x16\x048\x01@\x01R\x0ebillingAccount\x12%\n" +
 	"\n" +
-	"first_unit\x18\x16 \x01(\bB\t\xea\x82\x16\x05@\x01\x82\x01\x00R\tfirstUnit:\xdb\x02\xca\xfc\x15\xe0\x01\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a*\x12\x04page\x1a\n" +
+	"first_unit\x18\x16 \x01(\bB\x06\xea\x82\x16\x02@\x01R\tfirstUnit:\xdb\x02\xca\xfc\x15\xe0\x01\x12\a\x10\x01\x9a\x01\x02\b\x01\x1a*\x12\x04page\x1a\n" +
 	"\n" +
 	"\x06tenant\x10\x02\x1a\x0e\n" +
 	"\n" +

@@ -253,7 +253,6 @@ func (x *StatementAddRequest) SetBillingAccount(v *BillingAccountRef) {
 
 func (x *StatementAddRequest) SetFirstUnit(v bool) {
 	x.xxx_hidden_FirstUnit = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 16)
 }
 
 func (x *StatementAddRequest) HasId() bool {
@@ -326,13 +325,6 @@ func (x *StatementAddRequest) HasBillingAccount() bool {
 	return x.xxx_hidden_BillingAccount != nil
 }
 
-func (x *StatementAddRequest) HasFirstUnit() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
-}
-
 func (x *StatementAddRequest) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -375,11 +367,6 @@ func (x *StatementAddRequest) ClearBillingAccount() {
 	x.xxx_hidden_BillingAccount = nil
 }
 
-func (x *StatementAddRequest) ClearFirstUnit() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
-	x.xxx_hidden_FirstUnit = false
-}
-
 type StatementAddRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -398,7 +385,7 @@ type StatementAddRequest_builder struct {
 	Rating         uint32
 	Payer          []byte
 	BillingAccount *BillingAccountRef
-	FirstUnit      *bool
+	FirstUnit      bool
 }
 
 func (b0 StatementAddRequest_builder) Build() *StatementAddRequest {
@@ -426,10 +413,7 @@ func (b0 StatementAddRequest_builder) Build() *StatementAddRequest {
 		x.xxx_hidden_Payer = b.Payer
 	}
 	x.xxx_hidden_BillingAccount = b.BillingAccount
-	if b.FirstUnit != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 16)
-		x.xxx_hidden_FirstUnit = *b.FirstUnit
-	}
+	x.xxx_hidden_FirstUnit = b.FirstUnit
 	return m0
 }
 
@@ -1826,7 +1810,7 @@ var File_levyan_statement_svc_g_proto protoreflect.FileDescriptor
 
 const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x1clevyan/statement_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x19levyan/period_svc.g.proto\x1a\x16levyan/statement.proto\x1a\x1clevyan/workspace_svc.g.proto\x1a\x11patch/patch.proto\"\xa4\x05\n" +
+	"\x1clevyan/statement_svc.g.proto\x12\x06levyan\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"levyan/billing_account_svc.g.proto\x1a levyan/payday/tenant_svc.g.proto\x1a\x19levyan/period_svc.g.proto\x1a\x16levyan/statement.proto\x1a\x1clevyan/workspace_svc.g.proto\x1a\x11patch/patch.proto\"\xab\x05\n" +
 	"\x13StatementAddRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\fR\x02id\x12)\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x11.levyan.TenantRefR\x06tenant\x122\n" +
@@ -1844,9 +1828,9 @@ const file_levyan_statement_svc_g_proto_rawDesc = "" +
 	"\x05exact\x18\x12 \x01(\tB\x05\xaa\x01\x02\b\x02R\x05exact\x12\x1d\n" +
 	"\x06rating\x18\x13 \x01(\rB\x05\xaa\x01\x02\b\x02R\x06rating\x12\x14\n" +
 	"\x05payer\x18\x14 \x01(\fR\x05payer\x12B\n" +
-	"\x0fbilling_account\x18\x15 \x01(\v2\x19.levyan.BillingAccountRefR\x0ebillingAccount\x12\x1d\n" +
+	"\x0fbilling_account\x18\x15 \x01(\v2\x19.levyan.BillingAccountRefR\x0ebillingAccount\x12$\n" +
 	"\n" +
-	"first_unit\x18\x16 \x01(\bR\tfirstUnit\"n\n" +
+	"first_unit\x18\x16 \x01(\bB\x05\xaa\x01\x02\b\x02R\tfirstUnit\"n\n" +
 	"\x13StatementGetRequest\x12&\n" +
 	"\x03ref\x18\x01 \x01(\v2\x14.levyan.StatementRefR\x03ref\x12/\n" +
 	"\x06select\x18\x02 \x01(\v2\x17.levyan.StatementSelectR\x06select\"_\n" +

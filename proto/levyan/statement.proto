@@ -95,8 +95,7 @@ message Statement {
 
   // Who paid for the workspace over the period, and with which billing
   // account: the link in force through it, of which a period has one at most.
-  // Unset for a workspace with no payer, and on a statement written before
-  // payers were (#4).
+  // Unset for a workspace with no payer.
   bytes payer = 20 [
     (orm.field) = {
       type: TYPE_UUID
@@ -112,16 +111,9 @@ message Statement {
 
   // Rated from the first unit: what its prices include was not this
   // workspace's, which is none of its payer's first `payers.free`. Unset on a
-  // workspace whose allowances its prices include -- every workspace with no
-  // payer, and every statement written before payers were counted (#4).
-  //
-  // A column added to a table with rows in it (#4): defaulted, so that a
-  // statement written before it is unset, as it was. With no default,
-  // PostgreSQL refuses to add it (scripts/upgrade.sh).
-  bool first_unit = 22 [(orm.field) = {
-    immutable: true
-    default: ""
-  }];
+  // workspace whose allowances its prices include, every workspace with no
+  // payer among them.
+  bool first_unit = 22 [(orm.field) = {immutable: true}];
 
   option (orm.message) = {
     // Patch is generated though nothing here may change -- every field is
@@ -290,15 +282,13 @@ message StatementLine {
 
   // What of `included` the workspace's allowances gave, on top of what its
   // prices include, each part weighed by its share of the period (#43).
-  // Empty on a line no allowance was in force for, and on every line written
-  // before rating version 4.
+  // Empty on a line no allowance was in force for.
   string allowance = 15;
 
   // What of `billable` the workspace's pools took (#43), and of which: what
   // is priced is what is billable past it. For a correction, what the
   // period it corrects takes now -- which is what each pool's draw of that
-  // period is from then on. Empty on a line no pool was taken from, and on
-  // every line written before rating version 5.
+  // period is from then on. Empty on a line no pool was taken from.
   string pooled = 16;
   repeated StatementPool pools = 17;
 }

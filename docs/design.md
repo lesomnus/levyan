@@ -1252,7 +1252,7 @@ MoR 채널(`CHANNEL_MOR`)의 `invoices.Collector`다. 확정한 청구서의 금
   - 결과(`Outcome`)의 `Twice`가 시도에 표시를 남긴다.
 - **스키마**
   - `InvoiceState`에 `INVOICE_STATE_SHADOW`(7)를 더했다. API의 `InvoiceState`에도 같은 값이 있다(값마다 같다는 시험).
-  - `PaymentAttempt.date_twice`: 채널이 그 키의 결제를 원장이 아는 것보다 많이 가졌다는 것을 levyan이 안 때. 대조(#13)가 읽는 표시다. NULL을 허용하므로 이미 있는 행에도 더해진다. 끝난 시도에 쓸 수 있는 것은 이 표시와, 비어 있던 채널의 번호뿐이다(레이어).
+  - `PaymentAttempt.date_twice`: 채널이 그 키의 결제를 원장이 아는 것보다 많이 가졌다는 것을 levyan이 안 때. 대조(#13)가 읽는 표시다. 끝난 시도에 쓸 수 있는 것은 이 표시와, 비어 있던 채널의 번호뿐이다(레이어).
 - **`internal/mor`**: `Channel.Minimum`, `Transaction.InvoiceNumber`(Paddle의 `invoice_number`), `Failure.Decline`(`mor.Decline`, `pg.Decline`과 이름도 값도 같다, `mor.Kind`가 `pg.Kind`와 같듯이).
 - **지불자의 API**는 확정된 상태(OPEN, PAID, UNCOLLECTIBLE, VOID)를 이름으로 골라 읽는다. 그래서 그림자는 보이지 않고, 앞으로 더하는 상태도 그 목록에 넣기 전에는 보이지 않는다.
 - **운영자**: `levyan-admin invoice ls --state shadow`와 `invoice show`가 그림자를 보여 준다. 시도의 표시(`date_twice`)도 보여 준다.
@@ -1479,7 +1479,7 @@ levyan이 가진 것을 채널이 답하는 것과, 그리고 levyan 자신과 �
 #### 만든 것
 
 - **`Finding`**(domain 45, global): 종류, 대상(무엇에 관한 것인지, `PaymentAttempt/<id>`, `paddle.transaction/txn_…`), 심각도, 상태(OPEN, ACCEPTED, RESOLVED), 요약과 사실(facts), 관련된 행(`rows`: levyan의 엔티티와 id, 채널의 종류와 id), 금액과 통화, 바로잡는 길(`correction`), 해결된 때와 어떻게(`resolution`), 받아들인 이유(`reason`, `personal`)·때·운영자(`accepted_by`), 제품(있으면). (종류, 대상)이 unique다. Erase가 없다. 서버를 거쳐 쓰므로 trail에 남는다. 레이어(`reconcile.Layer`, 두 스택 모두)가 종류와 심각도, 처음 상태, 받아들일 때의 이유와 운영자를 지킨다.
-- **`PaymentAttempt.extra_of`, `refunds`**: 두 번 청구된 키의 남는 청구를 돌려주는 REFUND 시도가 무엇의 남는 결제(그 청구의 키)를 어느 거래(`refunds`)에서 돌려주는지. 정정 청구가 없다. 둘 다 기본값이 ""이라 이미 있는 행에 그대로 더해진다(CLAUDE.md, 15장).
+- **`PaymentAttempt.extra_of`, `refunds`**: 두 번 청구된 키의 남는 청구를 돌려주는 REFUND 시도가 무엇의 남는 결제(그 청구의 키)를 어느 거래(`refunds`)에서 돌려주는지. 정정 청구가 없다. 그 밖의 시도에서는 둘 다 비어 있다(기본값 "").
 - **`internal/mor`**: `Channel.Transactions`(Paddle의 `GET /transactions`, 조정과 함께, 오래된 것부터 30개씩, 구독 하나 또는 전체, 그 뒤에 바뀐 것)와 `Adjustment.Asked`(조정이 돌려준 것을 환불을 요청한 기준으로, 외부 세금 모드면 세전). 가짜는 `updated_at[GTE]`를 읽는다. 그리고 `Channel.Adjustments`(Paddle의 `GET /adjustments`, 새것부터 50개씩, 그 뒤에 만든 것, #39, 아래의 "창 밖 거래의 조정").
 - **`server/reconcile`**: `Reconciler`(검사, 쓰기, 바로잡기)와 루프. 검사와 그 종류는 아래 표다. 종류마다 심각도와 바로잡는 길이 하나다.
 

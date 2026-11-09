@@ -90,10 +90,6 @@ func init() {
 	// statementDescLines is the schema descriptor for lines field.
 	statementDescLines := statementFields[7].Descriptor()
 	statement.ValueScanner.Lines = statementDescLines.ValueScanner.(field.TypeValueScanner[*levyan.StatementLines])
-	// statementDescFirstUnit is the schema descriptor for first_unit field.
-	statementDescFirstUnit := statementFields[12].Descriptor()
-	// statement.DefaultFirstUnit holds the default value on creation for the first_unit field.
-	statement.DefaultFirstUnit = statementDescFirstUnit.Default.(bool)
 	tenantFields := schema.Tenant{}.Fields()
 	_ = tenantFields
 	// tenantDescZone is the schema descriptor for zone field.

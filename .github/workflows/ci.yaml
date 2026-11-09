@@ -213,10 +213,9 @@ jobs:
         id: builds
         env:
           BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          # The build staging runs, 0de431a: the first of compatibility epoch 1,
-          # which staging was made again from nothing on (2026-11-10). It moves
-          # when staging moves: to what staging runs once it runs it.
-          OLDEST: 0de431ac64c86626defcf768d2d5242825c571b4
+          # The build staging runs, f21ff09 (2026-11-10). It moves when staging
+          # moves: to what staging runs once it runs it.
+          OLDEST: f21ff09360ec3b79cea5abac986ec553887e30bf
         run: |
           go build -o "${RUNNER_TEMP}/now/" ./cmd/levyan ./cmd/levyan-admin
           now="$(tr -d '[:space:]' < .github/compat-epoch)"

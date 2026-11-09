@@ -133,12 +133,12 @@ merchant of record is written there too, and read back.
 
 What the seed needs a loop to have done, it drives: the operator's command
 that makes the loop's pass (`period close`, `invoice collect`, `reconcile
-run`), which is done when it answers -- never a wait on the loop's clock. A
-build too old for the command is said, and waited for. And never pipe a
-build's output, under `pipefail`, into what stops reading once it has its
-answer -- `grep -q`, `head`: the build is killed by SIGPIPE now and then,
-and the pipe says "no". Read it whole first. This is the implementation's
-rule (2026-11-02), after `reads` said so of a setting on CI (2026-11-01).
+run`), which is done when it answers -- never a wait on the loop's clock.
+And never pipe a build's output, under `pipefail`, into what stops reading
+once it has its answer -- `grep -q`, `head`: the build is killed by SIGPIPE
+now and then, and the pipe says "no". Read it whole first. This is the
+implementation's rule (2026-11-02), after `reads` said so of a setting on
+CI (2026-11-01).
 
 ```sh
 go build -o /tmp/now/ ./cmd/levyan ./cmd/levyan-admin

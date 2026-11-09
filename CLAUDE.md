@@ -34,8 +34,9 @@ another epoch: `upgrade` neither builds nor migrates the build before or
 `OLDEST` when it is of another, and `buf breaking` is not run against a base
 of another; each says so in a notice and passes. `OLDEST` moves to the first
 build of the new epoch once staging runs it. A change that breaks nothing
-leaves the epoch where it is, and `upgrade` holds it to that. The epoch is
-Claude's; that `buf breaking` follows it too, the implementation's.
+leaves the epoch where it is, and `upgrade` holds it to that. The epoch,
+and that `buf breaking` follows it too, are Claude's: a break meant before
+launch is said by moving the epoch.
 
 From launch the epoch stays where it is, and the rules below that keep an
 earlier build's data or callers working apply, each saying so: the API's

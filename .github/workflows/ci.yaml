@@ -409,6 +409,18 @@ jobs:
               exit 0
             fi
           fi
-          docker push ghcr.io/lesomnus/levyan:edge
+          # GHCR has refused a push with `permission_denied: write_package`
+          # right after a login that succeeded, and taken the same push on a
+          # rerun (loft's main, 2026-11-10, twice): asked again, not failed.
+          for attempt in 1 2 3; do
+            docker push ghcr.io/lesomnus/levyan:edge && break
+            if [ "${attempt}" = 3 ]; then
+              echo "::error::the push failed three times"
+              exit 1
+            fi
+            pause=$(( attempt == 1 ? 10 : 30 ))
+            echo "::warning::push attempt ${attempt} failed; trying again in ${pause}s"
+            sleep "${pause}"
+          done
           digest="$(docker inspect --format '{{index .RepoDigests 0}}' ghcr.io/lesomnus/levyan:edge)"
           echo "pushed \`${digest}\` (${{ github.sha }})" | tee -a "${GITHUB_STEP_SUMMARY}"

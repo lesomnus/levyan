@@ -8,9 +8,9 @@ modules:
       # `pd gen` hands them to protobuf-merge by path.
       - proto/ext
 deps:
-  # payday's own: the `(payday.entity)` option every entity carries, and the
-  # batch service. It is the `dev` label rather than a version because payday
-  # has no users yet -- pin a commit when it does.
+  # payday's own: the `(payday.entity)` option every entity carries. It is
+  # the `dev` label rather than a version because payday has no users yet --
+  # pin a commit when it does.
   - buf.build/payday/payday:dev
   - buf.build/orm/orm
   - buf.build/patch/patch

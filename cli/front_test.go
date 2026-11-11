@@ -5,12 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lesomnus/payday/pdpb"
 	"github.com/lesomnus/payday/pdtest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	levyan "github.com/lesomnus/levyan"
 	levyanv1 "github.com/lesomnus/levyan/api/levyan/v1"
@@ -169,14 +167,6 @@ func TestAProductCallsLevyanV1AndNothingElse(t *testing.T) {
 		Ref: levyantest.Ref(loft), Name: proto.String("free"),
 	}.Build())
 	x.Equal(codes.PermissionDenied, status.Code(err), "nor renames itself")
-
-	// Nor around the table by a batch, which is asked of each operation.
-	op, err := anypb.New(levyan.MeterListRequest_builder{}.Build())
-	x.NoError(err)
-	_, err = pdpb.NewBatchServiceClient(conn).Do(ctx, pdpb.BatchRequest_builder{
-		Ops: []*pdpb.Op{pdpb.Op_builder{Method: "/levyan.MeterService/List", Request: op}.Build()},
-	}.Build())
-	x.ErrCode(codes.PermissionDenied, err)
 }
 
 // A server is not served without a door: nothing that says who is calling,

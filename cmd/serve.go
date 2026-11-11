@@ -56,8 +56,9 @@ type Server struct {
 	Ent *ent.Client
 
 	// Drv is what the client was built on, kept because a transaction is begun
-	// on a driver and a `*ent.Client` does not hand out the one it holds. It is
-	// what `pd.Batch` puts a whole stack onto.
+	// on a driver and a `*ent.Client` does not hand out the one it holds: the
+	// ledger the API records a reading through begins its own on it, and
+	// `migrate` makes the schema on it.
 	Drv dialect.Driver
 
 	// Dialect is what that driver speaks, which `Open` worked out and nothing
@@ -605,20 +606,15 @@ func (s *Server) Grpc(ctx context.Context, c Config, opts ...grpc.ServerOption) 
 		r(g)
 	}
 
-	// The batch, with the same rules the chain above enforces, per operation.
-	guard := c.Server.Guard(s.Policy)
-	if b, err := pd.Batch(s.Walled, s.Drv, guard); err == nil {
-		pdpb.RegisterBatchServiceServer(g, b)
-
-		resources, err := pd.Resources(s.Walled, s.Drv, guard, s.Watch,
-			pd.ResourceProjector(s.Ent, pd.Wall(), guard))
-		if err != nil {
-			return nil, err
-		}
-		pdpb.RegisterResourceServiceServer(g, resources)
-	} else {
-		log.From(ctx).WarnContext(ctx, "no batch", slog.Any("err", err))
+	// What changed, as a stream, and each row of it held to what a call to
+	// read it would be: the guard is read off the configuration the chain
+	// above is built from rather than written out again, which is the only way
+	// the two stay in step.
+	resources, err := pd.Resources(s.Watch, pd.ResourceProjector(s.Ent, pd.Wall(), c.Server.Guard(s.Policy)))
+	if err != nil {
+		return nil, err
 	}
+	pdpb.RegisterResourceServiceServer(g, resources)
 
 	return g, nil
 }

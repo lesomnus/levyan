@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/lesomnus/payday/batch"
 	"github.com/lesomnus/payday/frame"
+	"github.com/lesomnus/payday/grpcx"
 	"github.com/lesomnus/payday/pdid"
 
 	levyan "github.com/lesomnus/levyan"
@@ -89,7 +89,7 @@ func as(ctx context.Context, method string) (context.Context, pdid.Id, pdid.Id, 
 		return nil, pdid.Nil, pdid.Nil, status.Error(codes.PermissionDenied, "an account's own, relayed by a product")
 	}
 
-	return batch.AsOp(ctx, method), f.Account, product, nil
+	return grpcx.AsMethod(ctx, method), f.Account, product, nil
 }
 
 // inProduct is `ctx` framed as the deployment within `product`'s tenant:

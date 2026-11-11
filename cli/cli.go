@@ -97,7 +97,9 @@ func Cmd(c *cmd.Config) *xli.Command {
 // And for the same reason an index this build declares that PostgreSQL left
 // invalid -- a build of it `CONCURRENTLY` that did not finish -- is refused
 // before anything is made: found by its name, it would be taken for made, and
-// read by nothing from then on. See `valid`.
+// read by nothing from then on. So is a column an earlier build declared and
+// this one does not, where it takes no row without a value: left where it is,
+// it refuses every row written to its table after (payday#228). See `valid`.
 func Migrate(ctx context.Context, s *cmd.Server) error {
 	if err := rename.Tables(ctx, s.Db, s.Dialect, pd.TableRenames); err != nil {
 		return err
@@ -109,6 +111,9 @@ func Migrate(ctx context.Context, s *cmd.Server) error {
 		return err
 	}
 	if err := valid.Indexes(ctx, s.Db, s.Dialect, entmigrate.Tables); err != nil {
+		return err
+	}
+	if err := valid.Columns(ctx, s.Db, s.Dialect, entmigrate.Tables); err != nil {
 		return err
 	}
 

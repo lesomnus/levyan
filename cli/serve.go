@@ -120,6 +120,13 @@ func NewCmdServe(c *cmd.Config) *xli.Command {
 				}
 			} else if err := entschema.Check(ctx, s.Db, s.Dialect, entmigrate.Tables); err != nil {
 				return err
+			} else if err := valid.Columns(ctx, s.Db, s.Dialect, entmigrate.Tables); err != nil {
+				// A column nothing writes that takes no row without a value
+				// is refused, where an invalid index below is served over: it
+				// is not a cost to every write but the end of every write to
+				// its table, and a server that starts on it fails in whichever
+				// handler writes there first (payday#228).
+				return err
 			} else if err := valid.Indexes(ctx, s.Db, s.Dialect, entmigrate.Tables); err != nil {
 				// An index PostgreSQL left invalid is said, and served over.
 				// It costs every write and the reads that wanted it, which is

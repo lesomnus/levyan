@@ -196,7 +196,7 @@ var (
 )
 ```
 
-Leave it out and **nothing fails until a transaction is opened** — a batch, or a
+Leave it out and **nothing fails until a transaction is opened** — a
 multi-write RPC — because `enttx.Rebind` asks at run time. `pd doctor` finds it.
 
 A rule about the row an `Add` writes goes on the server behind with
@@ -537,7 +537,7 @@ the account's own); a `Link` says who pays for a workspace from when to when.
   to roster's word now (`payers.Standing`, roster's `standing.Accounts.Held`)
   and refused while no roster is configured -- never served on nobody's
   word. Its methods are the API's `PayerService`, each served as the schema's
-  declaration of the same name (`proto/levyan/payer.proto`, `batch.AsOp`),
+  declaration of the same name (`proto/levyan/payer.proto`, `grpcx.AsMethod`),
   which is what payday holds an account's call to; a test keeps the two
   lists one. A new payer method is a method in both, and a call of
   `pd.AccountReads` naming the schema's constant in its handler.

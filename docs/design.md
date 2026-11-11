@@ -845,7 +845,7 @@ MoR 수금기(15장의 "MoR 수금기")가 이 연결에서 쓴 것이다.
   - payday의 Holder에 `account` 필드를 더했다(overlay). levyan의 holder는 누구의 구성원도 아니지만, payday가 계정 frame을 만들 때 이 선언을 읽는다(`option (payday.app) = {accounts: ...}`).
 - **제품의 호출**(`levyan.v1.WorkspaceService`): `Arrive`(만든 사람이 만든 때부터 낸다. 다시 불러도 같다. `date_created`로 levyan이 듣기 전에 만든 워크스페이스도 만든 날부터 셀 수 있다), `Leave`(떠난 계정은 지금부터 내지 않고, 그 계정에게 한 제안은 거둔다), `Offer`(앞의 제안은 거둔다), `GetPayer`(지금과 다음의 지불자, 열린 제안, 지불자 없는 때와 제한되는 때와 읽기 전용이 되는 때). 닫힘·복원·파기(`Close`, `Restore`, `Destroy`, `GetLifecycle`)는 아래 생애 사건에 있다.
 - **지불자의 호출**(`levyan.v1.PayerService`): 결제 계정 목록·만들기·고치기, 받은 제안 목록, 받아들이기·거절하기, 내는 워크스페이스 목록, 다른 결제 계정 쓰기(`Use`), 그만 내기(`Stop`).
-  - 스키마에 같은 이름의 `levyan.PayerService`를 선언하고 메서드마다 `(payday.method) = {account: {}}`를 달았다(`proto/levyan/payer.proto`). 이것은 선언이고 서빙하지 않는다. API의 메서드는 같은 이름의 스키마 메서드로 서빙된다(`batch.AsOp`). 시험이 두 목록을 서로 맞춘다.
+  - 스키마에 같은 이름의 `levyan.PayerService`를 선언하고 메서드마다 `(payday.method) = {account: {}}`를 달았다(`proto/levyan/payer.proto`). 이것은 선언이고 서빙하지 않는다. API의 메서드는 같은 이름의 스키마 메서드로 서빙된다(`grpcx.AsMethod`). 시험이 두 목록을 서로 맞춘다.
   - 결제 계정은 계정 frame으로 wall이 있는 스택을 거쳐 읽고 쓴다. 읽는 것은 자기 결제 계정뿐이라고 선언한다(`pd.AccountReads`). trail의 actor는 그 계정이다.
   - 제품 tenant 안에 쓰는 것(연결, 제안의 답)은 ent로 그 제품과 그 계정의 것만 읽어 확인한 뒤, 그 제품 tenant 안의 deployment로서 wall이 있는 스택으로 쓴다(payday 계정 가이드의 "What it writes").
 - **대신 부르기**(`server/relay`): 제품 키 + `levyan-account` → 계정 frame. frame의 행은 대신 보낸 키다. 그래서 어느 제품의 워크스페이스인지는 그 키의 제품이다. 매 호출마다 roster에 계정의 상태를 묻는다(`standing.Accounts.Held`, 30초 동안 믿는다). 정지·삭제·닫힌 디렉터리는 PermissionDenied, roster에 물을 수 없으면 Unavailable, roster가 설정되지 않았으면 FailedPrecondition이다. 지불자 메서드가 아닌 것은 PermissionDenied다. 로그에 어느 키가 어느 계정을 대신했는지 남긴다. 운영자 바이너리는 이 패키지를 링크하지 않는다.

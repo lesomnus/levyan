@@ -13,7 +13,7 @@
 #
 # The patch release, named: the standard library is linked into the binary,
 # so its fixes arrive only by building with the release that has them.
-FROM golang:1.27.3-bookworm AS go
+FROM golang:1.27.4-bookworm AS go
 ARG VERSION=
 WORKDIR /src
 # The API is a module of its own that this one replaces with its directory

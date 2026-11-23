@@ -28,7 +28,7 @@ tool (
 
 require (
 	github.com/lesomnus/levyan/api v0.0.0-00010101000000-000000000000
-	github.com/lesomnus/mkot/otlp v0.0.0-20261109051210-adf1656dc93b
+	github.com/lesomnus/mkot/otlp v0.0.0-20261116004612-c43b84a5367d
 	github.com/lesomnus/otx v0.0.0-20261017184159-4cba7a26b155
 	github.com/lesomnus/payday v0.0.0-20261111104036-eb198c8243d2
 	github.com/lesomnus/protobuf-patch v0.0.0-20260907061053-07bbf2b842da
@@ -85,7 +85,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lesomnus/flob v0.0.0-20261010120939-21f89e60609e // indirect
-	github.com/lesomnus/mkot v0.0.0-20261102031530-c2e07a0dfebd // indirect
+	github.com/lesomnus/mkot v0.0.0-20261109051210-adf1656dc93b // indirect
 	github.com/lesomnus/mkot/mkotx v0.0.0-20261013182918-46d8b05a79b3 // indirect
 	github.com/lesomnus/mkot/pretty v0.0.0-20261013182918-46d8b05a79b3 // indirect
 	github.com/lesomnus/otx/otxgrpc v0.0.0-20261017184159-4cba7a26b155 // indirect
@@ -124,7 +124,7 @@ require (
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/oauth2 v0.37.0 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
